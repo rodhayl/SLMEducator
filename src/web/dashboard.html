@@ -1,0 +1,1938 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - SLM Educator</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/main.css">
+    <script src="/static/js/theme.js"></script>
+    <script src="/static/js/i18n.js"></script>
+    <script src="/static/js/toast.js"></script>
+</head>
+
+<body>
+    <div class="app-container">
+        <div id="sidebar-backdrop" class="sidebar-backdrop"></div>
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="brand">SLM Educator</div>
+            </div>
+
+            <!-- Navigation Tabs -->
+            <ul class="nav nav-pills flex-column mb-4" id="dashboardTabs">
+                <li class="nav-item active" data-view="overview">
+                    <a href="javascript:void(0)" class="nav-link" data-i18n="navigation.dashboard">Overview</a>
+                </li>
+                <li class="nav-item" data-view="inbox">
+                    <a href="javascript:void(0)" class="nav-link"><span data-i18n="navigation.inbox">Inbox</span> <span
+                            id="inbox-unread-badge" class="badge bg-danger ms-1" style="display: none;">0</span></a>
+                </li>
+                <li class="nav-item" data-view="library">
+                    <a href="javascript:void(0)" class="nav-link" data-i18n="navigation.my_learning">My Library</a>
+                </li>
+                <li class="nav-item" data-view="assessments">
+                    <a href="javascript:void(0)" class="nav-link" data-i18n="navigation.assessments">Assessments</a>
+                </li>
+                <li class="nav-item" id="nav-grading" data-view="grading" data-role="teacher">
+                    <a href="javascript:void(0)" class="nav-link" data-i18n="navigation.grading">Grading</a>
+                </li>
+                <li class="nav-item" id="nav-students" data-view="students" data-role="teacher">
+                    <a href="javascript:void(0)" class="nav-link" data-i18n="navigation.students">Students</a>
+                </li>
+                <li class="nav-item" id="nav-teachers" data-view="teachers" data-role="admin">
+                    <a href="javascript:void(0)" class="nav-link" data-i18n="common.roles.teachers">Teachers</a>
+                </li>
+                <li class="nav-item" id="nav-admins" data-view="admins" data-role="admin">
+                    <a href="javascript:void(0)" class="nav-link">Administradores</a>
+                </li>
+                <li class="nav-item" data-view="leaderboard">
+                    <a href="javascript:void(0)" class="nav-link" data-i18n="navigation.leaderboard">Leaderboard</a>
+                </li>
+                <li class="nav-item" id="nav-help-queue" data-view="help-queue">
+                    <a href="javascript:void(0)" class="nav-link" data-i18n="navigation.help_queue">Help Queue</a>
+                </li>
+                <li class="nav-item" id="nav-create" data-view="create" data-role="teacher">
+                    <a href="javascript:void(0)" class="nav-link" data-i18n="navigation.create_content">Create
+                        Content</a>
+                </li>
+                <li class="nav-item" data-view="tutor">
+                    <a href="javascript:void(0)" class="nav-link" data-i18n="navigation.ai_tutor">AI Tutor</a>
+                </li>
+                <!-- Profile removed (duplicate) -->
+                <li class="nav-item" data-view="settings" data-settings-tab="profile">
+                    <a href="javascript:void(0)" class="nav-link" data-i18n="navigation.settings">Settings</a>
+                </li>
+            </ul>
+
+            <div class="user-profile">
+                <div id="user-name-display" class="user-name-display">User</div>
+                <button id="logout-btn" onclick="AuthService.logout()" class="btn btn-outline-danger w-100 btn-sm"
+                    data-i18n="navigation.signout">Log
+                    Out</button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="mobile-topbar">
+                <button id="sidebar-toggle" class="btn btn-outline-secondary btn-sm" aria-label="Toggle menu"
+                    data-i18n="navigation.menu">Menu</button>
+                <span class="mobile-title">SLM Educator</span>
+            </div>
+            <!-- OVERVIEW VIEW -->
+            <div id="view-overview" class="view-section">
+                <div id="overview-section">
+                    <h2 class="page-header" data-i18n="dashboard.overview_title">📊 Overview</h2>
+                    <div class="row mb-3" id="stats-grid">
+                        <div class="col-md-3">
+                            <div class="card text-center p-2">
+                                <h4 id="stat-active-students">0</h4>
+                                <small data-i18n="dashboard.stats.active_students">Active Students</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-center p-2">
+                                <h4 id="stat-assessments-created">0</h4>
+                                <small data-i18n="dashboard.stats.assessments_created">Assessments Created</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-center p-2">
+                                <h4 id="stat-average-score">0%</h4>
+                                <small data-i18n="dashboard.stats.average_score">Average Score</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-center p-2">
+                                <h4 id="stat-total-content">0</h4>
+                                <small data-i18n="dashboard.stats.total_content">Total Content</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-center p-2">
+                                <h4 id="stat-total-study-time">0</h4>
+                                <small data-i18n="dashboard.stats.total_study_time">Total Study Time</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-center p-2">
+                                <h4 id="stat-completed-lessons">0</h4>
+                                <small data-i18n="dashboard.stats.completed_lessons">Completed Lessons</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Continue Learning Card (for students with active study plans) -->
+                    <div id="continue-learning-card" class="card mb-4 border-success" style="display: none;">
+                        <div
+                            class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0" data-i18n="dashboard.continue_learning">📚 Continue Learning</h5>
+                            <span id="continue-plan-title" class="badge bg-elevated text-body"></span>
+                        </div>
+                        <div class="card-body">
+                            <!-- Progress Timeline -->
+                            <div id="progress-timeline" class="d-flex align-items-center mb-3 overflow-auto">
+                                <!-- Timeline nodes rendered by JS -->
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong id="continue-next-title"
+                                        data-i18n="common.labels.loading">Loading...</strong>
+                                    <br>
+                                    <small class="text-muted" id="continue-progress-text">0 of 0 completed</small>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-success" id="continue-btn" onclick="continueStudyPlan()"
+                                        data-i18n="common.buttons.continue">
+                                        ▶️ Continue
+                                    </button>
+                                    <button class="btn btn-outline-secondary btn-sm" onclick="viewStudyPlanTree()"
+                                        data-i18n="common.buttons.view_all">
+                                        📋 View All
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Mastery / Due for Review Widget -->
+                    <div class="card mt-4" id="mastery-container">
+                        <div
+                            class="card-header bg-primary text-light d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0" data-i18n="dashboard.mastery_title">🧠 Mastery & Spaced Repetition</h5>
+                            <button class="btn btn-sm btn-light" onclick="startReviewSession()"
+                                data-i18n="dashboard.buttons.start_review">Start Review
+                                Session</button>
+                        </div>
+                        <div class="card-body">
+                            <div class="row text-center">
+                                <div class="col-md-3">
+                                    <h3 id="mastery-due-count">0</h3>
+                                    <small data-i18n="dashboard.stats.due_for_review">Due for Review</small>
+                                </div>
+                                <div class="col-md-3">
+                                    <h3 id="mastery-avg">0%</h3>
+                                    <small data-i18n="dashboard.mastery.avg_mastery">Avg Mastery</small>
+                                </div>
+                                <div class="col-md-3">
+                                    <h3 id="mastery-mastered">0</h3>
+                                    <small data-i18n="dashboard.mastery.mastered_items">Mastered Items</small>
+                                </div>
+                                <div class="col-md-3">
+                                    <h3 id="mastery-progress">0</h3>
+                                    <small data-i18n="dashboard.mastery.in_progress">In Progress</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Gamification Progress Card -->
+                    <div class="card mt-4" id="gamification-card">
+                        <div
+                            class="card-header bg-primary text-light d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0" data-i18n="dashboard.gamification.title">🎮 Your Progress</h5>
+                            <span id="gam-level-badge" class="badge bg-warning text-body">Level 1</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="row text-center">
+                                <div class="col-md-3">
+                                    <h3 id="gam-xp">0</h3>
+                                    <small data-i18n="dashboard.gamification.stats.xp">Total XP</small>
+                                </div>
+                                <div class="col-md-3">
+                                    <h3 id="gam-streak">0</h3>
+                                    <small data-i18n="dashboard.gamification.stats.streak">🔥 Day Streak</small>
+                                </div>
+                                <div class="col-md-3">
+                                    <h3 id="gam-longest-streak">0</h3>
+                                    <small data-i18n="dashboard.gamification.stats.best_streak">🏆 Best Streak</small>
+                                </div>
+                                <div class="col-md-3">
+                                    <h3 id="gam-badges">0</h3>
+                                    <small data-i18n="dashboard.gamification.stats.badges">🎖️ Badges</small>
+                                </div>
+                            </div>
+                            <!-- Daily Goal Progress -->
+                            <div class="mt-3 p-3 bg-elevated rounded border" id="daily-goal-section">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <strong data-i18n="dashboard.gamification.daily_goal">📅 Today's Goal</strong>
+                                    <button class="btn btn-sm btn-outline-primary" onclick="openDailyGoalModal()"
+                                        data-i18n="dashboard.gamification.set_goal">Set
+                                        Goal</button>
+                                </div>
+                                <div class="progress" style="height: 10px;">
+                                    <div id="daily-goal-progress" class="progress-bar bg-success" role="progressbar"
+                                        style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                                    </div>
+                                </div>
+                                <div class="text-center mt-1">
+                                    <small id="daily-goal-text" class="text-muted">No
+                                        goal set</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <h5 data-i18n="dashboard.recent_activity.title">Recent Activity</h5>
+                        <div id="activity-list">Loading...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- LIBRARY VIEW -->
+            <div id="view-library" class="view-section hidden">
+                <div id="library-section">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h2 data-i18n="content.library.title">📚 My Library</h2>
+                        <div class="d-flex gap-2 align-items-center">
+                            <!-- View Toggle Buttons -->
+                            <div class="btn-group btn-group-sm me-2" role="group" aria-label="View toggle">
+                                <button type="button" class="btn btn-outline-secondary active" id="view-flat-btn"
+                                    onclick="toggleLibraryView('flat')" title="Flat List View"
+                                    data-i18n="content.library.view.flat">
+                                    📋 Flat
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" id="view-tree-btn"
+                                    onclick="toggleLibraryView('tree')" title="Hierarchical Tree View"
+                                    data-i18n="content.library.view.tree">
+                                    🌳 Tree
+                                </button>
+                            </div>
+                            <select id="library-filter-type" class="form-select form-select-sm filter-select"
+                                onchange="loadLibrary()" aria-label="Content type filter">
+                                <option value="" data-i18n="content.library.filters.all">All Types</option>
+                                <option value="lesson" data-i18n="common.types.lesson">Lesson</option>
+                                <option value="exercise" data-i18n="common.types.exercise">Exercise</option>
+                                <option value="assessment" data-i18n="common.types.assessment">Assessment</option>
+                                <option value="qa" data-i18n="common.types.qa">Q&amp;A</option>
+                                <option value="qa_shared" id="library-filter-qa-shared"
+                                    data-i18n="common.types.qa_shared">Shared Q&amp;A</option>
+                            </select>
+                            <input type="text" id="content-search" class="form-control form-control-sm"
+                                placeholder="Search content..."
+                                data-i18n-placeholder="content.library.search_placeholder"
+                                style="width: 200px; display: inline-block;" aria-label="Search content">
+                            <button class="btn btn-primary btn-sm" id="student-qa-btn" onclick="openStudentQAModal()"
+                                data-i18n="content.library.buttons.new_question">
+                                + New Question
+                            </button>
+                            <button class="btn btn-success btn-sm" id="library-create-btn"
+                                onclick="document.querySelector('[data-view=create]').click()"
+                                data-i18n="content.library.buttons.create_new">
+                                + Create New
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Content Stats -->
+                    <div class="row mb-3" id="library-stats">
+                        <div class="col-md-3">
+                            <div class="card text-center p-2">
+                                <h4 id="lib-total">0</h4>
+                                <small data-i18n="content.library.stats.total_items">Total Items</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-center p-2">
+                                <h4 id="lib-lessons">0</h4>
+                                <small data-i18n="content.library.stats.lessons">Lessons</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-center p-2">
+                                <h4 id="lib-exercises">0</h4>
+                                <small data-i18n="content.library.stats.exercises">Exercises</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-center p-2">
+                                <h4 id="lib-assessments">0</h4>
+                                <small data-i18n="content.library.stats.assessments">Assessments</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Library Tree View -->
+                    <div id="library-tree" class="mb-3" style="display: none;">
+                        <div class="tree-container border rounded p-3">
+                            <div id="library-tree-root" class="tree-root">
+                                <!-- Tree nodes populated by JS -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Content Grid -->
+                    <div id="library-content-list" class="row g-3">
+                        <div class="empty-state" id="library-empty">
+                            <h4 data-i18n="content.library.empty_state.title">📭 No content yet</h4>
+                            <p data-i18n="content.library.empty_state.text">Start creating lessons, exercises, and
+                                assessments!</p>
+                            <button class="btn btn-primary"
+                                onclick="document.querySelector('[data-view=create]').click()"
+                                data-i18n="content.library.empty_state.button">
+                                Create Your First Content
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Content View Modal -->
+            <div class="modal fade" id="contentViewModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="content-view-title" data-i18n="content.viewer.title_details">
+                                Content Details</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <span class="badge bg-primary" id="content-view-type">Lesson</span>
+                                <span class="badge bg-secondary" id="content-view-difficulty"
+                                    data-i18n-formatted="common.labels.difficulty_level">Difficulty: 1</span>
+                                <span class="text-muted float-end" id="content-view-date">Created: --</span>
+                            </div>
+                            <div id="content-view-body" class="p-3 bg-elevated rounded content-preview"
+                                data-i18n="common.labels.loading">
+                                Loading...
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-primary"
+                                onclick="startSession(window.currentContentId)" data-i18n="content.viewer.button_start">
+                                📖 Start Learning Session
+                            </button>
+                            <button type="button" class="btn btn-outline-warning"
+                                onclick="editContent(window.currentContentId)" data-i18n="common.buttons.edit">
+                                ✏️ Edit
+                            </button>
+                            <button type="button" class="btn btn-outline-danger"
+                                onclick="deleteContent(window.currentContentId)" data-i18n="common.buttons.delete">
+                                🗑️ Delete
+                            </button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"
+                                data-i18n="common.buttons.close">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Student Q&A Modal -->
+            <div class="modal fade" id="qaCreateModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" data-i18n="content.qa.new_title">New Question</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label class="form-label" for="qa-title"
+                                    data-i18n="content.editor.title_label">Title</label>
+                                <input type="text" class="form-control" id="qa-title"
+                                    placeholder="e.g., Question about limits"
+                                    data-i18n-placeholder="content.qa.title_placeholder">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label" for="qa-question"
+                                    data-i18n="content.qa.question_label">Question</label>
+                                <textarea class="form-control" id="qa-question" rows="4"
+                                    placeholder="What are you stuck on?"
+                                    data-i18n-placeholder="content.qa.question_placeholder"></textarea>
+                            </div>
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="qa-share" checked>
+                                <label class="form-check-label" for="qa-share" data-i18n="content.qa.share_label">
+                                    Share with my teacher
+                                </label>
+                            </div>
+                            <!-- AI Answer Section -->
+                            <div id="qa-ai-answer" class="hidden">
+                                <hr>
+                                <h6 class="text-primary" data-i18n="content.qa.ai_answer_title">🤖 AI Answer</h6>
+                                <div id="qa-ai-answer-content" class="bg-elevated p-3 rounded border">
+                                    <!-- AI answer will appear here -->
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-info" id="qa-ask-ai-btn" onclick="askAIForAnswer()"
+                                data-i18n="content.qa.button_ask_ai">
+                                🤖 Ask AI
+                            </button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"
+                                data-i18n="common.buttons.cancel">Cancel</button>
+                            <button type="button" class="btn btn-primary" onclick="saveStudentQA()"
+                                data-i18n="common.buttons.save">Save</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Content Edit Modal -->
+            <div class="modal fade" id="contentEditModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" data-i18n="content.editor.title_edit">Edit Content</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="edit-content-form">
+                                <input type="hidden" id="edit-content-id">
+                                <div class="mb-3">
+                                    <label class="form-label" for="edit-content-title"
+                                        data-i18n="content.editor.title_label">Title</label>
+                                    <input type="text" class="form-control" id="edit-content-title" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label" for="edit-content-type"
+                                        data-i18n="content.editor.type_label">Type</label>
+                                    <select class="form-select" id="edit-content-type" disabled>
+                                        <option value="lesson" data-i18n="common.types.lesson">Lesson</option>
+                                        <option value="exercise" data-i18n="common.types.exercise">Exercise</option>
+                                        <option value="assessment" data-i18n="common.types.assessment">Assessment
+                                        </option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label" for="edit-content-difficulty"
+                                        data-i18n="content.editor.difficulty_label">Difficulty
+                                        (1-5)</label>
+                                    <input type="number" class="form-control" id="edit-content-difficulty" min="1"
+                                        max="5" value="1">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label" for="edit-content-body"
+                                        data-i18n="content.editor.content_label">Content</label>
+                                    <textarea class="form-control" id="edit-content-body" rows="10" required></textarea>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"
+                                data-i18n="common.buttons.cancel">Cancel</button>
+                            <button type="button" class="btn btn-primary" onclick="saveContentEdit()"
+                                data-i18n="common.buttons.save_changes">Save
+                                Changes</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- INBOX VIEW -->
+            <div id="view-inbox" class="view-section hidden">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h2 class="page-header mb-0" data-i18n="inbox.title">📥 Messages</h2>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#composeModal"
+                        data-i18n="inbox.button_compose">Compose
+                        Message</button>
+                </div>
+
+                <!-- Inbox Tabs -->
+                <div class="tabs mb-3">
+                    <div class="tab active" data-inbox-folder="inbox" onclick="loadInboxFolder('inbox', this)"
+                        data-i18n="inbox.tabs.inbox">📥
+                        Inbox
+                    </div>
+                    <div class="tab" data-inbox-folder="sent" onclick="loadInboxFolder('sent', this)"
+                        data-i18n="inbox.tabs.sent">📤 Sent</div>
+                    <div class="tab" data-inbox-folder="archived" onclick="loadInboxFolder('archived', this)"
+                        data-i18n="inbox.tabs.archived">📁
+                        Archived</div>
+                </div>
+
+                <!-- Inbox Search and Bulk Actions Bar -->
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-3" id="inbox-bulk-actions">
+                    <div class="input-group" style="max-width: 300px;">
+                        <input type="text" class="form-control form-control-sm" id="inbox-search-input"
+                            placeholder="Search messages..." data-i18n-placeholder="inbox.search_placeholder"
+                            onkeyup="filterInboxMessages(this.value)" aria-label="Search messages">
+                        <button class="btn btn-outline-secondary btn-sm"
+                            onclick="filterInboxMessages(document.getElementById('inbox-search-input').value)"
+                            aria-label="Search inbox messages">
+                            🔍
+                        </button>
+                    </div>
+                    <div class="form-check ms-2">
+                        <input class="form-check-input" type="checkbox" id="inbox-select-all"
+                            onchange="toggleSelectAllMessages(this)">
+                        <label class="form-check-label small" for="inbox-select-all"
+                            data-i18n="inbox.bulk.select_all">Select All</label>
+                    </div>
+                    <span class="badge bg-secondary" id="inbox-selected-count">0 selected</span>
+                    <button class="btn btn-sm btn-warning" onclick="bulkArchiveMessages()" id="bulk-archive-btn"
+                        disabled data-i18n="inbox.bulk.archive_selected">📁 Archive</button>
+                    <button class="btn btn-sm btn-danger" onclick="bulkDeleteMessages()" id="bulk-delete-btn" disabled
+                        data-i18n="inbox.bulk.delete_selected">🗑️ Delete</button>
+                </div>
+
+                <div class="card">
+                    <div class="list-group list-group-flush" id="inbox-list">
+                        <!-- Messages loaded via JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- GRADING VIEW -->
+            <div id="view-grading" class="view-section hidden">
+                <h2 class="page-header" data-i18n="grading.title">✅ Grading Queue</h2>
+
+                <!-- Filter Tabs -->
+                <div class="tabs mb-3" id="grading-filter-tabs">
+                    <div class="tab active" data-grading-filter="all" onclick="filterGradingQueue('all', this)"
+                        data-i18n="grading.filters.all">📋 All</div>
+                    <div class="tab" data-grading-filter="pending" onclick="filterGradingQueue('pending', this)"
+                        data-i18n="grading.filters.pending">⏳ Pending</div>
+                    <div class="tab" data-grading-filter="graded" onclick="filterGradingQueue('graded', this)"
+                        data-i18n="grading.filters.graded">✅ Graded</div>
+                </div>
+
+                <div id="grading-list" class="card-grid">
+                    <!-- Submissions loaded via JS -->
+                    <p class="text-muted" data-i18n="grading.empty_state">No pending submissions.</p>
+                </div>
+            </div>
+
+            <!-- ASSESSMENTS VIEW -->
+            <div id="view-assessments" class="view-section hidden">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h2 class="page-header mb-0" data-i18n="assessments.title">📝 Assessments</h2>
+                    <a href="assessment_builder.html" class="btn btn-success"
+                        data-i18n="assessments.button_create">Create New Assessment</a>
+                </div>
+                <div id="assessment-list">
+                    <!-- Loaded via assessment.js -->
+                </div>
+            </div>
+
+            <!-- CREATE VIEW -->
+            <div id="view-create" class="view-section hidden">
+                <h2 class="page-header" data-i18n="create.title">➕ Create Content</h2>
+
+                <div class="card mb-4">
+                    <a href="study_plan_builder.html" class="card-body d-flex align-items-center text-decoration-none">
+                        <div class="me-3 text-primary" style="font-size: 2rem;">📐</div>
+                        <div>
+                            <h5 class="mb-1 text-primary" data-i18n="create.manual_builder.title">Open Manual Study
+                                Plan Builder</h5>
+                            <small class="text-muted" data-i18n="create.manual_builder.description">Create
+                                multi-phase study plans with drag-and-drop</small>
+                        </div>
+                        <div class="ms-auto text-muted">→</div>
+                    </a>
+                </div>
+
+                <div class="tabs">
+                    <div class="tab active" data-tab="ai-content" data-i18n="create.tabs.ai_generator">🤖 AI Content
+                        Generator</div>
+                    <div class="tab" data-tab="manual" data-i18n="create.tabs.manual_entry">📝 Manual Entry</div>
+                </div>
+
+
+                <!-- AI Content Generator Form (Unified Content Creation) -->
+                <form id="create-ai-content-form" class="tab-content">
+                    <div class="alert alert-info d-flex justify-content-between align-items-center mb-3">
+                        <span data-i18n="create.ai.alert_text">🚀 Want to generate a full course from a PDF or
+                            outline?</span>
+                        <a href="/course_designer.html" class="btn btn-sm btn-light fw-bold border"
+                            data-i18n="create.ai.button_wizard">Open Course
+                            Designer
+                            Wizard</a>
+                    </div>
+
+                    <!-- STEP 0: Generation Mode Selector -->
+                    <div class="card mb-3 border-primary">
+                        <div class="card-header bg-dark text-white">
+                            <strong data-i18n="create.ai.mode_selector.title">🎯 What do you want to
+                                create?</strong>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="generation_mode"
+                                            id="mode-study-plan" value="study_plan" onchange="toggleGenerationMode()">
+                                        <label class="form-check-label fw-bold" for="mode-study-plan">
+                                            <span data-i18n="create.ai.modes.study_plan.label">📋 Study Plan</span>
+                                            <small class="d-block text-muted"
+                                                data-i18n="create.ai.modes.study_plan.desc">Multi-phase curriculum
+                                                with
+                                                topics</small>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="generation_mode"
+                                            id="mode-topic" value="topic" checked onchange="toggleGenerationMode()">
+                                        <label class="form-check-label fw-bold" for="mode-topic">
+                                            <span data-i18n="create.ai.modes.topic.label">📚 Topic Package</span>
+                                            <small class="d-block text-muted"
+                                                data-i18n="create.ai.modes.topic.desc">Lesson + exercises +
+                                                assessment</small>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="generation_mode"
+                                            id="mode-exercise" value="exercise" onchange="toggleGenerationMode()">
+                                        <label class="form-check-label fw-bold" for="mode-exercise">
+                                            <span data-i18n="create.ai.modes.exercise.label">🏋️ Single
+                                                Exercise</span>
+                                            <small class="d-block text-muted"
+                                                data-i18n="create.ai.modes.exercise.desc">Quick practice
+                                                problem</small>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- STUDY PLAN MODE FIELDS -->
+                    <div id="study-plan-mode-fields" class="hidden">
+                        <div class="card mb-3">
+                            <div class="card-header bg-primary text-white">
+                                <strong data-i18n="create.ai.study_plan.title">📋 Study Plan Details</strong>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label class="form-label"
+                                                data-i18n="create.ai.study_plan.subject">Subject</label>
+                                            <input type="text" class="form-control" name="plan_subject"
+                                                placeholder="e.g. Biology, Mathematics"
+                                                data-i18n-placeholder="create.ai.study_plan.subject_placeholder"
+                                                aria-label="Study plan subject">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="form-group">
+                                            <label class="form-label">Grade Level</label>
+                                            <select name="plan_grade_level" class="form-select"
+                                                aria-label="Study plan grade level">
+                                                <option value="9">Grade 9</option>
+                                                <option value="10" selected>Grade 10</option>
+                                                <option value="11">Grade 11</option>
+                                                <option value="12">Grade 12</option>
+                                                <option value="university">University</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="form-group">
+                                            <label class="form-label" data-i18n="create.ai.study_plan.duration">Duration
+                                                (Weeks)</label>
+                                            <input type="number" class="form-control" name="plan_duration" value="4"
+                                                min="1" max="52" aria-label="Study plan duration in weeks">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mt-3">
+                                    <div class="col-12">
+                                        <div class="form-group">
+                                            <label class="form-label"
+                                                data-i18n="create.ai.study_plan.objectives_label">Learning
+                                                Objectives (one per line)</label>
+                                            <textarea name="plan_objectives" class="form-control" rows="4"
+                                                placeholder="- Understand cell structure&#10;- Learn about DNA replication&#10;- Compare mitosis and meiosis"
+                                                data-i18n-placeholder="create.ai.study_plan.objectives_placeholder"
+                                                aria-label="Study plan learning objectives"></textarea>
+                                            <small class="text-muted"
+                                                data-i18n="create.ai.study_plan.objectives_help">AI will create
+                                                phases and topics based on
+                                                these
+                                                objectives</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TOPIC MODE FIELDS (existing Step 1) -->
+                    <div id="topic-mode-fields">
+                        <div class="card mb-3">
+                            <div class="card-header bg-primary text-white">
+                                <strong data-i18n="create.ai.topic.title">📚 Topic Details</strong>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label class="form-label"
+                                                data-i18n="create.ai.topic.subject_label">Subject</label>
+                                            <input type="text" class="form-control" name="subject"
+                                                placeholder="e.g. Biology, Mathematics"
+                                                data-i18n-placeholder="create.ai.topic.subject_placeholder"
+                                                aria-label="Topic subject">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label class="form-label" data-i18n="create.ai.topic.name_label">Topic
+                                                Name</label>
+                                            <input type="text" class="form-control" name="topic_name"
+                                                placeholder="e.g. Cell Division, Quadratic Equations"
+                                                data-i18n-placeholder="create.ai.topic.name_placeholder"
+                                                aria-label="Topic name">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mt-3">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label class="form-label" data-i18n="create.ai.topic.grade_level">Grade
+                                                Level</label>
+                                            <select name="grade_level" class="form-select" aria-label="Topic grade level">
+                                                <option value="6">Grade 6</option>
+                                                <option value="7">Grade 7</option>
+                                                <option value="8">Grade 8</option>
+                                                <option value="9">Grade 9</option>
+                                                <option value="10" selected>Grade 10</option>
+                                                <option value="11">Grade 11</option>
+                                                <option value="12">Grade 12</option>
+                                                <option value="university">University</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 2: Learning Objectives -->
+                        <div class="card mb-3">
+                            <div class="card-header bg-secondary text-white">
+                                <strong data-i18n="create.ai.topic.step2_title">🎯 Step 2: Learning
+                                    Objectives</strong>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-group">
+                                    <label class="form-label" data-i18n="create.ai.topic.objectives_label">What
+                                        should students learn? (one per line)</label>
+                                    <textarea name="learning_objectives" class="form-control" rows="4" required
+                                        placeholder="- Understand the process of mitosis&#10;- Identify the phases of cell division"
+                                        data-i18n-placeholder="create.ai.topic.objectives_placeholder"
+                                        aria-label="Topic learning objectives"></textarea>
+                                    <small class="text-muted" data-i18n="create.ai.topic.objectives_help">These
+                                        objectives guide AI content alignment</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 3: Content to Generate -->
+                        <div class="card mb-3">
+                            <div class="card-header bg-info text-white">
+                                <strong data-i18n="create.ai.topic.step3_title">✨ Step 3: Content to
+                                    Generate</strong>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <!-- Lesson Checkbox -->
+                                    <div class="col-md-12 mb-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="include_lesson"
+                                                id="include-lesson" checked>
+                                            <label class="form-label fw-bold" for="include-lesson"
+                                                data-i18n="create.ai.topic.include_lesson">
+                                                📖 Lesson (explanatory content)
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <!-- Exercises Checkbox + Options -->
+                                    <div class="col-md-12 mb-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="include_exercises"
+                                                id="include-exercises" checked onchange="toggleExerciseOptions()">
+                                            <label class="form-label fw-bold" for="include-exercises"
+                                                data-i18n="create.ai.topic.include_exercises">
+                                                🏋️ Exercises (practice problems)
+                                            </label>
+                                        </div>
+                                        <div id="exercise-options" class="ms-4 mt-2 row">
+                                            <div class="col-md-4">
+                                                <label class="form-label small"
+                                                    data-i18n="create.ai.topic.num_exercises">Number of
+                                                    Exercises</label>
+                                                <select name="num_exercises" class="form-select form-select-sm"
+                                                    aria-label="Number of exercises">
+                                                    <option value="2">2</option>
+                                                    <option value="3">3</option>
+                                                    <option value="4" selected>4</option>
+                                                    <option value="5">5</option>
+                                                    <option value="6">6</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label small"
+                                                    data-i18n="create.ai.topic.difficulty">Difficulty</label>
+                                                <select name="exercise_difficulty" class="form-select form-select-sm"
+                                                    aria-label="Exercise difficulty">
+                                                    <option value="easy">Easy</option>
+                                                    <option value="medium" selected>Medium</option>
+                                                    <option value="hard">Hard</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Assessment Checkbox + Options -->
+                                    <div class="col-md-12 mb-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="include_assessment"
+                                                id="include-assessment" onchange="toggleAssessmentOptions()">
+                                            <label class="form-label fw-bold" for="include-assessment"
+                                                data-i18n="create.ai.topic.include_assessment">
+                                                📝 Assessment Questions (quiz/test)
+                                            </label>
+                                        </div>
+                                        <div id="assessment-options" class="ms-4 mt-2 row hidden">
+                                            <div class="col-md-4">
+                                                <div class="col-md-4">
+                                                    <label class="form-label small"
+                                                        data-i18n="create.ai.topic.num_questions">Number of
+                                                        Questions</label>
+                                                    <select name="num_assessment_questions"
+                                                        class="form-select form-select-sm"
+                                                        aria-label="Number of assessment questions">
+                                                        <option value="3">3</option>
+                                                        <option value="5" selected>5</option>
+                                                        <option value="8">8</option>
+                                                        <option value="10">10</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label class="form-label small"
+                                                        data-i18n="create.ai.topic.difficulty">Difficulty</label>
+                                                    <select name="assessment_difficulty"
+                                                        class="form-select form-select-sm"
+                                                        aria-label="Assessment difficulty">
+                                                        <option value="easy">Easy</option>
+                                                        <option value="medium" selected>Medium</option>
+                                                        <option value="hard">Hard</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div> <!-- End topic-mode-fields -->
+
+                        <!-- EXERCISE MODE FIELDS -->
+                        <div id="exercise-mode-fields" class="hidden">
+                            <div class="card mb-3">
+                                <div class="card-header bg-primary text-white">
+                                    <strong data-i18n="create.ai.exercise.title">🏋️ Exercise Details</strong>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label class="form-label"
+                                                    data-i18n="create.ai.exercise.topic_label">Topic</label>
+                                                <input type="text" class="form-control" name="exercise_topic"
+                                                    placeholder="e.g. Quadratic Equations" aria-label="Exercise topic">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="form-group">
+                                                <label class="form-label"
+                                                    data-i18n="create.ai.exercise.difficulty">Difficulty</label>
+                                                <select name="single_exercise_difficulty" class="form-select"
+                                                    aria-label="Single exercise difficulty">
+                                                    <option value="easy">Easy</option>
+                                                    <option value="medium" selected>Medium</option>
+                                                    <option value="hard">Hard</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="form-group">
+                                                <label class="form-label"
+                                                    data-i18n="create.ai.exercise.type">Type</label>
+                                                <select name="single_exercise_type" class="form-select"
+                                                    aria-label="Single exercise type">
+                                                    <option value="multiple_choice">Multiple Choice</option>
+                                                    <option value="true_false">True/False</option>
+                                                    <option value="short_answer">Short Answer</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Save Options (shown for Topic and Exercise modes only) -->
+                        <div id="save-options-section">
+                            <div class="card mb-3">
+                                <div class="card-header bg-elevated">
+                                    <strong data-i18n="create.ai.save_options.title">💾 Save Options</strong>
+                                </div>
+                                <div class="card-body">
+                                    <div class="form-check mb-3">
+                                        <input class="form-check-input" type="checkbox" name="auto_save" id="auto-save">
+                                        <label class="form-check-label" for="auto-save"
+                                            data-i18n="create.ai.save_options.auto_save">
+                                            Auto-save generated content to My Library
+                                        </label>
+                                    </div>
+                                    <div class="form-check" id="link-to-plan-check">
+                                        <input class="form-check-input" type="checkbox" id="add-to-study-plan"
+                                            onchange="toggleStudyPlanSelector()">
+                                        <label class="form-check-label" for="add-to-study-plan"
+                                            data-i18n="create.ai.save_options.add_to_plan">
+                                            Add to existing Study Plan
+                                        </label>
+                                    </div>
+                                    <div id="study-plan-selector" class="ms-4 mt-2 row hidden">
+                                        <div class="col-md-6">
+                                            <label class="form-label small" for="study-plan-select"
+                                                data-i18n="create.ai.save_options.select_plan">Select Study
+                                                Plan</label>
+                                            <select name="study_plan_id" id="study-plan-select"
+                                                class="form-select form-select-sm" aria-label="Select study plan">
+                                                <option value="">-- Select a study plan --</option>
+                                                <!-- Populated via JS -->
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label small" for="phase-select"
+                                                data-i18n="create.ai.save_options.phase">Phase</label>
+                                            <select name="phase_index" id="phase-select"
+                                                class="form-select form-select-sm" aria-label="Select phase">
+                                                <option value="0">Phase 1</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg" id="generate-btn"
+                                data-i18n="create.ai.buttons.generate">
+                                🤖 Generate Content
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="clearAIContentForm()"
+                                data-i18n="common.buttons.clear">Clear</button>
+                        </div>
+                </form>
+
+                <!-- Generated Content Preview (for AI Content Generator) -->
+                <div id="ai-content-generation-result" class="mt-4 hidden">
+                    <div class="card">
+                        <div
+                            class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                            <strong data-i18n="create.ai.preview.title">✅ Generated Content Preview</strong>
+                            <span id="generated-topic-name" class="badge bg-elevated text-body"></span>
+                        </div>
+                        <div class="card-body">
+                            <div id="generated-items-list"></div>
+                            <div class="mt-3 d-flex gap-2">
+                                <button class="btn btn-success" onclick="saveAllGeneratedContent()"
+                                    data-i18n="create.ai.preview.save_all">💾 Save
+                                    All</button>
+                                <button class="btn btn-outline-primary" onclick="regenerateContent()"
+                                    data-i18n="create.ai.preview.regenerate">🔄
+                                    Regenerate</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Manual Form -->
+                <form id="create-manual-form" class="tab-content hidden">
+
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="content.editor.title_label">Title</label>
+                        <input type="text" class="form-control" name="title" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="content.editor.type_label">Type</label>
+                        <select name="content_type" class="form-select" required>
+                            <option value="lesson" data-i18n="common.types.lesson">Lesson</option>
+                            <option value="exercise" data-i18n="common.types.exercise">Exercise</option>
+                            <option value="assessment" data-i18n="common.types.assessment">Assessment</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" data-i18n="content.editor.content_label">Content</label>
+                        <textarea name="content_body" class="form-control" rows="4" required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary" data-i18n="common.buttons.publish">Publish</button>
+                    <div id="manual-entry-feedback" class="d-none mt-3"></div>
+                </form>
+            </div>
+            <!-- End view-create -->
+    </div>
+
+    <!-- AI TUTOR VIEW -->
+    <div id="view-tutor" class="view-section hidden">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2 class="page-header mb-0" data-i18n="ai_tutor.title">🤖 AI Tutor</h2>
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearAIChat()">
+                🗑️ <span data-i18n="tutor.new_chat">New Chat</span>
+            </button>
+        </div>
+
+
+        <!-- Content Context Selector -->
+        <div class="card mb-3">
+            <div class="card-body">
+                <label class="form-label small text-muted mb-2" data-i18n="tutor.context_label">📚 Focus on
+                    specific content
+                    (optional)</label>
+                <div class="row g-2">
+                    <div class="col-md-6">
+                        <select id="tutor-study-plan" class="form-select form-select-sm"
+                            onchange="loadTutorContentItems()">
+                            <option value="" data-i18n="tutor.all_plans">📋 All Study Plans</option>
+                            <!-- Populated via JS -->
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <select id="tutor-content" class="form-select form-select-sm" aria-label="Tutor content">
+                            <option value="" data-i18n="tutor.all_content">📄 All Content</option>
+                            <!-- Populated via JS when study plan selected -->
+                        </select>
+                    </div>
+                </div>
+                <small class="text-muted mt-1 d-block" data-i18n="tutor.context_help">Select content to give
+                    the AI context about what
+                    you're
+                    learning</small>
+            </div>
+        </div>
+
+        <div class="card chat-container">
+            <div id="chat-history" class="chat-history">
+                <div class="text-muted text-center" data-i18n="ai_tutor.start_conversation">Start a conversation with
+                    your AI Tutor</div>
+            </div>
+            <form id="chat-form" class="chat-input-form">
+                <input type="text" id="chat-input" class="form-control" placeholder="Ask something..."
+                    data-i18n-placeholder="ai_tutor.input_placeholder" required aria-label="Tutor message">
+                <button type="submit" class="btn btn-primary" data-i18n="common.buttons.send"
+                    aria-label="Send tutor message">Send</button>
+            </form>
+        </div>
+    </div>
+
+
+
+    <!-- SETTINGS VIEW -->
+    <div id="view-settings" class="view-section hidden">
+        <h2 class="page-header" data-i18n="settings.title">⚙️ Settings</h2>
+        <div class="tabs mb-3" id="settings-tabs">
+            <div class="tab active" data-settings-tab="profile" data-i18n="settings.tabs.profile">Profile</div>
+            <div class="tab" data-settings-tab="ai" data-i18n="settings.tabs.ai_config">AI Configuration</div>
+            <div class="tab" data-settings-tab="appearance" data-i18n="settings.tabs.appearance">Appearance</div>
+        </div>
+
+        <div id="settings-tab-profile" class="settings-tab-section">
+            <div class="row">
+                <!-- Profile Info Card -->
+                <div class="col-md-4">
+                    <div class="card mb-4">
+                        <div class="card-body text-center">
+                            <div class="profile-avatar mx-auto mb-3" id="profile-avatar">
+                                <!-- Initials will be set by JS -->
+                                AB
+                            </div>
+                            <h4 id="profile-full-name">Loading...</h4>
+                            <p class="text-muted" id="profile-username">@username</p>
+                            <span class="badge bg-primary" id="profile-role">Role</span>
+                        </div>
+                    </div>
+
+                    <!-- Account Info Card -->
+                    <div class="card">
+                        <div class="card-header bg-elevated">
+                            <strong>Account Information</strong>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-2">
+                                <small class="text-muted">Account Created</small>
+                                <div id="profile-created-at">-</div>
+                            </div>
+                            <div class="mb-2">
+                                <small class="text-muted">Last Login</small>
+                                <div id="profile-last-login">-</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- My Badges Card -->
+                    <div class="card mt-4" id="profile-badges-card">
+                        <div class="card-header bg-elevated d-flex justify-content-between align-items-center">
+                            <strong>🎖️ My Badges</strong>
+                            <span id="profile-badges-count" class="badge bg-primary">0</span>
+                        </div>
+                        <div class="card-body">
+                            <div id="profile-badges-list">
+                                <div class="text-muted text-center">Loading badges...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Edit Profile Card -->
+                <div class="col-md-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <strong>Edit Profile</strong>
+                        </div>
+                        <div class="card-body">
+                            <form id="profile-form">
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label" for="profile-first-name"
+                                            data-i18n="settings.profile.first_name">First
+                                            Name</label>
+                                        <input type="text" class="form-control" id="profile-first-name" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label" for="profile-last-name"
+                                            data-i18n="settings.profile.last_name">Last
+                                            Name</label>
+                                        <input type="text" class="form-control" id="profile-last-name" required>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label" for="profile-email"
+                                        data-i18n="settings.profile.email">Email
+                                        Address</label>
+                                    <input type="email" class="form-control" id="profile-email" required>
+                                </div>
+
+                                <div class="mb-3" id="profile-grade-level-group">
+                                    <label class="form-label" for="profile-grade-level"
+                                        data-i18n="settings.profile.grade_level">Grade
+                                        Level</label>
+                                    <select class="form-select" id="profile-grade-level">
+                                        <option value="">Not specified</option>
+                                        <option value="6">Grade 6</option>
+                                        <option value="7">Grade 7</option>
+                                        <option value="8">Grade 8</option>
+                                        <option value="9">Grade 9</option>
+                                        <option value="10">Grade 10</option>
+                                        <option value="11">Grade 11</option>
+                                        <option value="12">Grade 12</option>
+                                        <option value="university">University</option>
+                                    </select>
+                                    <small class="text-muted">This helps personalize content
+                                        recommendations</small>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label text-muted" for="profile-username-readonly"
+                                        data-i18n="settings.profile.username">Username
+                                        (cannot be
+                                        changed)</label>
+                                    <input type="text" class="form-control" id="profile-username-readonly" disabled>
+                                </div>
+
+                                <div class="d-flex gap-2">
+                                    <button type="button" class="btn btn-primary" onclick="saveProfile()"
+                                        data-i18n="common.buttons.save_changes">
+                                        💾 Save Profile
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary" onclick="loadProfile()"
+                                        data-i18n="common.buttons.reset">
+                                        Reset
+                                    </button>
+                                </div>
+
+                                <div id="profile-feedback" class="mt-3 d-none"></div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Security / Password Change Card -->
+                <div class="col-md-8 mt-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <strong data-i18n="settings.security.title">🔐 Security</strong>
+                        </div>
+                        <div class="card-body">
+                            <form id="password-change-form">
+                                <div class="mb-3">
+                                    <label class="form-label" for="current-password"
+                                        data-i18n="settings.security.current_password">Current
+                                        Password</label>
+                                    <input type="password" class="form-control" id="current-password" required
+                                        autocomplete="current-password">
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label" for="new-password"
+                                            data-i18n="settings.security.new_password">New
+                                            Password</label>
+                                        <input type="password" class="form-control" id="new-password" required
+                                            autocomplete="new-password">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label" for="confirm-password"
+                                            data-i18n="settings.security.confirm_password">Confirm
+                                            Password</label>
+                                        <input type="password" class="form-control" id="confirm-password" required
+                                            autocomplete="new-password">
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-warning" onclick="changePassword()"
+                                    data-i18n="settings.security.change_password">
+                                    🔑 Change Password
+                                </button>
+                                <div id="password-feedback" class="mt-3 d-none"></div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="settings-tab-ai" class="settings-tab-section hidden">
+            <div class="card mb-4 shadow-sm">
+                <div class="card-header bg-surface border-bottom-0 pt-3 pb-2">
+                    <h5 class="mb-0 text-primary" data-i18n="settings.ai.title">AI Configuration</h5>
+                </div>
+                <div class="card-body pt-0">
+                    <form id="settings-ai-form">
+                        <div class="mb-3">
+                            <label class="form-label small text-uppercase fw-bold text-muted"
+                                data-i18n="settings.ai.provider_model">Provider &
+                                Model</label>
+                            <div class="row g-2">
+                                <div class="col-md-4">
+                                    <select class="form-select" name="provider" id="ai-provider"
+                                        onchange="onProviderChange()" aria-label="AI provider">
+                                        <option value="ollama">Ollama (Local)</option>
+                                        <option value="lm_studio">LM Studio (Local)</option>
+                                        <option value="openai">OpenAI</option>
+                                        <option value="anthropic">Anthropic</option>
+                                        <option value="openrouter">OpenRouter</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-8">
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" name="model" id="ai-model"
+                                            placeholder="Model Name (e.g. llama3)" aria-label="AI model">
+                                        <button type="button" class="btn btn-outline-secondary" onclick="fetchModels()"
+                                            id="fetch-models-btn" data-i18n="settings.ai.fetch_models_button"
+                                            aria-label="Fetch models">
+                                            🔄 Fetch
+                                        </button>
+                                    </div>
+                                    <select class="form-select mt-2 d-none" id="ai-model-select"
+                                        onchange="selectModel()" aria-label="Select AI model">
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small text-uppercase fw-bold text-muted" for="ai-endpoint"
+                                data-i18n="settings.ai.connection">Connection</label>
+                            <div class="mb-2">
+                                <input type="text" class="form-control" name="endpoint" id="ai-endpoint"
+                                    placeholder="Endpoint URL (Optional - leave empty for default)"
+                                    data-i18n-placeholder="settings.ai.endpoint_placeholder" aria-label="AI endpoint"
+                                    autocomplete="off">
+                            </div>
+                            <div id="api-key-group">
+                                <input type="password" class="form-control" name="api_key" id="ai-key"
+                                    placeholder="API Key (Required for cloud providers)"
+                                    data-i18n-placeholder="settings.ai.api_key_placeholder" aria-label="AI API key"
+                                    autocomplete="off">
+                            </div>
+                        </div>
+
+                        <!-- Advanced Settings -->
+                        <details class="mb-4">
+                            <summary class="btn btn-link text-decoration-none p-0 fw-bold"
+                                data-i18n="settings.ai.advanced">⚙️ Advanced
+                                Configuration
+                            </summary>
+                            <div class="mt-3 p-3 bg-elevated rounded border">
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label" for="ai-temperature"
+                                            data-i18n="settings.ai.temperature">Temperature</label>
+                                        <input type="range" class="form-range" id="ai-temperature" min="0" max="1"
+                                            step="0.1" value="0.7" oninput="updateTempDisplay()"
+                                            aria-label="AI temperature">
+                                        <div class="d-flex justify-content-between">
+                                            <small class="text-muted">Precise</small>
+                                            <span class="badge bg-primary" id="temp-value">0.7</span>
+                                            <small class="text-muted">Creative</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label" for="ai-max-tokens"
+                                            data-i18n="settings.ai.max_tokens">Max
+                                            Tokens</label>
+                                        <input type="number" class="form-control" id="ai-max-tokens" min="100"
+                                            max="4000" step="100" value="1000" aria-label="AI max tokens">
+                                        <small class="text-muted">Response length limit</small>
+                                    </div>
+                                </div>
+                                <div class="form-check mb-2">
+                                    <input type="checkbox" class="form-check-input" id="ai-preprocessing">
+                                    <label class="form-check-label" for="ai-preprocessing"
+                                        data-i18n="settings.ai.preprocessing">Enable
+                                        Context Preprocessing
+                                        (Two-LLM
+                                        Pipeline)</label>
+                                </div>
+                                <div id="preprocessing-model-group" class="d-none ms-4">
+                                    <input type="text" class="form-control form-control-sm" id="ai-preprocessing-model"
+                                        placeholder="Small model name (e.g. llama3:3b)"
+                                        data-i18n-placeholder="settings.ai.preprocessing_placeholder"
+                                        aria-label="Preprocessing model" autocomplete="off">
+                                </div>
+                            </div>
+                        </details>
+
+                        <div class="d-flex gap-2 justify-content-end">
+                            <button type="button" class="btn btn-outline-info" onclick="testAIConnection()"
+                                data-i18n="settings.ai.test_btn">
+                                🧪 Test Connection
+                            </button>
+                            <button type="button" class="btn btn-primary" onclick="saveAISettings()"
+                                data-i18n="common.buttons.save_config">
+                                💾 Save AI Config
+                            </button>
+                        </div>
+                        <div id="ai-test-result" class="mt-3 d-none"></div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div id="settings-tab-appearance" class="settings-tab-section hidden">
+            <div class="card shadow-sm">
+                <div class="card-header bg-surface border-bottom-0 pt-3 pb-2">
+                    <h5 class="mb-0 text-primary" data-i18n="settings.appearance.title">Interface</h5>
+                </div>
+                <div class="card-body pt-0">
+                    <form id="settings-app-form">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small text-uppercase fw-bold text-muted" for="app-theme"
+                                    data-i18n="settings.appearance.theme">Theme</label>
+                                <select class="form-select" name="theme" id="app-theme">
+                                    <option value="auto">Auto (System)</option>
+                                    <option value="light">Light</option>
+                                    <option value="dark">Dark</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small text-uppercase fw-bold text-muted" for="app-lang"
+                                    data-i18n="settings.appearance.language">Language</label>
+                                <select class="form-select" name="language" id="app-lang">
+                                    <option value="en">English (US)</option>
+                                    <option value="es">Spanish</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-end">
+                            <button type="button" class="btn btn-primary" onclick="saveAppSettings()"
+                                data-i18n="common.buttons.save_preferences">
+                                💾 Save Interface Config
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- STUDENTS VIEW (Teacher Only) -->
+    <div id="view-students" class="view-section hidden">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2><span class="me-2">👥</span><span data-i18n="students.title">My Students</span></h2>
+            <button class="btn btn-outline-primary" onclick="loadStudents()"
+                data-i18n="common.buttons.refresh">Refresh</button>
+        </div>
+        <!-- Search Filter -->
+        <div class="mb-3">
+            <input type="text" class="form-control" id="students-search"
+                placeholder="🔍 Search students by name or username..." oninput="filterStudentsList()"
+                data-i18n-placeholder="teacher.students_tab.search_placeholder" aria-label="Search students">
+        </div>
+        <div class="card">
+            <div class="card-body">
+                <div id="student-list" class="row g-3">
+                    <div class="text-center text-muted p-4" data-i18n="students.loading">Loading students...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TEACHERS VIEW (Admin Only) -->
+    <div id="view-teachers" class="view-section hidden">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2><span class="me-2">👩‍🏫</span><span data-i18n="common.roles.teachers">Teachers</span></h2>
+            <div class="d-flex gap-2">
+                <button class="btn btn-outline-primary" onclick="loadTeachers()"
+                    data-i18n="common.buttons.refresh">Refresh</button>
+                <button class="btn btn-primary" onclick="window.location.href='/register.html?role=teacher'"
+                    data-i18n="common.buttons.create">Create</button>
+            </div>
+        </div>
+        <div class="mb-3">
+            <input type="text" class="form-control" id="teachers-search"
+                placeholder="🔍 Search teachers by name or username..." oninput="filterTeachersList()"
+                data-i18n-placeholder="teacher.students_tab.search_placeholder" aria-label="Search teachers">
+        </div>
+        <div class="card">
+            <div class="card-body">
+                <div id="teacher-list" class="row g-3">
+                    <div class="text-center text-muted p-4" data-i18n="students.loading">Loading teachers...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADMINS VIEW (Admin Only) -->
+    <div id="view-admins" class="view-section hidden">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2><span class="me-2">🛡️</span>Administradores</h2>
+            <div class="d-flex gap-2">
+                <button class="btn btn-outline-primary" onclick="loadAdmins()">Refresh</button>
+                <button class="btn btn-primary" onclick="window.location.href='/register.html?role=admin'">Create</button>
+            </div>
+        </div>
+        <div class="mb-3">
+            <input type="text" class="form-control" id="admins-search"
+                placeholder="🔍 Search admins by name or username..." oninput="filterAdminsList()"
+                aria-label="Search admins">
+        </div>
+        <div class="card">
+            <div class="card-body">
+                <div id="admin-list" class="row g-3">
+                    <div class="text-center text-muted p-4">Loading admins...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- LEADERBOARD VIEW -->
+    <div id="view-leaderboard" class="view-section hidden">
+        <h2><span class="me-2">🏆</span><span data-i18n="leaderboard.title">Leaderboard</span></h2>
+        <div class="mb-3">
+            <select id="leaderboard-period" class="form-select w-auto" onchange="loadLeaderboard()"
+                aria-label="Leaderboard period">
+                <option value="weekly" data-i18n="leaderboard.period.weekly">This Week</option>
+                <option value="monthly" data-i18n="leaderboard.period.monthly">This Month</option>
+                <option value="all_time" data-i18n="leaderboard.period.all_time">All Time</option>
+            </select>
+        </div>
+        <div class="card">
+            <div class="table-responsive">
+                <table id="leaderboard-table" class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th data-i18n="leaderboard.table.rank">Rank</th>
+                            <th data-i18n="leaderboard.table.user">User</th>
+                            <th data-i18n="leaderboard.table.xp">XP</th>
+                            <th data-i18n="leaderboard.table.level">Level</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboard-body">
+                        <tr>
+                            <td colspan="4" class="text-center text-muted" data-i18n="common.loading">
+                                Loading...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- HELP QUEUE VIEW (Teacher Only) -->
+    <div id="view-help-queue" class="view-section hidden">
+        <h2><span class="me-2">🆘</span><span data-i18n="help_queue.title">Help Requests Queue</span></h2>
+        <div class="card">
+            <!-- Priority Filter Tabs (28.1) -->
+            <div class="card-header">
+                <div class="btn-group btn-group-sm w-100" role="group" id="help-priority-filter-tabs">
+                    <button type="button" class="btn btn-outline-secondary active"
+                        onclick="filterHelpRequestsByPriority('all', this)">All</button>
+                    <button type="button" class="btn btn-outline-danger"
+                        onclick="filterHelpRequestsByPriority('high', this)">🔴 Urgent</button>
+                    <button type="button" class="btn btn-outline-warning"
+                        onclick="filterHelpRequestsByPriority('medium', this)">🟡 Important</button>
+                    <button type="button" class="btn btn-outline-secondary"
+                        onclick="filterHelpRequestsByPriority('low', this)">🟢 Normal</button>
+                </div>
+            </div>
+            <div class="list-group list-group-flush" id="help-queue-list">
+                <div class="text-center text-muted p-4" data-i18n="help_queue.loading">Loading help
+                    requests...</div>
+            </div>
+        </div>
+    </div>
+
+
+    </main>
+    </div>
+
+    <!-- Help Modal -->
+    <div class="modal fade" id="helpModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><span class="me-2">🆘</span><span data-i18n="modals.help.title">Ask for
+                            Help</span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Learning Context Display - Shows what student is studying -->
+                    <div id="help-context-display" class="mb-3">
+                        <!-- Populated by JS when modal opens -->
+                    </div>
+
+                    <form id="help-form">
+                        <div class="mb-3">
+                            <label class="form-label" for="help-subject" data-i18n="modals.help.subject">What do you need help
+                                with?</label>
+                            <input type="text" class="form-control" id="help-subject"
+                                placeholder="e.g., I don't understand step 3"
+                                data-i18n-placeholder="modals.help.subject_placeholder" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="help-desc" data-i18n="modals.help.details">Tell us more about your
+                                question</label>
+                            <textarea class="form-control" id="help-desc" rows="4"
+                                placeholder="Describe what you're trying to do and where you got stuck..."
+                                data-i18n-placeholder="modals.help.details_placeholder" required></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="help-urgency" data-i18n="modals.help.urgency">How urgent is this?</label>
+                            <select class="form-select" id="help-urgency" aria-label="Help request urgency">
+                                <option value="1" data-i18n="modals.help.urgency_normal">🟢 Normal - I can wait a bit
+                                </option>
+                                <option value="2" data-i18n="modals.help.urgency_important">🟡 Important - I'm stuck and
+                                    need help soon</option>
+                                <option value="3" data-i18n="modals.help.urgency_urgent">🔴 Urgent - I'm completely
+                                    blocked</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"
+                        data-i18n="common.buttons.cancel">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="submitHelpRequest()"
+                        data-i18n="modals.help.submit">
+                        📤 Submit Request
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Compose Modal -->
+    <div class="modal fade" id="composeModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" data-i18n="modals.compose.title">Compose Message</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="compose-form">
+                        <div class="mb-3">
+                            <label class="form-label" for="compose-to" data-i18n="modals.compose.recipient">To (Select Recipient)</label>
+                            <input type="text" class="form-control mb-2" id="compose-search"
+                                placeholder="🔍 Search by name or username..."
+                                data-i18n-placeholder="modals.compose.search_placeholder" oninput="filterRecipients()"
+                                aria-label="Search recipients">
+                            <div class="btn-group btn-group-sm mb-2 w-100" role="group">
+                                <button type="button" class="btn btn-outline-secondary active"
+                                    onclick="filterByRole('all', this)">All</button>
+                                <button type="button" class="btn btn-outline-primary"
+                                    onclick="filterByRole('student', this)" data-i18n="common.roles.students">👨‍🎓
+                                    Students</button>
+                                <button type="button" class="btn btn-outline-success"
+                                    onclick="filterByRole('teacher', this)" data-i18n="common.roles.teachers">👩‍🏫
+                                    Teachers</button>
+                            </div>
+                            <select class="form-select" id="compose-to" size="5" required>
+                                <option value="" disabled selected>Loading users...</option>
+                            </select>
+                            <small class="text-muted" id="recipient-count">0 users available</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="compose-subject" data-i18n="modals.compose.subject">Subject</label>
+                            <input type="text" class="form-control" id="compose-subject" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="compose-content" data-i18n="modals.compose.message">Message</label>
+                            <textarea class="form-control" id="compose-content" rows="4" required></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"
+                        data-i18n="common.buttons.cancel">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="sendMessage()"
+                        data-i18n="common.buttons.send">Send Message</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Student Detail Modal -->
+    <div class="modal fade" id="studentDetailModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">👤 Student Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-4 text-center">
+                            <div class="bg-elevated rounded-circle d-inline-flex align-items-center justify-content-center"
+                                style="width:80px;height:80px;font-size:2rem;">
+                                👤
+                            </div>
+                            <h4 id="student-detail-name" class="mt-3">Student Name</h4>
+                            <p class="text-muted" id="student-detail-username">@username</p>
+                        </div>
+                        <div class="col-md-8">
+                            <div class="row g-3">
+                                <div class="col-4 text-center">
+                                    <div class="card p-2">
+                                        <h3 id="student-detail-xp" class="mb-0">0</h3>
+                                        <small class="text-muted" data-i18n="common.stats.xp">XP</small>
+                                    </div>
+                                </div>
+                                <div class="col-4 text-center">
+                                    <div class="card p-2">
+                                        <h3 id="student-detail-level" class="mb-0">1</h3>
+                                        <small class="text-muted" data-i18n="common.stats.level">Level</small>
+                                    </div>
+                                </div>
+                                <div class="col-4 text-center">
+                                    <div class="card p-2">
+                                        <h3 id="student-detail-streak" class="mb-0">0</h3>
+                                        <small class="text-muted" data-i18n="common.stats.streak">🔥 Streak</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-4">
+                                <h6 data-i18n="modals.student_detail.badges_title">Recent Badges</h6>
+                                <div id="student-detail-badges" class="d-flex gap-2 flex-wrap">
+                                    <span class="text-muted">No badges earned yet</span>
+                                </div>
+                            </div>
+                            <div class="mt-4">
+                                <h6 data-i18n="modals.student_detail.assign_plan_title">Assign Study Plan</h6>
+                                <div id="student-assign-plan-container" class="d-flex gap-2 flex-wrap">
+                                    <select class="form-select" id="student-assign-plan-select"></select>
+                                    <button type="button" class="btn btn-primary" id="student-assign-plan-btn"
+                                        onclick="assignStudyPlanToStudent()"
+                                        data-i18n="common.buttons.assign">Assign</button>
+                                </div>
+                                <small class="text-muted" data-i18n="modals.student_detail.assign_help">Assign one of
+                                    your study plans to this student.</small>
+                            </div>
+                            <!-- Student Progress Details Section -->
+                            <div class="mt-4">
+                                <h6 data-i18n="modals.student_detail.progress_title">📊 Progress Details</h6>
+                                <div id="student-detail-progress" class="row g-2 mt-2">
+                                    <div class="col-6">
+                                        <div class="card card-body p-2 text-center">
+                                            <small class="text-muted">Lessons Completed</small>
+                                            <h5 id="student-lessons-completed" class="mb-0">0</h5>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="card card-body p-2 text-center">
+                                            <small class="text-muted">Assessments Taken</small>
+                                            <h5 id="student-assessments-taken" class="mb-0">0</h5>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="card card-body p-2 text-center">
+                                            <small class="text-muted">Avg. Score</small>
+                                            <h5 id="student-avg-score" class="mb-0">-</h5>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="card card-body p-2 text-center">
+                                            <small class="text-muted">Study Time</small>
+                                            <h5 id="student-study-time" class="mb-0">0h</h5>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Teacher Notes Section -->
+                            <div class="mt-4">
+                                <h6 data-i18n="modals.student_detail.teacher_notes">📝 Teacher Notes</h6>
+                                <textarea id="student-teacher-notes" class="form-control" rows="3"
+                                    placeholder="Add private notes about this student..."></textarea>
+                                <div class="mt-2 d-flex justify-content-between align-items-center">
+                                    <small id="notes-save-status" class="text-muted">Notes auto-saved</small>
+                                    <button type="button" class="btn btn-sm btn-outline-primary"
+                                        onclick="saveStudentNotes()">Save Notes</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-primary" onclick="sendMessageToStudent()"
+                        data-i18n="common.buttons.send_message">📧 Send
+                        Message</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"
+                        data-i18n="common.buttons.close">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help Request Detail Modal (Enhanced for Teacher Response) -->
+    <div class="modal fade" id="helpRequestModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><span class="me-2">🆘</span><span data-i18n="modals.help_request.title">Help
+                            Request Details</span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Status and Priority Badges -->
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="badge bg-secondary" id="help-request-status">Pending</span>
+                        <span class="badge" id="help-request-priority">Normal</span>
+                    </div>
+
+                    <!-- Student Request Section -->
+                    <div class="card mb-3">
+                        <div class="card-header bg-elevated">
+                            <h6 class="mb-0" id="help-request-subject" data-i18n="modals.help_request.subject">Subject
+                            </h6>
+                            <small class="text-muted" id="help-request-student">From: Student</small>
+                        </div>
+                        <div class="card-body">
+                            <p id="help-request-content" class="mb-0">Loading...</p>
+                        </div>
+                    </div>
+
+                    <!-- Learning Context Display - Shows what student was studying -->
+                    <div id="help-request-context" class="mb-3">
+                        <!-- Populated by JS when viewing request -->
+                    </div>
+
+                    <!-- Teacher Response Section -->
+                    <div id="help-response-section">
+                        <h6 class="mb-2"><span class="me-2">📝</span><span
+                                data-i18n="modals.help_request.your_response">Your Response to Student</span></h6>
+                        <p class="text-muted small" data-i18n="modals.help_request.response_help">Your response will be
+                            sent directly to the student's inbox.</p>
+
+                        <div class="mb-3">
+                            <textarea class="form-control" id="help-response-text" rows="4"
+                                placeholder="Type your helpful response here... You can also use AI to draft a response."
+                                data-i18n-placeholder="modals.help_request.response_placeholder"></textarea>
+                        </div>
+
+                        <div class="d-flex gap-2 mb-3">
+                            <button type="button" class="btn btn-outline-primary" id="ai-draft-btn"
+                                onclick="draftAIResponse()" data-i18n="modals.help_request.ai_draft">
+                                🤖 AI Draft Response
+                            </button>
+                            <button type="button" class="btn btn-primary" id="send-response-btn"
+                                onclick="sendHelpResponse()" data-i18n="modals.help_request.send_reply">
+                                📧 Send Reply to Student
+                            </button>
+                        </div>
+
+                        <!-- AI Loading/Result Area -->
+                        <div id="ai-draft-area" class="hidden mb-3">
+                            <div class="alert alert-info">
+                                <div id="ai-draft-loading" class="text-center">
+                                    <span class="spinner-border spinner-border-sm me-2"></span>
+                                    <span data-i18n="modals.help_request.drafting">Drafting response with AI...</span>
+                                </div>
+                                <div id="ai-draft-result" class="hidden">
+                                    <strong data-i18n="modals.help_request.ai_suggestion">AI Suggested
+                                        Response:</strong>
+                                    <p id="ai-draft-content" class="mb-2"></p>
+                                    <button type="button" class="btn btn-sm btn-outline-success" onclick="useAIDraft()"
+                                        data-i18n="modals.help_request.use_suggestion">
+                                        ✓ Use This Response
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr>
+                    </div>
+
+                    <!-- Resolution Section -->
+                    <div id="help-request-notes-container">
+                        <h6 class="mb-2" data-i18n="modals.help_request.mark_resolved">✅ Mark as Resolved</h6>
+                        <label class="form-label small text-muted"
+                            data-i18n="modals.help_request.resolution_notes">Resolution Notes (Optional)</label>
+                        <textarea class="form-control" id="help-request-notes" rows="2"
+                            placeholder="Add notes about how you helped..."
+                            data-i18n-placeholder="modals.help_request.notes_placeholder"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"
+                        data-i18n="common.buttons.close">Close</button>
+                    <button type="button" class="btn btn-success" id="resolve-help-btn" onclick="resolveHelpRequest()"
+                        data-i18n="modals.help_request.mark_resolved_btn">✓
+                        Mark as Resolved</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Daily Goal Modal -->
+    <div class="modal fade" id="dailyGoalModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><span class="me-2">📅</span><span data-i18n="modals.daily_goal.title">Set
+                            Daily Goal</span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label" for="daily-goal-type" data-i18n="modals.daily_goal.type">Goal Type</label>
+                        <select class="form-select" id="daily-goal-type" aria-label="Daily goal type">
+                            <option value="lessons">Complete Lessons</option>
+                            <option value="exercises">Complete Exercises</option>
+                            <option value="minutes">Study Minutes</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="daily-goal-target" data-i18n="modals.daily_goal.target">Target</label>
+                        <input type="number" class="form-control" id="daily-goal-target" min="1" max="20" value="3"
+                            aria-label="Daily goal target">
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="daily-goal-default">
+                        <label class="form-check-label" for="daily-goal-default"
+                            data-i18n="modals.daily_goal.save_as_default">
+                            Save as default for future days
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"
+                        data-i18n="common.buttons.cancel">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="saveDailyGoal()"
+                        data-i18n="modals.daily_goal.save">Save Goal</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script type="module" src="/static/js/auth.js?v=20260204"></script>
+    <script type="module" src="/static/js/dashboard.js"></script>
+    <script type="module" src="/static/js/modules/inbox.js"></script>
+    <script type="module" src="/static/js/assessment.js"></script> <!-- Added Assessment Logic -->
+    <script>
+        // Register Service Worker for offline support
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then((registration) => {
+                        console.log('[App] Service Worker registered:', registration.scope);
+                    })
+                    .catch((error) => {
+                        console.log('[App] Service Worker registration failed:', error);
+                    });
+            });
+        }
+    </script>
+</body>
+
+</html>

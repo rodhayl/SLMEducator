@@ -1,0 +1,1290 @@
+{
+  "app": {
+    "name": "SLMEducator",
+    "organization": "SLMEducator",
+    "title": "SLM Educador"
+  },
+  "common": {
+    "buttons": {
+      "ok": "Aceptar",
+      "cancel": "Cancelar",
+      "close": "Cerrar",
+      "save": "Guardar",
+      "save_changes": "Guardar Cambios",
+      "delete": "Eliminar",
+      "edit": "Editar",
+      "add": "Añadir",
+      "remove": "Quitar",
+      "back": "Atrás",
+      "next": "Siguiente",
+      "previous": "← Anterior",
+      "submit": "Enviar",
+      "send": "Enviar",
+      "yes": "Sí",
+      "no": "No",
+      "view": "Ver",
+      "continue": "Continuar",
+      "review": "Revisar",
+      "create": "Crear",
+      "update": "Actualizar",
+      "search": "Buscar",
+      "assign": "Asignar",
+      "clear": "Limpiar",
+      "publish": "Publicar",
+      "refresh": "Actualizar",
+      "reset": "Restablecer",
+      "reload": "Recargar",
+      "save_config": "Guardar Configuración",
+      "save_preferences": "Guardar Preferencias",
+      "send_message": "Enviar Mensaje",
+      "view_all": "Ver Todo"
+    },
+    "labels": {
+      "username": "Nombre de usuario",
+      "password": "Contraseña",
+      "email": "Correo electrónico",
+      "first_name": "Nombre",
+      "last_name": "Apellido",
+      "title": "Título",
+      "description": "Descripción",
+      "type": "Tipo",
+      "content": "Contenido",
+      "difficulty": "Dificultad",
+      "duration": "Duración",
+      "loading": "Cargando...",
+      "please_wait": "Por Favor Espere",
+      "error": "Error",
+      "success": "Éxito",
+      "warning": "Advertencia",
+      "info": "Información",
+      "difficulty_level": "Nivel de Dificultad"
+    },
+    "messages": {
+      "generic_error": "Ocurrió un error: {error_msg}\n\nPor favor, inténtelo de nuevo o contacte con soporte si el problema persiste.",
+      "validation_error": "Error de Validación",
+      "fill_required_fields": "Por favor, complete todos los campos requeridos",
+      "operation_successful": "¡Operación completada con éxito!",
+      "unexpected_error": "Ocurrió un error inesperado: {error}",
+      "unknown": "Error desconocido"
+    },
+    "errors": {
+      "unknown": "Error desconocido"
+    },
+    "roles": {
+      "user": "Usuario",
+      "students": "Estudiantes",
+      "teachers": "Profesores"
+    },
+    "forms": {
+      "select_placeholder_study_plan": "-- Seleccione un plan de estudio --"
+    },
+    "loading": "Cargando estudiantes...",
+    "stats": {
+      "level": "Nivel",
+      "streak": "Racha",
+      "xp": "XP"
+    },
+    "types": {
+      "assessment": "Evaluación",
+      "exercise": "Ejercicio",
+      "lesson": "Lección",
+      "qa": "Pregunta y Respuesta",
+      "qa_shared": "P&R Compartida"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "Bienvenido de Nuevo",
+      "subtitle": "Inicia sesión para continuar a SLM Educador",
+      "username_placeholder": "Nombre de usuario",
+      "password_placeholder": "Contraseña",
+      "button_signin": "Iniciar Sesión",
+      "no_account": "¿No tienes cuenta?",
+      "create_account_link": "Crear cuenta",
+      "error_empty_fields": "Por favor ingrese nombre de usuario y contraseña",
+      "error_failed": "Error de Inicio de Sesión",
+      "error_unexpected": "Ocurrió un error inesperado: {error}"
+    },
+    "register": {
+      "title": "Crear Cuenta",
+      "first_name_placeholder": "Nombre",
+      "last_name_placeholder": "Apellido",
+      "username_placeholder": "Nombre de usuario",
+      "email_placeholder": "Correo electrónico",
+      "password_placeholder": "Contraseña",
+      "confirm_password_placeholder": "Confirmar Contraseña",
+      "role_student": "Estudiante",
+      "role_teacher": "Profesor",
+      "button_signup": "Registrarse",
+      "has_account": "¿Ya tienes cuenta?",
+      "signin_link": "Iniciar sesión",
+      "error_password_mismatch": "Las contraseñas no coinciden",
+      "error_empty_fields": "Por favor, complete todos los campos requeridos",
+      "success_title": "Éxito",
+      "success_message": "¡Cuenta creada exitosamente! Por favor inicia sesión.",
+      "error_failed": "Error de Registro",
+      "error_unexpected": "Ocurrió un error inesperado: {error}"
+    }
+  },
+  "navigation": {
+    "dashboard": "Panel",
+    "my_learning": "Mi Aprendizaje",
+    "ai_tutor": "Tutor IA",
+    "content_library": "Biblioteca de Contenido",
+    "browse_content": "Explorar Contenido",
+    "study_plans": "Planes de Estudio",
+    "study_material": "Material de Estudio",
+    "practice": "Práctica",
+    "settings": "Configuración",
+    "content_editor": "Editor de Contenido",
+    "signout": "Cerrar Sesión",
+    "inbox": "Bandeja de Entrada",
+    "assessments": "Evaluaciones",
+    "leaderboard": "Clasificación",
+    "students": "Estudiantes",
+    "create_content": "Crear Contenido",
+    "menu": "Menú",
+    "grading": "Calificaciones",
+    "help_queue": "Cola de Ayuda"
+  },
+  "dashboard": {
+    "teacher": {
+      "title": "Panel del Profesor",
+      "welcome": "¡Bienvenido, Profesor!",
+      "subtitle": "Crea contenido, gestiona estudiantes y rastrea el progreso",
+      "stats": {
+        "students": "Estudiantes",
+        "study_plans": "Planes de Estudio",
+        "content_items": "Elementos de Contenido",
+        "active_week": "Activos Esta Semana"
+      },
+      "tabs": {
+        "create": "📝 Crear",
+        "library": "📚 Biblioteca",
+        "study_plans": "📋 Planes de Estudio",
+        "students": "👥 Estudiantes"
+      },
+      "study_plans": {
+        "empty_hint": "Crea un plan de estudio para organizar contenido de aprendizaje para tus estudiantes"
+      }
+    },
+    "student": {
+      "title": "Mi Aprendizaje",
+      "welcome": "¡Bienvenido de nuevo!",
+      "subtitle": "¿Listo para continuar aprendiendo?",
+      "quick_actions": {
+        "new_session": "🎯 Iniciar Nueva Sesión",
+        "new_session_subtitle": "Comenzar una nueva sesión de aprendizaje",
+        "resume": "📚 Continuar Aprendizaje",
+        "resume_subtitle": "Continúa donde lo dejaste",
+        "practice": "✏️ Práctica",
+        "practice_subtitle": "Pon a prueba tus conocimientos",
+        "ai_tutor": "🤖 Preguntar al Tutor IA",
+        "ai_tutor_subtitle": "Obtén ayuda con conceptos"
+      },
+      "stats": {
+        "study_time": "Tiempo de Estudio",
+        "streak": "Racha de Días",
+        "completion": "Completado",
+        "topics_mastered": "Temas Dominados"
+      },
+      "sections": {
+        "study_plans": "📚 Mis Planes de Estudio",
+        "recent_activity": "🕐 Actividad Reciente",
+        "no_plans": "Aún no tienes planes de estudio asignados",
+        "no_activity": "Sin actividad reciente",
+        "no_objectives": "No hay objetivos específicos listados",
+        "progress_template": "Progreso: {completion}% • {completed}/{total} lecciones"
+      }
+    },
+    "placeholder": {
+      "welcome": "Bienvenido a SLM Educador",
+      "loading": "Cargando tu panel..."
+    },
+    "overview_title": "📊 Resumen",
+    "stats": {
+      "active_students": "Estudiantes Activos",
+      "average_score": "Puntuación Promedio",
+      "total_content": "Contenido Total",
+      "study_time": "Tiempo de Estudio",
+      "completed_lessons": "Lecciones Completadas",
+      "assessments_created": "Evaluaciones Creadas",
+      "total_study_time": "Tiempo Total de Estudio",
+      "due_for_review": "Pendientes de Revisión"
+    },
+    "buttons": {
+      "start_review": "Iniciar Revisión"
+    },
+    "mastery_title": "📈 Dominio",
+    "mastery": {
+      "avg_mastery": "Dominio Promedio",
+      "mastered_items": "Elementos Dominados",
+      "in_progress": "En Progreso"
+    },
+    "gamification": {
+      "title": "🏆 Gamificación",
+      "daily_goal": "Meta Diaria",
+      "no_goal_set": "Sin meta establecida - ¡haz clic en 'Establecer Meta' para empezar!",
+      "set_goal": "Establecer Meta",
+      "stats": {
+        "xp": "XP",
+        "streak": "Racha",
+        "best_streak": "Mejor Racha",
+        "badges": "Insignias"
+      },
+      "level": "Nivel {level}"
+    },
+    "continue_learning": "📚 Continuar Aprendiendo",
+    "recent_activity": {
+      "title": "🕐 Actividad Reciente",
+      "no_activity": "Sin actividad reciente",
+      "start_learning": "¡Empieza a aprender!"
+    }
+  },
+  "ai": {
+    "chat": {
+      "status": {
+        "thinking": "⏳ Pensando..."
+      },
+      "error_send": "Error al enviar mensaje."
+    },
+    "tutor": {
+      "select_all_plans": "📋 Todos los Planes de Estudio",
+      "select_all_content": "📄 Todo el Contenido",
+      "select_all_plan_content": "📄 Todo el Contenido del Plan",
+      "new_chat": "Nuevo Chat",
+      "chat_cleared": "Chat borrado. ¡Inicia una nueva conversación!",
+      "title": "🤖 Tutor IA"
+    }
+  },
+  "ai_tutor": {
+    "title": "Tutor IA",
+    "input_placeholder": "Haz una pregunta...",
+    "start_conversation": "Inicia una conversación con tu Tutor IA",
+    "button_send": "Enviar",
+    "greeting": "¡Hola! Soy tu Tutor IA. ¿Cómo puedo ayudarte a aprender hoy?",
+    "error_template": "Error: {error}",
+    "encouragement": "💡 {text}",
+    "think_about": "🤔 Piensa en estas preguntas:",
+    "hint": "💭 Pista: {text}",
+    "related_concepts": "📚 Relacionado: {concepts}",
+    "context": {
+      "title": "📚 Contexto de Aprendizaje",
+      "study_plan_label": "Plan de Estudio:",
+      "topic_label": "Tema/Fase:",
+      "content_label": "Contenido (Opcional):",
+      "none_general": "Ninguno (Modo General)",
+      "none_topic": "Todos los Temas",
+      "none_content": "Ninguno (Solo Contexto del Tema)",
+      "none_plan": "Ninguno (Contexto General del Plan)",
+      "no_plan": "Sin plan seleccionado",
+      "no_topic": "Sin tema seleccionado",
+      "no_topics": "Sin temas en el plan",
+      "no_content": "Sin contenido disponible",
+      "no_content_in_topic": "Sin contenido en este tema",
+      "tip": "💡 Consejo: ¡Selecciona un plan de estudio y tema arriba para obtener mejores respuestas del IA!",
+      "using_plan": "📚 Contexto: Usando {plan}",
+      "using_topic": "📖 Tema: {topic}",
+      "focus_content": "📄 Enfoque: {content}",
+      "error_loading": "Error al cargar"
+    }
+  },
+  "settings": {
+    "security": {
+      "title": "🔐 Seguridad",
+      "current_password": "Contraseña Actual",
+      "new_password": "Nueva Contraseña",
+      "confirm_password": "Confirmar Contraseña",
+      "change_password": "🔑 Cambiar Contraseña",
+      "password_changed": "¡Contraseña cambiada con éxito!",
+      "password_mismatch": "Las contraseñas nuevas no coinciden",
+      "password_required": "Todos los campos de contraseña son requeridos",
+      "password_error": "[ES] Error changing password"
+    },
+    "advanced": {
+      "cache_size_label": "[ES] Cache Size (MB):",
+      "log_debug": "[ES] DEBUG",
+      "log_error": "[ES] ERROR",
+      "log_info": "[ES] INFO",
+      "log_level_label": "[ES] Logging Level:",
+      "log_warning": "[ES] WARNING"
+    },
+    "ai": {
+      "advanced": "Configuración Avanzada",
+      "api_key": "Clave API",
+      "api_key_label": "Clave API:",
+      "api_key_optional": "Opcional para proveedores locales",
+      "api_key_placeholder": "Clave API (Requerida para proveedores en la nube)",
+      "api_key_required_for": "Requerido para {provider}",
+      "api_key_set_placeholder": "•••••••• (Configurado)",
+      "connection": "Conexión",
+      "context": "Habilitar Preprocesamiento de Contexto",
+      "endpoint": "URL del Endpoint",
+      "endpoint_placeholder": "URL del Endpoint (Opcional - dejar vacío para predeterminado)",
+      "endpoint_placeholder_default": "Predeterminado: ",
+      "endpoint_required": "Requerido",
+      "error_connection_failed": "Conexión Fallida",
+      "error_network_test": "Error de red al probar conexión",
+      "errors": {
+        "api_key_prompt": "Por favor ingrese su clave API de {provider} antes de obtener modelos.",
+        "api_key_required": "Clave API Requerida",
+        "fetch_error": "Error al obtener modelos:\n\n{error}\n\nRevise logs/slm_educator.log para más detalles.",
+        "fetch_failed": "Error al Obtener",
+        "no_models": "Sin Modelos",
+        "no_models_message": "No se obtuvieron modelos del proveedor. Por favor revise su configuración."
+      },
+      "fetch_models_button": "🔄 Obtener Modelos",
+      "fetch_models_button_tooltip": "Obtener modelos disponibles del proveedor seleccionado",
+      "fetch_models_loading": "⏳ Obteniendo...",
+      "info": {
+        "anthropic_manual": "⚠️ Anthropic no proporciona API de modelos. Ingrese el nombre manualmente (ej. claude-3-5-sonnet-20241022)",
+        "fetch_prompt": "💡 Haga clic en 'Obtener Modelos' para cargar los disponibles",
+        "fetch_prompt_provider": "💡 Haga clic en 'Obtener Modelos' para ver los modelos disponibles de {provider}",
+        "fetching": "🔄 Obteniendo modelos del proveedor...",
+        "loaded": "✅ Cargados {count} modelos. Escriba para filtrar.",
+        "local_service": "💡 Asegúrese de que {provider} esté ejecutándose localmente, luego haga clic en 'Obtener Modelos'"
+      },
+      "max_tokens": "Tokens Máximos",
+      "model": "Modelo",
+      "model_label": "Modelo:",
+      "preprocessing": "Habilitar Preprocesamiento de Contexto",
+      "preprocessing_placeholder": "Nombre del modelo pequeño (ej. llama3:8b)",
+      "provider": "Proveedor",
+      "provider_api_key": "Clave API de {provider}:",
+      "provider_label": "Proveedor de IA:",
+      "provider_model": "Proveedor y Modelo",
+      "providers": {
+        "anthropic": "Anthropic",
+        "lm_studio": "LM Studio",
+        "ollama": "Ollama",
+        "openai": "OpenAI",
+        "openrouter": "OpenRouter"
+      },
+      "save_config": "Guardar Configuración",
+      "select_model_placeholder": "-- Seleccione un modelo --",
+      "success": {
+        "models_fetched": "¡Se obtuvieron exitosamente {count} modelos de {provider}!\n\nPuede seleccionar uno o escribir para filtrar."
+      },
+      "success_connected": "¡Conectado!",
+      "temperature": "Temperatura",
+      "temperature_label": "Temperatura (0.0 - 1.0):",
+      "test_btn": "Probar Conexión",
+      "test_connection": "Probar Conexión",
+      "testing_connection": "Probando conexión...",
+      "title": "Configuración de IA"
+    },
+    "appearance": {
+      "title": "Configuración de Apariencia",
+      "theme": "Tema",
+      "language": "Idioma",
+      "reload_title": "Recargar Página",
+      "reload_confirm": "Configuración guardada. ¿Recargar ahora para aplicar cambios?",
+      "save_preferences": "Guardar Preferencias"
+    },
+    "general": {
+      "auto_save": "[ES] Enable Auto-save",
+      "auto_save_label": "[ES] Auto Save:",
+      "font_large": "[ES] Large",
+      "font_medium": "[ES] Medium",
+      "font_size_label": "[ES] Font Size:",
+      "font_small": "[ES] Small",
+      "language_label": "[ES] Language:",
+      "theme_auto": "[ES] Auto",
+      "theme_dark": "[ES] Dark",
+      "theme_label": "[ES] Theme:",
+      "theme_light": "[ES] Light"
+    },
+    "profile": {
+      "email": "Correo",
+      "first_name": "Nombre",
+      "grade_level": "Nivel Escolar",
+      "grade_help": "Esto ayuda a personalizar las recomendaciones",
+      "last_name": "Apellido",
+      "save": "Guardar Cambios",
+      "reset": "Restablecer",
+      "title": "Perfil",
+      "username": "Usuario"
+    },
+    "save": {
+      "button": "Guardar Cambios",
+      "error": "Error al guardar configuración: {error}",
+      "error_app": "Error al guardar la configuración de la aplicación",
+      "error_generic": "Error al guardar configuración",
+      "failed": "Error al guardar",
+      "failed_msg": "Error al guardar configuración",
+      "network_error": "Error de red",
+      "saving": "Guardando configuración...",
+      "success": "Éxito",
+      "success_app": "Configuración de la aplicación guardada",
+      "success_basic": "¡Configuración guardada exitosamente!\n\nProveedor: {provider}\nClave API: {api_key_status}\nModelo: {model}",
+      "success_language_changed": "Idioma cambiado a {language}.",
+      "success_provider": "Proveedor: {provider}",
+      "success_restart_note": "Nota: Algunos elementos pueden requerir reiniciar la aplicación.",
+      "success_saved": "¡Configuración guardada exitosamente!",
+      "success_theme": "¡Configuración guardada exitosamente!\n\nTema cambiado a modo {theme}.\nProveedor: {provider}\nAlgunos elementos pueden requerir reiniciar la aplicación.",
+      "success_theme_changed": "Tema cambiado a modo {theme}."
+    },
+    "tabs": {
+      "advanced": "Avanzado",
+      "ai_config": "Configuración de IA",
+      "general": "General",
+      "profile": "Perfil",
+      "appearance": "Apariencia"
+    },
+    "title": "Configuración"
+  },
+  "content": {
+    "library": {
+      "title": "Biblioteca de Contenido",
+      "search_placeholder": "Buscar contenido...",
+      "button_create": "+ Crear Contenido",
+      "tabs": {
+        "library": "📚 Biblioteca",
+        "my_content": "📝 Mi Contenido",
+        "shared": "📤 Compartido conmigo"
+      },
+      "empty": {
+        "no_found": "No se encontró contenido.",
+        "no_available": "No hay contenido disponible en la biblioteca."
+      },
+      "errors": {
+        "generic": "Error: {error}",
+        "loading": "Error al cargar contenido: {error}"
+      },
+      "from": "De: {name}",
+      "buttons": {
+        "create_new": "Crear Nuevo",
+        "new_question": "Nueva Pregunta"
+      },
+      "empty_state": {
+        "button": "Crea Tu Primer Contenido",
+        "text": "¡Comienza a crear lecciones, ejercicios y evaluaciones!",
+        "title": "📭 Aún no hay contenido"
+      },
+      "student_empty_state": {
+        "text": "Aún no tienes materiales de estudio. Tu profesor te asignará contenido, o puedes hacer preguntas usando el botón 'Nueva Pregunta' arriba."
+      },
+      "filters": {
+        "all": "Todo"
+      },
+      "stats": {
+        "assessments": "Evaluaciones",
+        "exercises": "Ejercicios",
+        "lessons": "Lecciones",
+        "total_items": "Total de Elementos"
+      },
+      "view": {
+        "flat": "Plano",
+        "tree": "Árbol"
+      }
+    },
+    "editor": {
+      "title_create": "Crear Nuevo Contenido",
+      "title_edit": "Editar Contenido",
+      "header_create": "Crear Nuevo Contenido",
+      "header_edit": "Editar Contenido",
+      "preview_label": "Vista Previa",
+      "generate_button": "✨ Generar con IA",
+      "save_button": "💾 Guardar Contenido",
+      "generating": "Generando...",
+      "title_label": "Título:",
+      "title_placeholder": "Ingresa el título del contenido...",
+      "type_label": "Tipo:",
+      "types": {
+        "lesson": "📖 Lección",
+        "exercise": "✏️ Ejercicio",
+        "assessment": "📝 Evaluación",
+        "qa": "❓ Preguntas y Respuestas",
+        "topic": "Tema",
+        "quiz": "Cuestionario",
+        "study_plan": "📚 Study Plan"
+      },
+      "qa_section": {
+        "error_title_question": "Por favor, proporcione un título y una pregunta.",
+        "error_save": "Error al guardar la pregunta",
+        "success_save": "Pregunta guardada",
+        "error_network": "Error de red al guardar la pregunta",
+        "error_no_question": "Por favor ingrese una pregunta primero.",
+        "error_ai": "Error al obtener respuesta de IA",
+        "success_answer": "¡Respuesta de IA generada!",
+        "error_answer": "Error al obtener respuesta de IA",
+        "error_no_answer": "No hay respuesta disponible.",
+        "button_ask": "🤖 Preguntar a IA"
+      },
+      "mastery": {
+        "mastered": "Dominado",
+        "learning": "Aprendiendo",
+        "new": "Nuevo",
+        "label": "Dominio"
+      },
+      "parent_topic_label": "Tema Principal",
+      "parent_topic_placeholder": "Tema Principal (Opcional)",
+      "description_label": "Descripción",
+      "description_placeholder": "Descripción breve",
+      "content_label": "Contenido:",
+      "content_placeholder": "Ingresa el cuerpo del contenido aquí...",
+      "content_markdown_placeholder": "Escribe tu contenido aquí (Markdown admitido)...",
+      "difficulty_label": "Dificultad (1-5):",
+      "estimated_time_label": "Tiempo Estimado:",
+      "time_suffix": " min",
+      "button_cancel": "Cancelar",
+      "button_create": "Crear Contenido",
+      "button_save": "Guardar Cambios",
+      "error_load": "Error al cargar contenido para editar: {error}",
+      "success_update": "¡Contenido actualizado exitosamente!",
+      "error_update": "Error al actualizar: {error}",
+      "error_save_generic": "Error al guardar: {error}",
+      "delete_confirm": "¿Está seguro de que desea eliminar este contenido? Esta acción no se puede deshacer.",
+      "success_delete": "¡Contenido eliminado exitosamente!",
+      "error_delete": "Error al eliminar: {error}",
+      "error_delete_generic": "Error al eliminar: {error}",
+      "errors": {
+        "difficulty": "Dificultad:",
+        "created_at": "Creado: ",
+        "validation": "Error de Validación",
+        "title_content_required": "Por favor, completa tanto el título como el contenido.",
+        "title_required": "Se requiere un título"
+      },
+      "manual_button": "📝 Create Manually",
+      "manual_label": "Or create content manually:"
+    },
+    "selection": {
+      "title": "Seleccionar Contenido",
+      "header": "Seleccionar Contenido para Agregar",
+      "search_placeholder": "Buscar contenido...",
+      "button_cancel": "Cancelar",
+      "button_add": "Agregar Seleccionado"
+    },
+    "viewer": {
+      "error_load": "Error al cargar contenido",
+      "empty_content": "No hay datos de contenido disponibles.",
+      "error_load_details": "Error al cargar contenido: {error}",
+      "button_start": "Iniciar",
+      "title_details": "Detalles del Título"
+    },
+    "generator": {
+      "buttons": {
+        "study_plan": "📋 Generar Plan de Estudio",
+        "topic_package": "🤖 Generar Paquete de Temas",
+        "exercise": "🏋️ Generar Ejercicio"
+      },
+      "status": {
+        "generating": "⏳ Generando..."
+      },
+      "results": {
+        "default_plan_title": "Plan de Estudio Generado",
+        "default_exercise_title": "Ejercicio Generado",
+        "default_content_title": "Contenido Generado"
+      },
+      "error_load_plans": "Error al cargar planes de estudio:",
+      "error_failed": "Falló la generación",
+      "success_save_plan": "¡Plan de Estudio guardado exitosamente!",
+      "error_save_plan": "Error al guardar el plan de estudio",
+      "success_save_exercise": "¡Ejercicio guardado en tu biblioteca!",
+      "success_save_items": "¡Se guardaron {count} elemento(s) en tu biblioteca!",
+      "error_no_content": "No hay contenido para guardar"
+    },
+    "creator": {
+      "success": "Contenido creado exitosamente.",
+      "error_save": "Error al guardar contenido.",
+      "error_generic": "Error al crear contenido: {error}"
+    },
+    "mastery": {
+      "label": "Etiqueta",
+      "learning": "Aprendizaje",
+      "mastered": "Dominado",
+      "new": "Nuevo"
+    },
+    "qa": {
+      "ai_answer_title": "Respuesta de IA",
+      "button_ask_ai": "Preguntar a IA",
+      "new_title": "Nuevo Título",
+      "question_label": "Pregunta",
+      "question_placeholder": "Escribe tu pregunta...",
+      "share_label": "Compartir",
+      "title_placeholder": "Introduce el título..."
+    },
+    "qa_section": {
+      "button_ask": "Preguntar",
+      "error_answer": "Error al obtener respuesta",
+      "error_network": "Error de conexión",
+      "error_no_answer": "Sin respuesta disponible",
+      "error_no_question": "Por favor escribe una pregunta",
+      "error_save": "Error al Guardar",
+      "error_title_question": "Título y pregunta requeridos",
+      "success_answer": "Respuesta obtenida",
+      "success_save": "Guardado exitosamente"
+    }
+  },
+  "study_plans": {
+    "list": {
+      "title": "Mis Planes de Estudio",
+      "button_create": "+ Crear Nuevo Plan",
+      "menu": {
+        "ai_generate": "✨ Generar con IA",
+        "manual_create": "📝 Crear Manualmente"
+      },
+      "defaults": {
+        "title": "Nuevo Plan de Estudio",
+        "description": "Descripción de tu plan de estudio"
+      },
+      "card": {
+        "button_view": "Ver Plan",
+        "info_template": "{phases} Fases • Creado recientemente"
+      },
+      "empty": "Aún no has creado ningún plan de estudio.\n¡Haz clic en 'Crear Nuevo Plan' para comenzar!",
+      "search_placeholder": "Search plans..."
+    },
+    "wizard": {
+      "title": "Crear Plan de Estudio",
+      "progress": {
+        "step1": "Paso 1 de 3: Información Básica",
+        "step2": "Paso 2 de 3: Objetivos",
+        "step3": "Paso 3 de 3: Revisión"
+      },
+      "buttons": {
+        "back": "Atrás",
+        "next": "Siguiente",
+        "cancel": "Cancelar",
+        "generate": "Generar Plan"
+      },
+      "basic_info": {
+        "subject_label": "Materia",
+        "subject_placeholder": "ej. Matemáticas, Historia",
+        "grade_label": "Nivel Académico",
+        "grade_template": "Grado {grade}",
+        "university": "Universidad",
+        "adult": "Adulto",
+        "duration_label": "Duración (Semanas)",
+        "error_subject_required": "Por favor, ingresa una materia"
+      },
+      "objectives": {
+        "label": "Objetivos de Aprendizaje",
+        "description": "Añade metas específicas para este plan de estudio.",
+        "placeholder": "ej. Entender ecuaciones cuadráticas",
+        "button_add": "Añadir",
+        "button_remove": "Quitar Seleccionado",
+        "error_at_least_one": "Por favor, agrega al menos un objetivo de aprendizaje"
+      },
+      "review": {
+        "label": "Revisar y Generar"
+      }
+    },
+    "viewer": {
+      "title_template": "Plan de Estudio: {title}",
+      "buttons": {
+        "edit": "✏️ Editar",
+        "refine": "✨ Mejorar con IA",
+        "delete": "🗑️ Eliminar",
+        "save": "💾 Guardar Cambios",
+        "cancel": "Cancelar",
+        "close": "Cerrar",
+        "add_phase": "+ Agregar Fase",
+        "add_content": "+ Agregar Contenido"
+      },
+      "tooltips": {
+        "move_up": "Mover Arriba",
+        "move_down": "Mover Abajo",
+        "delete_phase": "Eliminar Fase"
+      },
+      "phase": {
+        "title_placeholder": "Título de la Fase",
+        "description_placeholder": "Descripción de la Fase",
+        "topics_label": "Temas (uno por línea):",
+        "header_template": "📚 {title}",
+        "topics_header": "Temas:",
+        "content_header": "Contenido Adjunto:",
+        "no_content": "Sin contenido adjunto.",
+        "no_phases": "Aún no hay fases definidas. ¡Usa 'Mejorar con IA' o 'Editar' para agregar contenido!"
+      },
+      "content_menu": {
+        "select": "📚 Seleccionar Contenido Existente",
+        "create": "✨ Crear Nuevo Contenido"
+      },
+      "viewing": {
+        "title_template": "Viendo: {title}",
+        "button_close": "Cerrar"
+      },
+      "messages": {
+        "content_added": "¡Se creó y agregó '{title}' a esta fase!",
+        "content_failed": "Error al crear contenido.",
+        "no_selection": "Por favor, selecciona al menos una fase para mejorar.",
+        "no_refinement": "Por favor, selecciona al menos un tipo de mejora.",
+        "refining": "Mejorando plan de estudio con IA...",
+        "refined": "¡Plan de estudio mejorado exitosamente!",
+        "refine_failed": "Error al mejorar plan: {error}",
+        "delete_title": "Eliminar Plan de Estudio",
+        "delete_confirm": "¿Estás seguro de que deseas eliminar '{title}'? Esta acción no se puede deshacer.",
+        "deleted": "¡Plan de estudio eliminado exitosamente!",
+        "delete_failed": "Error al eliminar plan de estudio.",
+        "save_failed": "Error al guardar cambios en la base de datos.",
+        "saved": "¡Plan de estudio actualizado exitosamente!"
+      },
+      "refinement": {
+        "title": "Mejorar Plan de Estudio con IA",
+        "header": "Selecciona qué mejorar",
+        "description": "Elige qué fases y aspectos de tu plan de estudio mejorar con IA.",
+        "phases_group": "Fases a Mejorar",
+        "select_all": "Seleccionar Todas las Fases",
+        "options_group": "Opciones de Mejora",
+        "options": {
+          "descriptions": "Mejorar Descripciones",
+          "descriptions_tooltip": "Hacer las descripciones de las fases más detalladas y atractivas",
+          "topics": "Expandir Temas",
+          "topics_tooltip": "Agregar más temas y subtemas a cada fase",
+          "objectives": "Agregar Objetivos de Aprendizaje",
+          "objectives_tooltip": "Incluir objetivos de aprendizaje claros para cada fase",
+          "structure": "Mejorar Estructura",
+          "structure_tooltip": "Optimizar la estructura general y el flujo"
+        },
+        "guidelines_group": "Directrices Adicionales (Opcional)",
+        "guidelines_placeholder": "Agrega instrucciones específicas o áreas de enfoque para la mejora con IA...\n\nEjemplo: 'Enfócate en hacer el contenido más interactivo y práctico' o 'Agrega más ejemplos del mundo real'",
+        "button_cancel": "Cancelar",
+        "button_refine": "✨ Mejorar con IA"
+      }
+    }
+  },
+  "student": {
+    "practice": {
+      "title": "Preguntas de Práctica",
+      "stats_template": "{current}/{total} preguntas",
+      "button_ai_help": "🤖 Obtener Ayuda IA",
+      "button_submit": "Enviar Respuesta",
+      "button_next": "Siguiente Pregunta →",
+      "question_counter": "Pregunta {current} de {total}",
+      "no_question": "Sin texto de pregunta",
+      "answer_placeholder": "Escribe tu respuesta aquí...",
+      "true_false": {
+        "true": "Verdadero",
+        "false": "Falso"
+      },
+      "validation": {
+        "no_answer": "Por favor, proporciona una respuesta antes de enviar."
+      },
+      "feedback": {
+        "correct": "✓ ¡Correcto!",
+        "incorrect": "✗ Incorrecto"
+      },
+      "completion": {
+        "header": "🎉 ¡Práctica Completada!",
+        "score": "Tu Puntuación: {score}%",
+        "summary": "{correct} de {total} preguntas correctas"
+      }
+    },
+    "lesson": {
+      "title": "Lección",
+      "loading": "Cargando...",
+      "sections": {
+        "objectives": "🎯 Objetivos de Aprendizaje",
+        "no_objectives": "No hay objetivos específicos listados",
+        "key_terms": "📖 Términos Clave",
+        "no_terms": "Sin términos clave",
+        "pitfalls": "⚠️ Errores Comunes",
+        "no_pitfalls": "Sin errores comunes listados"
+      },
+      "buttons": {
+        "ai_help": "🤖 Preguntar a IA Sobre Esto",
+        "show_ai_tutor": "🤖 Abrir Tutor IA",
+        "hide_ai_tutor": "✕ Cerrar Tutor IA",
+        "previous": "← Anterior",
+        "mark_complete": "✓ Marcar como Completado",
+        "completed": "✓ Completado",
+        "next": "Siguiente →"
+      },
+      "ai_tutor": {
+        "title": "🤖 Tutor IA",
+        "context_ready": "¡Pregúntame lo que quieras sobre esta lección!",
+        "context_topic": "💡 Ayudando con: {topic}",
+        "welcome": "¡Hola! Estoy aquí para ayudarte a entender esta lección. ¡Hazme cualquier pregunta sobre el contenido o usa las acciones rápidas!",
+        "input_placeholder": "Haz una pregunta sobre esta lección...",
+        "send": "Enviar",
+        "quick_questions": "Acciones Rápidas:",
+        "explain_topic": "📚 Explicar",
+        "give_example": "💡 Ejemplo",
+        "quiz_me": "❓ Evalúame",
+        "this_topic": "este tema",
+        "quick_explain": "¿Puedes explicar {topic} de forma sencilla?",
+        "quick_example": "¿Puedes darme un ejemplo práctico de {topic}?",
+        "quick_quiz": "¿Puedes hacerme un cuestionario sobre {topic} para evaluar mi comprensión?",
+        "error": "Lo siento, encontré un error: {error}",
+        "new_chat": "Nuevo Chat",
+        "chat_cleared": "Chat borrado. ¡Inicia una nueva conversación!"
+      },
+      "errors": {
+        "not_found": "Contenido no encontrado"
+      }
+    }
+  },
+  "teacher": {
+    "students_tab": {
+      "title": "Estudiantes",
+      "search_placeholder": "Buscar estudiantes..."
+    },
+    "assign_plan_dialog": {
+      "title": "Asignar Plan de Estudio",
+      "label": "Selecciona un plan de estudio para asignar:"
+    }
+  },
+  "dialogs": {
+    "new_session": {
+      "title": "Iniciar Nueva Sesión de Estudio",
+      "header": "¿Qué te gustaría aprender hoy?",
+      "tabs": {
+        "tutor": "🤖 Tutor IA",
+        "plans": "📅 Planes de Estudio",
+        "library": "📚 Biblioteca de Contenido"
+      },
+      "tutor_tab": {
+        "description": "Inicia una sesión personalizada con tu Tutor IA. Puedes hacer preguntas, solicitar explicaciones o practicar temas específicos.",
+        "quick_topics": "Temas de Inicio Rápido:",
+        "topics": {
+          "python": "Conceptos Básicos de Python",
+          "data": "Estructuras de Datos",
+          "web": "Desarrollo Web",
+          "ml": "Aprendizaje Automático",
+          "general": "Ayuda General"
+        }
+      },
+      "plans_tab": {
+        "empty": "Aún no has creado ningún plan de estudio.\n¡Ve a la pestaña 'Crear Plan' para generar uno!",
+        "button_continue": "Continuar",
+        "phases_template": "{phases} Fases"
+      },
+      "library_tab": {
+        "empty": "No hay contenido disponible en la biblioteca.",
+        "icon": "📄",
+        "button_review": "Revisar"
+      },
+      "button_cancel": "Cancelar"
+    }
+  },
+  "ai_progress": {
+    "title": "Procesando IA",
+    "initializing": "Inicializando IA...",
+    "working": "Procesando...",
+    "elapsed_seconds": "Transcurrido: {seconds}s",
+    "elapsed_minutes": "Transcurrido: {minutes}m {seconds}s",
+    "step_of": "Paso {current} de {total}"
+  },
+  "main_app": {
+    "content_saved": "¡Contenido '{title}' guardado exitosamente!",
+    "content_save_failed": "Error al guardar contenido: {error}",
+    "plan_created": {
+      "title": "Plan de Estudio Creado",
+      "message": "¡Tu plan de estudio ha sido creado exitosamente!\n\n",
+      "phases": "Fases: {phases}\n",
+      "footer": "\n\nPuedes ver tus planes en la Biblioteca de Contenido o en el Panel."
+    },
+    "plan_failed": "Error al generar plan: {error}",
+    "plan_generating": "Generando Plan de Estudio...",
+    "cancel": "Cancelar"
+  },
+  "inbox": {
+    "title": "📥 Mensajes",
+    "button_compose": "Redactar Mensaje",
+    "tabs": {
+      "inbox": "📥 Bandeja",
+      "sent": "📤 Enviados",
+      "archived": "📁 Archivados"
+    },
+    "message": {
+      "from": "De: {name}",
+      "to": "Para: {name}",
+      "reply": "Responder",
+      "mark_read": "Marcar como Leído",
+      "mark_unread": "Marcar como No Leído",
+      "archive": "Archivar",
+      "unarchive": "Desarchivar",
+      "delete": "Eliminar",
+      "badge_new": "Nuevo",
+      "badge_read": "Leído",
+      "delete_confirm": "[ES] Are you sure you want to delete this message? This action cannot be undone."
+    },
+    "bulk": {
+      "select_all": "Seleccionar Todo",
+      "selected": "seleccionados",
+      "archive_selected": "📁 Archivar",
+      "delete_selected": "🗑️ Eliminar",
+      "archived_success": "Mensajes archivados",
+      "deleted_success": "Mensajes eliminados",
+      "delete_confirm": "¿Eliminar mensajes seleccionados?",
+      "error": "Error al procesar mensajes"
+    },
+    "search_placeholder": "Buscar mensajes...",
+    "search_no_results": "No hay mensajes que coincidan con tu búsqueda",
+    "compose": {
+      "button": "Redactar Mensaje",
+      "error_network": "Error de red al enviar mensaje",
+      "error_send": "Error al enviar: {error}",
+      "no_users": "No se encontraron usuarios",
+      "select_recipient_error": "Por favor seleccione un destinatario",
+      "success_sent": "Mensaje enviado",
+      "users_count": "{count} usuarios disponibles",
+      "users_count_zero": "0 usuarios disponibles"
+    },
+    "empty_archived": "No hay mensajes archivados.",
+    "empty_inbox": "Bandeja de entrada vacía.",
+    "empty_sent": "No hay mensajes enviados."
+  },
+  "profile": {
+    "grade_optional": "Grado (Opcional)",
+    "saving": "💾 Guardando...",
+    "success_save": "✅ ¡Perfil guardado exitosamente!",
+    "error_load": "Error al cargar datos del perfil",
+    "error_save": "Error al guardar perfil",
+    "error_firstname": "El nombre es obligatorio",
+    "error_lastname": "El apellido es obligatorio",
+    "error_email": "Se requiere un correo electrónico válido",
+    "badges": {
+      "empty": "Aún no has ganado insignias.",
+      "empty_hint": "¡Completa actividades para ganar insignias!",
+      "error_load": "No se pudieron cargar las insignias"
+    }
+  },
+  "help_request": {
+    "success_submit": "¡Solicitud de ayuda enviada! Tu profesor responderá pronto.",
+    "error_submit": "Error al enviar la solicitud.",
+    "error_network": "Error de red al enviar la solicitud de ayuda.",
+    "context_label": "📍 Actualmente estás estudiando:",
+    "context_tip": "💡 Consejo: ¡Abre una lección o plan de estudio primero, así tu profesor verá exactamente en qué estás trabajando!"
+  },
+  "review": {
+    "no_items": "¡No hay elementos pendientes de revisión! ¡Buen trabajo!",
+    "error_start": "Error al iniciar revisión: {error}"
+  },
+  "assessments": {
+    "button_create": "Crear Evaluación",
+    "title": "📋 Evaluaciones"
+  },
+  "create": {
+    "ai": {
+      "alert_text": "Texto de Alerta",
+      "button_wizard": "Asistente",
+      "buttons": {
+        "generate": "Generar"
+      },
+      "exercise": {
+        "difficulty": "Dificultad",
+        "title": "🏋️ Ejercicio Individual",
+        "topic_label": "Tema",
+        "type": "Tipo"
+      },
+      "mode_selector": {
+        "title": "🎯 ¿Qué quieres crear?"
+      },
+      "modes": {
+        "exercise": {
+          "desc": "Problema de práctica rápida",
+          "label": "🏋️ Ejercicio Individual"
+        },
+        "study_plan": {
+          "desc": "Currículo multi-fase con temas",
+          "label": "📋 Plan de Estudio"
+        },
+        "topic": {
+          "desc": "Lección + ejercicios + evaluación",
+          "label": "📚 Paquete de Tema"
+        }
+      },
+      "preview": {
+        "regenerate": "Regenerar",
+        "save_all": "Guardar Todo",
+        "title": "👁️ Vista Previa"
+      },
+      "save_options": {
+        "add_to_plan": "Añadir al Plan",
+        "auto_save": "Guardado Automático",
+        "phase": "Fase",
+        "select_plan": "Seleccionar Plan",
+        "title": "💾 Opciones de Guardado"
+      },
+      "study_plan": {
+        "duration": "Duración",
+        "objectives_help": "Define los objetivos de aprendizaje",
+        "objectives_label": "Objetivos",
+        "objectives_placeholder": "Ej: Entender ecuaciones cuadráticas",
+        "subject": "Materia",
+        "subject_placeholder": "Ej: Matemáticas",
+        "title": "📋 Plan de Estudio"
+      },
+      "topic": {
+        "difficulty": "Dificultad",
+        "grade_level": "Nivel Escolar",
+        "include_assessment": "Incluir Evaluación",
+        "include_exercises": "Incluir Ejercicios",
+        "include_lesson": "Incluir Lección",
+        "name_label": "Nombre",
+        "name_placeholder": "Introduce el nombre...",
+        "num_exercises": "Núm. Ejercicios",
+        "num_questions": "Núm. Preguntas",
+        "objectives_help": "Define los objetivos de aprendizaje",
+        "objectives_label": "Objetivos",
+        "objectives_placeholder": "Ej: Entender ecuaciones cuadráticas",
+        "step2_title": "Paso 2",
+        "step3_title": "Paso 3",
+        "subject_label": "Asunto",
+        "subject_placeholder": "Ej: Matemáticas",
+        "title": "📚 Paquete de Tema"
+      }
+    },
+    "manual_builder": {
+      "description": "Descripción",
+      "title": "✏️ Constructor Manual"
+    },
+    "tabs": {
+      "ai_generator": "Generador IA",
+      "manual_entry": "Entrada Manual"
+    },
+    "title": "✨ Crear Contenido"
+  },
+  "grading": {
+    "title": "✅ Cola de Calificaciones",
+    "empty_state": "No hay entregas pendientes.",
+    "filters": {
+      "all": "📋 Todo",
+      "pending": "⏳ Pendiente",
+      "graded": "✅ Calificado"
+    },
+    "labels": {
+      "submissions": "Entregas",
+      "final_score": "Puntuación Final",
+      "feedback": "Retroalimentación",
+      "ai_suggestion": "Sugerencia de IA",
+      "student_answer": "Respuesta del Estudiante",
+      "correct_answer": "Respuesta Correcta",
+      "modified": "Modificado",
+      "score": "Puntuación",
+      "optional_feedback": "Retroalimentación opcional",
+      "pts": "pts",
+      "confidence": "{percent}% de confianza"
+    },
+    "buttons": {
+      "accept_all_ai": "✓ Aceptar Todas las Sugerencias de IA",
+      "accept": "✓ Aceptar",
+      "modify": "✏️ Modificar",
+      "save": "Guardar",
+      "submit_grade": "Enviar Calificación"
+    },
+    "placeholders": {
+      "select_submission": "Selecciona una entrega para comenzar a calificar",
+      "grade_score": "0-100",
+      "grade_feedback": "Buen trabajo, pero ten cuidado con..."
+    },
+    "messages": {
+      "error_loading_submissions": "Error al cargar entregas: {error}",
+      "not_authenticated": "Error: No autenticado",
+      "error_loading_details": "Error al cargar detalles",
+      "no_answer": "Sin respuesta",
+      "no_answer_data": "No se encontraron respuestas."
+    },
+    "ai": {
+      "summary": "{count} pregunta(s) con sugerencias de IA"
+    },
+    "status": {
+      "graded": "Calificado",
+      "pending": "Pendiente",
+      "submitted": "Entregado",
+      "ai_graded": "Calificado por IA"
+    },
+    "button_grade": "Calificar",
+    "grade_saved": "¡Calificación Guardada!",
+    "error_save_grade": "Error al guardar calificación",
+    "error_network": "Error de Red",
+    "access_denied": "Acceso denegado. Calificación solo disponible para profesores y administradores.",
+    "ai_grades_accepted": "¡Calificaciones de IA aceptadas! Puntuación final: {score}",
+    "error_accept_grade": "Error al aceptar calificación",
+    "error_accept_ai": "Error al aceptar calificaciones de IA"
+  },
+  "help_queue": {
+    "loading": "Cargando estudiantes...",
+    "title": "❓ Cola de Ayuda"
+  },
+  "leaderboard": {
+    "period": {
+      "all_time": "Todo el Tiempo",
+      "monthly": "Mensual",
+      "weekly": "Semanal"
+    },
+    "table": {
+      "level": "Nivel",
+      "rank": "Posición",
+      "user": "Usuario",
+      "xp": "XP"
+    },
+    "title": "🏆 Clasificación"
+  },
+  "modals": {
+    "compose": {
+      "message": "Mensaje",
+      "recipient": "Destinatario",
+      "search_placeholder": "Buscar estudiantes...",
+      "subject": "Materia",
+      "title": "✉️ Redactar Mensaje"
+    },
+    "daily_goal": {
+      "save": "Guardar",
+      "target": "Objetivo",
+      "title": "🎯 Establecer Meta Diaria",
+      "type": "Tipo",
+      "save_as_default": "Guardar como predeterminado para días futuros"
+    },
+    "help": {
+      "details": "Detalles",
+      "details_placeholder": "Introduce los detalles...",
+      "subject": "Materia",
+      "subject_placeholder": "Ej: Matemáticas",
+      "submit": "Enviar",
+      "title": "❓ Solicitar Ayuda",
+      "urgency": "Urgencia",
+      "urgency_important": "Importante",
+      "urgency_normal": "Normal",
+      "urgency_urgent": "Urgente"
+    },
+    "help_request": {
+      "ai_draft": "Borrador IA",
+      "ai_suggestion": "Sugerencia de IA",
+      "drafting": "Creando Borrador",
+      "mark_resolved": "Marcar Resuelto",
+      "mark_resolved_btn": "Resolver",
+      "notes_placeholder": "Añade notas...",
+      "resolution_notes": "Notas de Resolución",
+      "response_help": "Escribe tu respuesta",
+      "response_placeholder": "Tu respuesta...",
+      "send_reply": "Enviar Respuesta",
+      "subject": "Materia",
+      "title": "📋 Solicitud de Ayuda",
+      "use_suggestion": "Usar Sugerencia",
+      "your_response": "Tu Respuesta"
+    },
+    "student_detail": {
+      "assign_help": "Asigna uno de tus planes de estudio a este estudiante.",
+      "assign_plan_title": "📋 Asignar Plan de Estudio",
+      "badges": "Insignias",
+      "badges_title": "Insignias Recientes",
+      "progress_title": "📊 Detalles de Progreso",
+      "teacher_notes": "📝 Notas del Profesor"
+    }
+  },
+  "students": {
+    "loading": "Cargando estudiantes...",
+    "title": "👥 Estudiantes"
+  },
+  "tutor": {
+    "all_content": "Todo el Contenido",
+    "all_plans": "Todos los Planes",
+    "context_help": "Ayuda Contextual",
+    "context_label": "Contexto de Aprendizaje",
+    "input_placeholder": "Escribe aquí...",
+    "title": "🤖 Tutor IA",
+    "new_chat": "Nuevo Chat",
+    "chat_history": "Historial de Chat"
+  },
+  "session_player": {
+    "title": "Sesión de Aprendizaje",
+    "badge": "Reproductor de Sesión",
+    "timer": "Temporizador",
+    "end_session": "Finalizar Sesión",
+    "complete": "Completar",
+    "loading": "Cargando...",
+    "error": {
+      "title": "Contenido No Encontrado",
+      "message": "El contenido de aprendizaje solicitado no pudo ser cargado.",
+      "return_dashboard": "Volver al Panel"
+    },
+    "plan_sidebar": {
+      "title": "Plan de Estudio",
+      "progress": "{completed}/{total} completados"
+    },
+    "navigation": {
+      "previous": "← Anterior",
+      "next": "Siguiente →",
+      "position": "{current} de {total}"
+    },
+    "notes": {
+      "tab_title": "📝 Notas",
+      "placeholder": "Escribe tus notas aquí...",
+      "status_typing": "✍️ Escribiendo...",
+      "status_saved": "✅ Guardado",
+      "status_synced": "☁️ Sincronizado",
+      "status_loaded": "📥 Cargado desde borrador",
+      "status_default": "📝 Notas autoguardadas",
+      "status_synced_server": "📝 Notas sincronizadas con servidor"
+    },
+    "annotations": {
+      "tab_title": "💬 Anotaciones",
+      "input_placeholder": "Añade un comentario o pregunta...",
+      "type_comment": "💬",
+      "type_question": "❓",
+      "type_highlight": "🔖",
+      "add_button": "Añadir",
+      "visible_to_teacher": "Visible para el profesor",
+      "empty_message": "Sin anotaciones aún",
+      "empty_hint": "Añade comentarios o preguntas sobre este contenido"
+    },
+    "end_modal": {
+      "title": "Resumen de Sesión",
+      "duration": "Duración de Sesión",
+      "difficulty_label": "Calificar Dificultad (1-5)",
+      "difficulty_very_easy": "1 - Muy Fácil",
+      "difficulty_easy": "2 - Fácil",
+      "difficulty_moderate": "3 - Moderado",
+      "difficulty_hard": "4 - Difícil",
+      "difficulty_very_hard": "5 - Muy Difícil",
+      "difficulty_hint": "Esto ayuda a la IA a programar tu próxima revisión.",
+      "resume_button": "Continuar",
+      "end_button": "Finalizar Sesión"
+    },
+    "restore_modal": {
+      "title": "📚 Sesión Anterior Encontrada",
+      "message": "Tienes una sesión anterior con notas de",
+      "question": "¿Te gustaría restaurar tus notas anteriores o empezar de nuevo?",
+      "restore_button": "📥 Restaurar Notas",
+      "restart_button": "🔄 Empezar de Nuevo"
+    }
+  },
+  "admin": {
+    "audit": {
+      "column_action": "Action",
+      "column_details": "Details",
+      "column_resource": "Resource",
+      "column_timestamp": "Timestamp",
+      "column_user": "User",
+      "filter_all": "All",
+      "filter_create": "Create",
+      "filter_delete": "Delete",
+      "filter_login": "Login",
+      "filter_logout": "Logout",
+      "filter_update": "Update",
+      "title": "Audit Logs"
+    },
+    "tabs": {
+      "analytics": "Analytics",
+      "audit": "Audit Logs",
+      "users": "Users"
+    },
+    "users": {
+      "action_activate": "Activar",
+      "action_deactivate": "Desactivar",
+      "action_delete": "Eliminar",
+      "action_edit": "Editar",
+      "action_reset_password": "Restablecer Contraseña",
+      "status_active": "Activo",
+      "status_inactive": "Inactivo",
+      "title": "Gestión de Usuarios"
+    }
+  },
+  "leaderboard": {
+    "title": "Clasificación",
+    "period": {
+      "weekly": "Esta Semana",
+      "monthly": "Este Mes",
+      "all_time": "Todo el Tiempo"
+    },
+    "table": {
+      "rank": "Rango",
+      "user": "Usuario",
+      "xp": "XP",
+      "level": "Nivel"
+    }
+  }
+}
