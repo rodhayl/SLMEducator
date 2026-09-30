@@ -1,6 +1,17 @@
-# SLMEducator
+# SLMEducator: AI-Assisted Teaching and Learning
 
-AI-assisted learning platform with teacher and student workflows.
+**Status:** Source-run application for local development and evaluation. The repository includes test suites and Windows packaging scripts; packaged GitHub releases are not currently provided.
+
+SLMEducator brings teacher and student workflows into a Python/FastAPI learning application. It combines study plans, lessons, exercises, tutoring and learning-session tracking with configurable local or cloud AI providers. The project explores how AI assistance can fit into structured educational workflows while keeping roles, progress and application data in a conventional web architecture.
+
+## What this project demonstrates
+
+- Teacher workflows for creating and improving study plans, lessons, exercises and assessment questions.
+- Student tutoring, learning-session lifecycle and progress/history handling.
+- Provider integration separated from application services and persistence.
+- Source setup, automated tests, browser validation scenarios and Windows packaging.
+
+Use demonstration data for evaluation. Generated learning material needs teacher review, and provider selection determines whether inputs leave the machine. This repository does not establish improved learning outcomes, suitability for children or regulatory compliance in a particular deployment.
 
 ## Requirements
 
@@ -8,7 +19,9 @@ AI-assisted learning platform with teacher and student workflows.
 - Python 3.10+ (64-bit)
 - Git
 
-## Quick Start (Recommended)
+## Quick Start (Windows)
+
+Clone this repository and open PowerShell in its root. Before launching, review [Initial Admin Account](#initial-admin-account) and set your own credential override; the launcher otherwise seeds a shared development default.
 
 ```powershell
 .\install_dependencies.bat
@@ -22,16 +35,15 @@ Application URL: `http://127.0.0.1:8080`
 - Activates `venv`
 - Creates runtime folders (`logs`, `data`, `exports`, `temp`)
 - Sets local runtime environment variables
-- Seeds/updates the `admin` account with deterministic defaults
+- Calls admin seeding on each launch; configured password overrides can reset an existing admin password
 - Starts FastAPI with Uvicorn on port `8080`
 
 ## Manual Run (Alternative)
 
 ```powershell
 python -m venv venv
-.\venv\Scripts\activate.bat
-pip install -r requirements.txt
-python -m uvicorn src.api.main:app --host 127.0.0.1 --port 8080 --reload
+.\venv\Scripts\python.exe -m pip install -r requirements.txt
+.\venv\Scripts\python.exe -m uvicorn src.api.main:app --host 127.0.0.1 --port 8080 --reload
 ```
 
 ## Configuration
@@ -45,16 +57,13 @@ python -m uvicorn src.api.main:app --host 127.0.0.1 --port 8080 --reload
 
 ## Initial Admin Account
 
-Default credentials used by `start.bat` and `build_package.bat --prod`:
-- Username: `admin`
-- Password: `Admin12345678`
-- Email: `admin@example.invalid`
+`start.bat` supplies a shared development password when `SLM_INITIAL_ADMIN_PASSWORD` is absent and calls [scripts/seed_admin.py](scripts/seed_admin.py) on every launch. When the password variable is present, the seeder updates an existing `admin` account as well as creating a missing one. Changing the password only in the UI can therefore be undone at the next scripted launch.
 
-Optional overrides:
-- `SLM_INITIAL_ADMIN_PASSWORD`
-- `SLM_INITIAL_ADMIN_EMAIL`
+Before using the launcher, set `SLM_INITIAL_ADMIN_PASSWORD` to your own unique password of at least 12 characters in that process environment. `SLM_INITIAL_ADMIN_EMAIL` is an optional override. Treat the password as a secret: do not place a real value in shared commands, documentation or commits.
 
-Admin seeding logic lives in `scripts/seed_admin.py`.
+When the seeder is invoked directly without a password override, it generates a random password for a new administrator and prints it once; it leaves an existing administrator unchanged. Keep that output private. These development provisioning paths need review before use with real student information.
+
+`build_package.bat --prod` also seeds an administrator and replaces the root database. See [Build Packages](#build-packages) before running it.
 
 ## Testing
 
@@ -82,6 +91,7 @@ Common examples:
 Notes:
 - Running `.\run_tests.bat` with no arguments prints usage/help.
 - `--real-ai` performs real network API calls and may incur provider cost.
+- Test files and commands describe the available checks; record the commit, environment, provider and executed scope when reporting results. Browser scenarios and real-provider calls require their own validation.
 
 ## Browser E2E Testing (Chrome DevTools)
 
@@ -105,7 +115,7 @@ Build script:
 ```
 
 Modes:
-- `--prod`: Creates a clean production package and recreates `slm_educator.db` with seeded admin credentials.
+- `--prod`: Creates a clean package and recreates `slm_educator.db` with seeded admin credentials. The flag names a build mode; it is not a production-readiness certification.
 - `--test`: Packages the current working `slm_educator.db` (if present).
 
 Examples:
@@ -138,17 +148,16 @@ translations/   i18n JSON files
 ```powershell
 Remove-Item -Recurse -Force venv
 python -m venv venv
-.\venv\Scripts\activate.bat
-pip install -r requirements.txt
+.\venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
 
-- Login issues after local DB changes: reseed admin explicitly.
+- Login issues after local DB changes: review the provisioning behavior above before reseeding. If an intentional reset is needed, set your unique password in `SLM_INITIAL_ADMIN_PASSWORD` in the current process environment, then run:
 
 ```powershell
-set SLM_INITIAL_ADMIN_PASSWORD=Admin12345678
-set SLM_INITIAL_ADMIN_EMAIL=admin@example.invalid
 .\venv\Scripts\python.exe scripts\seed_admin.py
 ```
+
+This can change an existing administrator's credentials. Back up important data first.
 
 ## Security Notes
 
