@@ -32,6 +32,7 @@ def login(page, world, account):
 def screenshot(page, name):
     directory = Path(os.environ.get("SLM_BROWSER_ARTIFACTS", "/tmp/slm-browser-artifacts"))
     directory.mkdir(parents=True, exist_ok=True)
+    page.evaluate("window.scrollTo(0, 0)")
     page.screenshot(path=str(directory / name), full_page=True)
 
 
@@ -60,6 +61,8 @@ def test_teacher_roster_and_interface_preferences(live_page, browser_world):
     expect(page.locator("body")).to_have_css("background-color", "rgb(17, 24, 39)")
     expect(page.locator(".sidebar")).to_have_css("background-color", "rgb(17, 24, 39)")
     expect(page.locator('label[for="profile-grade-level"]')).to_have_text("Grade Level")
+    expect(page.locator("#profile-badges-list")).to_contain_text("Complete activities to earn badges!")
+    expect(page.locator("#timezone-status")).to_have_text("UTC is the explicit default. Choose and save your timezone.")
     screenshot(page, "teacher-en-dark.png")
 
 

@@ -1241,17 +1241,17 @@
   "profile": {
     "badges": {
       "empty": "You have not earned any badges yet.",
-      "empty_hint": "Completa actividades para ganar badges!",
-      "error_load": "No se pudieron cargar las badges"
+      "empty_hint": "Complete activities to earn badges!",
+      "error_load": "Could not load badges"
     },
-    "error_email": "Se requiere un correo email valid",
-    "error_firstname": "El nombre es obligatorio",
-    "error_lastname": "El apellido es obligatorio",
-    "error_load": "Error cargar datos del perfil",
-    "error_save": "Error guardar perfil",
+    "error_email": "A valid email address is required",
+    "error_firstname": "First name is required",
+    "error_lastname": "Last name is required",
+    "error_load": "Could not load profile details",
+    "error_save": "Could not save profile",
     "grade_optional": "Grade (Optional)",
-    "saving": "💾 Guardando...",
-    "success_save": "✅ Perfil guardado successfully!"
+    "saving": "💾 Saving...",
+    "success_save": "✅ Profile saved successfully!"
   },
   "review": {
     "error_start": "Error iniciar revision: {error}",

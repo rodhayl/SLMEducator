@@ -127,3 +127,18 @@ from “Grade (Optional)” to the translation's “Grade Level”. No product t
 was changed to satisfy that assertion. Three focused startup-error regressions
 were red before the fail-closed repair; the next candidate requires a fresh
 browser and offline gate.
+
+
+## Visual review of the passing browser run
+
+Run `37225042278` on `e6a96bfb` passed all six Chromium cases in 15.72 seconds.
+Five synthetic screenshots were inspected. Dark settings, the profile-outage
+alert/retry, learner navigation, import confirmation and narrow keyboard login
+were verified visually. This review found a Spanish badge hint in the English
+profile catalog and a timezone status painted before language loading finished.
+The profile messages were corrected; the timezone status now retranslates its
+existing result on language readiness/change without another request or losing
+an unsaved timezone. The delayed-language regression was red before the repair.
+The browser now asserts both actual English messages, and captures after scrolling
+to the top so sticky navigation is not misleadingly positioned in full-page PNGs.
+This is focused localization evidence, not an audit of every legacy UI string.

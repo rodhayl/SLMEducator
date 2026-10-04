@@ -541,3 +541,24 @@ test('course stop requests server cancellation and preserves unfinished lessons 
     assert.equal(w.SLMClient.drafts.read('course','designer','active').generationTasks[1].status,'pending');
     dom.window.close();
 });
+
+test('timezone status follows completed language loading without discarding an unsaved timezone', async () => {
+    const {dom, window:w} = await fixture('dashboard.html');
+    let calls = 0;
+    w.fetch = async () => { calls++; return reply(200, {timezone:'UTC', timezone_source:'default'}); };
+    w.I18n.t = key => key === 'recovery.timezone_default' ? 'UTC es el valor predeterminado.' : key;
+    await w.loadTimezoneSettings();
+    const status = w.document.getElementById('timezone-status');
+    assert.equal(status.textContent, 'UTC es el valor predeterminado.');
+    const field = w.document.getElementById('settings-timezone');
+    field.value = 'Europe/Madrid';
+    w.I18n.t = key => key === 'recovery.timezone_default' ? 'UTC is the default.' : key;
+    w.document.dispatchEvent(new w.CustomEvent('i18n-loaded'));
+    assert.equal(status.textContent, 'UTC is the default.');
+    assert.equal(field.value, 'Europe/Madrid');
+    w.I18n.t = key => key === 'recovery.timezone_default' ? 'UTC es el valor predeterminado.' : key;
+    w.document.dispatchEvent(new w.CustomEvent('i18n-language-changed'));
+    assert.equal(status.textContent, 'UTC es el valor predeterminado.');
+    assert.equal(calls, 1);
+    dom.window.close();
+});

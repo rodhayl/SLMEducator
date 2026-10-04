@@ -6,6 +6,7 @@
     let pending = null;
     let revision = 0;
     let saving = false;
+    let lastStatus = null;
     const text = (key, fallback) => root.SLMClient.message(key, fallback);
     function validTimezone(value) {
         if (typeof value !== 'string' || !value.trim()) return false;
@@ -49,22 +50,24 @@
         }
         return pending;
     }
-    function status(message, failed = false) {
+    function status(key, fallback, failed = false) {
+        lastStatus = {key, fallback, failed};
         const target = document.getElementById('timezone-status');
-        if (target) { target.textContent = message; target.classList.toggle('text-danger', failed); }
+        if (target) { target.textContent = text(key, fallback); target.classList.toggle('text-danger', failed); }
     }
     root.loadTimezoneSettings = async function () {
         if (saving) return;
         try {
             const settings = await load(true);
-            status(settings.timezone_source === 'default' ? text('timezone_default', 'UTC is the explicit default. Choose and save your timezone.') : text('timezone_loaded', 'Saved timezone loaded.'));
-        } catch { status(text('timezone_load_failed', 'Could not load your timezone. Dates use the last confirmed setting, or UTC if none.'), true); }
+            if (settings.timezone_source === 'default') status('timezone_default', 'UTC is the explicit default. Choose and save your timezone.');
+            else status('timezone_loaded', 'Saved timezone loaded.');
+        } catch { status('timezone_load_failed', 'Could not load your timezone. Dates use the last confirmed setting, or UTC if none.', true); }
     };
     root.saveTimezoneSettings = async function () {
         if (saving) return;
         const field = document.getElementById('settings-timezone');
         const selected = field.value.trim();
-        if (!validTimezone(selected)) { status(text('timezone_invalid', 'Enter a valid IANA timezone, such as Europe/Madrid.'), true); field.focus(); return; }
+        if (!validTimezone(selected)) { status('timezone_invalid', 'Enter a valid IANA timezone, such as Europe/Madrid.', true); field.focus(); return; }
         saving = true;
         field.disabled = true;
         const button = document.getElementById('save-timezone');
@@ -76,10 +79,16 @@
             revision++;
             apply(settings);
             pending = Promise.resolve(settings);
-            status(text('timezone_saved', 'Timezone saved. Existing timestamps with no offset remain unknown.'));
+            status('timezone_saved', 'Timezone saved. Existing timestamps with no offset remain unknown.');
             if (typeof root.loadProfile === 'function') root.loadProfile();
-        } catch { status(text('timezone_save_failed', 'Timezone could not be saved. Your selection is kept; retry.'), true); }
+        } catch { status('timezone_save_failed', 'Timezone could not be saved. Your selection is kept; retry.', true); }
         finally { saving = false; button.disabled = false; field.disabled = false; }
     };
+    // Translate the existing result, without a new request or changing an unsaved selection.
+    for (const event of ['i18n-loaded', 'i18n-language-changed']) {
+        document.addEventListener(event, () => {
+            if (lastStatus) status(lastStatus.key, lastStatus.fallback, lastStatus.failed);
+        });
+    }
     root.SLMTime = Object.freeze({ format, epoch, validTimezone, load, getTimezone: () => timezone });
 })(window);
