@@ -12,10 +12,10 @@ import pytest
 from unittest.mock import Mock, patch
 from sqlalchemy.orm import Session
 
-from core.models.models import AIModelConfiguration, User
-from core.services.ai_service import AIService, AIProvider
-from core.services.settings_config_service import SettingsConfigService
-from core.exceptions import ConfigurationError, AIServiceError
+from src.core.models.models import AIModelConfiguration, User
+from src.core.services.ai_service import AIService, AIProvider
+from src.core.services.settings_config_service import SettingsConfigService
+from src.core.exceptions import ConfigurationError, AIServiceError
 
 
 class TestAIConfigurationManagement:

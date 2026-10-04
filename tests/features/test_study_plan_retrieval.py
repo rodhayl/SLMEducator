@@ -9,8 +9,8 @@ import os
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from core.services import get_study_plan_service, get_auth_service
-from core.models import UserRole
+from src.core.services import get_study_plan_service, get_auth_service
+from src.core.models import UserRole
 
 
 class TestStudyPlanRetrieval:
@@ -20,8 +20,8 @@ class TestStudyPlanRetrieval:
     def setup(self, db_service):
         """Set up test environment using conftest's db_service fixture"""
         # Reset service singletons to use the fresh database from conftest
-        import core.services.auth as auth_module
-        import core.services.study_plan_service as sp_module
+        import src.core.services.auth as auth_module
+        import src.core.services.study_plan_service as sp_module
 
         # Clear service singletons so they use the conftest's db_service
         auth_module._auth_service = None

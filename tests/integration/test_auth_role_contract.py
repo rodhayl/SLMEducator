@@ -41,7 +41,7 @@ def test_me_returns_role_string(client, teacher_token):
 def test_token_without_exp_is_rejected(client, test_teacher):
     import jwt
     from datetime import datetime, timezone
-    from core.services.auth import AuthService
+    from src.core.services.auth import AuthService
 
     auth_service = AuthService()
     token = jwt.encode(

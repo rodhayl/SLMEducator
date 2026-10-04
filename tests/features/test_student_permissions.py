@@ -71,7 +71,7 @@ def test_student_cannot_create_study_plan(client, student_token):
 def test_dashboard_activity_shows_percent_when_total_points_present(
     client, db_service, test_teacher, test_student, student_token
 ):
-    from core.models import (
+    from src.core.models import (
         Assessment,
         AssessmentSubmission,
         SubmissionStatus,
@@ -93,7 +93,7 @@ def test_dashboard_activity_shows_percent_when_total_points_present(
     sub = AssessmentSubmission(
         assessment_id=assessment.id,
         student_id=test_student.id,
-        status=SubmissionStatus.SUBMITTED,
+        status=SubmissionStatus.GRADED,
         score=10,
         total_points=10,
         submitted_at=datetime.now(),
@@ -112,7 +112,7 @@ def test_dashboard_activity_shows_percent_when_total_points_present(
 def test_teacher_can_see_student_shared_qa_when_student_assigned_to_teachers_plan(
     client, db_service, test_teacher, test_student, teacher_token, student_token
 ):
-    from core.models import StudyPlan
+    from src.core.models import StudyPlan
 
     plan = StudyPlan(
         title="Teacher Plan",
@@ -124,6 +124,16 @@ def test_teacher_can_see_student_shared_qa_when_student_assigned_to_teachers_pla
     db_service.session.add(plan)
     db_service.session.commit()
     db_service.session.refresh(plan)
+
+    from src.core.models import Content, ContentType, StudyPlanContent
+    lesson = Content(title="Reviewed synthetic lesson", creator_id=test_teacher.id, study_plan_id=plan.id, content_type=ContentType.LESSON)
+    lesson.set_encrypted_content_data({"content":"Synthetic lesson text"})
+    db_service.session.add(lesson); db_service.session.flush()
+    db_service.session.add(StudyPlanContent(study_plan_id=plan.id, content_id=lesson.id))
+    db_service.session.commit()
+    for action in ("review", "publish"):
+        response = client.post(f"/api/study-plans/{plan.id}/workflow", json={"action":action}, headers=_auth_headers(teacher_token))
+        assert response.status_code == 200, response.text
 
     assign_resp = client.post(
         f"/api/study-plans/{plan.id}/assign",
@@ -157,7 +167,7 @@ def test_teacher_can_see_student_shared_qa_when_student_assigned_to_teachers_pla
 def test_student_cannot_self_assign_via_progress_endpoints(
     client, db_service, test_teacher, test_student, student_token
 ):
-    from core.models import StudyPlan, Content, ContentType, StudyPlanContent
+    from src.core.models import StudyPlan, Content, ContentType, StudyPlanContent
 
     plan = StudyPlan(
         title="Private Teacher Plan",

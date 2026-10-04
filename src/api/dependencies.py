@@ -86,5 +86,7 @@ def get_ai_service_dependency(
         api_key=config.decrypted_api_key,
         preprocessing_model=parameters.get("preprocessing_model"),
         enable_preprocessing=parameters.get("enable_preprocessing", False),
+        temperature=parameters.get("temperature"),
+        max_tokens=parameters.get("max_tokens"),
     )
     return AIService(runtime, logger)

@@ -1,0 +1,2 @@
+# Preserve upstream vendored license bytes, including CRLF.
+src/web/static/vendor/sortablejs@1.15.0/LICENSE -text whitespace=cr-at-eol

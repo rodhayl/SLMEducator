@@ -8,8 +8,8 @@ import threading
 from unittest.mock import Mock, patch
 import httpx
 
-from core.services.ai_service import AIService, AIServiceError
-from core.models import AIModelConfiguration
+from src.core.services.ai_service import AIService, AIServiceError
+from src.core.models import AIModelConfiguration
 
 
 class TestAIPerformance:

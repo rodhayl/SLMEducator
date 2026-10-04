@@ -128,7 +128,7 @@ def real_ai_config():
     if os.environ.get("USE_REAL_AI") != "1":
         pytest.skip("Real AI tests disabled. Set USE_REAL_AI=1 to run.")
 
-    from core.services.settings_config_service import get_settings_service
+    from src.core.services.settings_config_service import get_settings_service
 
     settings = get_settings_service()
     ai_config = settings.get_ai_config_defaults()
@@ -165,8 +165,8 @@ def real_ai_service(real_ai_config):
 
     This fixture creates an actual AI service that will make real API calls.
     """
-    from core.services.ai_service import AIService
-    from core.models import AIModelConfig
+    from src.core.services.ai_service import AIService
+    from src.core.models import AIModelConfig
     import logging
 
     config = AIModelConfig(
@@ -198,7 +198,7 @@ def real_ai_service(real_ai_config):
 @pytest.fixture
 def db_service():
     """Create test database service"""
-    from core.services.database import DatabaseService
+    from src.core.services.database import DatabaseService
 
     # Use in-memory database for speed
     db = DatabaseService(":memory:")
@@ -209,8 +209,8 @@ def db_service():
 @pytest.fixture
 def test_user(db_service):
     """Create a real test user (not mocked)"""
-    from core.models import User, UserRole
-    from core.security import hash_password
+    from src.core.models import User, UserRole
+    from src.core.security import hash_password
     from datetime import datetime
 
     user = User(

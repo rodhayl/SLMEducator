@@ -31,7 +31,7 @@ Clone this repository and open PowerShell in its root. Before launching, review 
 Application URL: `http://127.0.0.1:8080`
 
 `start.bat` does the following:
-- Installs/updates dependencies through `install_dependencies.bat`
+- Uses the environment prepared explicitly by `install_dependencies.bat`; launch never installs or upgrades packages
 - Activates `venv`
 - Creates runtime folders (`logs`, `data`, `exports`, `temp`)
 - Sets local runtime environment variables
@@ -66,6 +66,9 @@ The launcher no longer supplies a shared default password. With no nonblank pass
 Packaging uses the same create-only seeder in disposable staging. It does not delete or seed the working database, copy local configuration, supply a shared password, or stop running applications. See [Build Packages](#build-packages) for credential handling and explicit test-data snapshots.
 
 ## Testing
+
+Install development tools explicitly with `install_dependencies.bat --dev` or `python -m pip install -r requirements-dev.txt`. Runtime dependencies stay in `requirements.txt`.
+
 
 Unified test runner:
 
@@ -166,6 +169,14 @@ The `--prod` label is a build mode, not a production-readiness certification.
 Automated packaging tests exercise real SQLite and the real seeder with a
 simulated freezer. A native Windows build and packaged startup/login smoke test
 are still required before distributing an executable.
+
+## Teacher-reviewed local evaluation
+
+New accounts require an authenticated administrator or teacher. Bootstrap remains create-only. Teachers create their own learners; resource access follows enrollment and authorship. The password-change screen uses `/api/auth/change-password` and revokes previous sessions after rotation.
+
+New courses and assessments are drafts. Review and publish a course before assigning it. Assigned material is immutable; create a separate draft for revisions. AI-generated subjective grading remains provisional until the assessment author reviews it. Provider failure never becomes a final failing grade.
+
+See [the implementation boundary](implementation_documents/LEARNING_LOOP_PLAN.md) for the two-teacher/two-learner synthetic scenario and the separate browser, native Windows and human-pilot acceptance gates.
 
 ## Repository Layout
 

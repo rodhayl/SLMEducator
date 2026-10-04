@@ -5,8 +5,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Create Assessment - SLM Educator</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/vendor/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="/static/css/main.css" rel="stylesheet">
+    <script src="/static/vendor/dompurify@3.4.16/purify.min.js"></script>
+    <script src="/static/vendor/marked@15.0.12/marked.min.js"></script>
+    <script src="/static/js/safe-render.js"></script>
+    <script src="/static/js/learning-client.js"></script>
 </head>
 
 <body>
@@ -32,29 +36,31 @@
                         <div class="card-body">
                             <h5 class="card-title">Settings</h5>
                             <div class="mb-3">
-                                <label class="form-label">Title</label>
+                                <label class="form-label" for="quiz-title">Title</label>
                                 <input type="text" class="form-control" id="quiz-title" placeholder="e.g. Unit 1 Quiz">
                             </div>
                             <div class="mb-3">
-                                <label class="form-label">Description</label>
+                                <label class="form-label" for="quiz-desc">Description</label>
                                 <textarea class="form-control" id="quiz-desc" rows="2"></textarea>
                             </div>
                             <div class="mb-3">
-                                <label class="form-label">Passing Score (%)</label>
+                                <label class="form-label" for="quiz-pass">Passing Score (%)</label>
                                 <input type="number" class="form-control" id="quiz-pass" value="70">
                             </div>
                             <div class="mb-3">
-                                <label class="form-label">Grading Mode</label>
+                                <label class="form-label" for="grading-mode">Grading Mode</label>
                                 <select class="form-select" id="grading-mode">
                                     <option value="ai_assisted" selected>🤖 AI-Assisted (AI suggests, you review)
                                     </option>
-                                    <option value="ai_automatic">⚡ Fully Automatic (AI grades everything)</option>
+                                    <option value="ai_automatic" data-i18n="recovery.ai_review_required">AI suggestions (teacher review required)</option>
                                     <option value="manual">✍️ Manual (You grade subjective questions)</option>
                                 </select>
                                 <small class="text-muted">
                                     Multiple choice and True/False are always auto-graded.
                                 </small>
                             </div>
+                            <div class="mb-3"><label for="quiz-time" data-i18n="recovery.time_limit">Time limit (minutes, blank for none)</label><input id="quiz-time" type="number" min="1" max="1440" class="form-control"></div>
+                            <div class="mb-3"><label for="quiz-attempts" data-i18n="recovery.attempt_limit">Maximum attempts</label><input id="quiz-attempts" type="number" min="1" max="100" value="1" class="form-control"></div>
                             <div class="d-grid mb-3">
                                 <button class="btn btn-outline-primary" onclick="openRubricModal()">+ Add
                                     Rubric</button>
@@ -64,10 +70,10 @@
                                     Preview</button>
                             </div>
                             <div class="d-grid">
-                                <button class="btn btn-success" onclick="publishAssessment()">Publish
-                                    Assessment</button>
+                                <button id="save-draft-btn" class="btn btn-primary mb-2" onclick="saveAssessmentDraft()" data-i18n="recovery.save_draft">Save draft</button>
+                                <button id="publish-btn" class="btn btn-success" onclick="publishAssessment()" disabled data-i18n="recovery.review_publish">Publish reviewed assessment</button>
                             </div>
-                            <div id="assessment-feedback" class="d-none"></div>
+                            <div id="assessment-feedback" class="d-none" role="status" aria-live="polite"></div>
                         </div>
                     </div>
                 </div>
@@ -78,12 +84,11 @@
                         <!-- Questions appear here -->
                     </div>
 
-                    <div class="card border-dashed mt-3 cursor-pointer" role="button" tabindex="0"
-                        onclick="addQuestionUI()">
+                    <button type="button" class="card border-dashed mt-3 w-100" onclick="addQuestionUI()">
                         <div class="card-body text-center">
-                            <h5 class="text-muted mb-0">+ Add Question</h5>
+                            <span class="h5 text-muted mb-0">+ Add Question</span>
                         </div>
-                    </div>
+                    </button>
                 </div>
             </div>
         </div>
@@ -129,17 +134,17 @@
         </template>
 
         <!-- Rubric Modal -->
-        <div class="modal fade" id="rubricModal" tabindex="-1" aria-hidden="true">
+        <div class="modal fade" id="rubricModal" tabindex="-1" aria-hidden="true" aria-labelledby="rubric-title">
             <div class="modal-dialog modal-lg">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title">Edit Rubric</h5>
+                        <h5 id="rubric-title" class="modal-title">Edit Rubric</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
                         <form id="rubric-form">
                             <div class="mb-3">
-                                <label class="form-label">Rubric Name</label>
+                                <label class="form-label" for="rubric-name">Rubric Name</label>
                                 <input type="text" class="form-control" id="rubric-name"
                                     placeholder="e.g. Essay Grading">
                             </div>
@@ -173,8 +178,8 @@
             </div>
         </template>
 
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+        <script src="/static/vendor/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+        <script src="/static/vendor/sortablejs@1.15.0/Sortable.min.js"></script>
         <script src="/static/js/theme.js"></script>
         <script src="/static/js/i18n.js"></script>
         <script src="/static/js/toast.js"></script>

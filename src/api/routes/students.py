@@ -19,6 +19,7 @@ from src.core.models import (
     LearningSession,
     SessionStatus,
     AssessmentSubmission,
+    SubmissionStatus,
 )
 
 logger = logging.getLogger(__name__)
@@ -87,10 +88,17 @@ async def get_student_progress(
 
     # Calculate average score
     avg_score_result = (
-        db.query(func.avg(AssessmentSubmission.score))
+        db.query(
+            func.avg(
+                100.0
+                * AssessmentSubmission.score
+                / func.nullif(AssessmentSubmission.total_points, 0)
+            )
+        )
         .filter(
             AssessmentSubmission.student_id == student_id,
             AssessmentSubmission.score.isnot(None),
+            AssessmentSubmission.status == SubmissionStatus.GRADED,
         )
         .scalar()
     )

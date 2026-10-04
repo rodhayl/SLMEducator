@@ -4,6 +4,7 @@ from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, ConfigDict, Field
 from datetime import datetime, timedelta
 
+from src.core.services.assessed_review import record_assessed_mastery
 from src.api.dependencies import get_db, get_ai_service_dependency
 from src.api.security import get_current_user, require_teacher_or_admin
 from src.core.models import (
@@ -20,8 +21,12 @@ from src.core.models import (
 )
 from src.core.roles import is_teacher_or_admin, is_student
 from src.api.policies import (
-    can_access_submission, can_manage_assessment, can_manage_plan,
-    can_view_assessment, can_reuse_content, require_allowed,
+    can_access_submission,
+    can_manage_assessment,
+    can_manage_plan,
+    can_view_assessment,
+    can_reuse_content,
+    require_allowed,
 )
 from src.core.models import StudyPlan, Content
 from src.api.routes.gamification import award_activity_xp
@@ -182,7 +187,11 @@ async def create_assessment(
         plan = db.get(StudyPlan, assessment_data.study_plan_id)
         require_allowed(can_manage_plan(db, current_user, plan))
     if assessment_data.topic_id is not None:
-        require_allowed(can_reuse_content(db, current_user, db.get(Content, assessment_data.topic_id)))
+        require_allowed(
+            can_reuse_content(
+                db, current_user, db.get(Content, assessment_data.topic_id)
+            )
+        )
     # Parse grading mode
     grading_mode_value = GradingMode.AI_ASSISTED
     if assessment_data.grading_mode:
@@ -320,10 +329,21 @@ async def update_assessment(
     require_allowed(can_manage_assessment(db, current_user, assessment))
     _lock_attempts(db, assessment_id)
     db.refresh(assessment)
-    has_attempts = db.query(Submission.id).filter_by(assessment_id=assessment_id).first()
-    grading_fields = {"questions", "rubric", "passing_score", "grading_mode", "time_limit_minutes"}
+    has_attempts = (
+        db.query(Submission.id).filter_by(assessment_id=assessment_id).first()
+    )
+    grading_fields = {
+        "questions",
+        "rubric",
+        "passing_score",
+        "grading_mode",
+        "time_limit_minutes",
+    }
     if has_attempts and grading_fields.intersection(update_data.model_fields_set):
-        raise HTTPException(status_code=409, detail="Assessment grading rules cannot change after an attempt starts; create a new assessment")
+        raise HTTPException(
+            status_code=409,
+            detail="Assessment grading rules cannot change after an attempt starts; create a new assessment",
+        )
 
     # Update basic fields
     if update_data.title is not None:
@@ -375,15 +395,25 @@ async def update_assessment(
         db.flush()
         if update_data.rubric is not None:
             data = update_data.rubric
-            rubric = Rubric(name=data.name, description=data.description,
-                            total_points=sum(c.max_points for c in data.criteria),
-                            created_by_id=current_user.id, assessment_id=assessment.id)
+            rubric = Rubric(
+                name=data.name,
+                description=data.description,
+                total_points=sum(c.max_points for c in data.criteria),
+                created_by_id=current_user.id,
+                assessment_id=assessment.id,
+            )
             db.add(rubric)
             db.flush()
             for index, criterion in enumerate(data.criteria):
-                db.add(RubricCriterion(rubric_id=rubric.id, name=criterion.name,
-                                      description=criterion.description,
-                                      max_points=criterion.max_points, order_index=index))
+                db.add(
+                    RubricCriterion(
+                        rubric_id=rubric.id,
+                        name=criterion.name,
+                        description=criterion.description,
+                        max_points=criterion.max_points,
+                        order_index=index,
+                    )
+                )
         db.expire(assessment, ["rubrics"])
 
     db.flush()
@@ -567,6 +597,7 @@ async def grade_submission(
     submission.graded_at = datetime.now()
     submission.teacher_approved = True
 
+    record_assessed_mastery(db, submission)
     db.commit()
 
     return {"status": "ok", "message": "Grade saved successfully"}
@@ -586,7 +617,11 @@ async def accept_ai_grades(
 
     require_allowed(can_manage_assessment(db, current_user, submission.assessment))
     if submission.status == SubmissionStatus.GRADED and submission.teacher_approved:
-        return {"status": "ok", "message": "Grade already finalized", "final_score": submission.score}
+        return {
+            "status": "ok",
+            "message": "Grade already finalized",
+            "final_score": submission.score,
+        }
     if submission.status != SubmissionStatus.AI_GRADED:
         raise HTTPException(
             status_code=400, detail="Submission is not pending AI review"
@@ -594,9 +629,16 @@ async def accept_ai_grades(
 
     # Validate everything before applying any suggestion.
     for response in submission.responses:
-        proposed = response.score if response.score is not None else response.ai_suggested_score
+        proposed = (
+            response.score
+            if response.score is not None
+            else response.ai_suggested_score
+        )
         if proposed is None:
-            raise HTTPException(status_code=409, detail="Every answer needs a valid score before finalization")
+            raise HTTPException(
+                status_code=409,
+                detail="Every answer needs a valid score before finalization",
+            )
         _validate_score(proposed, response.question.points)
     total_score = 0
     for response in submission.responses:
@@ -613,6 +655,7 @@ async def accept_ai_grades(
     submission.graded_at = datetime.now()
     submission.teacher_approved = True
 
+    record_assessed_mastery(db, submission)
     db.commit()
 
     return {"status": "ok", "message": "AI grades accepted", "final_score": total_score}
@@ -667,7 +710,11 @@ async def grade_single_response(
 
     if submission:
         total_score = sum(r.score or 0 for r in submission.responses)
-        submission.score = total_score if all(r.score is not None for r in submission.responses) else None
+        submission.score = (
+            total_score
+            if all(r.score is not None for r in submission.responses)
+            else None
+        )
 
         # Check if all questions are now graded
         all_graded = all(r.score is not None for r in submission.responses)
@@ -676,10 +723,15 @@ async def grade_single_response(
             submission.graded_at = datetime.now()
             submission.teacher_approved = True
         else:
-            submission.status = SubmissionStatus.AI_GRADED if any(r.ai_suggested_score is not None for r in submission.responses) else SubmissionStatus.SUBMITTED
+            submission.status = (
+                SubmissionStatus.AI_GRADED
+                if any(r.ai_suggested_score is not None for r in submission.responses)
+                else SubmissionStatus.SUBMITTED
+            )
             submission.graded_at = None
             submission.teacher_approved = False
 
+    record_assessed_mastery(db, submission)
     db.commit()
 
     return {"status": "ok", "message": "Question graded", "score": grade_data.score}
@@ -710,7 +762,11 @@ async def get_assessment(
                 question_type=q.question_type.value,
                 points=q.points,
                 options=q.options,
-                correct_answer=q.get_decrypted_correct_answer() if can_manage_assessment(db, current_user, assessment) else None,
+                correct_answer=(
+                    q.get_decrypted_correct_answer()
+                    if can_manage_assessment(db, current_user, assessment)
+                    else None
+                ),
             )
         )
 
@@ -727,7 +783,11 @@ async def get_assessment(
         grading_mode=assessment.grading_mode.value,
         total_points=assessment.total_points,
         passing_score=assessment.passing_score,
-        rubric=_rubric_for_editor(assessment) if can_manage_assessment(db, current_user, assessment) else None,
+        rubric=(
+            _rubric_for_editor(assessment)
+            if can_manage_assessment(db, current_user, assessment)
+            else None
+        ),
     )
 
 
@@ -736,16 +796,24 @@ def _rubric_for_editor(assessment: Assessment) -> Optional[RubricCreate]:
     if not assessment.rubrics:
         return None
     rubric = assessment.rubrics[0]
-    return RubricCreate(name=rubric.name, description=rubric.description,
-                        criteria=[RubricCriterionCreate(name=item.name, description=item.description,
-                                                        max_points=item.max_points)
-                                  for item in sorted(rubric.criteria, key=lambda item: item.order_index)])
+    return RubricCreate(
+        name=rubric.name,
+        description=rubric.description,
+        criteria=[
+            RubricCriterionCreate(
+                name=item.name, description=item.description, max_points=item.max_points
+            )
+            for item in sorted(rubric.criteria, key=lambda item: item.order_index)
+        ],
+    )
 
 
 def _validate_score(score: int, maximum: int) -> None:
     """Reject invalid score units instead of clamping or truncating them."""
     if type(score) is not int or not 0 <= score <= maximum:
-        raise HTTPException(status_code=422, detail=f"Score must be an integer between 0 and {maximum}")
+        raise HTTPException(
+            status_code=422, detail=f"Score must be an integer between 0 and {maximum}"
+        )
 
 
 def _require_submitted(submission: Submission) -> None:
@@ -757,11 +825,20 @@ def _require_submitted(submission: Submission) -> None:
 def _validate_publish(assessment: Assessment) -> None:
     """Ensure a published assessment has usable questions and answer keys."""
     if not assessment.questions or any(q.points <= 0 for q in assessment.questions):
-        raise HTTPException(status_code=422, detail="Published assessments require positive-point questions")
+        raise HTTPException(
+            status_code=422,
+            detail="Published assessments require positive-point questions",
+        )
     objective = {QuestionType.MULTIPLE_CHOICE, QuestionType.TRUE_FALSE}
     for question in assessment.questions:
-        if question.question_type in objective and not question.get_decrypted_correct_answer():
-            raise HTTPException(status_code=422, detail="Objective questions require an answer key before publication")
+        if (
+            question.question_type in objective
+            and not question.get_decrypted_correct_answer()
+        ):
+            raise HTTPException(
+                status_code=422,
+                detail="Objective questions require an answer key before publication",
+            )
     assessment.total_points = sum(q.points for q in assessment.questions)
 
 
@@ -801,17 +878,23 @@ def _student_assessment(db: Session, user: User, assessment_id: int) -> Assessme
 
 def _reserve_attempt(db: Session, user: User, assessment: Assessment) -> Submission:
     """Reuse the open attempt; enforce the persisted maximum attempt count."""
-    attempts = db.query(Submission).filter_by(assessment_id=assessment.id, student_id=user.id)
+    attempts = db.query(Submission).filter_by(
+        assessment_id=assessment.id, student_id=user.id
+    )
     draft = attempts.filter(Submission.status == SubmissionStatus.DRAFT).first()
     if draft:
         return draft
     if attempts.count() >= assessment.max_attempts:
-        raise HTTPException(status_code=409, detail="Maximum assessment attempts reached")
+        raise HTTPException(
+            status_code=409, detail="Maximum assessment attempts reached"
+        )
     if not assessment.questions:
         raise HTTPException(status_code=409, detail="Assessment has no questions")
     submission = Submission(
-        assessment_id=assessment.id, student_id=user.id,
-        status=SubmissionStatus.DRAFT, started_at=datetime.now(),
+        assessment_id=assessment.id,
+        student_id=user.id,
+        status=SubmissionStatus.DRAFT,
+        started_at=datetime.now(),
         total_points=sum(q.points for q in assessment.questions),
     )
     db.add(submission)
@@ -830,19 +913,33 @@ async def start_assessment_attempt(
     _lock_attempts(db, assessment_id)
     submission = _reserve_attempt(db, current_user, assessment)
     db.commit()
-    expires = submission.started_at + timedelta(minutes=assessment.time_limit_minutes) if assessment.time_limit_minutes else None
-    return {"id": submission.id, "submission_id": submission.id,
-            "status": submission.status.value, "started_at": submission.started_at.astimezone(),
-            "time_limit_minutes": assessment.time_limit_minutes, "expires_at": expires.astimezone() if expires else None}
+    expires = (
+        submission.started_at + timedelta(minutes=assessment.time_limit_minutes)
+        if assessment.time_limit_minutes
+        else None
+    )
+    return {
+        "id": submission.id,
+        "submission_id": submission.id,
+        "status": submission.status.value,
+        "started_at": submission.started_at.astimezone(),
+        "time_limit_minutes": assessment.time_limit_minutes,
+        "expires_at": expires.astimezone() if expires else None,
+    }
 
 
 def _submission_result(submission: Submission) -> dict:
     """Serialize persisted state consistently for initial responses and retries."""
     return {
-        "id": submission.id, "submission_id": submission.id, "score": submission.score,
-        "total_points": submission.total_points, "status": submission.status.value,
+        "id": submission.id,
+        "submission_id": submission.id,
+        "score": submission.score,
+        "total_points": submission.total_points,
+        "status": submission.status.value,
         "grading_mode": submission.assessment.grading_mode.value,
-        "ai_graded_questions": sum(r.ai_suggested_score is not None for r in submission.responses),
+        "ai_graded_questions": sum(
+            r.ai_suggested_score is not None for r in submission.responses
+        ),
         "needs_review": submission.status != SubmissionStatus.GRADED,
     }
 
@@ -851,34 +948,62 @@ def _validate_answers(assessment: Assessment, answers: list) -> dict:
     """Allow partial attempts, but never repeated or foreign question IDs."""
     ids = [answer.question_id for answer in answers]
     if len(ids) != len(set(ids)):
-        raise HTTPException(status_code=422, detail="Each question may be answered only once")
+        raise HTTPException(
+            status_code=422, detail="Each question may be answered only once"
+        )
     allowed = {question.id for question in assessment.questions}
     if not set(ids).issubset(allowed):
-        raise HTTPException(status_code=422, detail="Answer does not belong to this assessment")
+        raise HTTPException(
+            status_code=422, detail="Answer does not belong to this assessment"
+        )
     return {answer.question_id: answer.response_text for answer in answers}
 
 
 def _same_answers(submission: Submission, answers: dict) -> bool:
     """Recognize legacy retries without storing cleartext fingerprints."""
-    submitted = {response.question_id: response.get_decrypted_response() or "" for response in submission.responses}
-    return submitted == {question.id: answers.get(question.id, "") for question in submission.assessment.questions}
+    submitted = {
+        response.question_id: response.get_decrypted_response() or ""
+        for response in submission.responses
+    }
+    return submitted == {
+        question.id: answers.get(question.id, "")
+        for question in submission.assessment.questions
+    }
 
 
-def _get_attempt(db: Session, user: User, assessment: Assessment, data: SubmissionCreate, answers: dict) -> Submission:
+def _get_attempt(
+    db: Session,
+    user: User,
+    assessment: Assessment,
+    data: SubmissionCreate,
+    answers: dict,
+) -> Submission:
     """Resolve a durable attempt identity or the legacy idempotent path."""
-    attempts = db.query(Submission).filter_by(assessment_id=assessment.id, student_id=user.id)
+    attempts = db.query(Submission).filter_by(
+        assessment_id=assessment.id, student_id=user.id
+    )
     if data.submission_id:
         submission = attempts.filter_by(id=data.submission_id).first()
         if not submission:
             raise HTTPException(status_code=404, detail="Attempt not found")
-        if submission.status != SubmissionStatus.DRAFT and not _same_answers(submission, answers):
-            raise HTTPException(status_code=409, detail="A submitted attempt cannot be changed")
+        if submission.status != SubmissionStatus.DRAFT and not _same_answers(
+            submission, answers
+        ):
+            raise HTTPException(
+                status_code=409, detail="A submitted attempt cannot be changed"
+            )
         return submission
-    previous = attempts.filter(Submission.status != SubmissionStatus.DRAFT).order_by(Submission.id.desc()).first()
+    previous = (
+        attempts.filter(Submission.status != SubmissionStatus.DRAFT)
+        .order_by(Submission.id.desc())
+        .first()
+    )
     if previous and _same_answers(previous, answers):
         return previous
     if assessment.time_limit_minutes:
-        raise HTTPException(status_code=409, detail="Start a timed attempt before submitting")
+        raise HTTPException(
+            status_code=409, detail="Start a timed attempt before submitting"
+        )
     return _reserve_attempt(db, user, assessment)
 
 
@@ -887,16 +1012,33 @@ def _grading_rubric(assessment: Assessment, question: Question) -> Optional[dict
     rubrics = question.rubrics or assessment.rubrics
     if not rubrics:
         return None
-    return {"rubrics": [{"name": rubric.name, "description": rubric.description,
-                        "total_points": rubric.total_points,
-                        "criteria": [{"name": criterion.name, "description": criterion.description,
-                                      "max_points": criterion.max_points}
-                                     for criterion in sorted(rubric.criteria, key=lambda item: item.order_index)]}
-                       for rubric in rubrics], "question_max_points": question.points}
+    return {
+        "rubrics": [
+            {
+                "name": rubric.name,
+                "description": rubric.description,
+                "total_points": rubric.total_points,
+                "criteria": [
+                    {
+                        "name": criterion.name,
+                        "description": criterion.description,
+                        "max_points": criterion.max_points,
+                    }
+                    for criterion in sorted(
+                        rubric.criteria, key=lambda item: item.order_index
+                    )
+                ],
+            }
+            for rubric in rubrics
+        ],
+        "question_max_points": question.points,
+    }
 
 
-def _score_response(response: QuestionResponse, question: Question, answer: str, assessment: Assessment, ai_service) -> None:
-    """Score objective work deterministically; keep all subjective AI provisional."""
+def _score_response(
+    response: QuestionResponse, question: Question, answer: str
+) -> None:
+    """Score only deterministic work while persisting the submitted answer."""
     response.set_encrypted_response(answer)
     if not answer.strip():
         response.score = 0
@@ -904,35 +1046,93 @@ def _score_response(response: QuestionResponse, question: Question, answer: str,
         response.feedback = "Unanswered question: zero points."
         return
     correct = question.get_decrypted_correct_answer()
-    if question.question_type in {QuestionType.MULTIPLE_CHOICE, QuestionType.TRUE_FALSE}:
+    if question.question_type in {
+        QuestionType.MULTIPLE_CHOICE,
+        QuestionType.TRUE_FALSE,
+    }:
         if correct is None:
             response.feedback = "Answer key unavailable; teacher review required."
             return
         response.is_correct = correct.strip().casefold() == answer.strip().casefold()
         response.score = question.points if response.is_correct else 0
-        return
-    if not ai_service:
-        return
+
+
+def _collect_suggestions(ai_service, jobs: list[dict]) -> list[dict]:
+    """Call the provider using detached values and no open DB transaction."""
+    suggestions = []
     try:
-        result = ai_service.grade_answer(
-            question=question.question_text, answer=answer,
-            question_type=question.question_type.value, correct_answer=correct,
-            rubric=_grading_rubric(assessment, question), max_points=question.points,
+        for job in jobs:
+            result = {
+                "response_id": job["response_id"],
+                "points": None,
+                "feedback": "Automatic grading was unavailable or invalid. Teacher review is required.",
+            }
+            try:
+                suggestion = ai_service.grade_answer(**job["grading_input"])
+                points = suggestion.get("points_earned")
+                if suggestion.get("status") == "needs_review" or not isinstance(
+                    suggestion.get("feedback"), str
+                ):
+                    raise ValueError("Invalid grading suggestion")
+                if (
+                    type(points) is not int
+                    or not 0 <= points <= job["grading_input"]["max_points"]
+                ):
+                    raise ValueError("Invalid points")
+                result.update(points=points, feedback=suggestion["feedback"])
+            except Exception:
+                pass
+            suggestions.append(result)
+    finally:
+        try:
+            ai_service.close()
+        except Exception:
+            pass
+    return suggestions
+
+
+def _save_suggestions(
+    db: Session, submission_id: int, suggestions: list[dict], late: bool
+) -> None:
+    """Apply suggestions only if no final teacher decision superseded them."""
+    claimed = (
+        db.query(Submission)
+        .filter(
+            Submission.id == submission_id,
+            Submission.status == SubmissionStatus.SUBMITTED,
+            Submission.teacher_approved.is_(False),
         )
-        points = result.get("points_earned")
-        if result.get("status") == "needs_review" or not isinstance(result.get("feedback"), str):
-            raise ValueError("Grading provider did not return a valid suggestion")
-        if type(points) is not int or not 0 <= points <= question.points:
-            raise ValueError("Grading provider returned invalid points")
-        response.ai_suggested_score = points
-        response.ai_suggested_feedback = result["feedback"]
-        response.ai_confidence = None
-    except Exception:
-        response.ai_suggested_feedback = "Automatic grading was unavailable or invalid. Teacher review is required."
+        .update(
+            {Submission.updated_at: Submission.updated_at}, synchronize_session=False
+        )
+    )
+    if not claimed:
+        db.rollback()
+        return
+    submission = db.get(Submission, submission_id)
+    db.refresh(submission)
+    for item in suggestions:
+        response = db.get(QuestionResponse, item["response_id"])
+        db.refresh(response)
+        if response.score is None:
+            response.ai_suggested_score = item["points"]
+            response.ai_suggested_feedback = item["feedback"]
+            response.ai_confidence = None
+    db.flush()
+    if any(
+        response.ai_suggested_score is not None for response in submission.responses
+    ):
+        submission.ai_draft_score = sum(
+            response.score or response.ai_suggested_score or 0
+            for response in submission.responses
+        )
+        if not late:
+            submission.status = SubmissionStatus.AI_GRADED
+    db.commit()
 
 
 @router.post("/{assessment_id}/submit")
-async def submit_assessment(
+def submit_assessment(
     assessment_id: int,
     submission_data: SubmissionCreate,
     current_user: User = Depends(get_current_user),
@@ -953,45 +1153,75 @@ async def submit_assessment(
         return _submission_result(submission)
     submission.status = SubmissionStatus.SUBMITTED
     submission.submitted_at = datetime.now()
-    submission.time_spent_minutes = max(0, int((submission.submitted_at - submission.started_at).total_seconds() / 60))
-    late = bool(assessment.time_limit_minutes and submission.submitted_at > submission.started_at + timedelta(minutes=assessment.time_limit_minutes))
+    submission.time_spent_minutes = max(
+        0, int((submission.submitted_at - submission.started_at).total_seconds() / 60)
+    )
+    late = bool(
+        assessment.time_limit_minutes
+        and submission.submitted_at
+        > submission.started_at + timedelta(minutes=assessment.time_limit_minutes)
+    )
     ai_service = None
-    subjective = any(q.question_type not in {QuestionType.MULTIPLE_CHOICE, QuestionType.TRUE_FALSE} and answers.get(q.id, "").strip() for q in assessment.questions)
+    subjective = any(
+        q.question_type not in {QuestionType.MULTIPLE_CHOICE, QuestionType.TRUE_FALSE}
+        and answers.get(q.id, "").strip()
+        for q in assessment.questions
+    )
     if subjective and assessment.grading_mode != GradingMode.MANUAL:
         try:
             instructor = db.get(User, assessment.created_by_id)
-            ai_service = get_ai_service_dependency(instructor, db) if instructor else None
+            ai_service = (
+                get_ai_service_dependency(instructor, db) if instructor else None
+            )
         except Exception:
             ai_service = None
-    try:
-        for question in assessment.questions:
-            response = QuestionResponse(submission=submission, question=question)
-            _score_response(response, question, answers.get(question.id, ""), assessment, ai_service)
-            db.add(response)
-    finally:
-        if ai_service:
-            try:
-                ai_service.close()
-            except Exception:
-                pass
-    db.flush()
+    jobs = []
+    for question in assessment.questions:
+        answer = answers.get(question.id, "")
+        response = QuestionResponse(submission=submission, question=question)
+        _score_response(response, question, answer)
+        db.add(response)
+        db.flush()
+        if (
+            response.score is None
+            and ai_service
+            and question.question_type
+            not in {QuestionType.MULTIPLE_CHOICE, QuestionType.TRUE_FALSE}
+        ):
+            jobs.append(
+                {
+                    "response_id": response.id,
+                    "grading_input": {
+                        "question": question.question_text,
+                        "answer": answer,
+                        "question_type": question.question_type.value,
+                        "correct_answer": question.get_decrypted_correct_answer(),
+                        "rubric": _grading_rubric(assessment, question),
+                        "max_points": question.points,
+                    },
+                }
+            )
     complete = all(response.score is not None for response in submission.responses)
-    suggestions = any(response.ai_suggested_score is not None for response in submission.responses)
     if complete and not late:
         submission.score = sum(response.score for response in submission.responses)
         submission.status = SubmissionStatus.GRADED
         submission.graded_at = datetime.now()
     else:
         submission.score = None
-        submission.status = SubmissionStatus.AI_GRADED if suggestions and not late else SubmissionStatus.SUBMITTED
-        if suggestions:
-            submission.ai_draft_score = sum(response.score or response.ai_suggested_score or 0 for response in submission.responses)
         if late:
-            submission.feedback = "Time limit exceeded. Answers preserved for teacher review."
-    # A fixed participation reward does not present provisional AI scores as learning evidence.
+            submission.feedback = (
+                "Time limit exceeded. Answers preserved for teacher review."
+            )
+    # Persist the attempt and its reward before any potentially slow provider call.
     award_activity_xp(db, current_user.id, 25)
+    record_assessed_mastery(db, submission)
+    submission_id = submission.id
     db.commit()
-    return _submission_result(submission)
+    if ai_service:
+        suggestions = _collect_suggestions(ai_service, jobs)
+        _save_suggestions(db, submission_id, suggestions, late)
+    db.expire_all()
+    return _submission_result(db.get(Submission, submission_id))
 
 
 # --- Assessment Stats Endpoint ---
@@ -1034,7 +1264,9 @@ async def get_assessment_stats(
         }
 
     # Calculate statistics
-    passing_score = assessment.passing_score if assessment.passing_score is not None else 70
+    passing_score = (
+        assessment.passing_score if assessment.passing_score is not None else 70
+    )
 
     scores = []
     passed_count = 0
@@ -1091,7 +1323,10 @@ async def delete_assessment(
         )
 
     if assessment.submissions:
-        raise HTTPException(status_code=409, detail="Assessments with attempts cannot be deleted; unpublish instead")
+        raise HTTPException(
+            status_code=409,
+            detail="Assessments with attempts cannot be deleted; unpublish instead",
+        )
 
     # Delete the assessment
     db.delete(assessment)

@@ -133,6 +133,14 @@ async def create_study_plan(
                 status_code=403, detail="Only teachers/admins can create study plans"
             )
 
+        requested_ids = [
+            content_id for phase in plan.phases for content_id in phase.content_ids
+        ]
+        if len(requested_ids) != len(set(requested_ids)):
+            raise HTTPException(
+                status_code=422, detail="A course item may appear only once"
+            )
+
         # 1. Create Study Plan
         new_plan = StudyPlan(
             title=plan.title,
@@ -558,7 +566,11 @@ async def get_study_plan_grades(
     ]
 
     # Calculate average score
-    scores = [s.score for s in graded if s.score is not None]
+    scores = [
+        100.0 * s.score / s.total_points
+        for s in graded
+        if s.score is not None and s.total_points
+    ]
     avg_score = sum(scores) / len(scores) if scores else None
 
     # Calculate passing rate
@@ -566,7 +578,10 @@ async def get_study_plan_grades(
         passing = sum(
             1
             for s in graded
-            if s.score and s.assessment and s.score >= s.assessment.passing_score
+            if s.score is not None
+            and s.total_points
+            and s.assessment
+            and 100.0 * s.score / s.total_points >= s.assessment.passing_score
         )
         passing_rate = (passing / len(graded)) * 100
     else:
@@ -638,14 +653,21 @@ async def get_topic_grades(
         or (hasattr(s.status, "value") and s.status.value == "submitted")
     ]
 
-    scores = [s.score for s in graded if s.score is not None]
+    scores = [
+        100.0 * s.score / s.total_points
+        for s in graded
+        if s.score is not None and s.total_points
+    ]
     avg_score = sum(scores) / len(scores) if scores else None
 
     if graded:
         passing = sum(
             1
             for s in graded
-            if s.score and s.assessment and s.score >= s.assessment.passing_score
+            if s.score is not None
+            and s.total_points
+            and s.assessment
+            and 100.0 * s.score / s.total_points >= s.assessment.passing_score
         )
         passing_rate = (passing / len(graded)) * 100
     else:

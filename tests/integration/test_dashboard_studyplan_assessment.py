@@ -19,17 +19,16 @@ def _unique_username(prefix: str) -> str:
 
 
 def _register_user(username: str, role: str):
-    payload = {
-        "username": username,
-        "email": f"{username}@example.com",
-        "password": "Password123!",
-        "first_name": "Test",
-        "last_name": "User",
-        "role": role,
-    }
-    resp = client.post("/api/auth/register", json=payload)
-    assert resp.status_code == 200, resp.text
-    return resp.json()
+    """Provision synthetic approved fixtures; registration policy has dedicated tests."""
+    from src.core.models import User, UserRole
+    from src.core.services.auth import AuthService
+    from src.core.services.database import get_db_service
+    teacher_id = None
+    if role == "student":
+        with get_db_service().get_session() as db:
+            teacher = db.query(User).filter(User.role == UserRole.TEACHER).one_or_none()
+            teacher_id = teacher.id if teacher else None
+    return AuthService().register_user(username, f"{username}@example.com", "Password123!", "Test", "User", UserRole(role), teacher_id=teacher_id)
 
 
 def _login_user(username: str, password: str = "Password123!") -> str:
@@ -120,6 +119,10 @@ def test_student_study_plan_listing_includes_assignments():
     )
     assert plan_resp.status_code == 200, plan_resp.text
     plan_id = plan_resp.json()["id"]
+
+    for action in ("review", "publish"):
+        reviewed = client.post(f"/api/study-plans/{plan_id}/workflow", json={"action":action}, headers=_auth_headers(teacher_token))
+        assert reviewed.status_code == 200, reviewed.text
 
     assign_resp = client.post(
         f"/api/study-plans/{plan_id}/assign",

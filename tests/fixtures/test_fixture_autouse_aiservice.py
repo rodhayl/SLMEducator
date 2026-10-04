@@ -3,8 +3,8 @@ from unittest.mock import Mock, MagicMock
 
 import pytest
 
-from core.services.ai_service import AIService
-from core.models.models import AIModelConfiguration
+from src.core.services.ai_service import AIService
+from src.core.models.models import AIModelConfiguration
 
 
 def _make_config():

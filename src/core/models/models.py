@@ -726,7 +726,10 @@ class AssessmentSubmission(Base):
         """Check if submission meets passing criteria"""
         if self.score is None or self.assessment.passing_score is None:
             return False
-        return self.score >= self.assessment.passing_score
+        return bool(
+            self.total_points
+            and 100.0 * self.score / self.total_points >= self.assessment.passing_score
+        )
 
 
 class QuestionResponse(Base):

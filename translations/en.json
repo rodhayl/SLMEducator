@@ -215,11 +215,11 @@
     "buttons": {
       "start_review": "Start Review"
     },
-    "mastery_title": "📈 Mastery",
+    "mastery_title": "Review evidence",
     "mastery": {
-      "avg_mastery": "Avg Mastery",
-      "mastered_items": "Mastenetwork Items",
-      "in_progress": "In Progress"
+      "avg_mastery": "Average final assessment score",
+      "mastered_items": "Final assessment records",
+      "in_progress": "Legacy activity"
     },
     "gamification": {
       "title": "🏆 Gamification",
@@ -528,10 +528,10 @@
       "error_save_generic": "Error guardar: {error}",
       "error_update": "Error actualizar: {error}",
       "mastery": {
-        "label": "Dominio",
-        "learning": "Aprendiendo",
-        "mastered": "Dominado",
-        "new": "New"
+        "label": "Self-rated confidence",
+        "learning": "Moderate confidence",
+        "mastered": "High confidence",
+        "new": "Not rated"
       },
       "qa_section": {
         "button_ask": "🤖 Questionr a IA",
@@ -583,10 +583,10 @@
       "success_save_plan": "Study Plan guardado successfully!"
     },
     "mastery": {
-      "label": "Etiqueta",
-      "learning": "Aprendizaje",
-      "mastered": "Dominado",
-      "new": "New"
+      "label": "Review evidence",
+      "learning": "Moderate confidence",
+      "mastered": "High confidence",
+      "new": "Not rated"
     },
     "qa": {
       "ai_answer_title": "Response de IA",
@@ -1088,13 +1088,13 @@
     "end_modal": {
       "title": "Session Summary",
       "duration": "Session Duration",
-      "difficulty_label": "Rate Difficulty (1-5)",
-      "difficulty_very_easy": "1 - Viewy Easy",
-      "difficulty_easy": "2 - Easy",
+      "difficulty_label": "Self-rated confidence (1–5)",
+      "difficulty_very_easy": "1 - Very low",
+      "difficulty_easy": "2 - Low",
       "difficulty_moderate": "3 - Moderate",
-      "difficulty_hard": "4 - Hard",
-      "difficulty_very_hard": "5 - Viewy Hard",
-      "difficulty_hint": "This helps the AI schedule your next review.",
+      "difficulty_hard": "4 - High",
+      "difficulty_very_hard": "5 - Very high",
+      "difficulty_hint": "Your confidence is recorded separately from assessed results.",
       "resume_button": "Resume",
       "end_button": "End Session"
     },
@@ -1227,18 +1227,18 @@
     "search_no_results": "No messages match your search"
   },
   "leaderboard": {
+    "title": "Leaderboard",
     "period": {
-      "all_time": "All el Time",
-      "monthly": "Monthly",
-      "weekly": "Weekly"
+      "weekly": "This Week",
+      "monthly": "This Month",
+      "all_time": "All Time"
     },
     "table": {
-      "level": "Level",
-      "rank": "Posicion",
+      "rank": "Rank",
       "user": "User",
-      "xp": "XP"
-    },
-    "title": "🏆 Ranking"
+      "xp": "XP",
+      "level": "Level"
+    }
   },
   "profile": {
     "badges": {
@@ -1273,18 +1273,113 @@
     "chat_history": "[EN] Historial de Chat",
     "new_chat": "New Chat"
   },
-  "leaderboard": {
-    "title": "Leaderboard",
-    "period": {
-      "weekly": "This Week",
-      "monthly": "This Month",
-      "all_time": "All Time"
-    },
-    "table": {
-      "rank": "Rank",
-      "user": "User",
-      "xp": "XP",
-      "level": "Level"
-    }
+  "recovery": {
+    "reauth": "Sign in again, then retry. Your draft is kept on this device.",
+    "forbidden": "You do not have permission. Your draft is kept on this device.",
+    "failed": "The server could not save your work. Please retry.",
+    "draft_found": "Saved draft found",
+    "restore_answers": "Restore the saved work for this attempt?",
+    "restore": "Restore",
+    "discard": "Discard",
+    "keep": "Leave and keep draft",
+    "question": "Question",
+    "no_limit": "No time limit",
+    "local_draft": "Draft saved on this device; not submitted.",
+    "storage_failed": "Could not save a local draft. Keep this page open and retry.",
+    "restored": "Draft restored on this device.",
+    "account_changed": "The signed-in account changed. Reload before continuing.",
+    "submitted": "Submission received",
+    "final_score": "Final score",
+    "pending_review": "Pending teacher review. No final grade yet.",
+    "dashboard": "Back to Dashboard",
+    "answered": "Answered",
+    "unanswered": "Not answered",
+    "local_notes": "Draft saved on this device; waiting for server.",
+    "server_saved": "Notes saved to server.",
+    "sync_failed": "Server save failed. Your draft is kept on this device. Sign in again if needed, then retry.",
+    "session_start_failed": "Session tracking could not start. Reload to retry; notes are disabled until then.",
+    "move_up": "Move up",
+    "move_down": "Move down",
+    "remove": "Remove",
+    "phase_name": "Phase name",
+    "move_phase_up": "Move phase up",
+    "move_phase_down": "Move phase down",
+    "choose_content": "Choose content for this phase",
+    "add_content": "Add selected content",
+    "draft_saved": "Draft saved. Review the questions and answers, then publish when ready.",
+    "save_before_publish": "Save your changes before publishing.",
+    "publish_assessment_confirm": "Have you reviewed every question, correct answer and grading rule? Publishing makes the assessment available to authorized learners.",
+    "publish": "Publish",
+    "published": "Published successfully.",
+    "preview": "Preview",
+    "publish_course_confirm": "Publish this reviewed course for authorized learners?",
+    "reviewed": "Review recorded. You can publish when ready.",
+    "save_draft": "Save draft",
+    "review_publish": "Publish reviewed assessment",
+    "time_limit": "Time limit (minutes, blank for none)",
+    "attempt_limit": "Maximum attempts",
+    "plan_saved_review": "Draft saved. Review the saved material in the library before publishing.",
+    "open_library": "Open library",
+    "mark_reviewed": "Mark reviewed",
+    "notes_ready": "Notes ready",
+    "retry_save": "Retry save",
+    "retry_failed": "Retry failed items",
+    "published_label": "Published",
+    "draft_label": "Draft: review required",
+    "password_minimum": "Password must be at least 12 characters",
+    "ai_suggestion": "AI suggestion; check it against your learning material.",
+    "ai_unavailable": "AI response unavailable. Try again or ask your teacher.",
+    "source_context": "Context",
+    "characters": "characters",
+    "source_partial": "Partial source: some material was not included.",
+    "source_extracted": "Source text extracted; review it before generation.",
+    "no_source": "No source material selected.",
+    "unreadable_pages": "Unreadable pages",
+    "assistance_mode": "Assistance mode",
+    "hint": "Hint",
+    "explanation": "Explanation",
+    "example": "Example",
+    "check_understanding": "Check my understanding",
+    "practice_unavailable": "This practice item needs teacher review before it can be answered.",
+    "practice_notice": "Low-stakes practice. Try an independent answer first. Self-checks are not final grades.",
+    "select_answer": "Choose an answer",
+    "show_hint": "Show a hint",
+    "practice_hint": "Find the key idea in the lesson and explain it in your own words.",
+    "self_check": "Self-check",
+    "attempt_first": "Write or choose your own answer first.",
+    "ask_teacher": "No answer key is available. Ask your teacher to review your response.",
+    "practice_match": "Your choice matches the answer key.",
+    "practice_compare": "Compare your response with the answer key.",
+    "suggested_answer": "Suggested answer",
+    "not_final_grade": "This is a practice self-check, not a final grade.",
+    "open_assessment": "Open assessment",
+    "portability": "Export and backup",
+    "portability_intro": "Preview the contents and exclusions before downloading or importing. Keep private files secure.",
+    "course_export": "Course export",
+    "course": "Course",
+    "audience": "Audience",
+    "learner_export": "Learner copy",
+    "teacher_export": "Teacher copy with answer keys",
+    "download": "Download",
+    "course_import": "Import course as a new draft",
+    "import_file": "Course JSON file",
+    "confirm_import": "Confirm import",
+    "private_backup": "Private installation backup",
+    "backup_warning": "Administrator only. May include private learner information. The encryption key is excluded and must be kept separately. Restore requires the offline tool and a new destination.",
+    "download_backup": "Confirm and download private backup",
+    "counts": "Counts",
+    "includes": "Includes",
+    "excludes": "Excludes",
+    "warnings": "Warnings",
+    "download_started": "Download prepared. Store it securely.",
+    "choose_course": "Choose a course first.",
+    "import_limit": "Choose a JSON course file smaller than 10 MB.",
+    "imported": "Imported as a new draft. Review before publishing.",
+    "generation_partial": "Some items failed. Saved items were kept; retry the same request to finish.",
+    "saved_on_server": "These results were already saved by the server. Retry generation to finish any failed items.",
+    "ai_review_required": "AI suggestions (teacher review required)",
+    "final_assessment_score": "Final assessment score",
+    "legacy_evidence": "Legacy activity, not assessed mastery",
+    "self_confidence": "Self-rated confidence"
   }
 }

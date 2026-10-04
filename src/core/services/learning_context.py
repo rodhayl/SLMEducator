@@ -28,7 +28,11 @@ def source_context(content) -> SourceContext:
     data = data or {}
     sections: list[tuple[str, str]] = []
     for key in ("content", "text", "body", "summary"):
-        if isinstance(data.get(key), str) and data[key].strip():
+        if (
+            isinstance(data.get(key), str)
+            and data[key].strip()
+            and (not data.get("sections") or key == "summary")
+        ):
             sections.append((key, data[key]))
     for index, section in enumerate(data.get("sections", []) or []):
         if isinstance(section, dict):

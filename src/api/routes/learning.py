@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from pydantic import BaseModel, ConfigDict, Field
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 
 from src.api.dependencies import get_db
 from src.api.security import get_current_user
@@ -15,7 +15,6 @@ from src.core.models import (
     Content,
     DailyGoal,
     ContentType,
-    MasteryNode,
 )
 
 router = APIRouter(prefix="/api/learning", tags=["learning"])
@@ -147,9 +146,9 @@ async def end_session(
         award_activity_xp(db, current_user.id, 50)
         _update_daily_goal(db, current_user.id, session)
         if data.difficulty_rating is not None:
-            _schedule_self_rated_review(db, current_user.id, session.content_id, data.difficulty_rating)
+            _record_self_confidence(db, current_user.id, session.content_id, data.difficulty_rating)
         session.completion_status = "rewarded"
-    # This is a self-rating heuristic, never evidence of demonstrated mastery.
+    # Self-confidence is stored separately from assessed mastery.
     db.commit()
     return _session_response(session)
 
@@ -175,22 +174,17 @@ def _active_for_content(db: Session, user_id: int, content_id: int):
     ).order_by(LearningSession.id.desc()).first()
 
 
-def _schedule_self_rated_review(db: Session, user_id: int, content_id: int, rating: int) -> None:
-    """Update the legacy review heuristic once per completed learning session."""
-    from src.core.services.spaced_repetition_service import SpacedRepetitionService
-
-    performance = (rating - 1) * 25
-    node = db.query(MasteryNode).filter_by(student_id=user_id, content_id=content_id).first()
-    if node is None:
-        node = MasteryNode(student_id=user_id, content_id=content_id, mastery_level=performance, review_count=1)
-        db.add(node)
-    else:
-        node.mastery_level = int(0.7 * performance + 0.3 * (node.mastery_level or 0))
-        node.review_count = (node.review_count or 0) + 1
-    node.last_reviewed = datetime.now()
-    node.next_review_due = SpacedRepetitionService.calculate_next_review(
-        None, node.mastery_level, node.review_count, performance
-    )
+def _record_self_confidence(db: Session, user_id: int, content_id: int, rating: int) -> None:
+    """Keep self-report separate from mastery based on checked answers."""
+    user = db.get(User, user_id)
+    settings = dict(user.settings or {})
+    confidence = dict(settings.get("self_confidence", {}))
+    confidence[str(content_id)] = {
+        "rating": rating,
+        "recorded_at": datetime.now(timezone.utc).isoformat(),
+    }
+    settings["self_confidence"] = confidence
+    user.settings = settings
 
 
 def _update_daily_goal(db: Session, user_id: int, session: LearningSession) -> None:

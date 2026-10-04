@@ -1,22 +1,10 @@
 // ============================================================================
 // Authentication Check - Redirect to login if not authenticated
 // ============================================================================
-(function () {
-    if (!window.AuthService || !AuthService.isAuthenticated()) {
-        window.location.href = 'login.html';
-        return;
-    }
-
-    try {
-        const role = AuthService.getRole();
-        if (role && role !== 'teacher' && role !== 'admin') {
-            window.location.href = 'dashboard.html';
-            return;
-        }
-    } catch {
-        // ignore
-    }
-})();
+document.addEventListener('DOMContentLoaded', () => {
+    if (!AuthService.isAuthenticated()) window.location.href = '/login.html';
+    else if (!['teacher', 'admin'].includes(AuthService.getRole())) window.location.href = '/dashboard.html';
+});
 
 function setAssessmentFeedback(message, type = 'info', assessmentId = null) {
     const feedback = document.getElementById('assessment-feedback');
@@ -33,7 +21,7 @@ function setAssessmentFeedback(message, type = 'info', assessmentId = null) {
 
     if (assessmentId) {
         feedback.innerHTML = `
-            <div>${message}</div>
+            <div>${SLMRender.escape(message)}</div>
             <div class="mt-2 d-flex gap-2 flex-wrap">
                 <a href="assessment_taker.html?id=${assessmentId}" class="btn btn-sm btn-primary">Open Assessment</a>
                 <a href="dashboard.html" class="btn btn-sm btn-outline-secondary">Back to Dashboard</a>
@@ -50,8 +38,11 @@ function addQuestionUI() {
 
     clone.querySelector('.remove-q').onclick = function () {
         this.closest('.question-item').remove();
+        assessmentDirty = true;
+        document.getElementById('save-draft-btn').focus();
     };
 
+    addQuestionOrdering(clone.querySelector('.question-item'));
     document.getElementById('questions-container').appendChild(clone);
 }
 
@@ -77,89 +68,95 @@ function openRubricModal() {
 function addCriterionUI() {
     const template = document.getElementById('criterion-template');
     const clone = template.content.cloneNode(true);
+    clone.querySelectorAll('input, textarea').forEach(input => input.setAttribute('aria-label', input.placeholder || 'Maximum points'));
     document.getElementById('rubric-section').appendChild(clone);
 }
 
-async function publishAssessment() {
-    const title = document.getElementById('quiz-title').value;
-    if (!title) {
-        setAssessmentFeedback('Title is required', 'danger');
-        return;
-    }
-
-    // Gather Questions
-    const questions = [];
-    document.querySelectorAll('.question-item').forEach(item => {
-        const text = item.querySelector('.question-text').value;
-        const type = item.querySelector('.question-type').value;
-        const points = parseInt(item.querySelector('.points').value) || 10;
-        const correct = item.querySelector('.correct-answer').value;
-        const optionsStr = item.querySelector('.options-list') ? item.querySelector('.options-list').value : '';
-
-        const options = type === 'multiple_choice'
-            ? { choices: optionsStr.split(',').map(s => s.trim()) }
-            : null;
-
-        questions.push({
-            question_text: text,
-            question_type: type,
-            points: points,
-            correct_answer: correct,
-            options: options
-        });
-    });
-
-    // Gather Rubric
-    let rubric = null;
-    const rubricName = document.getElementById('rubric-name').value;
-    if (rubricName) {
-        const criteria = [];
-        document.querySelectorAll('.criterion-item').forEach(item => {
-            criteria.push({
-                name: item.querySelector('.criterion-name').value,
-                max_points: parseInt(item.querySelector('input[type="number"]').value) || 10,
-                description: item.querySelector('.criterion-desc').value
-            });
-        });
-        if (criteria.length > 0) {
-            rubric = {
-                name: rubricName,
-                description: "Attached to assessment",
-                criteria: criteria
-            };
-        }
-    }
-
-    const payload = {
-        title: title,
+let assessmentSaving = false;
+let assessmentDirty = false;
+function collectAssessment() {
+    return {
+        title: document.getElementById('quiz-title').value.trim(),
         description: document.getElementById('quiz-desc').value,
-        passing_score: parseInt(document.getElementById('quiz-pass').value),
-        grading_mode: document.getElementById('grading-mode')?.value || 'ai_assisted',
-        questions: questions,
-        rubric: rubric
+        passing_score: Number(document.getElementById('quiz-pass').value),
+        time_limit_minutes: Number(document.getElementById('quiz-time').value) || null,
+        max_attempts: Number(document.getElementById('quiz-attempts').value) || 1,
+        grading_mode: document.getElementById('grading-mode').value,
+        questions: Array.from(document.querySelectorAll('.question-item')).map(item => ({
+            question_text: item.querySelector('.question-text').value,
+            question_type: item.querySelector('.question-type').value,
+            points: Number(item.querySelector('.points').value),
+            correct_answer: item.querySelector('.correct-answer').value,
+            options: item.querySelector('.question-type').value === 'multiple_choice' ?
+                { choices: item.querySelector('.options-list').value.split(',').map(value => value.trim()) } : null
+        }))
     };
-
+}
+function collectRubric() {
+    const name = document.getElementById('rubric-name').value.trim();
+    if (!name) return null;
+    return { name, criteria: Array.from(document.querySelectorAll('.criterion-item')).map(item => ({
+        name: item.querySelector('.criterion-name').value,
+        description: item.querySelector('.criterion-desc').value,
+        max_points: Number(item.querySelector('input[type="number"]').value)
+    })) };
+}
+window.saveAssessmentDraft = async () => {
+    if (assessmentSaving) return;
+    const payload = collectAssessment();
+    if (!payload.title) { setAssessmentFeedback('Title is required', 'danger'); return; }
+    assessmentSaving = true;
     try {
-        const response = await fetch('/api/assessments/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${AuthService.getToken()}`
-            },
-            body: JSON.stringify(payload)
+        payload.rubric = collectRubric();
+        const saved = await SLMClient.request(window.editingAssessmentId ? `/api/assessments/${window.editingAssessmentId}` : '/api/assessments/', {
+            method: window.editingAssessmentId ? 'PUT' : 'POST',
+            headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
         });
+        window.editingAssessmentId = saved.id;
+        history.replaceState(null, '', `assessment_builder.html?id=${saved.id}`);
+        assessmentDirty = false;
+        document.getElementById('publish-btn').disabled = false;
+        setAssessmentFeedback(SLMClient.message('draft_saved', 'Draft saved. Review the questions and answers, then publish when ready.'), 'info');
+    } catch (error) { setAssessmentFeedback(error.message, 'danger'); }
+    finally { assessmentSaving = false; }
+};
+window.publishAssessment = async () => {
+    if (assessmentSaving || !window.editingAssessmentId) return;
+    if (assessmentDirty) { setAssessmentFeedback(SLMClient.message('save_before_publish', 'Save your changes before publishing.'), 'warning'); return; }
+    const approved = await showConfirm(SLMClient.message('publish_assessment_confirm', 'Have you reviewed every question, correct answer and grading rule? Publishing makes the assessment available to authorized learners.'),
+        SLMClient.message('publish', 'Publish'));
+    if (!approved) return;
+    assessmentSaving = true;
+    try {
+        await SLMClient.request(`/api/assessments/${window.editingAssessmentId}/publish`, { method: 'POST' });
+        setAssessmentFeedback(SLMClient.message('published', 'Published successfully.'), 'success', window.editingAssessmentId);
+    } catch (error) { setAssessmentFeedback(error.message, 'danger'); }
+    finally { assessmentSaving = false; }
+};
 
-        if (response.ok) {
-            const created = await response.json();
-            setAssessmentFeedback('Assessment published successfully.', 'success', created.id);
-        } else {
-            const err = await response.json();
-            setAssessmentFeedback(err.detail || 'Failed to publish assessment.', 'danger');
+function addQuestionOrdering(card) {
+    const controls = document.createElement('div'); controls.className = 'btn-group my-2';
+    [-1, 1].forEach(direction => {
+        const button = document.createElement('button'); button.type = 'button';
+        button.className = 'btn btn-sm btn-outline-secondary';
+        button.textContent = direction < 0 ? '↑' : '↓';
+        button.setAttribute('aria-label', SLMClient.message(direction < 0 ? 'move_up' : 'move_down', direction < 0 ? 'Move question up' : 'Move question down'));
+        button.onclick = () => {
+            const sibling = direction < 0 ? card.previousElementSibling : card.nextElementSibling;
+            if (sibling) card.parentNode.insertBefore(direction < 0 ? card : sibling, direction < 0 ? sibling : card);
+            assessmentDirty = true; button.focus();
+        };
+        controls.append(button);
+    });
+    card.append(controls);
+    card.querySelectorAll('input, select').forEach(input => {
+        input.setAttribute('aria-label', input.placeholder || 'Question type');
+        const label = input.previousElementSibling;
+        if (label?.tagName === 'LABEL') {
+            input.id = 'question-field-' + crypto.randomUUID(); label.htmlFor = input.id;
         }
-    } catch (e) {
-        console.error(e);
-        setAssessmentFeedback('Network error while publishing assessment.', 'danger');
-    }
+    });
+    assessmentDirty = true;
 }
 
 // Add one default question and initialize Sortable for reordering (32.2)
@@ -173,12 +170,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Update page title
         document.querySelector('h2')?.replaceWith(Object.assign(document.createElement('h2'), {
             className: 'mb-4',
-            innerHTML: '✏️ Edit Assessment'
+            textContent: '✏️ Edit Assessment'
         }));
         // Update button text
         const publishBtn = document.getElementById('publish-btn');
         if (publishBtn) {
-            publishBtn.textContent = '💾 Save Changes';
+            publishBtn.disabled = false;
         }
     } else {
         addQuestionUI();
@@ -251,97 +248,29 @@ async function loadAssessmentForEdit(assessmentId) {
             addQuestionUI();
         }
 
-        setAssessmentFeedback('Loaded assessment for editing', 'info');
+        document.getElementById('quiz-attempts').value = assessment.max_attempts || 1;
+        document.getElementById('rubric-name').value = assessment.rubric?.name || '';
+        document.getElementById('rubric-section').replaceChildren();
+        (assessment.rubric?.criteria || []).forEach(criterion => {
+            addCriterionUI();
+            const item = document.getElementById('rubric-section').lastElementChild;
+            item.querySelector('.criterion-name').value = criterion.name;
+            item.querySelector('.criterion-desc').value = criterion.description || '';
+            item.querySelector('input[type="number"]').value = criterion.max_points;
+        });
+        assessmentDirty = false;
+        setAssessmentFeedback('Loaded assessment for review', 'info');
     } catch (e) {
         console.error('Failed to load assessment:', e);
         setAssessmentFeedback('Error loading assessment', 'danger');
     }
 }
 
-// Modify publishAssessment to handle both create and update
-const originalPublishAssessment = publishAssessment;
-window.publishAssessment = async function () {
-    if (window.editingAssessmentId) {
-        await updateAssessment();
-    } else {
-        await originalPublishAssessment();
-    }
-};
-
-async function updateAssessment() {
-    const title = document.getElementById('quiz-title').value;
-    if (!title) {
-        setAssessmentFeedback('Title is required', 'danger');
-        return;
-    }
-
-    // Gather Questions
-    const questions = [];
-    document.querySelectorAll('.question-item').forEach(item => {
-        const text = item.querySelector('.question-text').value;
-        const type = item.querySelector('.question-type').value;
-        const points = parseInt(item.querySelector('.points').value) || 10;
-        const correct = item.querySelector('.correct-answer').value;
-        const optionsStr = item.querySelector('.options-list') ? item.querySelector('.options-list').value : '';
-
-        const options = type === 'multiple_choice'
-            ? { choices: optionsStr.split(',').map(s => s.trim()) }
-            : null;
-
-        questions.push({
-            question_text: text,
-            question_type: type,
-            points: points,
-            correct_answer: correct,
-            options: options
-        });
-    });
-
-    const payload = {
-        title: title,
-        description: document.getElementById('quiz-desc').value,
-        passing_score: parseInt(document.getElementById('quiz-pass').value),
-        grading_mode: document.getElementById('grading-mode')?.value || 'ai_assisted',
-        questions: questions
-    };
-
-    try {
-        const response = await fetch(`/api/assessments/${window.editingAssessmentId}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${AuthService.getToken()}`
-            },
-            body: JSON.stringify(payload)
-        });
-
-        if (response.ok) {
-            const updated = await response.json();
-            setAssessmentFeedback('Assessment updated successfully.', 'success', updated.id);
-        } else {
-            const err = await response.json();
-            setAssessmentFeedback(err.detail || 'Failed to update assessment.', 'danger');
-        }
-    } catch (e) {
-        console.error(e);
-        setAssessmentFeedback('Network error while updating assessment.', 'danger');
-    }
-}
-// Preview Assessment Function
+// Preview uses the same safe content boundary as the learner view.
 function previewAssessment() {
-    const title = document.getElementById('quiz-title').value || 'Preview';
-    const questions = [];
-    document.querySelectorAll('.question-item').forEach((item, i) => {
-        questions.push({
-            text: item.querySelector('.question-text').value || 'Q' + (i + 1),
-            type: item.querySelector('.question-type').value,
-            points: item.querySelector('.points').value || 10
-        });
-    });
-    let html = '<h2>' + title + '</h2><hr><p class="badge bg-info">Preview Mode</p>';
-    questions.forEach((q, i) => {
-        html += '<div class="card mb-3"><div class="card-body"><strong>Q' + (i + 1) + '</strong>: ' + q.text + ' (' + q.points + 'pts)</div></div>';
-    });
-    const w = window.open('', '_blank', 'width=600,height=500');
-    w.document.write('<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"><div class="container p-4">' + html + '</div>');
+    const payload = collectAssessment();
+    const html = '<h2>' + SLMRender.escape(payload.title || 'Preview') + '</h2>' + payload.questions.map((question, index) =>
+        `<p><strong>${index + 1}.</strong> ${SLMRender.escape(question.question_text)} (${question.points} pts)</p>`).join('');
+    showInfoModal(SLMClient.message('preview', 'Preview'), html);
 }
+document.addEventListener('input', () => { assessmentDirty = true; });

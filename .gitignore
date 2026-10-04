@@ -111,3 +111,7 @@ implementation_documents/*202[0-9]*.py
 docs/TEST_SPECIFICATION.md
 docs/testing/UNIFIED_TEST_SCENARIOS.md
 docs/reports/TEST_REPORT_2025-01-07.md
+
+# Versioned, pinned browser distributions are application assets.
+!src/web/static/vendor/**/dist/
+!src/web/static/vendor/**/dist/**

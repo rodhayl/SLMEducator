@@ -1,7 +1,8 @@
 """
 Spaced Repetition Service for SLMEducator - Phase 1: Adaptive AI Tutor
 
-Implements spaced repetition algorithm (SM-2) for optimal content review scheduling.
+Implements a small interval heuristic for content review scheduling. It is not a
+validated SM-2 implementation or evidence of learning efficacy.
 """
 
 import logging
@@ -306,8 +307,12 @@ _spaced_repetition_service = None
 def get_spaced_repetition_service() -> SpacedRepetitionService:
     """Get or create singleton spaced repetition service instance"""
     global _spaced_repetition_service
-    if _spaced_repetition_service is None:
-        from .database import get_db_service
+    from .database import get_db_service
 
-        _spaced_repetition_service = SpacedRepetitionService(get_db_service())
+    database = get_db_service()
+    if (
+        _spaced_repetition_service is None
+        or _spaced_repetition_service.db is not database
+    ):
+        _spaced_repetition_service = SpacedRepetitionService(database)
     return _spaced_repetition_service

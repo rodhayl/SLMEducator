@@ -205,7 +205,8 @@ async function loadSettings() {
             document.getElementById('ai-model').value = aiData.model || '';
             document.getElementById('ai-endpoint').value = aiData.endpoint || '';
             // Key is likely masked or null if hidden
-            if (aiData.api_key) document.getElementById('ai-key').placeholder = I18n.t('settings.ai.api_key_set_placeholder');
+            document.getElementById('ai-key').value = '';
+            document.getElementById('ai-key').dataset.hasKey = String(Boolean(aiData.has_api_key));
 
             // Advanced settings
             if (aiData.temperature !== undefined) {
@@ -344,15 +345,15 @@ window.saveAISettings = async () => {
             resultDiv.className = 'mt-3 alert alert-success';
             resultDiv.innerHTML = `
                 <strong>${I18n.t('settings.save.success')}</strong><br>
-                Provider: ${data.provider}<br>
-                Model: ${data.model || '(default)'}
+                Provider: ${escapeHtml(data.provider)}<br>
+                Model: ${escapeHtml(data.model || '(default)')}
             `;
             // Auto-hide after 5 seconds
             setTimeout(() => { resultDiv.classList.add('d-none'); }, 5000);
         } else {
             const err = await res.json();
             resultDiv.className = 'mt-3 alert alert-danger';
-            resultDiv.innerHTML = `<strong>${I18n.t('settings.save.failed')}</strong><br>${err.detail || 'Unknown error'}`;
+            resultDiv.innerHTML = `<strong>${I18n.t('settings.save.failed')}</strong><br>${escapeHtml(err.detail || 'Unknown error')}`;
         }
     } catch (e) {
         resultDiv.className = 'mt-3 alert alert-danger';
@@ -383,7 +384,7 @@ window.fetchModels = async function () {
 
             if (data.models && data.models.length > 0) {
                 select.innerHTML = `<option value="">${I18n.t('settings.ai.select_model_placeholder')}</option>` +
-                    data.models.map(m => `<option value="${m}">${m}</option>`).join('');
+                    data.models.map(m => `<option value="${escapeHtml(m)}">${escapeHtml(m)}</option>`).join('');
                 select.classList.remove('d-none');
                 document.getElementById('model-hint').textContent =
                     I18n.t('settings.ai.info.loaded', { count: data.models.length });
@@ -431,7 +432,7 @@ window.onProviderChange = function () {
 
     if (cloudProviders.includes(provider)) {
         apiKeyGroup.classList.remove('d-none');
-        document.getElementById('ai-key').placeholder = I18n.t('settings.ai.api_key_required_for', { provider: provider });
+        document.getElementById('ai-key').placeholder = document.getElementById('ai-key').dataset.hasKey === 'true' ? I18n.t('settings.ai.api_key_set_placeholder') : I18n.t('settings.ai.api_key_required_for', { provider: provider });
     } else {
         // API key optional for local providers 
         document.getElementById('ai-key').placeholder = I18n.t('settings.ai.api_key_optional');
@@ -484,15 +485,15 @@ window.testAIConnection = async function () {
             resultDiv.className = 'mt-3 alert alert-success';
             resultDiv.innerHTML = `
                 <strong>${I18n.t('settings.ai.success_connected')}</strong><br>
-                Provider: ${result.provider}<br>
-                Model: ${result.model}<br>
+                Provider: ${escapeHtml(result.provider)}<br>
+                Model: ${escapeHtml(result.model)}<br>
                 Response time: ${result.response_time_ms}ms
             `;
         } else {
             resultDiv.className = 'mt-3 alert alert-danger';
             resultDiv.innerHTML = `
                 <strong>${I18n.t('settings.ai.error_connection_failed')}</strong><br>
-                ${I18n.t('common.labels.error')}: ${result.error}
+                ${I18n.t('common.labels.error')}: ${escapeHtml(result.error)}
             `;
         }
     } catch (e) {
@@ -553,7 +554,7 @@ function showToast(message, type = 'info') {
     toastEl.setAttribute('aria-atomic', 'true');
     toastEl.innerHTML = `
         <div class="d-flex">
-            <div class="toast-body">${message}</div>
+            <div class="toast-body">${escapeHtml(message)}</div>
             <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
         </div>
     `;
@@ -595,17 +596,17 @@ window.changePassword = async function () {
     }
 
     // Password must meet minimum requirements
-    if (newPassword.length < 8) {
+    if (newPassword.length < 12) {
         if (feedbackEl) {
             feedbackEl.className = 'mt-3 alert alert-danger';
-            feedbackEl.innerHTML = 'Password must be at least 8 characters';
+            feedbackEl.textContent = SLMClient.message('password_minimum', 'Password must be at least 12 characters');
         }
         return;
     }
 
     try {
         const token = AuthService.getToken();
-        const response = await fetch('/api/users/change-password', {
+        const response = await fetch('/api/auth/change-password', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -632,7 +633,7 @@ window.changePassword = async function () {
         } else {
             if (feedbackEl) {
                 feedbackEl.className = 'mt-3 alert alert-danger';
-                feedbackEl.innerHTML = data.detail || 'Error changing password';
+                feedbackEl.textContent = data.detail || 'Error changing password';
             }
         }
     } catch (error) {
@@ -889,10 +890,10 @@ window.loadProfileBadges = async function () {
         badgesList.innerHTML = badges.map(badge => `
             <div class="d-flex align-items-center mb-2 p-2 bg-elevated rounded">
                 <div class="badge-icon me-2" style="font-size: 1.5rem;">
-                    ${badge.icon_path || '🎖️'}
+                    ${escapeHtml(badge.icon_path || '🎖️')}
                 </div>
                 <div class="flex-grow-1">
-                    <div class="fw-bold small">${badge.name}</div>
+                    <div class="fw-bold small">${escapeHtml(badge.name)}</div>
                     <div class="text-muted" style="font-size: 0.75rem;">
                         ${badge.earned_at ? new Date(badge.earned_at).toLocaleDateString() : ''}
                     </div>
@@ -954,9 +955,12 @@ async function loadStats() {
         if (masteryResp.ok) {
             const m = await masteryResp.json();
             document.getElementById('mastery-due-count').textContent = m.items_due_review;
-            document.getElementById('mastery-avg').textContent = m.average_mastery + '%';
-            document.getElementById('mastery-mastered').textContent = m.items_mastered;
-            document.getElementById('mastery-progress').textContent = m.items_in_progress;
+            const evidenceResponse = await fetch('/api/mastery/evidence', { headers: { Authorization: `Bearer ${token}` } });
+            const evidence = evidenceResponse.ok ? await evidenceResponse.json() : { items: [] };
+            const finalItems = (evidence.items || []).filter(item => item.evidence_type === 'final_assessment' && Number.isFinite(item.assessment_percent));
+            document.getElementById('mastery-avg').textContent = finalItems.length ? `${Math.round(finalItems.reduce((sum,item) => sum + item.assessment_percent,0) / finalItems.length)}%` : '—';
+            document.getElementById('mastery-mastered').textContent = finalItems.length;
+            document.getElementById('mastery-progress').textContent = (evidence.items || []).filter(item => item.evidence_type !== 'final_assessment').length;
         }
 
     } catch (err) {
@@ -1030,11 +1034,11 @@ document.addEventListener('DOMContentLoaded', function () {
                     const icon = context.contentType === 'lesson' ? '📖' :
                         context.contentType === 'exercise' ? '🏋️' :
                             context.contentType === 'assessment' ? '📝' : '📄';
-                    contextParts.push(`<span class="badge bg-primary me-2">${icon} ${context.contentTitle}</span>`);
+                    contextParts.push(`<span class="badge bg-primary me-2">${icon} ${escapeHtml(context.contentTitle)}</span>`);
                 }
 
                 if (context.studyPlanTitle) {
-                    contextParts.push(`<span class="badge bg-secondary me-2">📋 ${context.studyPlanTitle}</span>`);
+                    contextParts.push(`<span class="badge bg-secondary me-2">📋 ${escapeHtml(context.studyPlanTitle)}</span>`);
                 }
 
                 if (contextParts.length > 0) {
@@ -1089,8 +1093,8 @@ async function loadActivity() {
         const list = document.getElementById('activity-list');
         list.innerHTML = activities.map(a => `
             <div class="activity-item">
-                <div>${a.text}</div>
-                <div class="activity-time">${a.time}</div>
+                <div>${escapeHtml(a.text)}</div>
+                <div class="activity-time">${escapeHtml(a.time)}</div>
             </div>
         `).join('');
     } catch (err) {
@@ -1099,6 +1103,7 @@ async function loadActivity() {
 }
 
 // Navigation Handler
+let restoringDashboardView = false;
 document.querySelectorAll('.nav-item').forEach(item => {
     item.addEventListener('click', (e) => {
         e.preventDefault();
@@ -1128,7 +1133,8 @@ document.querySelectorAll('.nav-item').forEach(item => {
 
         // Show selected view
         const viewEl = document.getElementById(`view-${viewName}`);
-        if (viewEl) viewEl.classList.remove('hidden');
+        if (viewEl) { viewEl.classList.remove('hidden'); viewEl.tabIndex = -1; viewEl.focus({ preventScroll: true }); }
+        if (!restoringDashboardView && window.location.hash !== `#${viewName}`) history.pushState(null, '', `#${viewName}`);
 
         document.body.classList.remove('sidebar-open');
 
@@ -1169,6 +1175,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+function restoreDashboardView() {
+    const requested = window.location.hash.slice(1);
+    const alias = requested === 'study-plans' ? 'library' : requested;
+    const navigation = Array.from(document.querySelectorAll('.nav-item[data-view]')).find(item => item.dataset.view === alias);
+    if (!navigation) return;
+    restoringDashboardView = true;
+    try { navigation.click(); } finally { restoringDashboardView = false; }
+}
+window.addEventListener('popstate', restoreDashboardView);
+window.addEventListener('hashchange', restoreDashboardView);
+document.addEventListener('DOMContentLoaded', restoreDashboardView);
+
 // --- LIBRARY & CONTENT ---
 let libraryCache = [];
 
@@ -1197,13 +1215,15 @@ window.loadLibrary = async function loadLibrary() {
         // Fetch content and mastery levels in parallel
         const [contentResponse, masteryResponse] = await Promise.all([
             fetch(url, { headers: { 'Authorization': `Bearer ${token}` } }),
-            fetch('/api/mastery/levels', { headers: { 'Authorization': `Bearer ${token}` } }).catch(() => null)
+            fetch('/api/mastery/evidence', { headers: { 'Authorization': `Bearer ${token}` } }).catch(() => null)
         ]);
 
         let items = await contentResponse.json();
-        let masteryLevels = {};
+        if (!contentResponse.ok) throw new Error('Content could not be loaded');
+        let evidenceByContent = {};
         if (masteryResponse && masteryResponse.ok) {
-            masteryLevels = await masteryResponse.json();
+            const evidence = await masteryResponse.json();
+            evidenceByContent = Object.fromEntries((evidence.items || []).map(item => [item.content_id, item]));
         }
 
         // Teacher-only: show only student-shared Q&A
@@ -1257,37 +1277,31 @@ window.loadLibrary = async function loadLibrary() {
                 qa: '❓'
             };
 
-            // Get mastery level for this content (0-100)
-            const masteryLevel = masteryLevels[item.id] || 0;
-            const masteryColor = masteryLevel >= 80 ? 'bg-success' : masteryLevel >= 40 ? 'bg-warning' : 'bg-secondary';
-            const masteryLabel = masteryLevel >= 80 ? I18n.t('content.mastery.mastered') : masteryLevel >= 40 ? I18n.t('content.mastery.learning') : I18n.t('content.mastery.new');
+            const evidence = evidenceByContent[item.id];
+            const finalEvidence = evidence?.evidence_type === 'final_assessment' && Number.isFinite(evidence.assessment_percent);
+            const evidenceLabel = finalEvidence ? `${SLMClient.message('final_assessment_score', 'Final assessment score')}: ${evidence.assessment_percent}%` :
+                SLMClient.message('legacy_evidence', 'Legacy activity, not assessed mastery');
+            const confidenceLabel = evidence?.self_confidence ? `${SLMClient.message('self_confidence', 'Self-rated confidence')}: ${evidence.self_confidence}/5` : '';
 
             return `
                 <div class="col-md-4 col-lg-3">
                     <div class="card h-100" data-creator-id="${item.creator_id || ''}">
                         <div class="card-body">
                             <span class="badge ${typeColors[type] || 'bg-secondary'} mb-2">
-                                ${typeIcons[type] || '📄'} ${type.toUpperCase()}
+                                ${typeIcons[type] || '📄'} ${escapeHtml(type.toUpperCase())}
                             </span>
-                            <h5 class="card-title">${item.title}</h5>
+                            <h5 class="card-title">${escapeHtml(item.title)}</h5>
                             ${(item.creator_id && currentUserId && item.creator_id !== currentUserId && (item.creator_name || item.creator_username)) ? `
                             <p class="text-muted small mb-2">
-                                ${I18n.t('content.library.from', { name: item.creator_name || 'Student' })}${item.creator_username ? ` (@${item.creator_username})` : ''}
+                                ${escapeHtml(I18n.t('content.library.from', { name: item.creator_name || 'Student' }))}${item.creator_username ? ` (@${escapeHtml(item.creator_username)})` : ''}
                             </p>` : ''}
                             <p class="text-muted small mb-2">
                                 ${I18n.t('content.editor.errors.difficulty')} ${'⭐'.repeat(item.difficulty || 1)}
                             </p>
                             ${!isTeacherOrAdmin ? `
                             <div class="mb-2">
-                                <small class="text-muted d-flex justify-content-between">
-                                    <span>${I18n.t('content.mastery.label')}</span>
-                                    <span class="badge ${masteryColor} badge-sm">${masteryLabel}</span>
-                                </small>
-                                <div class="progress" style="height: 6px;">
-                                    <div class="progress-bar ${masteryColor}" role="progressbar" 
-                                         style="width: ${masteryLevel}%;" 
-                                         aria-valuenow="${masteryLevel}" aria-valuemin="0" aria-valuemax="100"></div>
-                                </div>
+                                <small class="text-muted d-block">${escapeHtml(evidenceLabel)}</small>
+                                <small class="text-muted d-block">${escapeHtml(confidenceLabel)}</small>
                             </div>` : ''}
                             <p class="text-muted small">
                                 ${I18n.t('content.editor.errors.created_at')} ${new Date(item.created_at).toLocaleDateString()}
@@ -1437,12 +1451,7 @@ window.askAIForAnswer = async function askAIForAnswer() {
         if (res.ok && data.success) {
             // Show the answer
             if (answerContent) {
-                // Use marked.parse if available for markdown support
-                if (typeof marked !== 'undefined') {
-                    answerContent.innerHTML = marked.parse(data.answer);
-                } else {
-                    answerContent.textContent = data.answer;
-                }
+                SLMRender.setMarkdown(answerContent, data.answer);
             }
             if (answerSection) answerSection.classList.remove('hidden');
             showToast(I18n.t('content.qa_section.success_answer'), 'success');
@@ -1506,9 +1515,7 @@ window.viewContent = async function viewContent(id) {
             }
         }
 
-        document.getElementById('content-view-body').innerHTML = typeof marked !== 'undefined'
-            ? marked.parse(bodyText)
-            : `<pre>${bodyText}</pre>`;
+        SLMRender.setMarkdown(document.getElementById('content-view-body'), bodyText);
 
         // Show modal
         new bootstrap.Modal(document.getElementById('contentViewModal')).show();
@@ -1882,6 +1889,7 @@ async function generateAIContent(endpoint, payload, mode) {
         }
 
         const json = await res.json();
+        if (payload.auto_save) json._serverSaved = true;
         generatedAIContent = json;
         generatedAIContent._mode = mode; // Store mode for saving
 
@@ -1943,7 +1951,8 @@ async function generateAIContent(endpoint, payload, mode) {
             }
         }
 
-        if (itemsList) itemsList.innerHTML = html || '<p>Content generated!</p>';
+        if (json.success === false) html += `<p>${escapeHtml(SLMClient.message('generation_partial', 'Some items failed. Saved items were kept; retry the same request to finish.'))}</p>`;
+        if (itemsList) itemsList.innerHTML = SLMRender.html(html || '<p>Content generated!</p>');
         resultDiv?.classList.remove('hidden');
     } catch (err) {
         showToast('Generation failed: ' + err.message, 'danger');
@@ -1958,68 +1967,50 @@ async function generateAIContent(endpoint, payload, mode) {
     }
 }
 
+let savingGeneratedContent = false;
 window.saveAllGeneratedContent = async function () {
-    if (!generatedAIContent) { showToast(I18n.t('content.generator.error_no_content'), 'warning'); return; }
-    const token = AuthService.getToken();
-    let saved = 0;
-    const mode = generatedAIContent._mode || currentGenerationMode;
-
-    if (mode === 'study_plan') {
-        // Save study plan via /api/study-plans
-        const r = await fetch('/api/study-plans/', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-            body: JSON.stringify(generatedAIContent)
-        });
-        if (r.ok) {
-            saved++;
-            showToast(I18n.t('content.generator.success_save_plan'), 'success');
-        } else {
-            showToast(I18n.t('content.generator.error_save_plan'), 'danger');
-        }
-    } else if (mode === 'exercise') {
-        // Save single exercise
-        const r = await fetch('/api/content', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-            body: JSON.stringify({
-                title: generatedAIContent.title || generatedAIContent.question || 'Generated Exercise',
-                content_type: 'exercise',
-                content_data: generatedAIContent
-            })
-        });
-        if (r.ok) saved++;
-        showToast(I18n.t('content.generator.success_save_exercise'), 'success');
-    } else {
-        // Topic Package mode - save each item
-        if (generatedAIContent.lesson) {
-            const r = await fetch('/api/content', {
-                method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({ title: generatedAIContent.lesson.title || 'Generated Lesson', content_type: 'lesson', content_data: generatedAIContent.lesson })
-            });
-            if (r.ok) saved++;
-        }
-        for (const ex of (generatedAIContent.exercises || [])) {
-            const r = await fetch('/api/content', {
-                method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({ title: ex.title || 'Generated Exercise', content_type: 'exercise', content_data: ex })
-            });
-            if (r.ok) saved++;
-        }
-        for (const q of (generatedAIContent.assessment_questions || [])) {
-            const r = await fetch('/api/content', {
-                method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({ title: q.question || q.question_text || 'Generated Assessment', content_type: 'assessment', content_data: q })
-            });
-            if (r.ok) saved++;
-        }
-        showToast(I18n.t('content.generator.success_save_items', { count: saved }), 'success');
+    if (!generatedAIContent || savingGeneratedContent) return;
+    savingGeneratedContent = true;
+    const generated = generatedAIContent;
+    const mode = generated._mode || currentGenerationMode;
+    if (generated._serverSaved) { savingGeneratedContent = false; showToast(SLMClient.message('saved_on_server', 'These results were already saved by the server. Retry generation to finish any failed items.'), 'info'); return; }
+    const items = [];
+    if (mode === 'study_plan') items.push({ key: 'plan', url: '/api/study-plans/', data: generated });
+    else if (mode === 'exercise') items.push({ key: 'exercise', url: '/api/content', data: {
+        title: generated.title || generated.question || 'Generated Exercise', content_type: 'exercise', content_data: generated
+    }});
+    else {
+        if (generated.lesson) items.push({ key: 'lesson', url: '/api/content', data: {
+            title: generated.lesson.title || 'Generated Lesson', content_type: 'lesson', content_data: generated.lesson
+        }});
+        (generated.exercises || []).forEach((exercise, index) => items.push({ key: `exercise-${index}`, url: '/api/content', data: {
+            title: exercise.title || 'Generated Exercise', content_type: 'exercise', content_data: exercise
+        }}));
+        if (generated.assessment_questions?.length) items.push({ key: 'assessment', url: '/api/assessments/', data: {
+            title: generated.topic_name || 'Generated Assessment', is_published: false, grading_mode: 'manual',
+            questions: generated.assessment_questions.map(question => ({
+                question_text: question.question_text || question.question,
+                question_type: question.question_type || 'short_answer', points: question.points || 10,
+                correct_answer: question.correct_answer || null,
+                options: Array.isArray(question.options) ? { choices: question.options } : question.options
+            }))
+        }});
     }
-
-    document.getElementById('ai-content-generation-result')?.classList.add('hidden');
-    aiContentForm?.reset();
-    toggleGenerationMode(); // Reset form to show correct fields
-    generatedAIContent = null;
+    generated._savedKeys = generated._savedKeys || [];
+    let failed = 0;
+    try {
+        for (const item of items) {
+            if (generated._savedKeys.includes(item.key)) continue;
+            try {
+                await SLMClient.request(item.url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(item.data) });
+                generated._savedKeys.push(item.key);
+            } catch (error) { failed++; showToast(error.message, 'danger'); }
+        }
+        if (failed || !items.length) return; // Keep results and unsaved items available for retry.
+        showToast(I18n.t('content.generator.success_save_items', { count: generated._savedKeys.length }), 'success');
+        document.getElementById('ai-content-generation-result')?.classList.add('hidden');
+        aiContentForm?.reset(); toggleGenerationMode(); generatedAIContent = null;
+    } finally { savingGeneratedContent = false; }
 };
 
 window.regenerateContent = function () { aiContentForm?.dispatchEvent(new Event('submit')); };
@@ -2091,7 +2082,7 @@ window.loadTutorStudyPlans = async function loadTutorStudyPlans() {
         plans.forEach(plan => {
             const option = document.createElement('option');
             option.value = plan.id;
-            option.textContent = `📘 ${plan.title}`;
+            option.textContent = `📘 ${escapeHtml(plan.title)}`;
             select.appendChild(option);
         });
     } catch (err) {
@@ -2170,6 +2161,7 @@ window.initTutorSelectors = function initTutorSelectors() {
 
 // Clear AI Chat (30.3)
 window.clearAIChat = function clearAIChat() {
+    tutorEpoch++; tutorConversation = [];
     const chatHistory = document.getElementById('chat-history');
     if (chatHistory) {
         chatHistory.innerHTML = '<div class="text-muted text-center">Start a conversation with your AI Tutor</div>';
@@ -2189,19 +2181,48 @@ window.clearAIChat = function clearAIChat() {
 };
 
 
+let tutorBusy = false;
+let tutorEpoch = 0;
+let tutorConversation = [];
+function appendTutorMessage(text, modelResponse, metadata = {}) {
+    const row = document.createElement('div');
+    row.className = 'chat-message ' + (modelResponse ? 'chat-message-ai' : 'chat-message-user');
+    const bubble = document.createElement('div');
+    bubble.className = 'chat-bubble';
+    if (modelResponse) SLMRender.setMarkdown(bubble, text);
+    else bubble.textContent = text;
+    row.append(bubble);
+    if (modelResponse) {
+        const details = document.createElement('small');
+        details.className = 'd-block text-secondary';
+        const label = metadata.status && metadata.status !== 'suggestion' ?
+            SLMClient.message('ai_unavailable', 'AI response unavailable. Try again or ask your teacher.') :
+            SLMClient.message('ai_suggestion', 'AI suggestion; check it against your learning material.');
+        const source = metadata.source;
+        details.textContent = label + (source ? ` ${SLMClient.message('source_context', 'Context')}: ${source.title}; ${(source.references || []).join(', ')}. ${source.included_characters}/${source.total_characters} ${SLMClient.message('characters', 'characters')}. ${source.truncated ? SLMClient.message('source_partial', 'Partial source: some material was not included.') : ''}` :
+            ` ${SLMClient.message('no_source', 'No source material selected.')}`);
+        row.append(details);
+    }
+    chatHistory.append(row);
+}
+
 if (chatForm) {
     chatForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const input = document.getElementById('chat-input');
         const msg = input.value;
-        if (!msg) return;
+        if (!msg || tutorBusy) return;
+        tutorBusy = true;
+        const epoch = tutorEpoch;
+        const sendButton = chatForm.querySelector('button[type=submit]');
+        sendButton.disabled = true;
 
         // Get selected context
         const studyPlanId = document.getElementById('tutor-study-plan')?.value || null;
         const contentId = document.getElementById('tutor-content')?.value || null;
 
         // Append User Message
-        chatHistory.innerHTML += `<div class="chat-message chat-message-user"><span class="chat-bubble">${msg}</span></div>`;
+        appendTutorMessage(msg, false);
         input.value = '';
         chatHistory.scrollTop = chatHistory.scrollHeight;
 
@@ -2211,7 +2232,7 @@ if (chatForm) {
 
         try {
             const token = AuthService.getToken();
-            const payload = { message: msg };
+            const payload = { message: msg, assistance: document.getElementById('tutor-assistance')?.value || 'hint', conversation_history: tutorConversation.slice(-10) };
             if (studyPlanId) payload.study_plan_id = parseInt(studyPlanId);
             if (contentId) payload.content_id = parseInt(contentId);
 
@@ -2222,16 +2243,22 @@ if (chatForm) {
             });
             const data = await res.json();
 
+            if (epoch !== tutorEpoch) return;
             // Remove typing indicator
             document.getElementById('typing-indicator')?.remove();
 
             // Append AI Response
-            chatHistory.innerHTML += `<div class="chat-message chat-message-ai"><span class="chat-bubble">${data.response}</span></div>`;
+            if (!res.ok) throw new Error(data.detail || 'Tutor request failed');
+            appendTutorMessage(data.response, true, data);
+            if (data.status === 'suggestion') tutorConversation.push({ role: 'user', content: msg }, { role: 'assistant', content: data.response });
+            tutorConversation = tutorConversation.slice(-10);
             chatHistory.scrollTop = chatHistory.scrollHeight;
         } catch (err) {
+            if (epoch !== tutorEpoch) return;
+            input.value = msg;
             document.getElementById('typing-indicator')?.remove();
             chatHistory.innerHTML += `<div class="text-danger text-sm">${I18n.t('ai.chat.error_send')}</div>`;
-        }
+        } finally { tutorBusy = false; sendButton.disabled = false; }
     });
 }
 
@@ -2378,7 +2405,7 @@ function renderUserList(role, users) {
     }
 
     container.innerHTML = users.map(u => `
-        <div class="col-md-4 ${role}-card" data-name="${(u.first_name + ' ' + u.last_name).toLowerCase()}" data-username="${u.username.toLowerCase()}">
+        <div class="col-md-4 ${role}-card" data-name="${escapeHtml((u.first_name + ' ' + u.last_name).toLowerCase())}" data-username="${escapeHtml(u.username.toLowerCase())}">
             <div class="card">
                 <div class="card-body">
                     <h5 class="card-title">${escapeHtml(u.first_name)} ${escapeHtml(u.last_name)}</h5>
@@ -2506,7 +2533,7 @@ window.loadLeaderboard = async function loadLeaderboard() {
         tbody.innerHTML = entries.map(e => `
             <tr>
                 <td><span class="badge ${e.rank <= 3 ? 'bg-warning text-dark' : 'bg-secondary'}">#${e.rank}</span></td>
-                <td>${e.username}</td>
+                <td>${escapeHtml(e.username)}</td>
                 <td><strong>${e.xp}</strong> XP</td>
                 <td>Level ${e.level}</td>
             </tr>
@@ -2713,21 +2740,21 @@ function renderHelpQueue(requests) {
             const icon = r.content_type === 'lesson' ? '📖' :
                 r.content_type === 'exercise' ? '🏋️' :
                     r.content_type === 'assessment' ? '📝' : '📄';
-            contextBadges += `<span class="badge bg-primary me-1" title="Content">${icon} ${r.content_title}</span>`;
+            contextBadges += `<span class="badge bg-primary me-1" title="Content">${icon} ${escapeHtml(r.content_title)}</span>`;
         }
         if (r.study_plan_title) {
-            contextBadges += `<span class="badge bg-secondary me-1" title="Study Plan">📋 ${r.study_plan_title}</span>`;
+            contextBadges += `<span class="badge bg-secondary me-1" title="Study Plan">📋 ${escapeHtml(r.study_plan_title)}</span>`;
         }
 
         return `
             <a href="javascript:void(0)" class="list-group-item list-group-item-action" onclick="viewHelpRequest(${r.id})">
                 <div class="d-flex w-100 justify-content-between">
-                    <h5 class="mb-1">${r.subject || 'Help Request'}</h5>
+                    <h5 class="mb-1">${escapeHtml(r.subject || 'Help Request')}</h5>
                     <span class="badge ${r.priority >= 3 ? 'bg-danger' : r.priority >= 2 ? 'bg-warning text-dark' : 'bg-secondary'}">${r.priority >= 3 ? 'Urgent' : r.priority >= 2 ? 'Important' : 'Normal'}</span>
                 </div>
-                <p class="mb-1">${r.request_text || r.description}</p>
+                <p class="mb-1">${escapeHtml(r.request_text || r.description)}</p>
                 ${contextBadges ? `<div class="mb-1">${contextBadges}</div>` : ''}
-                <small class="text-muted">From: ${r.student_name || 'Student #' + r.student_id} | ${r.status}</small>
+                <small class="text-muted">From: ${escapeHtml(r.student_name || 'Student #' + r.student_id)} | ${escapeHtml(r.status)}</small>
             </a>
         `}).join('');
 }
@@ -2788,7 +2815,7 @@ window.viewStudentDetail = async function viewStudentDetail(id) {
                 const earned = badges.filter(b => b.earned);
                 if (earned.length > 0) {
                     badgesContainer.innerHTML = earned.slice(0, 5).map(b =>
-                        `<span class="badge bg-warning text-dark">${b.name}</span>`
+                        `<span class="badge bg-warning text-dark">${escapeHtml(b.name)}</span>`
                     ).join('');
                 } else {
                     badgesContainer.innerHTML = '<span class="text-muted">No badges earned yet</span>';
@@ -2858,7 +2885,7 @@ window.viewStudentDetail = async function viewStudentDetail(id) {
                         btnEl.disabled = true;
                     } else {
                         selectEl.innerHTML = plans
-                            .map(p => `<option value="${p.id}">${p.title}</option>`)
+                            .map(p => `<option value="${p.id}">${escapeHtml(p.title)}</option>`)
                             .join('');
                         selectEl.disabled = false;
                         btnEl.disabled = false;
@@ -2964,15 +2991,15 @@ window.viewHelpRequest = async function viewHelpRequest(id) {
                 const icon = request.content_type === 'lesson' ? '📖' :
                     request.content_type === 'exercise' ? '🏋️' :
                         request.content_type === 'assessment' ? '📝' : '📄';
-                contextParts.push(`<span class="badge bg-primary me-2">${icon} ${request.content_title}</span>`);
+                contextParts.push(`<span class="badge bg-primary me-2">${icon} ${escapeHtml(request.content_title)}</span>`);
             }
 
             if (request.study_plan_title) {
-                contextParts.push(`<span class="badge bg-secondary me-2">📋 ${request.study_plan_title}</span>`);
+                contextParts.push(`<span class="badge bg-secondary me-2">📋 ${escapeHtml(request.study_plan_title)}</span>`);
             }
 
             if (request.question_text) {
-                contextParts.push(`<span class="badge bg-info text-dark me-2" title="${request.question_text}">❓ Question</span>`);
+                contextParts.push(`<span class="badge bg-info text-dark me-2" title="${escapeHtml(request.question_text)}">❓ Question</span>`);
             }
 
             if (contextParts.length > 0) {
@@ -3320,7 +3347,7 @@ window.loadLibraryTree = async function loadLibraryTree() {
                                 <button class="btn btn-sm btn-link text-decoration-none me-2 toggle-plan-btn" onclick="togglePlanContents(${plan.id})">
                                     <span class="toggle-icon">▶</span>
                                 </button>
-                                <strong>📘 ${plan.title}</strong>
+                                <strong>📘 ${escapeHtml(plan.title)}</strong>
                                 <span class="badge bg-secondary ms-2">${plan.contents.length} items</span>
                             </div>
                             <div class="btn-group btn-group-sm">
@@ -3394,9 +3421,9 @@ function renderPlanContents(planId, contents) {
                 <div class="list-group-item d-flex justify-content-between align-items-center">
                     <div>
                         <span class="badge bg-${typeColors[item.content_type] || 'secondary'} me-2">
-                            ${typeIcons[item.content_type] || '📄'} ${item.content_type.toUpperCase()}
+                            ${typeIcons[item.content_type] || '📄'} ${escapeHtml(item.content_type.toUpperCase())}
                         </span>
-                        ${item.title}
+                        ${escapeHtml(item.title)}
                         <small class="text-muted ms-2">Difficulty: ${'⭐'.repeat(item.difficulty || 1)}</small>
                     </div>
                     <div class="btn-group btn-group-sm">
@@ -3428,12 +3455,12 @@ function renderContentCard(item) {
             <div class="card h-100" data-creator-id="${item.creator_id || ''}">
                 <div class="card-body">
                     <span class="badge ${typeColors[type] || 'bg-secondary'} mb-2">
-                        ${typeIcons[type] || '📄'} ${type.toUpperCase()}
+                        ${typeIcons[type] || '📄'} ${escapeHtml(type.toUpperCase())}
                     </span>
-                    <h5 class="card-title">${item.title}</h5>
+                    <h5 class="card-title">${escapeHtml(item.title)}</h5>
                     ${(item.creator_id && currentUserId && item.creator_id !== currentUserId && (item.creator_name || item.creator_username)) ? `
                     <p class="text-muted small mb-2">
-                        From: ${item.creator_name || 'Student'}${item.creator_username ? ` (@${item.creator_username})` : ''}
+                        From: ${escapeHtml(item.creator_name || 'Student')}${item.creator_username ? ` (@${escapeHtml(item.creator_username)})` : ''}
                     </p>` : ''}
                     <p class="text-muted small mb-2">
                         Difficulty: ${'⭐'.repeat(item.difficulty || 1)}
@@ -3513,6 +3540,7 @@ window.generateForPlan = async function (planId) {
         }
 
         const result = await res.json();
+        if (!result.success) throw new Error(SLMClient.message('generation_partial', 'Some items failed. Saved items were kept; retry the same request to finish.'));
         showToast(`Generated and saved: ${result.saved_content_ids?.length || 0} items!`, 'success');
 
         // Refresh library view
@@ -3578,7 +3606,7 @@ window.viewPlanGrades = async function (planId) {
         const grades = await res.json();
 
         // Show grades summary using toast (for quick info)
-        const summary = `📊 Total: ${grades.total_assessments} | Graded: ${grades.graded_submissions} | Avg: ${grades.average_score || 'N/A'}%`;
+        const summary = `📊 Total: ${grades.total_assessments} | Graded: ${grades.graded_submissions} | Avg: ${grades.average_score ?? 'N/A'}%`;
         showToast(summary, 'info', 5000);
 
     } catch (err) {
@@ -3894,7 +3922,7 @@ function renderProgressTimeline(contents, currentIndex, completedIds = []) {
 
         node.innerHTML = `
             <div class="timeline-node-circle">${icon}</div>
-            <div class="timeline-node-label" title="${item.title}">${truncateText(item.title, 10)}</div>
+            <div class="timeline-node-label" title="${escapeHtml(item.title)}">${escapeHtml(truncateText(item.title, 10))}</div>
         `;
 
         timeline.appendChild(node);
@@ -4010,7 +4038,7 @@ function renderLeaderboard(entries) {
                 </td>
                 <td>
                     <div class="d-flex align-items-center gap-2">
-                        <span>${entry.display_name || entry.username || 'User'}</span>
+                        <span>${escapeHtml(entry.display_name || entry.username || 'User')}</span>
                         ${isCurrentUser ? '<span class="badge bg-primary">You</span>' : ''}
                     </div>
                 </td>

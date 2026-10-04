@@ -7,17 +7,11 @@ echo SLMEducator - Setup and Launch Script
 echo ========================================
 echo.
 
-REM Install dependencies and prepare environment
-if not exist "install_dependencies.bat" (
-    echo ERROR: install_dependencies.bat not found.
-    pause
-    exit /b 1
-)
-
-call install_dependencies.bat
-if %errorlevel% neq 0 (
-    echo ERROR: Dependency installation failed.
-    pause
+REM Launch is intentionally offline and does not install or upgrade packages.
+pushd "%~dp0"
+if not exist "venv\Scripts\activate.bat" (
+    echo ERROR: Run install_dependencies.bat once before starting.
+    popd
     exit /b 1
 )
 
@@ -43,7 +37,7 @@ echo.
 REM Set environment variables
 set SLM_ENV=development
 set SLM_LOG_LEVEL=INFO
-set SLM_DB_PATH=slm_educator.db
+if "%SLM_DB_PATH%"=="" set "SLM_DB_PATH=slm_educator.db"
 set SLM_LOG_DIR=logs
 set SLM_DATA_DIR=data
 set SLM_EXPORTS_DIR=exports
@@ -76,7 +70,7 @@ REM Open browser after a short delay (in background)
 start /b cmd /c "timeout /t 3 /nobreak >nul && start http://127.0.0.1:8080"
 
 REM Start the FastAPI application using uvicorn
-python -m uvicorn src.api.main:app --host 127.0.0.1 --port 8080 --reload
+python -m uvicorn src.api.main:app --host 127.0.0.1 --port 8080
 
 REM Check if application started successfully
 if %errorlevel% neq 0 (
@@ -99,6 +93,7 @@ if %errorlevel% neq 0 (
 echo.
 echo ========================================
 echo Application stopped.
+popd
 echo ========================================
 echo.
 pause

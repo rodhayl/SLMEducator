@@ -18,6 +18,7 @@ from src.core.models import (
     Content,
     Assessment,
     AssessmentSubmission,
+    SubmissionStatus,
 )
 from src.core.roles import is_teacher
 
@@ -69,11 +70,18 @@ async def get_dashboard_stats(
 
         # Calculate average score from submissions for teacher's assessments
         avg_result = (
-            db.query(func.avg(AssessmentSubmission.score))
+            db.query(
+                func.avg(
+                    100.0
+                    * AssessmentSubmission.score
+                    / func.nullif(AssessmentSubmission.total_points, 0)
+                )
+            )
             .join(Assessment, Assessment.id == AssessmentSubmission.assessment_id)
             .filter(
                 Assessment.created_by_id == current_user.id,
                 AssessmentSubmission.score.isnot(None),
+                AssessmentSubmission.status == SubmissionStatus.GRADED,
             )
             .scalar()
         )
@@ -157,7 +165,7 @@ async def get_recent_activity(
             assessment_title = sub.assessment.title
 
         score_text = "Submitted"
-        if sub.score is not None:
+        if sub.score is not None and sub.status == SubmissionStatus.GRADED:
             if sub.total_points:
                 percent = round((sub.score / sub.total_points) * 100)
                 score_text = f"Scored {sub.score}/{sub.total_points} ({percent}%)"

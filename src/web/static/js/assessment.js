@@ -38,7 +38,7 @@ export async function loadAssessments() {
                         <div>
                             <h5 class="card-title">${escapeHtml(a.title)}</h5>
                             <p class="card-text">${escapeHtml(a.description) || 'No description'}</p>
-                            <p class="text-muted"><small>${a.question_count || 0} Questions</small></p>
+                            <p class="text-muted"><small>${a.question_count || 0} Questions · ${SLMClient.message(a.is_published ? 'published_label' : 'draft_label', a.is_published ? 'Published' : 'Draft: review required')}</small></p>
                         </div>
                         ${isTeacher ? `
                         <div class="dropdown">
@@ -55,7 +55,7 @@ export async function loadAssessments() {
                         ` : ''}
                     </div>
                     <div class="mt-2">
-                        <button onclick="startAssessment(${a.id})" class="btn btn-primary btn-sm">▶️ Start Quiz</button>
+                        ${a.is_published ? `<button onclick="startAssessment(${a.id})" class="btn btn-primary btn-sm">▶️ Start Quiz</button>` : ''}
                         ${isTeacher ? `
                         <button onclick="viewAssessmentStats(${a.id})" class="btn btn-outline-info btn-sm ms-2">📊 Stats</button>
                         <a href="assessment_builder.html?id=${a.id}" class="btn btn-outline-secondary btn-sm ms-2">✏️ Edit</a>
@@ -122,10 +122,10 @@ window.loadAssessmentStats = async (id) => {
         const statsHtml = `
             <strong>Assessment Statistics</strong><br><br>
             Total Submissions: ${stats.total_submissions || 0}<br>
-            Average Score: ${stats.average_score ? stats.average_score.toFixed(1) + '%' : 'N/A'}<br>
-            Highest Score: ${stats.highest_score ? stats.highest_score + '%' : 'N/A'}<br>
-            Lowest Score: ${stats.lowest_score ? stats.lowest_score + '%' : 'N/A'}<br>
-            Pass Rate: ${stats.pass_rate ? stats.pass_rate.toFixed(1) + '%' : 'N/A'}
+            Average Score: ${stats.average_score != null ? stats.average_score.toFixed(1) + '%' : 'N/A'}<br>
+            Highest Score: ${stats.highest_score != null ? stats.highest_score + '%' : 'N/A'}<br>
+            Lowest Score: ${stats.lowest_score != null ? stats.lowest_score + '%' : 'N/A'}<br>
+            Pass Rate: ${stats.pass_rate != null ? stats.pass_rate.toFixed(1) + '%' : 'N/A'}
         `;
 
         // Try to use a modal if available, otherwise use alert

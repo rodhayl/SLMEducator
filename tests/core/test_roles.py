@@ -1,5 +1,5 @@
-from core.models import UserRole
-from core.roles import normalize_role, parse_user_role
+from src.core.models import UserRole
+from src.core.roles import normalize_role, parse_user_role
 
 
 def test_normalize_role_accepts_enum_value_object():

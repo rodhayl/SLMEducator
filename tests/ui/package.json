@@ -1,0 +1,6 @@
+{
+  "name": "slmeducator-ui-regressions",
+  "private": true,
+  "scripts": { "test": "node --test frontend_safety.test.cjs" },
+  "devDependencies": { "jsdom": "26.1.0" }
+}

@@ -215,11 +215,11 @@
     "buttons": {
       "start_review": "Iniciar Revisión"
     },
-    "mastery_title": "📈 Dominio",
+    "mastery_title": "Evidencia para repasar",
     "mastery": {
-      "avg_mastery": "Dominio Promedio",
-      "mastered_items": "Elementos Dominados",
-      "in_progress": "En Progreso"
+      "avg_mastery": "Media de evaluación final",
+      "mastered_items": "Registros de evaluación final",
+      "in_progress": "Actividad anterior"
     },
     "gamification": {
       "title": "🏆 Gamificación",
@@ -512,10 +512,10 @@
         "button_ask": "🤖 Preguntar a IA"
       },
       "mastery": {
-        "mastered": "Dominado",
-        "learning": "Aprendiendo",
-        "new": "Nuevo",
-        "label": "Dominio"
+        "mastered": "Confianza alta",
+        "learning": "Confianza moderada",
+        "new": "Sin autoevaluar",
+        "label": "Confianza autoevaluada"
       },
       "parent_topic_label": "Tema Principal",
       "parent_topic_placeholder": "Tema Principal (Opcional)",
@@ -590,10 +590,10 @@
       "error_generic": "Error al crear contenido: {error}"
     },
     "mastery": {
-      "label": "Etiqueta",
-      "learning": "Aprendizaje",
-      "mastered": "Dominado",
-      "new": "Nuevo"
+      "label": "Evidencia para repasar",
+      "learning": "Confianza moderada",
+      "mastered": "Confianza alta",
+      "new": "Sin autoevaluar"
     },
     "qa": {
       "ai_answer_title": "Respuesta de IA",
@@ -1100,18 +1100,18 @@
     "title": "❓ Cola de Ayuda"
   },
   "leaderboard": {
+    "title": "Clasificación",
     "period": {
-      "all_time": "Todo el Tiempo",
-      "monthly": "Mensual",
-      "weekly": "Semanal"
+      "weekly": "Esta Semana",
+      "monthly": "Este Mes",
+      "all_time": "Todo el Tiempo"
     },
     "table": {
-      "level": "Nivel",
-      "rank": "Posición",
+      "rank": "Rango",
       "user": "Usuario",
-      "xp": "XP"
-    },
-    "title": "🏆 Clasificación"
+      "xp": "XP",
+      "level": "Nivel"
+    }
   },
   "modals": {
     "compose": {
@@ -1224,13 +1224,13 @@
     "end_modal": {
       "title": "Resumen de Sesión",
       "duration": "Duración de Sesión",
-      "difficulty_label": "Calificar Dificultad (1-5)",
-      "difficulty_very_easy": "1 - Muy Fácil",
-      "difficulty_easy": "2 - Fácil",
-      "difficulty_moderate": "3 - Moderado",
-      "difficulty_hard": "4 - Difícil",
-      "difficulty_very_hard": "5 - Muy Difícil",
-      "difficulty_hint": "Esto ayuda a la IA a programar tu próxima revisión.",
+      "difficulty_label": "Confianza autoevaluada (1–5)",
+      "difficulty_very_easy": "1 - Muy baja",
+      "difficulty_easy": "2 - Baja",
+      "difficulty_moderate": "3 - Moderada",
+      "difficulty_hard": "4 - Alta",
+      "difficulty_very_hard": "5 - Muy alta",
+      "difficulty_hint": "Tu confianza se registra por separado de los resultados evaluados.",
       "resume_button": "Continuar",
       "end_button": "Finalizar Sesión"
     },
@@ -1273,18 +1273,113 @@
       "title": "Gestión de Usuarios"
     }
   },
-  "leaderboard": {
-    "title": "Clasificación",
-    "period": {
-      "weekly": "Esta Semana",
-      "monthly": "Este Mes",
-      "all_time": "Todo el Tiempo"
-    },
-    "table": {
-      "rank": "Rango",
-      "user": "Usuario",
-      "xp": "XP",
-      "level": "Nivel"
-    }
+  "recovery": {
+    "reauth": "Vuelve a iniciar sesión y reinténtalo. Tu borrador se conserva en este dispositivo.",
+    "forbidden": "No tienes permiso. Tu borrador se conserva en este dispositivo.",
+    "failed": "El servidor no pudo guardar tu trabajo. Reinténtalo.",
+    "draft_found": "Hay un borrador guardado",
+    "restore_answers": "¿Quieres restaurar el trabajo guardado de este intento?",
+    "restore": "Restaurar",
+    "discard": "Descartar",
+    "keep": "Salir y conservar el borrador",
+    "question": "Pregunta",
+    "no_limit": "Sin límite de tiempo",
+    "local_draft": "Borrador guardado en este dispositivo; aún no enviado.",
+    "storage_failed": "No se pudo guardar el borrador local. Mantén esta página abierta y reinténtalo.",
+    "restored": "Borrador restaurado en este dispositivo.",
+    "account_changed": "La cuenta ha cambiado. Recarga la página antes de continuar.",
+    "submitted": "Entrega recibida",
+    "final_score": "Puntuación final",
+    "pending_review": "Pendiente de revisión docente. Aún no hay una nota final.",
+    "dashboard": "Volver al inicio",
+    "answered": "Respondida",
+    "unanswered": "Sin responder",
+    "local_notes": "Borrador guardado en este dispositivo; pendiente del servidor.",
+    "server_saved": "Notas guardadas en el servidor.",
+    "sync_failed": "No se pudo guardar en el servidor. Tu borrador sigue en este dispositivo. Inicia sesión si hace falta y reinténtalo.",
+    "session_start_failed": "No se pudo iniciar la sesión de estudio. Recarga para reintentarlo; las notas estarán desactivadas hasta entonces.",
+    "move_up": "Subir",
+    "move_down": "Bajar",
+    "remove": "Quitar",
+    "phase_name": "Nombre de la fase",
+    "move_phase_up": "Subir fase",
+    "move_phase_down": "Bajar fase",
+    "choose_content": "Elegir contenido para esta fase",
+    "add_content": "Añadir contenido seleccionado",
+    "draft_saved": "Borrador guardado. Revisa las preguntas y respuestas y publica cuando esté listo.",
+    "save_before_publish": "Guarda los cambios antes de publicar.",
+    "publish_assessment_confirm": "¿Has revisado cada pregunta, respuesta correcta y criterio de evaluación? Al publicar, los estudiantes autorizados podrán acceder.",
+    "publish": "Publicar",
+    "published": "Publicado correctamente.",
+    "preview": "Vista previa",
+    "publish_course_confirm": "¿Publicar este curso revisado para los estudiantes autorizados?",
+    "reviewed": "Revisión registrada. Puedes publicar cuando esté listo.",
+    "save_draft": "Guardar borrador",
+    "review_publish": "Publicar evaluación revisada",
+    "time_limit": "Límite de tiempo (minutos, vacío sin límite)",
+    "attempt_limit": "Máximo de intentos",
+    "plan_saved_review": "Borrador guardado. Revisa el material guardado en la biblioteca antes de publicar.",
+    "open_library": "Abrir biblioteca",
+    "mark_reviewed": "Marcar como revisado",
+    "notes_ready": "Notas listas",
+    "retry_save": "Reintentar guardado",
+    "retry_failed": "Reintentar elementos fallidos",
+    "published_label": "Publicado",
+    "draft_label": "Borrador: necesita revisión",
+    "password_minimum": "La contraseña debe tener al menos 12 caracteres",
+    "ai_suggestion": "Sugerencia de IA; compruébala con tu material de estudio.",
+    "ai_unavailable": "Respuesta de IA no disponible. Reinténtalo o pregunta a tu docente.",
+    "source_context": "Contexto",
+    "characters": "caracteres",
+    "source_partial": "Fuente parcial: no se incluyó todo el material.",
+    "source_extracted": "Texto extraído; revísalo antes de generar contenido.",
+    "no_source": "No hay material de referencia seleccionado.",
+    "unreadable_pages": "Páginas ilegibles",
+    "assistance_mode": "Tipo de ayuda",
+    "hint": "Pista",
+    "explanation": "Explicación",
+    "example": "Ejemplo",
+    "check_understanding": "Comprobar mi comprensión",
+    "practice_unavailable": "Este ejercicio necesita revisión docente antes de poder responderlo.",
+    "practice_notice": "Práctica sin calificación final. Intenta responder por tu cuenta primero. La autocomprobación no es una nota final.",
+    "select_answer": "Elige una respuesta",
+    "show_hint": "Mostrar una pista",
+    "practice_hint": "Busca la idea principal de la lección y explícala con tus propias palabras.",
+    "self_check": "Autocomprobar",
+    "attempt_first": "Primero escribe o elige tu propia respuesta.",
+    "ask_teacher": "No hay solución disponible. Pide a tu docente que revise tu respuesta.",
+    "practice_match": "Tu elección coincide con la solución.",
+    "practice_compare": "Compara tu respuesta con la solución.",
+    "suggested_answer": "Respuesta sugerida",
+    "not_final_grade": "Es una autocomprobación de práctica, no una nota final.",
+    "open_assessment": "Abrir evaluación",
+    "portability": "Exportar y copias de seguridad",
+    "portability_intro": "Revisa el contenido y las exclusiones antes de descargar o importar. Protege los archivos privados.",
+    "course_export": "Exportar curso",
+    "course": "Curso",
+    "audience": "Destinatario",
+    "learner_export": "Copia para estudiantes",
+    "teacher_export": "Copia docente con soluciones",
+    "download": "Descargar",
+    "course_import": "Importar curso como nuevo borrador",
+    "import_file": "Archivo JSON del curso",
+    "confirm_import": "Confirmar importación",
+    "private_backup": "Copia privada de la instalación",
+    "backup_warning": "Solo administradores. Puede contener datos privados de estudiantes. La clave de cifrado se excluye y debe guardarse por separado. Para restaurar, usa la herramienta local y un destino nuevo.",
+    "download_backup": "Confirmar y descargar copia privada",
+    "counts": "Recuentos",
+    "includes": "Incluye",
+    "excludes": "Excluye",
+    "warnings": "Advertencias",
+    "download_started": "Descarga preparada. Guárdala de forma segura.",
+    "choose_course": "Elige primero un curso.",
+    "import_limit": "Elige un archivo JSON del curso de menos de 10 MB.",
+    "imported": "Importado como nuevo borrador. Revísalo antes de publicar.",
+    "generation_partial": "Fallaron algunos elementos. Se conserva lo guardado; reintenta la misma solicitud para terminar.",
+    "saved_on_server": "El servidor ya guardó estos resultados. Reintenta la generación para completar lo que haya fallado.",
+    "ai_review_required": "Sugerencias de IA (requieren revisión docente)",
+    "final_assessment_score": "Puntuación final de evaluación",
+    "legacy_evidence": "Actividad anterior, no dominio evaluado",
+    "self_confidence": "Confianza autoevaluada"
   }
 }

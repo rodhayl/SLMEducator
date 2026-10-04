@@ -4,8 +4,8 @@ Test cases for authentication functionality
 
 import pytest
 import os
-from core.services.auth import AuthService, AuthenticationError
-from core.models import UserRole
+from src.core.services.auth import AuthService, AuthenticationError
+from src.core.models import UserRole
 
 
 class TestAuthService:

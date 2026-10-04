@@ -15,7 +15,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 
-from core.models import User, HelpRequest, Content, ContentType, StudyPlan
+from src.core.models import User, HelpRequest, Content, ContentType, StudyPlan
 
 
 class TestHelpQueueAPI:

@@ -23,18 +23,9 @@ def settings_client(db_service):
 
 def create_user_and_login(client, role: str, username: str):
     """Register and login a user, return the token."""
-    # Register
-    client.post(
-        "/api/auth/register",
-        json={
-            "username": username,
-            "email": f"{username}@example.com",
-            "password": "Password123!",
-            "first_name": "Test",
-            "last_name": "User",
-            "role": role,
-        },
-    )
+    from src.core.models import UserRole
+    from src.core.services.auth import AuthService
+    AuthService().register_user(username, f"{username}@example.com", "Password123!", "Test", "User", UserRole(role))
     # Login
     response = client.post(
         "/api/auth/login", data={"username": username, "password": "Password123!"}

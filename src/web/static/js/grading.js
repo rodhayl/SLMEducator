@@ -247,11 +247,11 @@ function loadSubmissionDetails(id) {
 
         // Show/hide AI actions based on status
         const aiActions = document.getElementById('ai-actions');
-        const hasAiSuggestions = fullSub.answers?.some(a => a.ai_suggested_score !== null);
+        const hasAiSuggestions = fullSub.answers?.some(a => Number.isFinite(a.ai_suggested_score));
 
         if (fullSub.status === 'ai_graded' || hasAiSuggestions) {
             aiActions.classList.remove('hidden');
-            const aiCount = fullSub.answers?.filter(a => a.ai_suggested_score !== null).length || 0;
+            const aiCount = fullSub.answers?.filter(a => Number.isFinite(a.ai_suggested_score)).length || 0;
             document.getElementById('ai-summary').textContent =
                 t('grading.ai.summary', { count: aiCount });
         } else {
@@ -259,12 +259,10 @@ function loadSubmissionDetails(id) {
         }
 
         // Populate existing grade if any
-        if (fullSub.score !== null) {
-            document.getElementById('grade-score').value = fullSub.score;
-        }
-        if (fullSub.feedback) {
-            document.getElementById('grade-feedback').value = fullSub.feedback;
-        }
+        document.getElementById('grade-score').value = fullSub.score ?? '';
+        document.getElementById('grade-score').max = fullSub.total_points || 0;
+        document.getElementById('grade-score').min = 0;
+        document.getElementById('grade-feedback').value = fullSub.feedback || '';
     })
     .catch(e => {
         container.innerHTML = t('grading.messages.error_loading_details');
@@ -279,8 +277,7 @@ function renderAnswers(sub, container) {
     }
 
     container.innerHTML = sub.answers.map((ans, idx) => {
-        const hasAiSuggestion = ans.ai_suggested_score !== null;
-        const confidencePercent = ans.ai_confidence ? Math.round(ans.ai_confidence * 100) : null;
+        const hasAiSuggestion = Number.isFinite(ans.ai_suggested_score);
         const ptsLabel = t('grading.labels.pts');
         const studentAnswerLabel = t('grading.labels.student_answer');
         const correctAnswerLabel = t('grading.labels.correct_answer');
@@ -297,7 +294,7 @@ function renderAnswers(sub, container) {
         <div class="card mb-3" data-response-id="${ans.response_id}">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <div>
-                    <strong>Q${idx + 1}:</strong> ${ans.question_text}
+                    <strong>Q${idx + 1}:</strong> ${SLMRender.escape(ans.question_text)}
                 </div>
                 <span class="badge ${ans.points !== null ? 'bg-success' : 'bg-secondary'}">
                     ${ans.points ?? '?'} / ${ans.max_points || 1} ${ptsLabel}
@@ -306,11 +303,11 @@ function renderAnswers(sub, container) {
             <div class="card-body">
                 <p><strong>${studentAnswerLabel}:</strong> 
                     <span class="${ans.is_correct === true ? 'text-success' : ans.is_correct === false ? 'text-danger' : ''}">
-                        ${ans.given_answer || `<em>${noAnswerLabel}</em>`}
+                        ${ans.given_answer ? SLMRender.escape(ans.given_answer) : `<em>${noAnswerLabel}</em>`}
                     </span>
                 </p>
                 ${ans.is_correct === false && ans.correct_answer ?
-                `<p class="text-muted"><small>${correctAnswerLabel}: ${ans.correct_answer}</small></p>` : ''}
+                `<p class="text-muted"><small>${correctAnswerLabel}: ${SLMRender.escape(ans.correct_answer)}</small></p>` : ''}
                 
                 ${hasAiSuggestion ? `
                 <div class="ai-suggestion-panel mt-3 p-3 bg-light rounded border-start border-4 border-info">
@@ -318,10 +315,6 @@ function renderAnswers(sub, container) {
                         <div>
                             <span class="fw-bold text-info">🤖 ${aiSuggestionLabel}:</span>
                             <strong>${ans.ai_suggested_score}/${ans.max_points}</strong>
-                            ${confidencePercent !== null ?
-                    `<span class="badge ${confidencePercent >= 80 ? 'bg-success' : confidencePercent >= 50 ? 'bg-warning text-dark' : 'bg-danger'} ms-2">
-                                    ${t('grading.labels.confidence', { percent: confidencePercent })}
-                                </span>` : ''}
                             ${ans.teacher_override ? `<span class="badge bg-secondary ms-2">${modifiedLabel}</span>` : ''}
                         </div>
                         <div class="btn-group btn-group-sm">
@@ -334,7 +327,7 @@ function renderAnswers(sub, container) {
                         </div>
                     </div>
                     ${ans.ai_suggested_feedback ?
-                    `<div class="mt-2 text-muted small">${ans.ai_suggested_feedback}</div>` : ''}
+                    `<div class="mt-2 text-muted small">${SLMRender.escape(ans.ai_suggested_feedback)}</div>` : ''}
                 </div>
                 ` : ''}
                 
@@ -344,13 +337,13 @@ function renderAnswers(sub, container) {
                         <div class="col-4">
                             <input type="number" class="form-control form-control-sm" 
                                    id="score-${ans.response_id}" 
-                                   placeholder="${scoreLabel}" max="${ans.max_points}" value="${ans.points ?? ''}">
+                                   aria-label="${scoreLabel}" placeholder="${scoreLabel}" max="${ans.max_points}" value="${ans.points ?? ''}">
                         </div>
                         <div class="col-8">
                             <div class="input-group input-group-sm">
                                 <input type="text" class="form-control" 
                                        id="feedback-${ans.response_id}" 
-                                       placeholder="${optionalFeedbackLabel}">
+                                       aria-label="${optionalFeedbackLabel}" placeholder="${optionalFeedbackLabel}">
                                 <button class="btn btn-primary" onclick="submitQuestionGrade(${ans.response_id})">
                                     ${saveLabel}
                                 </button>

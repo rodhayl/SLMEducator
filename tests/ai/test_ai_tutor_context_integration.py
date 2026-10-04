@@ -13,9 +13,9 @@ import logging
 # Add src to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from core.services.database import DatabaseService
-from core.services.ai_service import AIService
-from core.models import (
+from src.core.services.database import DatabaseService
+from src.core.services.ai_service import AIService
+from src.core.models import (
     User,
     StudyPlan,
     Content,
@@ -23,7 +23,7 @@ from core.models import (
     UserRole,
     AIModelConfiguration,
 )
-from core.security import hash_password
+from src.core.security import hash_password
 
 # Import AI configuration utilities from the test package conftest.
 # NOTE: Explicit import avoids accidentally resolving to tests/e2e/conftest.py.
@@ -44,7 +44,7 @@ class TestExtractPhases:
 
     def test_extract_phases_flat_structure(self):
         """Test extract_phases with flat list of phases"""
-        from core.models import extract_phases
+        from src.core.models import extract_phases
 
         flat_phases = [
             {"title": "Phase 1", "objectives": ["obj1"]},
@@ -61,7 +61,7 @@ class TestExtractPhases:
 
     def test_extract_phases_nested_structure(self):
         """Test extract_phases with nested structure (wrapper containing 'phases' key)"""
-        from core.models import extract_phases
+        from src.core.models import extract_phases
 
         # This is how AI-generated plans are sometimes stored
         nested_phases = [
@@ -87,7 +87,7 @@ class TestExtractPhases:
 
     def test_extract_phases_empty_input(self):
         """Test extract_phases with empty or None input"""
-        from core.models import extract_phases
+        from src.core.models import extract_phases
 
         assert extract_phases(None) == []
         assert extract_phases([]) == []
@@ -95,7 +95,7 @@ class TestExtractPhases:
 
     def test_extract_phases_nested_with_empty_phases(self):
         """Test extract_phases with nested structure but empty phases array"""
-        from core.models import extract_phases
+        from src.core.models import extract_phases
 
         nested_empty = [{"title": "Study Plan Title", "phases": []}]
 
@@ -104,7 +104,7 @@ class TestExtractPhases:
 
     def test_extract_phases_preserves_phase_data(self):
         """Test that extract_phases preserves all phase data"""
-        from core.models import extract_phases
+        from src.core.models import extract_phases
 
         nested_phases = [
             {
@@ -205,7 +205,7 @@ class TestAITutorContextIntegration:
         created_plan = db_service.create_study_plan(plan)
 
         # Assign to student
-        from core.models import StudentStudyPlan
+        from src.core.models import StudentStudyPlan
 
         assignment = StudentStudyPlan(
             student_id=test_student.id,
@@ -350,7 +350,7 @@ class TestAITutorContextIntegration:
 
         # Mock _call_ai to return a deterministic response
         from unittest.mock import MagicMock
-        from core.services.ai_service import AIResponse, AIProvider
+        from src.core.services.ai_service import AIResponse, AIProvider
 
         mock_response = AIResponse(
             content='{"answer": "A variable is a container that stores a value in programming.", "explanation": "Variables allow you to store and manipulate data.", "related_topics": [], "encouragement": "Keep learning!"}',
@@ -395,7 +395,7 @@ class TestAITutorContextIntegration:
 
         # Mock _call_ai to return a deterministic response
         from unittest.mock import MagicMock
-        from core.services.ai_service import AIResponse, AIProvider
+        from src.core.services.ai_service import AIResponse, AIProvider
 
         mock_response = AIResponse(
             content='{"answer": "You should focus on Python variables and programming basics.", "explanation": "Based on your study plan...", "related_topics": [], "encouragement": "Keep going!"}',
@@ -442,7 +442,7 @@ class TestAITutorContextIntegration:
 
         # Mock _call_ai to return a deterministic response
         from unittest.mock import MagicMock
-        from core.services.ai_service import AIResponse, AIProvider
+        from src.core.services.ai_service import AIResponse, AIProvider
 
         mock_response = AIResponse(
             content='{"answer": "To iterate over a list, use a for loop like: for item in my_list:", "explanation": "For loops let you process each element in a list.", "related_topics": ["while loops", "list comprehension"], "encouragement": "Great question!"}',
@@ -533,7 +533,7 @@ class TestAITutorContextIntegration:
 
         # Mock _call_ai to return a deterministic response
         from unittest.mock import MagicMock
-        from core.services.ai_service import AIResponse, AIProvider
+        from src.core.services.ai_service import AIResponse, AIProvider
 
         mock_response = AIResponse(
             content='{"answer": "To iterate over a list in Python, you use a for loop.", "explanation": "For loops are used for iterating over a sequence...", "related_topics": [], "encouragement": "Good job!"}',
@@ -662,7 +662,7 @@ class TestAITutorContextIntegration:
 
         # Mock _call_ai to return a deterministic response
         from unittest.mock import MagicMock
-        from core.services.ai_service import AIResponse, AIProvider
+        from src.core.services.ai_service import AIResponse, AIProvider
 
         mock_response = AIResponse(
             content='{"answer": "This plan covers various topics based on your learning path.", "explanation": "The study plan is designed to help you learn.", "related_topics": [], "encouragement": "Keep going!"}',
@@ -687,7 +687,7 @@ class TestAITutorContextIntegration:
     def test_ai_service_error_handling(self, test_student):
         """Test AI service handles errors gracefully"""
         # Should raise AIServiceError or ValueError (from Enum validation)
-        from core.exceptions import AIServiceError
+        from src.core.exceptions import AIServiceError
 
         # Wrap everything in raises to catch wherever the validation happens
         with pytest.raises((AIServiceError, ValueError, Exception)):

@@ -265,13 +265,15 @@ def test_session_start_end_restore_and_rewards_are_idempotent(world):
     world.db.refresh(world.learner)
     assert world.learner.xp == first_xp
     assert goal.current_value == 1
-    node = world.db.query(MasteryNode).one()
-    assert node.mastery_level == 50 and node.review_count == 1
+    assert world.db.query(MasteryNode).count() == 0
+    assert world.learner.settings["self_confidence"][str(world.content.id)]["rating"] == 3
     assert world.client.post(endpoint + "/restore").status_code == 200
     assert world.client.post(endpoint + "/restore").status_code == 200
     assert world.client.post(endpoint + "/end", json={"difficulty_rating": 5}).status_code == 200
     world.db.refresh(world.learner)
-    assert world.learner.xp == first_xp and node.review_count == 1
+    assert world.learner.xp == first_xp
+    assert world.db.query(MasteryNode).count() == 0
+    assert world.learner.settings["self_confidence"][str(world.content.id)]["rating"] == 3
     assert goal.current_value == 1
 
 
@@ -356,7 +358,7 @@ def test_concurrent_submit_replays_create_one_result_and_reward(world):
         with factory() as db:
             user = db.get(User, learner_id)
             barrier.wait(timeout=5)
-            return asyncio.run(assessment.submit_assessment(quiz_id, payload, user, db))
+            return assessment.submit_assessment(quiz_id, payload, user, db)
 
     with ThreadPoolExecutor(max_workers=2) as pool:
         results = list(pool.map(lambda _: submit(), range(2)))
@@ -390,3 +392,64 @@ def test_concurrent_session_end_awards_once(world):
     assert results[0] == results[1]
     world.db.expire_all()
     assert world.db.get(User, learner_id).xp == 75  # 50 activity + one seeded badge worth 25.
+
+
+def test_slow_provider_does_not_hold_writes_or_overwrite_teacher(world, monkeypatch):
+    """Pause a real route's provider while another request writes and teacher grades."""
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Event
+    from fastapi import Depends, Request
+    from sqlalchemy.orm import sessionmaker
+
+    quiz_id, questions = create_quiz(world, questions=[
+        {"question_text": "Explain", "question_type": "short_answer", "points": 10}])
+    start = world.client.post(f"/api/assessments/{quiz_id}/start").json()
+    learner_id, other_id, teacher_id = world.learner.id, world.outsider.id, world.owner.id
+    content_id = world.content.id
+    factory = sessionmaker(bind=world.db.get_bind())
+    entered, release = Event(), Event()
+    provider = Mock()
+
+    def slow_grade(**kwargs):
+        entered.set()
+        assert release.wait(timeout=10), "Test provider was not released"
+        return {"points_earned": 9, "feedback": "AI suggestion"}
+
+    provider.grade_answer.side_effect = slow_grade
+    monkeypatch.setattr(assessment, "get_ai_service_dependency", lambda user, db: provider)
+    app = FastAPI()
+    app.include_router(assessment.router)
+    app.include_router(learning.router)
+
+    def database():
+        with factory() as db:
+            yield db
+
+    def user(request: Request, db=Depends(get_db)):
+        return db.get(User, int(request.headers["X-User"]))
+
+    app.dependency_overrides[get_db] = database
+    app.dependency_overrides[get_current_user] = user
+    payload = {"submission_id": start["id"], "answers": [
+        {"question_id": questions[0]["id"], "response_text": "Submitted reasoning"}]}
+    with TestClient(app) as client, ThreadPoolExecutor(max_workers=3) as pool:
+        pending = pool.submit(client.post, f"/api/assessments/{quiz_id}/submit",
+                              json=payload, headers={"X-User": str(learner_id)})
+        try:
+            assert entered.wait(timeout=5)
+            write = pool.submit(client.post, "/api/learning/start", json={"content_id": content_id},
+                                headers={"X-User": str(other_id)})
+            assert write.result(timeout=2).status_code == 200
+            replay = client.post(f"/api/assessments/{quiz_id}/submit", json=payload, headers={"X-User": str(learner_id)})
+            assert replay.status_code == 200 and replay.json()["status"] == "submitted"
+            teacher = client.post(f"/api/assessments/submissions/{start['id']}/grade", json={"score": 7},
+                                  headers={"X-User": str(teacher_id)})
+            assert teacher.status_code == 200
+        finally:
+            release.set()
+        result = pending.result(timeout=5)
+    assert result.status_code == 200
+    assert result.json()["status"] == "graded" and result.json()["score"] == 7
+    world.db.expire_all()
+    assert world.db.get(User, learner_id).xp == 25
+    assert world.db.query(QuestionResponse).one().ai_suggested_score is None

@@ -15,13 +15,37 @@ const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 let currentConfig = {};
 let generatedOutline = null;
 let sourceMaterialText = null;
+let sourceCoverage = null;
 let totalGenerationTasks = 0;
 let completedTasks = 0;
 let failedTasks = 0;  // Track failures for accurate status
 let createdStudyPlanId = null;
+let generationRunning = false;
+let generationTasks = [];
+let courseOwner = null;
+function persistCourse() {
+    if (courseOwner !== SLMClient.account()) return;
+    SLMClient.drafts.write('course', 'designer', 'active', { currentConfig, generatedOutline, sourceMaterialText, sourceCoverage, createdStudyPlanId, generationTasks });
+}
+async function restoreCourse() {
+    courseOwner = SLMClient.account();
+    const draft = SLMClient.drafts.read('course', 'designer', 'active');
+    if (!draft) return;
+    const choice = await SLMClient.chooseDraft();
+    if (choice === 'discard') { SLMClient.drafts.remove('course', 'designer', 'active'); return; }
+    if (choice !== 'restore') { window.location.href = '/dashboard.html'; return; }
+    ({ currentConfig, generatedOutline, sourceMaterialText, sourceCoverage, createdStudyPlanId, generationTasks } = draft);
+    if (generatedOutline) {
+        renderOutline(generatedOutline);
+        document.getElementById('stage-1').classList.add('hidden');
+        document.getElementById('stage-2').classList.remove('hidden');
+    }
+    renderSourceCoverage();
+    if (createdStudyPlanId) document.getElementById('course-workflow').classList.remove('d-none');
+}
 
 // === Initialization ===
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     // Check authentication
     if (!checkAuth()) {
         return;
@@ -30,6 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
     setupStage1();
+    await restoreCourse();
 });
 
 /**
@@ -66,6 +91,7 @@ function setupStage1() {
 
     // Drag & Drop handlers
     dropZone.addEventListener('click', () => fileInput.click());
+    dropZone.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); fileInput.click(); } });
     fileInput.addEventListener('change', handleFileSelect);
 
     dropZone.addEventListener('dragover', (e) => {
@@ -159,6 +185,11 @@ async function handleFileSelect() {
 
         const data = await response.json();
         sourceMaterialText = data.extracted_text;
+        sourceCoverage = { coverage: data.coverage, truncated: data.truncated,
+            char_count: data.char_count, unreadable_pages: data.unreadable_pages,
+            source_version: data.source_version, sections: (data.sections || []).map(section => ({ reference: section.reference })) };
+        renderSourceCoverage();
+        persistCourse();
         console.log("Source material processed:", data.char_count, "chars");
 
     } catch (e) {
@@ -176,6 +207,9 @@ function handleRemoveFile() {
     document.getElementById('drop-zone').classList.remove('hidden');
     document.getElementById('file-input').value = '';
     sourceMaterialText = null;
+    sourceCoverage = null;
+    renderSourceCoverage();
+    persistCourse();
 }
 
 // === Stage 2: Outline Generation ===
@@ -232,6 +266,7 @@ async function transitionToStage2() {
         document.getElementById('course-designer-error')?.classList.add('d-none');
 
         renderOutline(generatedOutline);
+        persistCourse();
 
     } catch (e) {
         console.error(e);
@@ -247,6 +282,7 @@ async function transitionToStage2() {
         document.getElementById('step-2-ind').classList.add('active');
         renderOutline(generatedOutline);
         showOutlineError(`AI outline generation failed: ${e.message}. You can build the outline manually below.`);
+        persistCourse();
     } finally {
         // Reset button and remove loading
         if (submitBtn) {
@@ -307,7 +343,7 @@ function renderOutline(outline) {
                     <div class="lesson-item" id="lesson-${uIndex}-${lIndex}">
                         <div class="d-flex align-items-center flex-grow-1">
                             <input type="checkbox" checked class="form-check-input me-2 lesson-check" 
-                                data-unit="${uIndex}" data-lesson="${lIndex}">
+                                data-unit="${uIndex}" data-lesson="${lIndex}" aria-label="${lessonTitle}">
                             <div>
                                 <span class="fw-medium">${lessonTitle}</span>
                                 <small class="text-muted ms-2">(${lessonDuration})</small>
@@ -367,6 +403,7 @@ async function addCustomUnit() {
     });
 
     renderOutline(generatedOutline);
+    persistCourse();
 }
 
 /**
@@ -387,201 +424,107 @@ async function addLessonToUnit(unitIndex) {
     });
 
     renderOutline(generatedOutline);
+    persistCourse();
 }
 
 // === Stage 3: Cascade Generation ===
 
 async function proceedToGeneration() {
-    // Count checked lessons
-    const checkedLessons = document.querySelectorAll('.lesson-check:checked');
-    if (checkedLessons.length === 0) {
-        showError('Please select at least one lesson to generate.');
-        return;
-    }
-
-    document.getElementById('stage-2').classList.add('hidden');
-    document.getElementById('stage-3').classList.remove('hidden');
-    document.getElementById('step-2-ind').classList.add('completed');
-    document.getElementById('step-3-ind').classList.add('active');
-
-    // Create Study Plan container first
-    await createStudyPlanShell();
-
-    // Start cascade generation
-    await startCascade();
+    if (generationRunning || courseOwner !== SLMClient.account()) return;
+    const checked = Array.from(document.querySelectorAll('.lesson-check:checked'));
+    if (!checked.length) { showError('Please select at least one lesson.'); return; }
+    if (!generationTasks.length) generationTasks = checked.map(box => ({
+        unit: Number(box.dataset.unit), lesson: Number(box.dataset.lesson), status: 'pending'
+    }));
+    generationRunning = true;
+    try {
+        if (!createdStudyPlanId) await createStudyPlanShell();
+        document.getElementById('stage-2').classList.add('hidden');
+        document.getElementById('stage-3').classList.remove('hidden');
+        document.getElementById('course-workflow').classList.remove('d-none');
+        await startCascade();
+    } catch (error) { showError(error.message); }
+    finally { generationRunning = false; persistCourse(); }
 }
 
 /**
  * Create a Study Plan to hold generated content
  */
 async function createStudyPlanShell() {
-    log("Creating Study Plan container...");
-
-    try {
-        const response = await fetch('/api/study-plans', {
-            method: 'POST',
-            headers: getAuthHeaders(),
-            body: JSON.stringify({
-                title: generatedOutline.title || currentConfig.subject,
-                description: generatedOutline.description || `AI-generated course for ${currentConfig.subject}`,
-                is_public: false,
-                phases: generatedOutline.units.map((unit, idx) => ({
-                    name: unit.title,
-                    content_ids: [] // Will be populated as content is created
-                }))
-            })
-        });
-
-        if (response.ok) {
-            const plan = await response.json();
-            createdStudyPlanId = plan.id;
-            log(`✓ Study Plan created (ID: ${createdStudyPlanId})`);
-        } else {
-            const errData = await response.json().catch(() => ({}));
-            log(`⚠ Study Plan creation failed: ${errData.detail || 'Unknown error'}`, "warn");
-        }
-    } catch (e) {
-        log("⚠ Error creating Study Plan: " + e.message, "warn");
-    }
+    const plan = await SLMClient.request('/api/study-plans/', {
+        method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({
+            title: generatedOutline.title || currentConfig.subject,
+            description: generatedOutline.description || '', is_public: false,
+            phases: generatedOutline.units.map(unit => ({ name: unit.title, content_ids: [] }))
+        })
+    });
+    if (!plan?.id) throw new Error('The study plan was not saved. Please retry.');
+    createdStudyPlanId = plan.id;
+    persistCourse();
+    log(`Study plan draft saved (${createdStudyPlanId}).`);
 }
 
 /**
  * Start the cascading content generation process
  */
 async function startCascade() {
-    const checkedLessons = document.querySelectorAll('.lesson-check:checked');
-    totalGenerationTasks = checkedLessons.length;
-    completedTasks = 0;
-    failedTasks = 0;  // Reset failure count
-
-    updateProgress(0, `Starting generation of ${totalGenerationTasks} lessons...`);
-    log(`Starting cascade generation for ${totalGenerationTasks} lessons`);
-
-    // Process sequentially to avoid rate limiting and maintain order
-    for (const checkbox of checkedLessons) {
-        const uIndex = parseInt(checkbox.dataset.unit);
-        const lIndex = parseInt(checkbox.dataset.lesson);
-        const unit = generatedOutline.units[uIndex];
-        const lesson = unit.lessons[lIndex];
-
-        const success = await generateAndSaveLesson(lesson, unit.title);
-
-        completedTasks++;
-        if (!success) failedTasks++;
-
-        const percent = Math.round((completedTasks / totalGenerationTasks) * 100);
-        updateProgress(percent, `${success ? 'Generated' : 'Failed'}: ${escapeHtml(lesson.title)}`);
+    totalGenerationTasks = generationTasks.length;
+    completedTasks = generationTasks.filter(task => task.status === 'saved').length;
+    failedTasks = 0;
+    for (const task of generationTasks) {
+        if (task.status === 'saved') continue;
+        const unit = generatedOutline.units[task.unit];
+        const lesson = unit.lessons[task.lesson];
+        task.status = 'running'; persistCourse();
+        const success = await generateAndSaveLesson(lesson, task.unit);
+        task.status = success ? 'saved' : 'failed';
+        if (success) completedTasks++; else failedTasks++;
+        persistCourse();
+        updateProgress(Math.round(completedTasks / totalGenerationTasks * 100), `${completedTasks}/${totalGenerationTasks} saved; ${failedTasks} failed.`);
     }
-
-    // Show accurate completion status
-    const successCount = completedTasks - failedTasks;
-    if (failedTasks === 0) {
-        updateProgress(100, "All content generated successfully!");
-        log("✓ Course generation complete!");
-    } else if (successCount > 0) {
-        updateProgress(100, `Completed with ${failedTasks} errors. ${successCount}/${completedTasks} lessons saved.`);
-        log(`⚠ Completed with ${failedTasks} failures. Check AI service configuration.`, "warn");
-    } else {
-        updateProgress(100, `Generation failed: All ${failedTasks} lessons failed. Check AI service.`);
-        log(`✗ All lessons failed to generate. Please check AI service configuration.`, "error");
-    }
-
-    finishGeneration(failedTasks === totalGenerationTasks);
+    finishGeneration(completedTasks === 0);
+    document.getElementById('retry-generation').classList.toggle('d-none', failedTasks === 0);
 }
 
-/**
- * Generate and save content for a single lesson
- */
-async function generateAndSaveLesson(lesson, unitTitle) {
-    log(`Generating: ${lesson.title}...`);
-    updatePreview(`<div class="text-center"><div class="spinner-border spinner-border-sm"></div><p class="mt-2">Generating ${lesson.title}...</p></div>`);
-
+async function generateAndSaveLesson(lesson, phaseIndex) {
+    log(`Generating: ${lesson.title}`);
     try {
-        // 1. Generate Content via AI
-        const response = await fetch('/api/generate/topic-content', {
-            method: 'POST',
-            headers: getAuthHeaders(),
-            body: JSON.stringify({
-                subject: currentConfig.subject,
-                topic_name: lesson.title,
+        const data = await SLMClient.request('/api/generate/full-topic-package', {
+            method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({
+                subject: currentConfig.subject, topic_name: lesson.title,
                 grade_level: currentConfig.grade_level,
                 learning_objectives: lesson.learning_objectives || [`Understand ${lesson.title}`],
-                content_types: ['lesson', 'exercise'],
-                source_material: sourceMaterialText
+                include_lesson: true, include_exercises: true, include_assessment: false,
+                source_material: sourceMaterialText, auto_save: true,
+                study_plan_id: createdStudyPlanId, phase_index: phaseIndex
             })
         });
-
-        if (!response.ok) {
-            const errData = await response.json().catch(() => ({}));
-            throw new Error(errData.detail || 'AI Generation failed');
+        if (!data?.success || !data.saved_content_ids?.length) {
+            throw new Error('Some items could not be generated or saved. Retry keeps the saved items.');
         }
-
-        const data = await response.json();
-
-        // 2. Save Lesson Content
-        if (data.lesson) {
-            const lessonSaved = await saveContentItem({
-                title: data.lesson.title || lesson.title,
-                type: 'lesson',
-                content_data: data.lesson,
-                study_plan_id: createdStudyPlanId
-            });
-
-            if (lessonSaved) {
-                updatePreview(`
-                    <div class="mb-2"><strong>${lesson.title}</strong></div>
-                    <div class="small text-muted">${data.lesson.introduction?.substring(0, 150) || ''}...</div>
-                `);
-            }
-        }
-
-        // 3. Save Exercises
-        if (data.exercises && data.exercises.length > 0) {
-            await saveContentItem({
-                title: `Exercises: ${lesson.title}`,
-                type: 'exercise',
-                content_data: { questions: data.exercises },
-                study_plan_id: createdStudyPlanId
-            });
-        }
-
-        log(`✓ Completed: ${lesson.title}`);
-        return true;  // Success
-
-    } catch (e) {
-        log(`✗ Failed: ${lesson.title} - ${e.message}`, "error");
-        return false;  // Failure
-    }
-}
-
-/**
- * Save a content item to the database
- */
-async function saveContentItem(itemData) {
-    try {
-        const response = await fetch('/api/content', {
-            method: 'POST',
-            headers: getAuthHeaders(),
-            body: JSON.stringify({
-                title: itemData.title,
-                type: itemData.type,           // Using 'type' alias
-                data: itemData.content_data,   // Using 'data' alias  
-                difficulty: 1,
-                is_personal: false,
-                study_plan_id: itemData.study_plan_id
-            })
-        });
-
-        if (!response.ok) {
-            console.warn("Failed to save content item:", itemData.title);
-            return false;
-        }
+        log(`Saved: ${lesson.title}`);
         return true;
-    } catch (e) {
-        console.error("Save error:", e);
+    } catch (error) {
+        log(`Failed: ${lesson.title}. ${error.message}`, 'error');
         return false;
     }
 }
+window.retryCourseGeneration = async () => {
+    if (generationRunning || courseOwner !== SLMClient.account()) return;
+    generationRunning = true;
+    try { await startCascade(); } finally { generationRunning = false; }
+};
+window.courseWorkflow = async action => {
+    if (!createdStudyPlanId || generationRunning) return;
+    try {
+        if (action === 'publish' && !await showConfirm(SLMClient.message('publish_course_confirm', 'Publish this reviewed course for authorized learners?'))) return;
+        await SLMClient.request(`/api/study-plans/${createdStudyPlanId}/workflow`, {
+            method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ action })
+        });
+        showToast(SLMClient.message(action === 'publish' ? 'published' : 'reviewed', action === 'publish' ? 'Published successfully.' : 'Review recorded. You can publish when ready.'), 'success');
+        if (action === 'publish') SLMClient.drafts.remove('course', 'designer', 'active');
+    } catch (error) { showError(error.message); }
+};
 
 // === Helper Functions ===
 
@@ -608,7 +551,7 @@ function updateProgress(percent, status) {
 function updatePreview(html) {
     const preview = document.getElementById('live-preview');
     if (preview) {
-        preview.innerHTML = html;
+        preview.innerHTML = SLMRender.html(html);
     }
 }
 
@@ -634,15 +577,7 @@ function log(msg, type = 'info') {
 /**
  * Escape HTML to prevent XSS attacks
  */
-function escapeHtml(unsafe) {
-    if (!unsafe) return '';
-    return String(unsafe)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-}
+function escapeHtml(unsafe) { return SLMRender.escape(unsafe); }
 
 /**
  * Show error message to user
@@ -679,7 +614,7 @@ function finishGeneration(allFailed = false) {
     if (btn) {
         btn.classList.remove('disabled');
 
-        if (allFailed) {
+        if (allFailed || failedTasks > 0) {
             btn.classList.add('btn-warning');
             btn.textContent = "⚠️ Return to Dashboard";
         } else {
@@ -704,8 +639,8 @@ function finishGeneration(allFailed = false) {
     } else {
         updatePreview(`
             <div class="text-center text-success">
-                <h4>✓ Complete!</h4>
-                <p>All lessons have been generated and saved.</p>
+                <h4>Draft generation finished</h4>
+                <p>${completedTasks}/${totalGenerationTasks} lessons saved. Review each item in the library before publishing.</p>
             </div>
         `);
     }
@@ -740,4 +675,17 @@ async function restartDesigner() {
         if (!confirmed) return;
     }
     window.location.reload();
+}
+
+function renderSourceCoverage() {
+    const status = document.getElementById('source-coverage');
+    if (!status) return;
+    status.classList.toggle('d-none', !sourceCoverage);
+    if (!sourceCoverage) return;
+    const partial = sourceCoverage.coverage === 'partial' || sourceCoverage.truncated || sourceCoverage.unreadable_pages?.length;
+    status.className = 'alert ' + (partial ? 'alert-warning' : 'alert-info');
+    const prefix = SLMClient.message(partial ? 'source_partial' : 'source_extracted', partial ? 'Partial source: some material was not included.' : 'Source text extracted; review it before generation.');
+    const references = (sourceCoverage.sections || []).map(section => section.reference).join(', ');
+    status.textContent = `${prefix} ${sourceCoverage.char_count || 0} ${SLMClient.message('characters', 'characters')}. ${references}`;
+    if (sourceCoverage.unreadable_pages?.length) status.textContent += ` ${SLMClient.message('unreadable_pages', 'Unreadable pages')}: ${sourceCoverage.unreadable_pages.join(', ')}.`;
 }

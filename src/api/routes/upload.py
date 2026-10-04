@@ -22,13 +22,14 @@ async def upload_source_material(
     or a temporary reference ID if we implemented a cache.
     """
     try:
-        text_content = await FileProcessingService.extract_text(file)
+        document = await FileProcessingService.extract_document(file)
+        text_content = document["extracted_text"]
 
         # Validation: Ensure we have meaningful content
-        if not text_content or len(text_content.strip()) < 10:
+        if not any(section["text"].strip() for section in document["sections"]):
             raise HTTPException(
                 status_code=400,
-                detail="Could not extract usable text from file. Please upload a file with more content.",
+                detail="No readable text was found. Scanned PDFs require OCR; upload a readable text or PDF source.",
             )
 
         return {
@@ -38,6 +39,12 @@ async def upload_source_material(
                 text_content[:200] + "..." if len(text_content) > 200 else text_content
             ),
             "extracted_text": text_content,
+            "coverage": document["coverage"],
+            "truncated": document["truncated"],
+            "source_version": document["source_version"],
+            "sections": document["sections"],
+            "unreadable_pages": document["unreadable_pages"],
+            "total_pages": document["total_pages"],
         }
     except HTTPException:
         # Re-raise HTTP exceptions as-is

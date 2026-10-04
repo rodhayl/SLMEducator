@@ -9,6 +9,7 @@ from pathlib import Path
 import tempfile
 import shutil
 import weakref
+import secrets
 from unittest.mock import MagicMock
 
 # Add this repo's `src/` to path for imports (and prevent leakage from other repos)
@@ -19,17 +20,18 @@ src_path = project_root / "src"
 conflicting_paths = [p for p in sys.path if "AAC_ASSISTANT" in p]
 for path in conflicting_paths:
     sys.path.remove(path)
-sys.path.insert(0, str(src_path))
+sys.path.insert(0, str(project_root))
 
 # Set test environment variables
 os.environ["SLM_TEST_MODE"] = "1"
+os.environ.setdefault("JWT_SECRET", secrets.token_urlsafe(48))
 # Generate a valid Fernet key for testing
 from cryptography.fernet import Fernet
 
 os.environ["SLM_ENCRYPTION_KEY"] = Fernet.generate_key().decode()
 
 # Reset settings service to ensure it loads env-test.properties
-from core.services.settings_config_service import (
+from src.core.services.settings_config_service import (
     reset_settings_service,
     get_settings_service,
 )
@@ -98,7 +100,7 @@ def test_data_dir():
     # Windows file handle cleanup
     # First, dispose any database connections
     try:
-        from core.services.database import get_db_service
+        from src.core.services.database import get_db_service
 
         db = get_db_service()
         if hasattr(db, "engine") and db.engine:
@@ -145,7 +147,7 @@ def setup_test_env(test_db_path, test_log_dir):
     os.environ["SLM_LOG_DIR"] = str(test_log_dir)
 
     # Import and initialize database service
-    from core.services.database import init_db_service
+    from src.core.services.database import init_db_service
 
     init_db_service(str(test_db_path))
 
@@ -169,7 +171,7 @@ def _track_and_patch_ai_services(monkeypatch, request):
     - Patch AIService._setup_client for non-real AI tests to prevent accidental network calls
     """
     try:
-        from core.services.ai_service import AIService
+        from src.core.services.ai_service import AIService
     except Exception:
         yield
         return
@@ -204,6 +206,7 @@ def _track_and_patch_ai_services(monkeypatch, request):
 
         def _fake_setup_client(self):
             self._client = MagicMock()
+            self._client.post.side_effect = RuntimeError("Unexpected provider transport in synthetic test; supply an explicit stub")
 
         monkeypatch.setattr(AIService, "_setup_client", _fake_setup_client)
 
@@ -230,7 +233,7 @@ def _track_and_patch_ai_services(monkeypatch, request):
 @pytest.fixture
 def db_service(test_db_path):
     """Provide a database service for tests"""
-    from core.services.database import get_db_service, init_db_service
+    from src.core.services.database import get_db_service, init_db_service
 
     init_db_service(str(test_db_path))
     service = get_db_service()
@@ -270,8 +273,8 @@ def client(db_service, monkeypatch):
 @pytest.fixture
 def test_teacher(db_service):
     """Default teacher user for API tests (auth + classroom messaging)."""
-    from core.models import User, UserRole
-    from core.security import hash_password
+    from src.core.models import User, UserRole
+    from src.core.security import hash_password
 
     username = "api_test_teacher"
     existing = db_service.session.query(User).filter(User.username == username).first()
@@ -293,10 +296,10 @@ def test_teacher(db_service):
 
 
 @pytest.fixture
-def test_student(db_service):
+def test_student(db_service, test_teacher):
     """Default student user for API tests (auth + classroom messaging)."""
-    from core.models import User, UserRole
-    from core.security import hash_password
+    from src.core.models import User, UserRole
+    from src.core.security import hash_password
 
     username = "api_test_student"
     existing = db_service.session.query(User).filter(User.username == username).first()
@@ -305,6 +308,7 @@ def test_student(db_service):
 
     user = User(
         username=username,
+        teacher_id=test_teacher.id,
         email="api_student@test.com",
         first_name="API",
         last_name="Student",
@@ -402,7 +406,7 @@ def mock_ai_service_partial():
 def mock_ai_service_error():
     """Create a mock AI service that raises exceptions"""
     from unittest.mock import Mock
-    from core.services.ai_service import AIServiceError
+    from src.core.services.ai_service import AIServiceError
 
     mock_service = Mock()
     mock_service.grade_answer.side_effect = AIServiceError("AI service unavailable")
@@ -442,7 +446,7 @@ def patch_messagebox_and_ai():
             patch("tkinter.messagebox.showwarning"),
             patch("tkinter.messagebox.showerror"),
             patch(
-                "core.services.ai_service.get_ai_service", return_value=mock_ai_service
+                "src.core.services.ai_service.get_ai_service", return_value=mock_ai_service
             ),
         )
 
@@ -640,8 +644,8 @@ def test_ai_service():
     Skips if the configured AI provider is not available.
     """
     import logging
-    from core.services.ai_service import AIService
-    from core.models import AIModelConfiguration
+    from src.core.services.ai_service import AIService
+    from src.core.models import AIModelConfiguration
 
     if not is_configured_ai_available():
         pytest.skip(

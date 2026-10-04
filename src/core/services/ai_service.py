@@ -19,7 +19,12 @@ import logging
 
 from ..models import User, Content, LearningSession, AIModelConfig
 from .settings_config_service import get_settings_service
-from ..exceptions import AIServiceError, ConfigurationError
+from ..exceptions import (
+    AIServiceError,
+    ConfigurationError,
+    AIResponseParseError,
+    AIContentValidationError,
+)
 from ..security_utils import sanitize_input, sanitize_prompt
 
 
@@ -43,6 +48,8 @@ class RuntimeAIConfig:
     endpoint: Optional[str] = None
     preprocessing_model: Optional[str] = None
     enable_preprocessing: bool = False
+    temperature: Optional[float] = None
+    max_tokens: Optional[int] = None
 
 
 @dataclass
@@ -160,6 +167,8 @@ class AIService:
             )
             return study_plan_data
 
+        except AIServiceError:
+            raise
         except Exception as e:
             self.logger.error(f"Failed to generate study plan: {e}")
             raise AIServiceError(f"Study plan generation failed: {e}")
@@ -254,6 +263,8 @@ class AIService:
             self.logger.info(f"Successfully generated exercise for {topic}")
             return exercise_data
 
+        except AIServiceError:
+            raise
         except Exception as e:
             self.logger.error(f"Failed to generate exercise for {topic}: {e}")
             raise AIServiceError(f"Exercise generation failed: {e}")
@@ -343,6 +354,8 @@ class AIService:
             self.logger.info(f"Successfully generated lesson for {topic}")
             return lesson_data
 
+        except AIServiceError:
+            raise
         except Exception as e:
             self.logger.error(f"Failed to generate lesson for {topic}: {e}")
             raise AIServiceError(f"Lesson generation failed: {e}")
@@ -449,6 +462,8 @@ class AIService:
             self.logger.info(f"Successfully generated topic content for {topic_name}")
             return topic_data
 
+        except AIServiceError:
+            raise
         except Exception as e:
             self.logger.error(f"Failed to generate topic content for {topic_name}: {e}")
             raise AIServiceError(f"Topic content generation failed: {e}")
@@ -529,6 +544,8 @@ class AIService:
             )
             return questions
 
+        except AIServiceError:
+            raise
         except Exception as e:
             self.logger.error(f"Failed to generate questions for {topic}: {e}")
             raise AIServiceError(f"Assessment question generation failed: {e}")
@@ -605,6 +622,8 @@ class AIService:
         try:
             response = self._call_ai(prompt, max_tokens=2000, temperature=0.7)
             return self._parse_json_response(response.content, "course_outline")
+        except AIServiceError:
+            raise
         except Exception as e:
             self.logger.error(f"Failed to generate outline: {e}")
             raise AIServiceError(f"Outline generation failed: {e}")
@@ -661,7 +680,9 @@ class AIService:
 
         except (json.JSONDecodeError, ValueError, SyntaxError) as e:
             self.logger.error(f"Failed to parse {context} response: {e}")
-            raise AIServiceError(f"Failed to parse AI response for {context}: {e}")
+            raise AIResponseParseError(
+                f"Invalid structured response for {context}"
+            ) from e
 
     def provide_tutoring(
         self,
@@ -704,7 +725,6 @@ class AIService:
             "history": conversation_history or [],
         }
 
-
         # Format context (uses Two-LLM if enabled)
         final_context_str = self._format_context(context_data)
         self.logger.debug(
@@ -725,6 +745,8 @@ class AIService:
             self.logger.info("Successfully provided tutoring response")
             return tutoring_data
 
+        except AIServiceError:
+            raise
         except Exception as e:
             self.logger.error(f"Failed to provide tutoring: {e}")
             raise AIServiceError(f"Tutoring service failed: {e}")
@@ -756,7 +778,9 @@ class AIService:
                 if len(content_text) > 6000:
                     content_text = content_text[:6000] + "... (truncated)"
                 if content.get("truncated"):
-                    parts.append("Source coverage: partial. Do not imply the omitted text was read.")
+                    parts.append(
+                        "Source coverage: partial. Do not imply the omitted text was read."
+                    )
                 parts.append(f"Content Text: {content_text}")
 
         if context_data.get("history"):
@@ -935,6 +959,13 @@ for use in an educational tutoring response. Keep essential facts and questions:
             AIServiceError: If API call fails
         """
         start_time = time.time()
+
+        configured_max = getattr(self.config, "max_tokens", None)
+        configured_temperature = getattr(self.config, "temperature", None)
+        if configured_max is not None:
+            max_tokens = min(max_tokens, configured_max)
+        if configured_temperature is not None:
+            temperature = configured_temperature
 
         try:
             if self.config.provider == AIProvider.OPENAI.value:
@@ -1430,58 +1461,15 @@ for use in an educational tutoring response. Keep essential facts and questions:
         """
 
     def _parse_study_plan_response(self, response: str) -> Dict[str, Any]:
-        """Parse AI study plan response."""
-        try:
-            # Try to extract JSON from response
-            json_start = response.find("{")
-            json_end = response.rfind("}") + 1
-
-            if json_start != -1 and json_end > json_start:
-                json_str = response[json_start:json_end]
-                return json.loads(json_str)
-            else:
-                raise ValueError("No valid JSON found in response")
-
-        except (json.JSONDecodeError, ValueError) as e:
-            self.logger.error(f"Failed to parse study plan response: {e}")
-            # Return a fallback study plan instead of raising an exception
-            return {
-                "title": "Generated Study Plan",
-                "description": "AI-generated study plan",
-                "duration_weeks": 4,
-                "phases": [
-                    {
-                        "title": "Phase 1: Introduction",
-                        "description": "Basic concepts and fundamentals",
-                        "duration_weeks": 1,
-                        "topics": [
-                            {
-                                "title": "Topic 1",
-                                "description": "Introduction to key concepts",
-                            },
-                            {"title": "Topic 2", "description": "Basic principles"},
-                        ],
-                    },
-                    {
-                        "title": "Phase 2: Advanced Topics",
-                        "description": "More complex concepts and applications",
-                        "duration_weeks": 2,
-                        "topics": [
-                            {"title": "Topic 3", "description": "Advanced concepts"},
-                            {
-                                "title": "Topic 4",
-                                "description": "Practical applications",
-                            },
-                        ],
-                    },
-                ],
-                "learning_objectives": [
-                    "Understand basic concepts",
-                    "Apply knowledge practically",
-                ],
-                "assessment_methods": ["Quizzes", "Practical exercises"],
-                "resources": ["Textbook", "Online materials"],
-            }
+        """Reject malformed plans rather than persisting plausible generic fallbacks."""
+        data = self._parse_json_response(response, "study_plan")
+        if (
+            not isinstance(data, dict)
+            or not isinstance(data.get("phases"), list)
+            or not data["phases"]
+        ):
+            raise AIContentValidationError("A generated plan needs nonempty phases")
+        return data
 
     def _parse_enhancement_response(self, response: str) -> Dict[str, Any]:
         """Parse AI enhancement response."""
@@ -1499,85 +1487,28 @@ for use in an educational tutoring response. Keep essential facts and questions:
             return {"enhanced_content": response.strip()}
 
     def _parse_exercise_response(self, response: str, topic: str) -> Dict[str, Any]:
-        """Parse AI exercise response."""
+        """Validate practice output and never invent a successful placeholder."""
+        from .content_schema import normalize_content
+
+        data = self._parse_json_response(response, "exercise")
         try:
-            # Look for JSON object in the response
-            json_start = response.find("{")
-            json_end = response.rfind("}") + 1
-
-            if json_start != -1 and json_end > json_start:
-                json_str = response[json_start:json_end]
-
-                # Handle common JSON issues from AI responses
-                # Fix unescaped backslashes in LaTeX expressions
-                json_str = json_str.replace("\\", "\\\\")
-
-                # Try to parse the JSON
-                try:
-                    return json.loads(json_str)
-                except json.JSONDecodeError as e:
-                    # If parsing fails, try to fix common issues
-                    self.logger.warning(
-                        f"Initial JSON parsing failed: {e}. Attempting fixes..."
-                    )
-
-                    # Try to fix truncated responses by adding missing closing braces/brackets
-                    open_braces = json_str.count("{")
-                    close_braces = json_str.count("}")
-                    if open_braces > close_braces:
-                        json_str += "}" * (open_braces - close_braces)
-
-                    open_brackets = json_str.count("[")
-                    close_brackets = json_str.count("]")
-                    if open_brackets > close_brackets:
-                        json_str += "]" * (open_brackets - close_brackets)
-
-                    # Try parsing again
-                    return json.loads(json_str)
-            else:
-                raise ValueError("No valid JSON found in response")
-
-        except (json.JSONDecodeError, ValueError) as e:
-            self.logger.error(f"Failed to parse exercise response: {e}")
-            # Return a fallback response instead of raising an error
-            return {
-                "topic": topic,  # Include the topic in fallback response
-                "question": "Error generating exercise",
-                "type": "multiple_choice",
-                "difficulty": "medium",
-                "options": ["Option A", "Option B", "Option C", "Option D"],
-                "correct_answer": "Option A",
-                "explanation": "There was an error generating this exercise. Please try again.",
-            }
+            return normalize_content("exercise", data)
+        except ValueError as exc:
+            raise AIContentValidationError(str(exc)) from exc
 
     def _estimate_tokens(self, text: str) -> int:
         """Estimate token count for text (rough approximation: 4 chars = 1 token)."""
         return len(text) // 4
 
     def _parse_tutoring_response(self, response: str) -> Dict[str, Any]:
-        """Parse AI tutoring response."""
-        try:
-            json_start = response.find("{")
-            json_end = response.rfind("}") + 1
-
-            if json_start != -1 and json_end > json_start:
-                json_str = response[json_start:json_end]
-                return json.loads(json_str)
-            else:
-                return {
-                    "answer": response.strip(),
-                    "explanation": "",
-                    "related_topics": [],
-                    "encouragement": "Keep up the great work!",
-                }
-
-        except json.JSONDecodeError:
-            return {
-                "answer": response.strip(),
-                "explanation": "",
-                "related_topics": [],
-                "encouragement": "Keep up the great work!",
-            }
+        """Require a usable structured suggestion; syntax failure is not success."""
+        data = self._parse_json_response(response, "tutoring")
+        if not isinstance(data, dict) or not any(
+            isinstance(data.get(key), str) and data[key].strip()
+            for key in ("answer", "explanation", "response")
+        ):
+            raise AIContentValidationError("Tutor response contains no usable answer")
+        return data
 
     def _parse_progress_assessment_response(self, response: str) -> Dict[str, Any]:
         """Parse AI progress assessment response."""
@@ -1887,7 +1818,9 @@ for use in an educational tutoring response. Keep essential facts and questions:
                 raise ValueError("Missing grading feedback")
             for field in ("improvements", "misconceptions", "strengths"):
                 value = grade_data.get(field, [])
-                if not isinstance(value, list) or any(not isinstance(v, str) for v in value):
+                if not isinstance(value, list) or any(
+                    not isinstance(v, str) for v in value
+                ):
                     raise ValueError("Invalid grading feedback list")
                 grade_data[field] = value
             grade_data["percentage"] = (points / max_points * 100) if max_points else 0

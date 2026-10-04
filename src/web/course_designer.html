@@ -6,8 +6,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Course Designer - SLM Educator</title>
     <meta name="description" content="Generate complete educational courses with AI assistance">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/vendor/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="/static/css/main.css" rel="stylesheet">
+    <script src="/static/vendor/dompurify@3.4.16/purify.min.js"></script>
+    <script src="/static/vendor/marked@15.0.12/marked.min.js"></script>
+    <script src="/static/js/safe-render.js"></script>
+    <script src="/static/js/learning-client.js"></script>
 </head>
 
 <body>
@@ -23,7 +27,7 @@
 
 
     <div class="container pb-5">
-        <div id="course-designer-error" class="alert alert-danger d-none"></div>
+        <div id="course-designer-error" role="alert" class="alert alert-danger d-none"></div>
         <!-- Step Indicator -->
         <div class="step-indicator">
             <div class="step active" id="step-1-ind">
@@ -46,17 +50,18 @@
                 <h4 class="mb-0">📋 Step 1: Course Configuration</h4>
             </div>
             <div class="card-body">
-                <form id="config-form">
+                <div id="source-coverage" class="alert alert-info d-none" role="status" aria-live="polite"></div>
+            <form id="config-form">
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Subject / Topic <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" name="subject" required
+                            <label class="form-label" for="course-subject">Subject / Topic <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="subject" id="course-subject" required
                                 placeholder="e.g. Introduction to Psychology, Cell Biology">
                             <small class="text-muted">The main topic for your course</small>
                         </div>
                         <div class="col-md-3 mb-3">
-                            <label class="form-label">Grade Level</label>
-                            <select class="form-select" name="grade_level">
+                            <label class="form-label" for="course-grade">Grade Level</label>
+                            <select class="form-select" name="grade_level" id="course-grade">
                                 <option value="6">Grade 6</option>
                                 <option value="7">Grade 7</option>
                                 <option value="8">Grade 8</option>
@@ -68,20 +73,20 @@
                             </select>
                         </div>
                         <div class="col-md-3 mb-3">
-                            <label class="form-label">Duration</label>
+                            <label class="form-label" for="course-duration">Duration</label>
                             <div class="input-group">
-                                <input type="number" class="form-control" name="duration" value="4" min="1" max="16">
+                                <input type="number" class="form-control" name="duration" id="course-duration" value="4" min="1" max="16">
                                 <span class="input-group-text">weeks</span>
                             </div>
                         </div>
                     </div>
 
                     <div class="mb-4">
-                        <label class="form-label">Source Material (Optional)</label>
+                        <label class="form-label" for="file-input">Source Material (Optional)</label>
                         <p class="text-muted small mb-2">
                             Upload a PDF, textbook chapter, or notes to help AI generate more accurate content.
                         </p>
-                        <div class="drag-area" id="drop-zone">
+                        <div class="drag-area" id="drop-zone" role="button" tabindex="0" aria-label="Choose source material file">
                             <div class="icon">📂</div>
                             <p class="mb-1 fw-medium">Drag & Drop PDF or Text file here</p>
                             <small class="text-muted">or click to browse • Supports .pdf, .txt, .md</small>
@@ -153,7 +158,7 @@
                 <h4 class="mb-0">⚡ Step 3: Generating Content</h4>
             </div>
             <div class="card-body">
-                <h5 id="gen-status-text" class="text-center mb-3">Initializing...</h5>
+                <h5 id="gen-status-text" role="status" aria-live="polite" class="text-center mb-3">Initializing...</h5>
 
                 <div class="progress mb-4" style="height: 28px;">
                     <div id="gen-progress-bar"
@@ -188,6 +193,13 @@
                     </div>
                 </div>
 
+                <button id="retry-generation" class="btn btn-warning d-none" onclick="retryCourseGeneration()" data-i18n="recovery.retry_failed">Retry failed items</button>
+                <div id="course-workflow" class="d-none alert alert-info mt-3">
+                    <p data-i18n="recovery.plan_saved_review">Draft saved. Review the saved material in the library before publishing.</p>
+                    <a href="/dashboard.html#library" data-i18n="recovery.open_library">Open library</a>
+                    <button class="btn btn-outline-primary" onclick="courseWorkflow('review')" data-i18n="recovery.mark_reviewed">Mark reviewed</button>
+                    <button class="btn btn-primary" onclick="courseWorkflow('publish')" data-i18n="recovery.publish">Publish</button>
+                </div>
                 <div class="d-flex justify-content-end mt-3">
                     <a href="/dashboard.html" class="btn btn-primary btn-lg disabled" id="finish-btn">
                         View in Library
@@ -198,7 +210,7 @@
 
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/vendor/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/static/js/theme.js"></script>
     <script src="/static/js/i18n.js"></script>
     <script src="/static/js/toast.js"></script>

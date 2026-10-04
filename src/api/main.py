@@ -74,6 +74,7 @@ from src.api.routes import (
     study_plans,
     gamification,
     annotations,
+    portability,
 )
 
 app.include_router(auth.router)
@@ -89,6 +90,7 @@ app.include_router(classroom.router)
 app.include_router(study_plans.router)
 app.include_router(gamification.router)
 app.include_router(annotations.router)
+app.include_router(portability.router)
 
 from src.api.routes import upload
 

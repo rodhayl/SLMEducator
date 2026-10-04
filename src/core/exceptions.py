@@ -33,6 +33,14 @@ class AIServiceError(SLMEducatorException):
     """Raised when AI service fails"""
 
 
+class AIResponseParseError(AIServiceError):
+    """The provider returned an unusable structured response."""
+
+
+class AIContentValidationError(AIServiceError):
+    """Parsed output does not satisfy the requested educational contract."""
+
+
 class ContentNotFoundError(SLMEducatorException):
     """Raised when content is not found"""
 

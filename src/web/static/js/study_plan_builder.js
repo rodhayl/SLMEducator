@@ -30,7 +30,7 @@ let availableContent = [];
 // Init
 document.addEventListener('DOMContentLoaded', async () => {
     await loadContent();
-    addPhase(); // Add initial phase
+    if (!await loadSavedPlan()) addPhase(); // Add initial phase only for a new plan.
 
     // Initialize Sortable for phase reordering (33.1)
     const phasesContainer = document.getElementById('phases-container');
@@ -52,6 +52,7 @@ async function loadContent() {
     try {
         const token = AuthService.getToken();
         const res = await fetch('/api/content/', { headers: { 'Authorization': `Bearer ${token}` } });
+        if (!res.ok) throw new Error('Unable to load content');
         availableContent = await res.json();
         renderContentList(availableContent);
     } catch (e) {
@@ -72,97 +73,95 @@ function renderContentList(items) {
         `;
         return;
     }
-    container.innerHTML = items.map(item => {
-        const estimate = Number.isFinite(item.estimated_time_min)
-            ? `${item.estimated_time_min}m`
-            : 'N/A';
-        return `
-        <div class="content-item-draggable" draggable="true" ondragstart="drag(event)" 
-             data-id="${item.id}" data-title="${item.title}" data-type="${item.content_type}">
-            <div class="d-flex justify-content-between">
-                <strong>${item.title}</strong>
-                <span class="badge bg-info text-dark">${item.content_type}</span>
-            </div>
-            <small class="text-muted">Est: ${estimate}</small>
-        </div>
-    `;
-    }).join('');
+    container.replaceChildren();
+    items.forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'content-item-draggable'; row.draggable = true;
+        row.dataset.id = item.id; row.dataset.title = item.title; row.dataset.type = item.content_type;
+        row.ondragstart = window.drag;
+        const title = document.createElement('strong'); title.textContent = item.title;
+        const detail = document.createElement('small'); detail.className = 'd-block text-secondary';
+        detail.textContent = item.content_type;
+        row.append(title, detail); container.append(row);
+    });
 }
 
-// DRAG AND DROP HANDLING
-window.allowDrop = (ev) => {
-    ev.preventDefault();
+window.allowDrop = event => event.preventDefault();
+window.drag = event => event.dataTransfer.setData('id', event.currentTarget.dataset.id);
+window.drop = event => {
+    event.preventDefault();
+    const area = event.target.closest('.phase-content-area');
+    const item = availableContent.find(item => String(item.id) === event.dataTransfer.getData('id'));
+    if (area && item) appendContent(area, item);
+};
+const builderMessage = (key, fallback) => SLMClient.message(key, fallback);
+function moveElement(element, direction) {
+    const sibling = direction < 0 ? element.previousElementSibling : element.nextElementSibling;
+    if (!sibling) return;
+    if (direction < 0) element.parentNode.insertBefore(element, sibling);
+    else element.parentNode.insertBefore(sibling, element);
 }
-
-window.drag = (ev) => {
-    // Store data: ID, Title, Type
-    ev.dataTransfer.setData("id", ev.target.dataset.id);
-    ev.dataTransfer.setData("title", ev.target.dataset.title);
-    ev.dataTransfer.setData("type", ev.target.dataset.type);
+function moveButton(element, direction, label) {
+    const button = document.createElement('button'); button.type = 'button';
+    button.className = 'btn btn-sm btn-outline-secondary';
+    button.textContent = direction < 0 ? '↑' : '↓';
+    button.setAttribute('aria-label', label);
+    button.onclick = () => { moveElement(element, direction); button.focus(); };
+    return button;
 }
-
-window.drop = (ev) => {
-    ev.preventDefault();
-    const id = ev.dataTransfer.getData("id");
-    const title = ev.dataTransfer.getData("title");
-    const type = ev.dataTransfer.getData("type");
-
-    // Find closest phase-content-area
-    let area = ev.target;
-    if (!area.classList.contains('phase-content-area')) {
-        area = area.closest('.phase-content-area');
-    }
-
-    if (area) {
-        // Clear placeholder if present
-        const placeholder = area.querySelector('small');
-        if (placeholder) placeholder.remove();
-
-        // Check if already exists in this phase to prevent dupes? 
-        // Allowing dupes might be valid (review), but let's allow it.
-
-        const div = document.createElement('div');
-        div.className = 'content-item-draggable bg-light';
-        div.dataset.contentId = id;
-        div.innerHTML = `
-            <div class="d-flex justify-content-between align-items-center">
-                <span>[${type}] ${title}</span>
-                <button class="btn btn-sm text-danger" onclick="this.parentElement.parentElement.remove()">×</button>
-            </div>
-        `;
-        area.appendChild(div);
-    }
+function appendContent(area, item) {
+    area.querySelector('small')?.remove();
+    const row = document.createElement('div');
+    row.className = 'content-item-draggable bg-light'; row.dataset.contentId = item.id;
+    const title = document.createElement('span'); title.textContent = `[${item.content_type}] ${item.title}`;
+    const controls = document.createElement('div'); controls.className = 'btn-group ms-2';
+    controls.append(moveButton(row, -1, builderMessage('move_up', 'Move up')),
+        moveButton(row, 1, builderMessage('move_down', 'Move down')));
+    const remove = document.createElement('button'); remove.type = 'button';
+    remove.className = 'btn btn-sm btn-outline-danger'; remove.textContent = builderMessage('remove', 'Remove');
+    remove.onclick = () => { const card = row.closest('.phase-card'); row.remove(); card.querySelector('select')?.focus(); };
+    controls.append(remove); row.append(title, controls); area.append(row);
 }
 
 // PHASE MANAGEMENT
 window.addPhase = () => {
-    const template = document.getElementById('phase-template');
-    const clone = template.content.cloneNode(true);
-    document.getElementById('phases-container').appendChild(clone);
-}
-
-window.removePhase = (btn) => {
-    btn.closest('.phase-card').remove();
-}
+    const clone = document.getElementById('phase-template').content.cloneNode(true);
+    const card = clone.querySelector('.phase-card');
+    card.querySelector('.phase-name-input').setAttribute('aria-label', builderMessage('phase_name', 'Phase name'));
+    const moves = document.createElement('div'); moves.className = 'btn-group mb-2';
+    moves.append(moveButton(card, -1, builderMessage('move_phase_up', 'Move phase up')),
+        moveButton(card, 1, builderMessage('move_phase_down', 'Move phase down')));
+    const picker = document.createElement('select'); picker.className = 'form-select mb-2';
+    picker.setAttribute('aria-label', builderMessage('choose_content', 'Choose content for this phase'));
+    availableContent.forEach(item => { const option = new Option(item.title, item.id); picker.append(option); });
+    const add = document.createElement('button'); add.type = 'button';
+    add.className = 'btn btn-sm btn-outline-primary mb-2';
+    add.textContent = builderMessage('add_content', 'Add selected content');
+    add.onclick = () => {
+        const item = availableContent.find(item => String(item.id) === picker.value);
+        if (item) appendContent(card.querySelector('.phase-content-area'), item);
+    };
+    card.append(moves, picker, add);
+    document.getElementById('phases-container').append(clone);
+};
+window.removePhase = button => {
+    button.closest('.phase-card').remove();
+    document.getElementById('add-phase-btn')?.focus();
+};
+document.getElementById('content-search').addEventListener('input', event => {
+    renderContentList(availableContent.filter(item => item.title.toLocaleLowerCase().includes(event.target.value.toLocaleLowerCase())));
+});
 
 // SAVE
+let savingPlan = false;
+let savedPlanId = null;
 window.saveStudyPlan = async () => {
+    if (savingPlan || savedPlanId) return;
     const title = document.getElementById('plan-title').value;
     const description = document.getElementById('plan-description').value;
     const isPublic = document.getElementById('plan-public').checked;
 
     if (!title) { showToast(t('study_plan.title_required'), 'warning'); return; }
-
-    // Build Phases JSON
-    // The backend expects `phases` list + `plan_contents` association.
-    // Actually, StudyPlan model has `phases` (JSON) AND `plan_contents` (ManyToMany).
-    // The `StudyPlanContent` association table has `phase_index`.
-    // So we should structure the payload so the backend can create the associations.
-    // If usage of `/api/study-plans` (POST) assumes just metadata, we might need a custom endpoint
-    // or the endpoint handles the complexity.
-    // Let's assume standard POST endpoint expects:
-    // { title, description, is_public, phases: [ {name: "Week 1", items: [id1, id2]} ] }
-    // AND the backend handles creating associations.
 
     const phases = [];
     const phaseCards = document.querySelectorAll('.phase-card');
@@ -184,6 +183,7 @@ window.saveStudyPlan = async () => {
         phases: phases // Helper JSON
     };
 
+    savingPlan = true;
     try {
         const token = AuthService.getToken();
         const res = await fetch('/api/study-plans', {
@@ -193,15 +193,50 @@ window.saveStudyPlan = async () => {
         });
 
         if (res.ok) {
+            const plan = await res.json();
+            savedPlanId = plan.id;
+            history.replaceState(null, '', `study_plan_builder.html?id=${plan.id}`);
+            document.getElementById('plan-workflow').classList.remove('d-none');
+            document.querySelectorAll('#phases-container input, #phases-container select, #phases-container button, #plan-title, #plan-description, #plan-public, #save-plan-btn, #add-phase-btn').forEach(control => { control.disabled = true; });
             showToast(t('study_plan.created'), 'success', 2000);
-            setTimeout(() => {
-                window.location.href = 'dashboard.html';
-            }, 1500);
         } else {
             const err = await res.json();
             showToast(t('study_plan.error_save', { error: JSON.stringify(err) }), 'danger');
         }
     } catch (e) {
         showToast(t('study_plan.error_network'), 'danger');
-    }
+    } finally { savingPlan = false; }
+}
+
+window.planWorkflow = async action => {
+    if (!savedPlanId) return;
+    try {
+        if (action === 'publish' && !await showConfirm(builderMessage('publish_course_confirm', 'Publish this reviewed course for authorized learners?'))) return;
+        await SLMClient.request(`/api/study-plans/${savedPlanId}/workflow`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action, is_public: document.getElementById('plan-public').checked })
+        });
+        showToast(builderMessage(action === 'publish' ? 'published' : 'reviewed', action === 'publish' ? 'Published successfully.' : 'Review recorded. You can publish when ready.'), 'success');
+    } catch (error) { showToast(error.message, 'danger'); }
+};
+
+async function loadSavedPlan() {
+    const id = new URLSearchParams(window.location.search).get('id');
+    if (!id || !/^\d+$/.test(id)) return false;
+    try {
+        const plan = await SLMClient.request(`/api/study-plans/${id}/tree`);
+        savedPlanId = plan.id;
+        document.getElementById('plan-title').value = plan.title;
+        document.getElementById('plan-description').value = plan.description || '';
+        document.getElementById('plan-public').checked = plan.is_public;
+        (plan.phases?.length ? plan.phases : [{ name: 'Course' }]).forEach((phase, index) => {
+            addPhase();
+            const card = document.getElementById('phases-container').lastElementChild;
+            card.querySelector('.phase-name-input').value = phase.name || phase.title || `Phase ${index + 1}`;
+            (plan.contents || []).filter(item => item.phase_index === index).sort((a,b) => a.order_index - b.order_index).forEach(item => appendContent(card.querySelector('.phase-content-area'), item));
+        });
+        document.getElementById('plan-workflow').classList.remove('d-none');
+        document.querySelectorAll('#phases-container input, #phases-container select, #phases-container button, #plan-title, #plan-description, #plan-public, #save-plan-btn, #add-phase-btn').forEach(control => { control.disabled = true; });
+        return true;
+    } catch (error) { showToast(error.message, 'danger'); return true; }
 }

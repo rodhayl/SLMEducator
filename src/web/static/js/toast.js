@@ -40,12 +40,12 @@ function showToast(message, type = 'info', delay = 3000) {
 
     const toastEl = document.createElement('div');
     toastEl.className = `toast align-items-center ${bgMap[type] || 'text-bg-secondary'} border-0`;
-    toastEl.setAttribute('role', 'alert');
-    toastEl.setAttribute('aria-live', 'assertive');
+    toastEl.setAttribute('role', type === 'danger' ? 'alert' : 'status');
+    toastEl.setAttribute('aria-live', type === 'danger' ? 'assertive' : 'polite');
     toastEl.setAttribute('aria-atomic', 'true');
     toastEl.innerHTML = `
         <div class="d-flex">
-            <div class="toast-body">${message}</div>
+            <div class="toast-body">${SLMRender.escape(message)}</div>
             <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
         </div>
     `;
@@ -76,6 +76,7 @@ function showToast(message, type = 'info', delay = 3000) {
  */
 function showConfirm(message, title = 'Confirm', confirmText = 'Confirm', cancelText = 'Cancel', isDanger = false) {
     return new Promise((resolve) => {
+        const previousFocus = document.activeElement;
         // Create modal element
         const modalId = 'confirm-modal-' + Date.now();
         const modalEl = document.createElement('div');
@@ -91,15 +92,15 @@ function showConfirm(message, title = 'Confirm', confirmText = 'Confirm', cancel
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="${modalId}-label">${title}</h5>
+                        <h5 class="modal-title" id="${modalId}-label">${SLMRender.escape(title)}</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                        ${message}
+                        ${SLMRender.escape(message)}
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">${cancelText}</button>
-                        <button type="button" class="btn ${confirmBtnClass}" id="${modalId}-confirm">${confirmText}</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">${SLMRender.escape(cancelText)}</button>
+                        <button type="button" class="btn ${confirmBtnClass}" id="${modalId}-confirm">${SLMRender.escape(confirmText)}</button>
                     </div>
                 </div>
             </div>
@@ -110,6 +111,7 @@ function showConfirm(message, title = 'Confirm', confirmText = 'Confirm', cancel
         const modal = new bootstrap.Modal(modalEl);
         const confirmBtn = modalEl.querySelector(`#${modalId}-confirm`);
 
+        modalEl.addEventListener('shown.bs.modal', () => confirmBtn.focus(), { once: true });
         // Handle confirm
         confirmBtn.addEventListener('click', () => {
             modal.hide();
@@ -118,7 +120,9 @@ function showConfirm(message, title = 'Confirm', confirmText = 'Confirm', cancel
 
         // Handle cancel/dismiss
         modalEl.addEventListener('hidden.bs.modal', () => {
+            modal.dispose();
             modalEl.remove();
+            previousFocus?.focus();
             resolve(false);
         }, { once: true });
 
@@ -145,6 +149,7 @@ window.showConfirm = showConfirm;
  */
 function showPrompt(message, defaultValue = '', title = 'Input Required', isMultiline = false) {
     return new Promise((resolve) => {
+        const previousFocus = document.activeElement;
         // Create modal element
         const modalId = 'prompt-modal-' + Date.now();
         const modalEl = document.createElement('div');
@@ -155,18 +160,18 @@ function showPrompt(message, defaultValue = '', title = 'Input Required', isMult
         modalEl.setAttribute('aria-hidden', 'true');
 
         const inputHtml = isMultiline
-            ? `<textarea class="form-control" id="${modalId}-input" rows="4">${defaultValue}</textarea>`
-            : `<input type="text" class="form-control" id="${modalId}-input" value="${defaultValue}">`;
+            ? `<textarea class="form-control" id="${modalId}-input" rows="4">${SLMRender.escape(defaultValue)}</textarea>`
+            : `<input type="text" class="form-control" id="${modalId}-input" value="${SLMRender.escape(defaultValue)}">`;
 
         modalEl.innerHTML = `
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="${modalId}-label">${title}</h5>
+                        <h5 class="modal-title" id="${modalId}-label">${SLMRender.escape(title)}</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                        <label for="${modalId}-input" class="form-label">${message}</label>
+                        <label for="${modalId}-input" class="form-label">${SLMRender.escape(message)}</label>
                         ${inputHtml}
                     </div>
                     <div class="modal-footer">
@@ -207,7 +212,9 @@ function showPrompt(message, defaultValue = '', title = 'Input Required', isMult
 
         // Handle cancel/dismiss
         modalEl.addEventListener('hidden.bs.modal', () => {
+            modal.dispose();
             modalEl.remove();
+            previousFocus?.focus();
             resolve(null);
         }, { once: true });
 
@@ -241,14 +248,14 @@ function showInfoModal(title, content, btnText = 'Close') {
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="${modalId}-label">${title}</h5>
+                    <h5 class="modal-title" id="${modalId}-label">${SLMRender.escape(title)}</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    ${content}
+                    ${SLMRender.html(content)}
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">${btnText}</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">${SLMRender.escape(btnText)}</button>
                 </div>
             </div>
         </div>

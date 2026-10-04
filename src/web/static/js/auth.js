@@ -185,7 +185,11 @@ if (loginForm) {
             errorDiv.classList.add('d-none');
             errorDiv.style.display = 'none';
             await AuthService.login(username, password);
-            window.location.href = '/dashboard.html';
+            const redirect = new URLSearchParams(window.location.search).get('redirect');
+            const target = redirect ? new URL(redirect, window.location.origin) : null;
+            window.location.href = target && target.origin === window.location.origin &&
+                ['/dashboard.html', '/session_player.html', '/assessment_taker.html'].includes(target.pathname)
+                ? target.pathname + target.search : '/dashboard.html';
         } catch (err) {
             errorDiv.textContent = err.message;
             errorDiv.classList.remove('d-none');

@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Optional, Any, cast
 from weakref import WeakSet
 import weakref
-from sqlalchemy import create_engine, event, select, func, and_, text
+from sqlalchemy import create_engine, event, select, func, and_, text, inspect
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import sessionmaker, Session
 
@@ -107,6 +107,19 @@ class DatabaseService:
         """Create all database tables"""
         if self.engine is None:
             raise RuntimeError("Database engine not initialized")
+        # create_all cannot upgrade existing tables. Refuse a partial schema
+        # before writing anything; recovery creates a backed-up new copy first.
+        with self.engine.connect() as connection:
+            existing = set(inspect(connection).get_table_names())
+            if existing:
+                from .schema_migrations import schema_gaps
+                gaps = schema_gaps(connection)
+                if gaps["tables"] or gaps["columns"]:
+                    raise RuntimeError(
+                        "Database schema requires an explicit upgrade. Stop the app and use "
+                        "scripts/recover_database.py upgrade with new output and backup paths. "
+                        f"Missing tables/columns: {gaps}"
+                    )
         Base.metadata.create_all(bind=self.engine)
 
     def get_session(self) -> Session:

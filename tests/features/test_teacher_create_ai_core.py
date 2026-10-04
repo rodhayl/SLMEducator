@@ -1,8 +1,8 @@
 import pytest
 from unittest.mock import Mock
-from core.models.models import User, AIModelConfiguration, StudyPlan, UserRole
-from core.services.ai_service import AIService
-from core.services.logging import get_logger
+from src.core.models.models import User, AIModelConfiguration, StudyPlan, UserRole
+from src.core.services.ai_service import AIService
+from src.core.services.logging import get_logger
 
 
 class TestTeacherCreateAICore:

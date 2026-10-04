@@ -10,158 +10,80 @@ let planContents = [];     // Array of content items in order
 let currentContentIndex = 0;
 let completedContentIds = [];
 
-// Notes auto-save
+// Notes belong to a server session and the signed-in account, never just content.
 let notesAutoSaveTimeout = null;
-const NOTES_SAVE_KEY_PREFIX = 'session_notes_';
+let sessionOwner = null;
+let notesSyncQueue = Promise.resolve();
+let endingSession = false;
+const t = (key) => window.I18n?.t?.(key) || key;
+const sessionMessage = (key, fallback) => SLMClient.message(key, fallback);
 
-// I18n helper (fallback if I18n not available)
-const t = (key, params = {}) => {
-    if (typeof I18n !== 'undefined' && I18n.t) {
-        return I18n.t(key, params);
+function saveNotesDraft(notes) {
+    if (!sessionId || sessionOwner !== SLMClient.account()) return false;
+    return SLMClient.drafts.write('notes', contentId, sessionId, { notes });
+}
+
+async function initNotesAutoSave(serverNotes = '') {
+    const area = document.getElementById('session-notes');
+    if (!area || !sessionId) return;
+    area.value = serverNotes || '';
+    const draft = SLMClient.drafts.read('notes', contentId, sessionId);
+    if (draft && draft.notes !== area.value) {
+        const choice = await SLMClient.chooseDraft();
+        if (choice === 'restore') area.value = draft.notes;
+        else if (choice === 'discard') SLMClient.drafts.remove('notes', contentId, sessionId);
+        else { window.location.href = '/dashboard.html'; return; }
     }
-    // Fallback messages
-    const fallbacks = {
-        'session.plan_complete': '🎉 Congratulations! You have completed this study plan!',
-        'session.review_submitted': 'Review submitted! Spaced repetition updated.',
-        'session.error_review': 'Error submitting review',
-        'session.error_session_save': 'Error saving session',
-        'session.error_network': 'Network error ending session'
-    };
-    return fallbacks[key] || key;
-};
-
-/**
- * Initialize notes auto-save functionality
- */
-function initNotesAutoSave() {
-    const notesTextarea = document.getElementById('session-notes');
-    if (!notesTextarea || !contentId) return;
-
-    // Load saved notes from localStorage
-    const savedNotes = localStorage.getItem(NOTES_SAVE_KEY_PREFIX + contentId);
-    if (savedNotes) {
-        notesTextarea.value = savedNotes;
-        updateNotesStatus('loaded');
-    }
-
-    // Set up auto-save on input
-    notesTextarea.addEventListener('input', () => {
-        updateNotesStatus('typing');
-
-        // Debounce save - wait 1.5 seconds after last keystroke
+    area.disabled = false;
+    await window.SLMPractice?.bindAttempt(sessionOwner, contentId, sessionId);
+    area.oninput = () => {
+        updateNotesStatus(saveNotesDraft(area.value) ? 'local' : 'storage-error');
         clearTimeout(notesAutoSaveTimeout);
-        notesAutoSaveTimeout = setTimeout(() => {
-            saveNotesToLocal(notesTextarea.value);
-        }, 1500);
-    });
+        notesAutoSaveTimeout = setTimeout(() => saveNotesToLocal(area.value), 1500);
+    };
+    window.addEventListener('pagehide', () => saveNotesDraft(area.value));
 }
 
-/**
- * Save notes to localStorage and sync to server
- */
-async function saveNotesToLocal(notes) {
-    if (!contentId) return;
-    localStorage.setItem(NOTES_SAVE_KEY_PREFIX + contentId, notes);
-
-    // Also sync to server if session is active
-    if (sessionId && authToken) {
+function saveNotesToLocal(notes) {
+    if (!sessionId || sessionOwner !== SLMClient.account()) return Promise.resolve(false);
+    const localSaved = saveNotesDraft(notes);
+    const targetSession = sessionId;
+    notesSyncQueue = notesSyncQueue.catch(() => false).then(async () => {
         try {
-            await fetch(`/api/learning/${sessionId}/notes`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${authToken}`
-                },
-                body: JSON.stringify({ notes: notes })
+            await SLMClient.request(`/api/learning/${targetSession}/notes`, {
+                method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ notes })
             });
-            updateNotesStatus('synced');
-        } catch (e) {
-            console.warn('Failed to sync notes to server:', e);
-            updateNotesStatus('saved'); // Still show saved locally
+            if (document.getElementById('session-notes').value === notes) {
+                SLMClient.drafts.remove('notes', contentId, targetSession);
+                updateNotesStatus('synced');
+            }
+            return true;
+        } catch (error) {
+            updateNotesStatus(localSaved ? 'sync-error' : 'storage-error');
+            return false;
         }
-    } else {
-        updateNotesStatus('saved');
-    }
+    });
+    return notesSyncQueue;
 }
 
-
-/**
- * Update the notes save status indicator
- */
 function updateNotesStatus(status) {
-    const statusEl = document.getElementById('notes-save-status');
-    const lastSavedEl = document.getElementById('notes-last-saved');
-    if (!statusEl) return;
-
-    switch (status) {
-        case 'typing':
-            statusEl.innerHTML = '✍️ Typing...';
-            statusEl.className = 'text-warning';
-            break;
-        case 'saved':
-            statusEl.innerHTML = '✅ Saved';
-            statusEl.className = 'text-success';
-            if (lastSavedEl) {
-                lastSavedEl.textContent = new Date().toLocaleTimeString();
-            }
-            // Reset to neutral after 3 seconds
-            setTimeout(() => {
-                statusEl.innerHTML = '📝 Notes auto-saved';
-                statusEl.className = 'text-muted';
-            }, 3000);
-            break;
-        case 'synced':
-            statusEl.innerHTML = '☁️ Synced';
-            statusEl.className = 'text-primary';
-            if (lastSavedEl) {
-                lastSavedEl.textContent = new Date().toLocaleTimeString();
-            }
-            setTimeout(() => {
-                statusEl.innerHTML = '📝 Notes synced to server';
-                statusEl.className = 'text-muted';
-            }, 3000);
-            break;
-        case 'loaded':
-            statusEl.innerHTML = '📥 Loaded from draft';
-            statusEl.className = 'text-info';
-            setTimeout(() => {
-                statusEl.innerHTML = '📝 Notes auto-saved';
-                statusEl.className = 'text-muted';
-            }, 3000);
-            break;
-        default:
-            statusEl.innerHTML = '📝 Notes auto-saved';
-            statusEl.className = 'text-muted';
+    const node = document.getElementById('notes-save-status');
+    if (!node) return;
+    const labels = {
+        local: sessionMessage('local_notes', 'Draft saved on this device; waiting for server.'),
+        synced: sessionMessage('server_saved', 'Notes saved to server.'),
+        'sync-error': sessionMessage('sync_failed', 'Server save failed. Your draft is kept on this device. Sign in again if needed, then retry.'),
+        'storage-error': sessionMessage('storage_failed', 'Could not save a local draft. Keep this page open and retry.')
+    };
+    node.textContent = labels[status] || '';
+    node.className = status.endsWith('error') ? 'text-danger' : 'text-secondary';
+    if (status === 'synced') {
+        const time = document.getElementById('notes-last-saved');
+        if (time) time.textContent = new Date().toLocaleTimeString();
     }
 }
-
-
-/**
- * Award XP to the current user for completing an activity
- * @param {number} amount - XP amount to award
- * @param {string} reason - Reason for the award (e.g., 'lesson_complete', 'exercise_complete')
- */
-async function awardXP(amount, reason = 'activity') {
-    try {
-        const token = AuthService.getToken();
-        if (!token) return;
-
-        // API expects query parameters, not JSON body
-        const response = await fetch(`/api/gamification/award-xp?amount=${amount}&reason=${encodeURIComponent(reason)}`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
-
-        if (response.ok) {
-            const result = await response.json();
-            console.log(`🎮 XP awarded: +${amount} (${reason}). Total: ${result.total_xp}, Level: ${result.level}`);
-        }
-    } catch (e) {
-        console.warn('Failed to award XP:', e);
-    }
-}
+window.retryNotesSave = () => saveNotesToLocal(document.getElementById('session-notes').value);
 
 // ===== ANNOTATIONS FUNCTIONS =====
 let annotationsCache = [];
@@ -280,13 +202,7 @@ function renderAnnotations() {
     }
 
     // Get current user ID from localStorage to check ownership
-    const currentUserData = localStorage.getItem('user_data');
-    let currentUserId = null;
-    if (currentUserData) {
-        try {
-            currentUserId = JSON.parse(currentUserData).id;
-        } catch (e) { }
-    }
+    const currentUserId = AuthService.getUser()?.id;
 
     const typeIcons = {
         'comment': '💬',
@@ -353,9 +269,7 @@ function formatTimeAgo(timestamp) {
  * @returns {string} Escaped text
  */
 function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+    return SLMRender.escape(text);
 }
 
 /**
@@ -396,11 +310,12 @@ function showSessionChoiceModal(previousSession) {
             modal.className = 'modal fade';
             modal.id = 'sessionChoiceModal';
             modal.tabIndex = -1;
+            modal.setAttribute('aria-labelledby', 'session-choice-title');
             modal.innerHTML = `
                 <div class="modal-dialog">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <h5 class="modal-title">📚 Previous Session Found</h5>
+                            <h5 class="modal-title" id="session-choice-title">📚 Previous Session Found</h5>
                         </div>
                         <div class="modal-body">
                             <p>You have a previous session with notes from <span id="prev-session-date"></span>:</p>
@@ -437,7 +352,9 @@ function showSessionChoiceModal(previousSession) {
         // Set up button handlers
         const restoreBtn = document.getElementById('restore-btn');
         const restartBtn = document.getElementById('restart-btn');
-        const bsModal = new bootstrap.Modal(modal);
+        const bsModal = bootstrap.Modal.getOrCreateInstance(modal);
+        modal.addEventListener('hidden.bs.modal', () => resolve('cancel'), { once: true });
+        modal.addEventListener('shown.bs.modal', () => restoreBtn.focus(), { once: true });
 
         restoreBtn.onclick = () => {
             bsModal.hide();
@@ -458,43 +375,13 @@ function showSessionChoiceModal(previousSession) {
  */
 async function restoreSession(previousSessionId) {
     try {
-        const response = await fetch(`/api/learning/${previousSessionId}/restore`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${authToken}` }
-        });
-
-        if (response.ok) {
-            const session = await response.json();
-            sessionId = session.id;
-            startTimer();
-
-            // Auto-save notes logic
-            const notesArea = document.getElementById('session-notes');
-            if (notesArea) {
-                notesArea.value = localStorage.getItem(`notes_${contentId}`) || '';
-                notesArea.addEventListener('input', (e) => {
-                    localStorage.setItem(`notes_${contentId}`, e.target.value);
-                    const status = document.getElementById('notes-save-status');
-                    if (status) {
-                        status.textContent = 'Saving...';
-                        setTimeout(() => status.textContent = 'Notes auto-saved', 1000);
-                    }
-                });
-            }
-
-            // Load annotations
-            loadAnnotations();
-
-            // Initialize notes auto-save (this call might be redundant if the above block handles it)
-            // initNotesAutoSave(); // Keeping this commented out as the new block seems to replace its functionality
-        } else {
-            console.error('Failed to restore session');
-            // Fall back to starting new session
-            location.reload();
-        }
-    } catch (e) {
-        console.error('Error restoring session:', e);
-        location.reload();
+        const session = await SLMClient.request(`/api/learning/${previousSessionId}/restore`, { method: 'POST' });
+        sessionId = session.id;
+        startTimer();
+        await initNotesAutoSave(session.notes);
+        loadAnnotations();
+    } catch (error) {
+        showErrorState('Session unavailable', error.message);
     }
 }
 
@@ -504,6 +391,8 @@ async function initSession() {
     planId = urlParams.get('plan_id');
 
     authToken = AuthService.getToken();
+    sessionOwner = SLMClient.account();
+    document.getElementById('session-notes').disabled = true;
     if (!authToken || !AuthService.isAuthenticated()) {
         window.location.href = '/login.html';
         return;
@@ -531,6 +420,20 @@ async function initSession() {
         }
 
         const content = await contentResp.json();
+        let structured = content.content_data;
+        if (typeof structured === 'string') { try { structured = JSON.parse(structured); } catch { structured = null; } }
+        const body = document.getElementById('session-content-body');
+        const isPractice = content.content_type === 'exercise' && structured && typeof structured === 'object';
+        const isAssessment = content.content_type === 'assessment';
+        if (isPractice) SLMPractice.render(body, structured);
+        if (isAssessment) {
+            body.replaceChildren();
+            if (Number.isInteger(structured?.assessment_id) && structured.assessment_id > 0) {
+                const link = document.createElement('a'); link.className = 'btn btn-primary';
+                link.href = `/assessment_taker.html?id=${structured.assessment_id}`;
+                link.textContent = sessionMessage('open_assessment', 'Open assessment'); body.append(link);
+            } else body.textContent = sessionMessage('practice_unavailable', 'This item needs teacher review before it can be answered.');
+        }
         document.getElementById('session-content-title').textContent = content.title;
         // Handle content_data which might be JSON object, JSON string, or plain text
         let bodyText = "No content data.";
@@ -610,11 +513,7 @@ async function initSession() {
                 bodyText = String(content.content_data);
             }
         }
-        document.getElementById('session-content-body').innerHTML = marked.parse(bodyText);
-        // Let's just use innerText for safety if marked isn't there, or pre
-        if (typeof marked === 'undefined') {
-            document.getElementById('session-content-body').innerHTML = `<pre>${bodyText}</pre>`;
-        }
+        if (!isPractice && !isAssessment) SLMRender.setMarkdown(body, bodyText);
     } catch (e) {
         console.error("Failed to load content", e);
         showErrorState("Error Loading Content", "An unexpected error occurred while loading the content.");
@@ -626,6 +525,7 @@ async function initSession() {
     if (previousSession && previousSession.notes) {
         // Show restore/restart modal
         const choice = await showSessionChoiceModal(previousSession);
+        if (choice === 'cancel') { window.location.href = '/dashboard.html'; return; }
         if (choice === 'restore') {
             await restoreSession(previousSession.id);
             return; // restoreSession handles initialization
@@ -653,15 +553,12 @@ async function initSession() {
             loadAnnotations();
 
             // Initialize notes auto-save
-            initNotesAutoSave();
+            await initNotesAutoSave(session.notes);
         } else {
-            console.error("Failed to start session tracking");
-            // Non-blocking error, allow reading but warn
-            // Still initialize notes auto-save even if session tracking fails
-            initNotesAutoSave();
+            showToast(sessionMessage('session_start_failed', 'Session tracking could not start. Reload to retry; notes are disabled until then.'), 'danger');
         }
     } catch (e) {
-        console.error(e);
+        showToast(sessionMessage('session_start_failed', 'Session tracking could not start. Reload to retry; notes are disabled until then.'), 'danger');
     }
 }
 
@@ -746,12 +643,12 @@ function renderPlanSidebar() {
         const statusIcon = isCompleted ? '✅' : (isCurrent ? '🔵' : '○');
 
         return `
-            <div class="plan-content-item p-2 mb-1 rounded ${isCurrent ? 'bg-primary text-white' : 'bg-light'}"
+            <button type="button" class="plan-content-item p-2 mb-1 rounded w-100 text-start border-0 ${isCurrent ? 'bg-primary text-white' : 'bg-light'}"
                  style="cursor: pointer;" onclick="goToContent(${item.id})">
                 <span class="me-2">${statusIcon}</span>
                 <span class="me-1">${icon}</span>
-                <span class="text-truncate" style="max-width: 150px; display: inline-block;">${item.title}</span>
-            </div>
+                <span class="text-truncate" style="max-width: 150px; display: inline-block;">${escapeHtml(item.title)}</span>
+            </button>
         `;
     }).join('');
 
@@ -767,7 +664,7 @@ function updateNavigationButtons() {
     const positionText = document.getElementById('content-position');
 
     prevBtn.disabled = currentContentIndex <= 0;
-    nextBtn.disabled = currentContentIndex >= planContents.length - 1;
+    nextBtn.disabled = planContents.length === 0;
 
     // Update button text for last item
     if (currentContentIndex >= planContents.length - 1) {
@@ -779,60 +676,42 @@ function updateNavigationButtons() {
     positionText.textContent = `${currentContentIndex + 1} of ${planContents.length}`;
 }
 
-// Save progress to backend
-async function saveProgressToBackend(completedId) {
-    if (!planId || !completedId) return;
-
-    try {
-        await fetch(`/api/study-plans/${planId}/progress`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${authToken}`
-            },
-            body: JSON.stringify({
-                completed_content_id: parseInt(completedId)
-            })
-        });
-    } catch (e) {
-        console.error('Failed to save progress:', e);
-    }
+// Navigation changes progress only after the server accepts the transition.
+async function completeCurrentContent() {
+    if (!sessionId || sessionOwner !== SLMClient.account()) return false;
+    const notes = document.getElementById('session-notes').value;
+    saveNotesDraft(notes);
+    clearTimeout(notesAutoSaveTimeout);
+    await notesSyncQueue;
+    await SLMClient.request(`/api/learning/${sessionId}/end`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes })
+    });
+    if (planId) await SLMClient.request(`/api/study-plans/${planId}/progress`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ completed_content_id: Number(contentId) })
+    });
+    SLMClient.drafts.remove('notes', contentId, sessionId);
+    clearInterval(timerInterval);
+    return true;
 }
 
-// Navigate to previous/next content in plan
 window.navigatePlanContent = async function (direction) {
+    if (endingSession) return;
     const newIndex = currentContentIndex + direction;
-    if (newIndex >= 0 && newIndex < planContents.length) {
-        const nextContent = planContents[newIndex];
-        // Mark current as completed before navigating
-        if (!completedContentIds.includes(parseInt(contentId))) {
-            completedContentIds.push(parseInt(contentId));
-            // Save to backend for persistence
-            await saveProgressToBackend(contentId);
-            // Award XP for completing content
-            await awardXP(10, 'content_complete');
-        }
-        // Navigate to new content
-        window.location.href = `session_player.html?content_id=${nextContent.id}&plan_id=${planId}`;
-    } else if (newIndex >= planContents.length) {
-        // Plan complete!
-        if (!completedContentIds.includes(parseInt(contentId))) {
-            completedContentIds.push(parseInt(contentId));
-            await saveProgressToBackend(contentId);
-            // Award XP for plan completion (bonus)
-            await awardXP(50, 'plan_complete');
-        }
-        showToast(t('session.plan_complete'), 'success', 2500);
-        setTimeout(() => {
-            window.location.href = 'dashboard.html';
-        }, 2000);
-    }
+    if (newIndex < 0) return;
+    endingSession = true;
+    try {
+        if (!await completeCurrentContent()) return;
+        window.location.href = newIndex < planContents.length ?
+            `session_player.html?content_id=${planContents[newIndex].id}&plan_id=${encodeURIComponent(planId)}` : '/dashboard.html';
+    } catch (error) { showToast(error.message, 'danger'); }
+    finally { endingSession = false; }
 };
-
-// Go to specific content in plan
-window.goToContent = function (targetContentId) {
-    if (targetContentId === parseInt(contentId)) return;
-    window.location.href = `session_player.html?content_id=${targetContentId}&plan_id=${planId}`;
+window.goToContent = async function (targetContentId) {
+    if (targetContentId === Number(contentId) || endingSession) return;
+    if (!await saveNotesToLocal(document.getElementById('session-notes').value)) return;
+    window.location.href = `session_player.html?content_id=${Number(targetContentId)}&plan_id=${encodeURIComponent(planId)}`;
 };
 
 // Toggle plan sidebar visibility
@@ -853,6 +732,7 @@ window.togglePlanSidebar = function () {
 
 function startTimer() {
     startTime = Date.now();
+    if (timerInterval) clearInterval(timerInterval);
     timerInterval = setInterval(() => {
         const delta = Date.now() - startTime;
         const seconds = Math.floor(delta / 1000);
@@ -885,78 +765,23 @@ window.endSessionUI = () => {
 };
 
 window.confirmEndSession = async () => {
-    if (!contentId) return; // Need content ID for review
-
+    if (!sessionId || endingSession || sessionOwner !== SLMClient.account()) return;
+    endingSession = true;
     const notes = document.getElementById('session-notes').value;
-    const rating = document.getElementById('difficulty-rating').value;
-    const urlParams = new URLSearchParams(window.location.search);
-    const mode = urlParams.get('mode');
-
+    saveNotesDraft(notes);
+    clearTimeout(notesAutoSaveTimeout);
     try {
-        if (mode === 'review') {
-            // Submit Review to Mastery API
-            const response = await fetch('/api/mastery/review', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${authToken}`
-                },
-                body: JSON.stringify({
-                    content_id: parseInt(contentId),
-                    rating: parseInt(rating),
-                    actual_duration_min: Math.max(1, Math.floor((Date.now() - startTime) / 60000))
-                })
-            });
-
-            if (response.ok) {
-                showToast(t('session.review_submitted'), 'success', 2000);
-                setTimeout(() => {
-                    window.location.href = 'dashboard.html';
-                }, 1500);
-            } else {
-                showToast(t('session.error_review'), 'danger');
-            }
-        } else {
-            // Standard Session End
-            if (!sessionId) return;
-            const response = await fetch(`/api/learning/${sessionId}/end`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${authToken}`
-                },
-                body: JSON.stringify({
-                    notes: notes,
-                    difficulty_rating: parseInt(rating)
-                })
-            });
-
-            if (response.ok) {
-                // Award XP for session completion
-                await awardXP(15, 'session_complete');
-                window.location.href = 'dashboard.html';
-            } else {
-                showToast(t('session.error_session_save'), 'danger');
-            }
-        }
-    } catch (e) {
-        showToast(t('session.error_network'), 'danger');
-    }
+        await notesSyncQueue;
+        await SLMClient.request(`/api/learning/${sessionId}/end`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ notes, difficulty_rating: Number(document.getElementById('difficulty-rating').value) })
+        });
+        SLMClient.drafts.remove('notes', contentId, sessionId);
+        clearInterval(timerInterval);
+        window.location.href = '/dashboard.html';
+    } catch (error) { showToast(error.message, 'danger'); }
+    finally { endingSession = false; }
 };
-
-// Check for marked.js for markdown rendering
-if (typeof marked === 'undefined') {
-    // Dynamically load marked if not present (optional enhancement)
-    const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/marked/marked.min.js';
-    script.onload = () => {
-        if (document.getElementById('session-content-body').textContent) {
-            // re-render if content already loaded as pre
-            // simplistic approach, really initSession should wait. 
-        }
-    };
-    document.head.appendChild(script);
-}
 
 // --- Accessibility & Focus Mode ---
 

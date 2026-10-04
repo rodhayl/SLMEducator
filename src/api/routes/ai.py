@@ -8,6 +8,7 @@ from src.api.security import get_current_user
 from src.api.dependencies import get_db, get_ai_service_dependency
 from src.api.policies import require_content, require_plan
 from src.core.models import User
+from src.core.exceptions import AIResponseParseError, AIContentValidationError
 from src.core.services.learning_context import (
     source_context,
     SourceContext,
@@ -97,6 +98,12 @@ async def chat_with_tutor(
         return ChatResponse(response=response, suggestions=suggestions, source=source)
     except HTTPException:
         raise
+    except (AIResponseParseError, AIContentValidationError):
+        return ChatResponse(
+            response="The provider returned an invalid answer. Try again or ask your teacher.",
+            status="invalid_response",
+            source=source,
+        )
     except Exception:
         return ChatResponse(
             response="AI assistance is unavailable. Your lesson and notes are still available; try again or ask your teacher.",

@@ -5,11 +5,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - SLM Educator</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/vendor/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/main.css">
     <script src="/static/js/theme.js"></script>
     <script src="/static/js/i18n.js"></script>
     <script src="/static/js/toast.js"></script>
+    <script src="/static/vendor/dompurify@3.4.16/purify.min.js"></script>
+    <script src="/static/vendor/marked@15.0.12/marked.min.js"></script>
+    <script src="/static/js/safe-render.js"></script>
+    <script src="/static/js/learning-client.js"></script>
 </head>
 
 <body>
@@ -162,7 +166,7 @@
                     <div class="card mt-4" id="mastery-container">
                         <div
                             class="card-header bg-primary text-light d-flex justify-content-between align-items-center">
-                            <h5 class="mb-0" data-i18n="dashboard.mastery_title">🧠 Mastery & Spaced Repetition</h5>
+                            <h5 class="mb-0" data-i18n="dashboard.mastery_title">Review evidence</h5>
                             <button class="btn btn-sm btn-light" onclick="startReviewSession()"
                                 data-i18n="dashboard.buttons.start_review">Start Review
                                 Session</button>
@@ -175,15 +179,15 @@
                                 </div>
                                 <div class="col-md-3">
                                     <h3 id="mastery-avg">0%</h3>
-                                    <small data-i18n="dashboard.mastery.avg_mastery">Avg Mastery</small>
+                                    <small data-i18n="dashboard.mastery.avg_mastery">Average final assessment score</small>
                                 </div>
                                 <div class="col-md-3">
                                     <h3 id="mastery-mastered">0</h3>
-                                    <small data-i18n="dashboard.mastery.mastered_items">Mastered Items</small>
+                                    <small data-i18n="dashboard.mastery.mastered_items">Final assessment records</small>
                                 </div>
                                 <div class="col-md-3">
                                     <h3 id="mastery-progress">0</h3>
-                                    <small data-i18n="dashboard.mastery.in_progress">In Progress</small>
+                                    <small data-i18n="dashboard.mastery.in_progress">Legacy activity</small>
                                 </div>
                             </div>
                         </div>
@@ -1080,6 +1084,13 @@
                 <div class="text-muted text-center" data-i18n="ai_tutor.start_conversation">Start a conversation with
                     your AI Tutor</div>
             </div>
+            <label for="tutor-assistance" class="visually-hidden" data-i18n="recovery.assistance_mode">Assistance mode</label>
+            <select id="tutor-assistance" class="form-select">
+                <option value="hint" data-i18n="recovery.hint">Hint</option>
+                <option value="explanation" data-i18n="recovery.explanation">Explanation</option>
+                <option value="example" data-i18n="recovery.example">Example</option>
+                <option value="check_understanding" data-i18n="recovery.check_understanding">Check my understanding</option>
+            </select>
             <form id="chat-form" class="chat-input-form">
                 <input type="text" id="chat-input" class="form-control" placeholder="Ask something..."
                     data-i18n-placeholder="ai_tutor.input_placeholder" required aria-label="Tutor message">
@@ -1094,6 +1105,7 @@
     <!-- SETTINGS VIEW -->
     <div id="view-settings" class="view-section hidden">
         <h2 class="page-header" data-i18n="settings.title">⚙️ Settings</h2>
+        <a href="/portability.html" class="btn btn-outline-primary mb-3" data-i18n="recovery.portability">Export and backup</a>
         <div class="tabs mb-3" id="settings-tabs">
             <div class="tab active" data-settings-tab="profile" data-i18n="settings.tabs.profile">Profile</div>
             <div class="tab" data-settings-tab="ai" data-i18n="settings.tabs.ai_config">AI Configuration</div>
@@ -1241,7 +1253,7 @@
                                         <label class="form-label" for="new-password"
                                             data-i18n="settings.security.new_password">New
                                             Password</label>
-                                        <input type="password" class="form-control" id="new-password" required
+                                        <input type="password" class="form-control" id="new-password" required minlength="12" maxlength="128"
                                             autocomplete="new-password">
                                     </div>
                                     <div class="col-md-6">
@@ -1349,8 +1361,8 @@
                                         <small class="text-muted">Response length limit</small>
                                     </div>
                                 </div>
-                                <div class="form-check mb-2">
-                                    <input type="checkbox" class="form-check-input" id="ai-preprocessing">
+                                <div class="form-check mb-2 d-none" aria-hidden="true">
+                                    <input type="checkbox" class="form-check-input" id="ai-preprocessing" disabled>
                                     <label class="form-check-label" for="ai-preprocessing"
                                         data-i18n="settings.ai.preprocessing">Enable
                                         Context Preprocessing
@@ -1913,8 +1925,7 @@
     </div>
 
     <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="/static/vendor/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script type="module" src="/static/js/auth.js?v=20260204"></script>
     <script type="module" src="/static/js/dashboard.js"></script>
     <script type="module" src="/static/js/modules/inbox.js"></script>
