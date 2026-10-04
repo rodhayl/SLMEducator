@@ -20,7 +20,7 @@
     <nav class="navbar-standalone">
         <div class="brand">SLM Educator <span class="badge bg-info ms-2" data-i18n="navigation.grading">Grading</span></div>
         <div class="actions">
-            <a href="dashboard.html" class="btn btn-outline-secondary btn-sm" data-i18n="navigation.dashboard">Dashboard</a>
+            <a id="grading-dashboard-link" href="dashboard.html?view=grading&amp;grading_filter=all" class="btn btn-outline-secondary btn-sm" data-i18n="navigation.dashboard">Dashboard</a>
         </div>
     </nav>
 
@@ -39,16 +39,16 @@
                         </div>
                         <!-- Filter Tabs -->
                         <div class="btn-group btn-group-sm w-100" role="group" id="grading-filter-tabs">
-                            <button type="button" class="btn btn-outline-secondary active" onclick="filterSubmissions('all', this)"
+                            <button type="button" class="btn btn-outline-secondary active" data-filter="all" aria-pressed="true" onclick="filterSubmissions('all')"
                                 data-i18n="grading.filters.all">All</button>
-                            <button type="button" class="btn btn-outline-warning" onclick="filterSubmissions('pending', this)"
+                            <button type="button" class="btn btn-outline-warning" data-filter="pending" aria-pressed="false" onclick="filterSubmissions('pending')"
                                 data-i18n="grading.filters.pending">Pending</button>
-                            <button type="button" class="btn btn-outline-success" onclick="filterSubmissions('graded', this)"
+                            <button type="button" class="btn btn-outline-success" data-filter="graded" aria-pressed="false" onclick="filterSubmissions('graded')"
                                 data-i18n="grading.filters.graded">Graded</button>
                         </div>
                     </div>
                     <div class="card-body p-0 overflow-auto scrollable-panel">
-                        <div class="list-group list-group-flush" id="submission-list">
+                        <div class="list-group list-group-flush" id="submission-list" aria-live="polite">
                             <!-- Items inserted here -->
                             <div class="text-center p-3 text-muted" data-i18n="common.labels.loading">Loading...</div>
                         </div>
@@ -61,12 +61,12 @@
             <div class="col-md-8">
                 <div id="grading-area" class="card h-100 hidden">
                     <div class="card-header">
-                        <h5 id="submission-title">Student Name - Assessment Title</h5>
+                        <h5 id="submission-title" tabindex="-1">Student Name - Assessment Title</h5>
                         <span class="badge bg-warning text-body" id="submission-status" data-i18n="grading.status.pending">Pending</span>
                     </div>
                     <div class="card-body overflow-auto scrollable-content">
                         <!-- Student Answers -->
-                        <div id="answers-container">
+                        <div id="answers-container" aria-live="polite">
                             <!-- Question + Answer Blocks -->
                         </div>
                     </div>
@@ -84,12 +84,12 @@
                         <form id="grading-form">
                             <div class="row align-items-end">
                                 <div class="col-md-4">
-                                    <label class="form-label" data-i18n="grading.labels.final_score">Final Score</label>
-                                    <input type="number" id="grade-score" class="form-control" placeholder="0-100"
+                                    <label for="grade-score" class="form-label" data-i18n="grading.labels.final_score">Final Score</label>
+                                    <input type="number" id="grade-score" class="form-control" min="0" step="1" required placeholder="0-100"
                                         data-i18n-placeholder="grading.placeholders.grade_score">
                                 </div>
                                 <div class="col-md-8">
-                                    <label class="form-label" data-i18n="grading.labels.feedback">Feedback</label>
+                                    <label for="grade-feedback" class="form-label" data-i18n="grading.labels.feedback">Feedback</label>
                                     <textarea id="grade-feedback" class="form-control" rows="2"
                                         placeholder="Great job, but watch out for..."
                                         data-i18n-placeholder="grading.placeholders.grade_feedback"></textarea>
@@ -113,7 +113,7 @@
 
     <!-- Template for list item -->
     <template id="submission-item-template">
-        <a href="javascript:void(0)" class="list-group-item list-group-item-action" onclick="selectSubmission(this)">
+        <a href="grading.html" class="list-group-item list-group-item-action">
             <div class="d-flex w-100 justify-content-between">
                 <h6 class="mb-1 student-name">Student Name</h6>
                 <small class="submission-date">3 days ago</small>
@@ -129,16 +129,6 @@
     <script src="/static/js/toast.js"></script>
     <script type="module" src="/static/js/auth.js?v=20260204"></script>
     <script src="/static/js/grading.js"></script>
-    <script>
-        // Initialize i18n when page loads
-        document.addEventListener('DOMContentLoaded', () => {
-            if (window.I18nService) {
-                window.I18nService.init().then(() => {
-                    window.I18nService.translatePage();
-                });
-            }
-        });
-    </script>
 </body>
 
 </html>

@@ -26,16 +26,21 @@ def normalize_content(kind: str, value: dict[str, Any]) -> dict[str, Any]:
             not isinstance(item, dict) for item in sections
         ):
             raise ValueError("Lesson sections must be objects")
-        if body and not sections:
-            data["sections"] = [{"title": "Lesson", "content": body}]
         if not (isinstance(body, str) and body.strip()) and not any(
             isinstance(section.get("content"), str) and section["content"].strip()
             for section in sections
         ):
             raise ValueError("A lesson needs nonempty explanatory text")
-        for section in data.get("sections", []):
+        for section in sections:
             if not isinstance(section.get("content", ""), str):
                 raise ValueError("Section content must be text")
+        joined = "\n\n".join(section.get("content", "") for section in sections)
+        if isinstance(body, str) and body.strip() and body.strip() != joined.strip():
+            sections = [{"title": "Overview" if sections else "Lesson", "content": body}] + sections
+        data["sections"] = sections
+        data["content"] = "\n\n".join(section.get("content", "") for section in sections)
+        data.pop("text", None)
+        data.pop("body", None)
     elif kind == "exercise":
         question = data.get("question") or data.get("question_text")
         if (

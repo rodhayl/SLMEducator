@@ -127,6 +127,7 @@ class AnswerDetail(BaseModel):
     is_correct: Optional[bool]
     points: Optional[int]
     max_points: int
+    feedback: Optional[str] = None
     # AI grading fields
     ai_suggested_score: Optional[int] = None
     ai_suggested_feedback: Optional[str] = None
@@ -572,6 +573,7 @@ async def get_submission_details(
                 is_correct=resp.is_correct,
                 points=resp.score,
                 max_points=question.points,
+                feedback=resp.feedback,
                 ai_suggested_score=resp.ai_suggested_score,
                 ai_suggested_feedback=resp.ai_suggested_feedback,
                 ai_confidence=resp.ai_confidence,
@@ -845,7 +847,7 @@ def _validate_score(score: int, maximum: int) -> None:
 
 def _require_submitted(submission: Submission) -> None:
     """Protect drafts from accidental final grading."""
-    if submission.status == SubmissionStatus.DRAFT:
+    if submission.status in {SubmissionStatus.DRAFT, SubmissionStatus.ABANDONED}:
         raise HTTPException(status_code=409, detail="Attempt has not been submitted")
 
 
@@ -959,7 +961,7 @@ def _submission_result(submission: Submission) -> dict:
         "ai_graded_questions": sum(
             r.ai_suggested_score is not None for r in submission.responses
         ),
-        "needs_review": submission.status != SubmissionStatus.GRADED,
+        "needs_review": submission.status not in {SubmissionStatus.GRADED, SubmissionStatus.ABANDONED},
     }
 
 
@@ -976,6 +978,47 @@ def _validate_answers(assessment: Assessment, answers: list) -> dict:
             status_code=422, detail="Answer does not belong to this assessment"
         )
     return {answer.question_id: answer.response_text for answer in answers}
+
+
+class CloseAttemptRequest(BaseModel):
+    reason: str = Field(default="abandoned", pattern="^abandoned$")
+    answers: Optional[List[AnswerSubmission]] = None
+
+
+@router.post("/submissions/{submission_id}/close")
+def close_assessment_attempt(
+    submission_id: int, request: CloseAttemptRequest,
+    current_user: User = Depends(get_current_user), db: Session = Depends(get_db),
+):
+    """Explicit closure preserves work and consumes the reserved attempt, without a grade."""
+    submission = db.get(Submission, submission_id)
+    if not submission:
+        raise HTTPException(status_code=404, detail="Attempt not found")
+    require_allowed(can_access_submission(db, current_user, submission))
+    _lock_attempts(db, submission.assessment_id)
+    db.refresh(submission)
+    if submission.status == SubmissionStatus.ABANDONED:
+        db.rollback()
+        return _submission_result(submission)
+    if submission.status != SubmissionStatus.DRAFT:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Only an open attempt can be closed")
+    if request.answers is not None:
+        if current_user.id != submission.student_id:
+            db.rollback()
+            raise HTTPException(status_code=403, detail="Only the learner can preserve their draft answers")
+        answers = _validate_answers(submission.assessment, request.answers)
+        existing = {response.question_id: response for response in submission.responses}
+        for question_id, text in answers.items():
+            response = existing.get(question_id)
+            if response is None:
+                response = QuestionResponse(submission_id=submission.id, question_id=question_id)
+                db.add(response)
+            response.set_encrypted_response(text)
+    submission.status = SubmissionStatus.ABANDONED
+    submission.feedback = "Attempt explicitly closed without submission or grade. The reserved attempt remains consumed."
+    db.commit()
+    return _submission_result(submission)
 
 
 def _same_answers(submission: Submission, answers: dict) -> bool:
@@ -1170,6 +1213,9 @@ def submit_assessment(
     answers = _validate_answers(assessment, submission_data.answers)
     _lock_attempts(db, assessment_id)
     submission = _get_attempt(db, current_user, assessment, submission_data, answers)
+    if submission.status == SubmissionStatus.ABANDONED:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="This attempt was closed without submission")
     if submission.status != SubmissionStatus.DRAFT:
         db.rollback()
         return _submission_result(submission)

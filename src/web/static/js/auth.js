@@ -277,11 +277,17 @@ if (registerForm) {
     configureRegisterForm();
     const updateRoleSummary = () => {
         const selected = control('role');
+        document.getElementById('register-teacher-field').classList.toggle('d-none', AuthService.getRole() !== 'admin' || selected.value !== 'student');
         document.getElementById('register-role-summary').textContent = message('selected_role', 'Account role:') + ' ' + (selected.selectedOptions[0]?.textContent || '');
     };
     control('role').addEventListener('change', updateRoleSummary);
     document.addEventListener('i18n-loaded', updateRoleSummary);
     updateRoleSummary();
+    if (AuthService.getRole() === 'admin') {
+        SLMClient.request('/api/auth/users?role=teacher').then(teachers => {
+            teachers.forEach(teacher => control('teacher_id').append(new Option(`${teacher.first_name} ${teacher.last_name} (${teacher.username})`, teacher.id)));
+        }).catch(() => { document.getElementById('register-teacher-status').textContent = message('teachers_load_failed', 'Teachers could not be loaded. Return to the dashboard and retry.'); });
+    }
     document.getElementById('create-another-account').onclick = () => {
         accountCreated = false;
         const selectedRole = control('role').value;
@@ -309,6 +315,7 @@ if (registerForm) {
             username: control('username').value,
             password: control('password').value
         };
+        if (AuthService.getRole() === 'admin' && data.role === 'student' && control('teacher_id').value) data.teacher_id = Number(control('teacher_id').value);
 
         creatingAccount = true;
         const submitButton = registerForm.querySelector('[type=submit]');

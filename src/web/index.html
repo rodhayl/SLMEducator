@@ -18,28 +18,31 @@
     <div class="auth-wrapper">
         <div class="auth-container">
             <h2>SLM Educator</h2>
-            <p class="text-center text-muted">Welcome to the new HTML-based frontend.</p>
-            <div id="status" class="card p-3 text-center">Checking API connection...</div>
+            <p class="text-center text-muted" data-i18n="recovery.welcome">Your courses, practice and feedback in one place.</p>
+            <div id="status" role="status" class="card p-3 text-center" data-i18n="recovery.server_checking">Checking API connection...</div>
             <div class="auth-links mt-4">
-                <a href="/login.html" class="btn btn-primary w-100">Go to Login</a>
+                <a href="/login.html" class="btn btn-primary w-100" data-i18n="recovery.log_in">Log in</a>
             </div>
         </div>
     </div>
     <script>
         fetch('/api/status')
-            .then(response => response.json())
+            .then(response => { if (!response.ok) throw new Error('Unavailable'); return response.json(); })
             .then(data => {
                 const statusEl = document.getElementById('status');
-                statusEl.textContent = 'API Status: ' + data.status;
+                statusEl.dataset.i18n = 'recovery.server_available';
+                statusEl.textContent = SLMClient.message('server_available', 'Ready to sign in');
                 statusEl.classList.add('bg-success', 'text-white');
             })
             .catch(error => {
                 const statusEl = document.getElementById('status');
-                statusEl.textContent = 'API Connection Failed';
+                statusEl.dataset.i18n = 'recovery.server_unavailable';
+                statusEl.textContent = SLMClient.message('server_unavailable', 'The server is unavailable. Start the application and retry.');
                 statusEl.classList.add('bg-danger', 'text-white');
             });
     </script>
     <script src="/static/js/theme.js"></script>
+    <script src="/static/js/i18n.js"></script>
     <script>
         // Register Service Worker for offline support
         if ('serviceWorker' in navigator) {

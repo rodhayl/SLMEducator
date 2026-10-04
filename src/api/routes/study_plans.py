@@ -84,14 +84,14 @@ class ProgressResponse(BaseModel):
 
 class PhaseModel(BaseModel):
     name: str
-    content_ids: List[int]
+    content_ids: List[int] = Field(max_length=1001)
 
 
 class StudyPlanCreate(BaseModel):
     title: str
     description: Optional[str] = None
     is_public: bool = False
-    phases: List[PhaseModel] = []
+    phases: List[PhaseModel] = Field(default_factory=list, max_length=101)
     # We could also accept 'contents' list if not using phases, but explicit phases is better.
 
 
@@ -199,6 +199,8 @@ async def list_study_plans(
     current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     # Teachers see plans they created; students see plans assigned to them.
+    if is_admin(current_user):
+        return db.query(StudyPlan).all()
     if is_teacher_or_admin(current_user):
         return db.query(StudyPlan).filter(StudyPlan.creator_id == current_user.id).all()
 
@@ -211,6 +213,99 @@ async def list_study_plans(
     if not plan_ids:
         return []
     return db.query(StudyPlan).filter(StudyPlan.id.in_(plan_ids)).all()
+
+
+@router.put("/{plan_id}", response_model=StudyPlanResponse)
+def edit_study_plan(
+    plan_id: int,
+    request: StudyPlanCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Edit a saved unassigned draft, invalidating its prior review."""
+    plan = db.get(StudyPlan, plan_id)
+    require_allowed(can_manage_plan(db, current_user, plan))
+    try:
+        course_workflow.assert_plan_editable(db, plan)
+        ids = [item for phase in request.phases for item in phase.content_ids]
+        if len(ids) != len(set(ids)):
+            raise ValueError("A course item may appear only once")
+        for content_id in ids:
+            content = db.get(Content, content_id)
+            if not content:
+                raise ValueError("Unknown course content")
+            require_allowed(can_reuse_content(db, current_user, content))
+        db.query(StudyPlanContent).filter_by(study_plan_id=plan_id).delete()
+        for phase_index, phase in enumerate(request.phases):
+            for order_index, content_id in enumerate(phase.content_ids):
+                db.add(
+                    StudyPlanContent(
+                        study_plan_id=plan_id,
+                        content_id=content_id,
+                        phase_index=phase_index,
+                        order_index=order_index,
+                    )
+                )
+        plan.title, plan.description = request.title, request.description
+        plan.phases = [phase.model_dump() for phase in request.phases]
+        metadata = course_workflow.metadata(plan)
+        metadata["workflow"] = {
+            "status": "draft",
+            "version": course_workflow.workflow(plan)["version"],
+        }
+        plan.set_encrypted_metadata(metadata)
+        plan.is_public = False
+        db.commit()
+        return plan
+    except (ValueError, HTTPException) as error:
+        db.rollback()
+        if isinstance(error, HTTPException):
+            raise
+        raise HTTPException(status_code=409, detail=str(error)) from error
+
+
+class CourseCopyRequest(BaseModel):
+    title: Optional[str] = Field(default=None, min_length=1, max_length=200)
+    reason: str = "copy"
+
+
+@router.post("/{plan_id}/copy")
+def copy_study_plan(
+    plan_id: int,
+    request: CourseCopyRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Create an independent reviewed-later copy, preserving explicit lineage."""
+    from src.core.services.portability_service import export_course, import_course
+
+    plan = db.get(StudyPlan, plan_id)
+    require_allowed(can_manage_plan(db, current_user, plan))
+    if request.reason not in {"copy", "revision"}:
+        raise HTTPException(status_code=422, detail="Choose copy or revision")
+    try:
+        package = export_course(db, current_user, plan, "teacher")
+        package["study_plan"]["title"] = (
+            request.title or f"{plan.title} ({request.reason})"
+        )
+        copied = import_course(db, current_user, package)
+        metadata = course_workflow.metadata(copied)
+        metadata["derived_from"] = {
+            "plan_id": plan.id,
+            "version": course_workflow.workflow(plan)["version"],
+            "reason": request.reason,
+            "copied_at": utc_now().isoformat(),
+        }
+        copied.set_encrypted_metadata(metadata)
+        db.commit()
+        return {
+            "id": copied.id,
+            "status": "draft",
+            "derived_from": metadata["derived_from"],
+        }
+    except ValueError as error:
+        db.rollback()
+        raise HTTPException(status_code=422, detail=str(error)) from error
 
 
 @router.post("/{plan_id}/assign", response_model=AssignStudentsResponse)

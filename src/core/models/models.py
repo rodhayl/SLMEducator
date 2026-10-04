@@ -91,6 +91,7 @@ class SubmissionStatus(enum.Enum):
     AI_GRADED = "ai_graded"  # AI graded, pending teacher review
     GRADED = "graded"  # Final grade (teacher approved or AI auto)
     RETURNED = "returned"
+    ABANDONED = "abandoned"  # Explicitly closed, consumed attempt; never a failing grade.
 
 
 class GradingMode(enum.Enum):
@@ -406,6 +407,8 @@ class LearningSession(Base):
     notes = Column(Text, nullable=True)
     completion_status = Column(String(50), nullable=True)  # Additional status field
     duration_minutes = Column(Integer, nullable=True)  # Calculated duration
+    content_snapshot = Column(Text, nullable=True)  # Encrypted instructional revision
+    context_revision = Column(JSON, nullable=True)
 
     # Relationships
     student = relationship("User", back_populates="learning_sessions")
@@ -417,6 +420,19 @@ class LearningSession(Base):
     def calculate_duration(self):
         """Calculate session duration in minutes"""
         return duration_minutes(self.start_time, self.end_time)
+
+    @property
+    def decrypted_content_snapshot(self):
+        """Read a captured revision; legacy sessions remain explicitly unpinned."""
+        if not self.content_snapshot:
+            return None
+        try:
+            return json.loads(cipher.decrypt(self.content_snapshot.encode()).decode())
+        except Exception:
+            return None
+
+    def set_content_snapshot(self, value: dict) -> None:
+        self.content_snapshot = encrypt_data(json.dumps(value, ensure_ascii=False))
 
 
 class AIModelConfiguration(Base):

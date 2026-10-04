@@ -18,24 +18,25 @@
     <div class="auth-wrapper">
         <div class="auth-container">
             <h2>SLM Educator</h2>
-            <div id="error-msg" class="error-message d-none" style="display: none;"></div>
+            <div id="error-msg" role="alert" class="error-message d-none" style="display: none;"></div>
             <form id="login-form">
                 <div class="form-group">
-                    <label class="form-label" for="username">Username</label>
+                    <label class="form-label" for="username" data-i18n="recovery.username">Username</label>
                     <input type="text" class="form-control" id="username" name="username" required autocomplete="username">
                 </div>
                 <div class="form-group">
-                    <label class="form-label" for="password">Password</label>
+                    <label class="form-label" for="password" data-i18n="recovery.password">Password</label>
                     <input type="password" class="form-control" id="password" name="password" required autocomplete="current-password">
                 </div>
-                <button type="submit" class="btn btn-primary w-100">Log In</button>
+                <button type="submit" class="btn btn-primary w-100" data-i18n="recovery.log_in">Log In</button>
             </form>
             <div class="auth-links">
-                <a href="/register.html">Create Account</a>
+                <p data-i18n="recovery.staff_provisioning">Ask your teacher or administrator to create your account.</p>
             </div>
         </div>
     </div>
     <script src="/static/js/theme.js"></script>
+    <script src="/static/js/i18n.js"></script>
     <script type="module" src="/static/js/auth.js?v=20260204"></script>
 </body>
 

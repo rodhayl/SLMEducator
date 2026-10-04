@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My submissions and feedback - SLM Educator</title>
+    <link href="/static/vendor/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/css/main.css" rel="stylesheet">
+    <script src="/static/vendor/dompurify@3.4.16/purify.min.js"></script>
+    <script src="/static/vendor/marked@15.0.12/marked.min.js"></script>
+    <script src="/static/js/safe-render.js"></script>
+    <script src="/static/js/learning-client.js"></script>
+    <script src="/static/js/time-display.js"></script>
+</head>
+<body>
+    <nav class="navbar-standalone">
+        <div class="brand">SLM Educator</div>
+        <div class="actions"><a href="dashboard.html?view=assessments" class="btn btn-outline-secondary btn-sm" data-i18n="recovery.back_assessments">Back to assessments</a></div>
+    </nav>
+    <main class="container py-4">
+        <h1 class="h2" data-i18n="recovery.submission_history">My submissions and feedback</h1>
+        <p class="text-muted" data-i18n="recovery.submission_read_only">Reading past submissions does not start or use an attempt.</p>
+        <div class="d-flex flex-wrap gap-2 mb-3">
+            <a href="assessment_history.html" class="btn btn-outline-secondary" data-i18n="recovery.submission_all">All my submissions</a>
+            <button type="button" id="refresh-submissions" class="btn btn-outline-primary" data-i18n="common.buttons.refresh">Refresh</button>
+        </div>
+        <div id="submission-history-status" role="status" aria-live="polite"></div>
+        <div class="row g-4">
+            <section class="col-lg-4" aria-labelledby="history-list-heading">
+                <h2 class="h5" id="history-list-heading" data-i18n="grading.labels.submissions">Submissions</h2>
+                <div id="learner-submission-list" class="list-group" aria-live="polite"></div>
+            </section>
+            <section class="col-lg-8" aria-labelledby="submission-detail-heading">
+                <h2 class="h5" id="submission-detail-heading" tabindex="-1" data-i18n="recovery.submission_detail">Submission and feedback</h2>
+                <div id="learner-submission-detail" aria-live="polite">
+                    <p data-i18n="recovery.submission_select">Select a submission to read your answers and feedback.</p>
+                </div>
+            </section>
+        </div>
+    </main>
+    <script src="/static/vendor/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/theme.js"></script>
+    <script src="/static/js/i18n.js"></script>
+    <script src="/static/js/toast.js"></script>
+    <script type="module" src="/static/js/auth.js?v=20260204"></script>
+    <script src="/static/js/assessment_history.js"></script>
+</body>
+</html>

@@ -74,7 +74,7 @@ document.addEventListener('DOMContentLoaded', async () => {
  */
 function checkAuth() {
     if (!window.AuthService || !AuthService.isAuthenticated()) {
-        window.location.href = '/login.html?redirect=' + encodeURIComponent(window.location.pathname);
+        window.location.href = '/login.html?redirect=' + encodeURIComponent(window.location.pathname + window.location.search);
         return false;
     }
     return true;

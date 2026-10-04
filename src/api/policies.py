@@ -29,7 +29,7 @@ def teacher_student_ids(db: Session, teacher_id: int) -> list[int]:
         .all()
     }
     legacy = (
-        db.query(User.id)
+        db.query(User.id, User.settings)
         .join(StudentStudyPlan, StudentStudyPlan.student_id == User.id)
         .join(StudyPlan, StudyPlan.id == StudentStudyPlan.study_plan_id)
         .filter(
@@ -39,7 +39,10 @@ def teacher_student_ids(db: Session, teacher_id: int) -> list[int]:
         )
         .all()
     )
-    return sorted(enrolled | {row[0] for row in legacy})
+    return sorted(
+        enrolled
+        | {row[0] for row in legacy if not (row[1] or {}).get("enrollment_explicit")}
+    )
 
 
 def can_manage_student(db: Session, user: User, student: User) -> bool:

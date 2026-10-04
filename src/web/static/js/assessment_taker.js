@@ -183,8 +183,9 @@ window.submitAssessment = async () => {
     }
     saveProgress();
     submitting = true;
-    const buttons = document.querySelectorAll('#answer-buttons button, #review-buttons button');
+    const buttons = document.querySelectorAll('#answer-buttons button, #review-buttons button, #attempt-actions button');
     buttons.forEach(button => { button.disabled = true; });
+    document.querySelectorAll('#questions-container input, #questions-container textarea').forEach(input => { input.disabled = true; });
     try {
         const result = await SLMClient.request(`/api/assessments/${currentAssessment.id}/submit`, {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -207,19 +208,78 @@ window.submitAssessment = async () => {
             `${assessmentMessage('final_score', 'Final score')}: ${result.score} / ${result.total_points ?? currentAssessment.questions.reduce((sum, q) => sum + q.points, 0)}` :
             assessmentMessage('pending_review', 'Pending teacher review. No final grade yet.');
         const link = document.createElement('a');
-        link.className = 'btn btn-primary'; link.href = '/dashboard.html';
-        link.textContent = assessmentMessage('dashboard', 'Back to Dashboard');
+        link.className = 'btn btn-primary'; link.href = `/assessment_history.html?submission_id=${currentAttempt.submission_id}`;
+        link.textContent = assessmentMessage('assessment_feedback', 'View submissions and feedback');
         results.append(heading, feedback, link);
         results.classList.remove('d-none');
         results.tabIndex = -1;
         results.focus();
-        ['answer-buttons', 'review-buttons', 'autosave-indicator'].forEach(id => document.getElementById(id).classList.add('d-none'));
+        ['answer-buttons', 'review-buttons', 'autosave-indicator', 'attempt-actions'].forEach(id => document.getElementById(id).classList.add('d-none'));
     } catch (error) {
         showDraftStatus(error.message, true);
         showToast(error.message, 'danger');
     } finally {
         submitting = false;
-        if (!submitted) buttons.forEach(button => { button.disabled = false; });
+        if (!submitted) {
+            buttons.forEach(button => { button.disabled = false; });
+            document.querySelectorAll('#questions-container input, #questions-container textarea').forEach(input => { input.disabled = isReviewMode; });
+        }
+    }
+};
+
+window.closeAssessmentAttempt = async () => {
+    if (!currentAssessment || !currentAttempt || submitting || submitted) return;
+    if (assessmentOwner !== SLMClient.account()) {
+        showDraftStatus(assessmentMessage('account_changed', 'The signed-in account changed. Reload before continuing.'), true);
+        return;
+    }
+    saveProgress();
+    submitting = true;
+    const buttons = document.querySelectorAll('#answer-buttons button, #review-buttons button, #attempt-actions button');
+    buttons.forEach(button => { button.disabled = true; });
+    try {
+        const confirmed = await showConfirm(
+            assessmentMessage('attempt_close_confirm', 'Close this attempt without submitting? It will still count toward your attempt limit and cannot be resumed. Your current answers will be saved with the closed attempt, without a grade.'),
+            assessmentMessage('attempt_close', 'Close attempt'),
+            assessmentMessage('attempt_close', 'Close attempt'),
+            assessmentMessage('cancel', 'Cancel'), true);
+        if (!confirmed) return;
+        if (assessmentOwner !== SLMClient.account()) throw new Error(assessmentMessage('account_changed', 'The signed-in account changed. Reload before continuing.'));
+        const answers = collectAnswers();
+        saveProgress();
+        document.querySelectorAll('#questions-container input, #questions-container textarea').forEach(input => { input.disabled = true; });
+        const result = await SLMClient.request(`/api/assessments/submissions/${currentAttempt.submission_id}/close`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reason: 'abandoned', answers })
+        });
+        if (assessmentOwner !== SLMClient.account()) throw new Error(assessmentMessage('account_changed', 'The signed-in account changed. Reload before continuing.'));
+        if (Number(result?.submission_id) !== Number(currentAttempt.submission_id) || result.status !== 'abandoned') {
+            throw new Error(assessmentMessage('attempt_close_failed', 'The server could not confirm this attempt was closed. Your draft is kept. Please retry.'));
+        }
+        submitted = true;
+        clearInterval(timerInterval);
+        document.querySelectorAll('#questions-container input, #questions-container textarea').forEach(input => { input.disabled = true; });
+        const results = document.getElementById('results');
+        results.replaceChildren();
+        const heading = document.createElement('h3');
+        heading.textContent = assessmentMessage('attempt_closed', 'Attempt closed');
+        const message = document.createElement('p');
+        message.textContent = assessmentMessage('attempt_closed_detail', 'This attempt still counts toward your limit. Your unsubmitted answers are saved with this closed attempt and can be read in your history.');
+        const link = document.createElement('a');
+        link.href = `/assessment_history.html?submission_id=${currentAttempt.submission_id}`;
+        link.className = 'btn btn-primary';
+        link.textContent = assessmentMessage('submission_history', 'My submissions and feedback');
+        results.append(heading, message, link);
+        results.classList.remove('d-none'); results.tabIndex = -1; results.focus();
+        ['answer-buttons', 'review-buttons', 'autosave-indicator', 'attempt-actions'].forEach(id => document.getElementById(id).classList.add('d-none'));
+    } catch (error) {
+        showDraftStatus(error.message, true);
+        showToast(error.message, 'danger');
+    } finally {
+        submitting = false;
+        if (!submitted) {
+            buttons.forEach(button => { button.disabled = false; });
+            document.querySelectorAll('#questions-container input, #questions-container textarea').forEach(input => { input.disabled = isReviewMode; });
+        }
     }
 };
 

@@ -58,6 +58,10 @@ class AuthService:
             )
 
         with self.db_service.get_session() as session:
+            if teacher_id is not None:
+                teacher = session.get(User, teacher_id)
+                if role != UserRole.STUDENT or not teacher or teacher.role != UserRole.TEACHER or not teacher.active:
+                    raise AuthenticationError("Choose an active teacher for a student account")
             # Check if username already exists
             existing_user = session.query(User).filter_by(username=username).first()
             if existing_user:

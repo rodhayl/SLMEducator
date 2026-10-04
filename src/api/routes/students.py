@@ -13,6 +13,8 @@ import logging
 from src.api.dependencies import get_db
 from src.api.security import require_teacher_or_admin
 from src.api.policies import can_manage_student, require_allowed
+from src.core.roles import is_admin
+from src.core.services.temporal_service import utc_now
 from src.core.models import (
     User,
     UserRole,
@@ -20,6 +22,8 @@ from src.core.models import (
     SessionStatus,
     AssessmentSubmission,
     SubmissionStatus,
+    Content,
+    ContentType,
 )
 
 logger = logging.getLogger(__name__)
@@ -46,6 +50,7 @@ async def list_students(
             "xp": s.xp or 0,
             "level": s.level or 1,
             "current_streak": s.current_streak or 0,
+            "teacher_id": s.teacher_id,
         }
         for s in students
         if can_manage_student(db, current_user, s)
@@ -68,12 +73,14 @@ async def get_student_progress(
 
     # Calculate lessons completed
     lessons_completed = (
-        db.query(LearningSession)
+        db.query(func.count(func.distinct(LearningSession.content_id)))
+        .join(Content, Content.id == LearningSession.content_id)
         .filter(
             LearningSession.student_id == student_id,
             LearningSession.status == SessionStatus.COMPLETED,
+            Content.content_type == ContentType.LESSON,
         )
-        .count()
+        .scalar()
     )
 
     # Calculate assessments taken
@@ -102,7 +109,7 @@ async def get_student_progress(
         )
         .scalar()
     )
-    avg_score = float(avg_score_result) if avg_score_result else None
+    avg_score = float(avg_score_result) if avg_score_result is not None else None
 
     # Calculate total study time
     study_time_minutes = (
@@ -121,6 +128,55 @@ async def get_student_progress(
         "assessments_taken": assessments_taken,
         "avg_score": avg_score,
         "study_time_hours": study_time_hours,
+        "time_measure": "elapsed_completed_session_time",
+    }
+
+
+class EnrollmentChange(BaseModel):
+    teacher_id: int | None = None
+
+
+@router.put("/{student_id}/teacher")
+def change_responsible_teacher(
+    student_id: int,
+    request: EnrollmentChange,
+    current_user: User = Depends(require_teacher_or_admin),
+    db: Session = Depends(get_db),
+):
+    """Make an explicit admin enrollment decision without rewriting past work."""
+    require_allowed(is_admin(current_user))
+    student = db.get(User, student_id)
+    if not student or student.role != UserRole.STUDENT:
+        raise HTTPException(status_code=404, detail="Student not found")
+    teacher = db.get(User, request.teacher_id) if request.teacher_id else None
+    if request.teacher_id is not None and (
+        not teacher or teacher.role != UserRole.TEACHER or not teacher.active
+    ):
+        raise HTTPException(status_code=422, detail="Choose an active teacher")
+    previous = student.teacher_id
+    if previous != request.teacher_id or not (student.settings or {}).get(
+        "enrollment_explicit"
+    ):
+        settings = dict(student.settings or {})
+        history = list(settings.get("enrollment_history", []))
+        history.append(
+            {
+                "from_teacher_id": previous,
+                "to_teacher_id": request.teacher_id,
+                "changed_by": current_user.id,
+                "changed_at": utc_now().isoformat(),
+            }
+        )
+        settings["enrollment_history"] = history
+        settings["enrollment_explicit"] = True
+        student.settings = settings
+        student.teacher_id = request.teacher_id
+        db.commit()
+    return {
+        "student_id": student.id,
+        "teacher_id": student.teacher_id,
+        "previous_teacher_id": previous,
+        "existing_assignments_preserved": True,
     }
 
 

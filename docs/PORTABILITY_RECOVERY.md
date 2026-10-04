@@ -174,3 +174,13 @@ rollback, WAL capture, matching-key restore, tampered archive rejection,
 create-only destinations, startup schema refusal and explicit schema upgrade.
 The tests do not establish a native Windows packaged build, a backup of external
 uploads, or operational recovery from a real school's private installation.
+# Captured learning revisions
+
+Revision `20261004_learning_snapshots` adds nullable encrypted instructional
+snapshots and revision metadata to learning sessions through the existing
+copy-first upgrade path. Existing session rows, timestamps and notes are not
+rewritten or assigned an invented historical source. A new session captures the
+canonical learner material; resume and session-bound tutor requests use that
+revision while still checking current resource access. Legacy sessions report
+`legacy_unpinned`; source context must be explicitly selected rather than claimed
+to be the original. Private backup validation also checks captured ciphertexts.

@@ -22,6 +22,7 @@ class UserRegister(BaseModel):
     password: str
     first_name: str
     last_name: str
+    teacher_id: Optional[int] = Field(default=None, gt=0)
     role: str = (
         "teacher"  # Default to teacher for first user, validation logic handled in service or UI
     )
@@ -65,6 +66,7 @@ class UserListResponse(BaseModel):
     level: int = 1
     current_streak: int = 0
     longest_streak: int = 0
+    teacher_id: Optional[int] = None
 
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
@@ -98,6 +100,8 @@ async def register(
                 raise HTTPException(
                     status_code=403, detail="Teachers can only create student accounts"
                 )
+            if user_data.teacher_id not in (None, current_user.id):
+                raise HTTPException(status_code=403, detail="Teachers can only enroll their own learners")
         else:
             raise HTTPException(
                 status_code=403, detail="Students cannot create user accounts"
@@ -111,7 +115,7 @@ async def register(
             last_name=user_data.last_name,
             role=role_enum,
             teacher_id=(
-                current_user.id if current_user.role == UserRole.TEACHER else None
+                current_user.id if current_user.role == UserRole.TEACHER else user_data.teacher_id
             ),
         )
         return user
@@ -223,6 +227,7 @@ async def list_users(
                 level=int(getattr(u, "level", 1) or 1),
                 current_streak=int(getattr(u, "current_streak", 0) or 0),
                 longest_streak=int(getattr(u, "longest_streak", 0) or 0),
+                teacher_id=u.teacher_id,
             )
             for u in users
         ]

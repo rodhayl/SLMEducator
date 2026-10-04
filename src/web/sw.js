@@ -4,7 +4,7 @@
  * Version: 1.0.2
  */
 
-const CACHE_NAME = 'slm-educator-v7-assistance-timezone';
+const CACHE_NAME = 'slm-educator-v8-role-journeys';
 const OFFLINE_URL = '/404.html';
 
 // Static assets to cache on install

@@ -73,13 +73,16 @@
                 <button id="add-phase-btn" class="btn btn-outline-secondary w-100 mb-4" onclick="addPhase()">+ Add Phase</button>
 
                 <div id="plan-workflow" class="d-none alert alert-info" role="status">
+                    <strong id="plan-workflow-status"></strong>
                     <p data-i18n="recovery.plan_saved_review">Draft saved. Review the saved material in the library before publishing.</p>
                     <a href="/dashboard.html#library" data-i18n="recovery.open_library">Open library</a>
-                    <button type="button" class="btn btn-outline-primary" onclick="planWorkflow('review')" data-i18n="recovery.mark_reviewed">Mark reviewed</button>
-                    <button type="button" class="btn btn-primary" onclick="planWorkflow('publish')" data-i18n="recovery.publish">Publish</button>
+                    <button type="button" class="btn btn-outline-primary" data-workflow-action onclick="planWorkflow('review')" data-i18n="recovery.mark_reviewed">Mark reviewed</button>
+                    <button type="button" class="btn btn-primary" data-workflow-action onclick="planWorkflow('publish')" data-i18n="recovery.publish">Publish</button>
+                <p id="plan-copy-note" class="d-none" data-i18n="recovery.assigned_copy">Assigned courses are fixed. Create a draft copy to revise the material.</p>
+                    <button type="button" class="btn btn-outline-secondary" onclick="copyStudyPlan()" data-i18n="recovery.copy_draft">Create draft copy</button>
                 </div>
                 <div class="d-grid gap-2">
-                    <button class="btn btn-primary" onclick="saveStudyPlan()">Save Study Plan</button>
+                    <button id="save-plan-btn" class="btn btn-primary" onclick="saveStudyPlan()">Save Study Plan</button>
                 </div>
             </div>
         </div>

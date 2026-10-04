@@ -19,6 +19,7 @@ ENCRYPTED_COLUMNS = {
     "contents": "content_data", "study_plans": "content_metadata",
     "assessment_questions": "correct_answer", "question_responses": "response_text",
     "ai_model_configurations": "api_key",
+    "learning_sessions": "content_snapshot",
 }
 
 

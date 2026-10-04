@@ -15,6 +15,9 @@ let notesAutoSaveTimeout = null;
 let sessionOwner = null;
 let notesSyncQueue = Promise.resolve();
 let endingSession = false;
+let sessionEnded = false;
+let completionSaved = false;
+let annotationSaving = false;
 const t = (key) => window.I18n?.t?.(key) || key;
 const sessionMessage = (key, fallback) => SLMClient.message(key, fallback);
 
@@ -103,9 +106,9 @@ async function loadAnnotations() {
             annotationsCache = await response.json();
             renderAnnotations();
             updateAnnotationCount();
-        }
+        } else throw new Error('Annotations unavailable');
     } catch (e) {
-        console.warn('Failed to load annotations:', e);
+        document.getElementById('annotation-status').textContent = sessionMessage('annotation_load_failed', 'Annotations could not be loaded. Retry when connected.');
     }
 }
 
@@ -115,7 +118,8 @@ async function loadAnnotations() {
 async function addAnnotation() {
     const text = document.getElementById('annotation-input')?.value?.trim();
     const annotationType = document.getElementById('annotation-type')?.value || 'comment';
-    const isPublic = document.getElementById('annotation-public')?.checked ?? true;
+    const isPublic = document.getElementById('annotation-public')?.checked ?? false;
+    if (annotationSaving) return;
 
     if (!text) {
         return;
@@ -127,6 +131,7 @@ async function addAnnotation() {
     }
 
     try {
+        annotationSaving = true;
         const response = await fetch('/api/annotations', {
             method: 'POST',
             headers: {
@@ -151,12 +156,13 @@ async function addAnnotation() {
 
             // Clear input
             document.getElementById('annotation-input').value = '';
+            document.getElementById('annotation-status').textContent = sessionMessage('annotation_saved', 'Annotation saved.');
         } else {
-            console.error('Failed to add annotation:', response.status);
+            throw new Error(sessionMessage('annotation_failed', 'Annotation was not saved. Your text is kept; please retry.'));
         }
     } catch (e) {
-        console.error('Error adding annotation:', e);
-    }
+        document.getElementById('annotation-status').textContent = sessionMessage('annotation_failed', 'Annotation was not saved. Your text is kept; please retry.');
+    } finally { annotationSaving = false; }
 }
 window.addAnnotation = addAnnotation;
 
@@ -177,9 +183,9 @@ async function deleteAnnotation(annotationId) {
             annotationsCache = annotationsCache.filter(a => a.id !== annotationId);
             renderAnnotations();
             updateAnnotationCount();
-        }
+        } else throw new Error('Delete failed');
     } catch (e) {
-        console.error('Error deleting annotation:', e);
+        document.getElementById('annotation-status').textContent = sessionMessage('annotation_delete_failed', 'Annotation was not deleted. Please retry.');
     }
 }
 window.deleteAnnotation = deleteAnnotation;
@@ -224,7 +230,7 @@ function renderAnnotations() {
                     ${isOwner ? `<button class="btn btn-sm btn-link text-danger p-0" onclick="deleteAnnotation(${annotation.id})" title="Delete">×</button>` : ''}
                 </div>
                 <div class="annotation-text mt-1 small">${escapeHtml(annotation.annotation_text)}</div>
-                ${annotation.is_public === false ? '<small class="text-muted"><em>Private</em></small>' : ''}
+                <small class="text-muted">${annotation.is_public ? sessionMessage('annotation_audience', 'Shared with my teacher and administrators') : sessionMessage('annotation_private', 'Private annotation')}</small>
             </div>
         `;
     }).join('');
@@ -377,6 +383,8 @@ async function restoreSession(previousSessionId) {
     try {
         const session = await SLMClient.request(`/api/learning/${previousSessionId}/restore`, { method: 'POST' });
         sessionId = session.id;
+        sessionEnded = false; completionSaved = false;
+        if (session.content_snapshot) renderSessionContent(session.content_snapshot);
         startTimer();
         await initNotesAutoSave(session.notes);
         loadAnnotations();
@@ -395,7 +403,7 @@ async function initSession() {
     sessionOwner = SLMClient.account();
     document.getElementById('session-notes').disabled = true;
     if (!authToken || !AuthService.isAuthenticated()) {
-        window.location.href = '/login.html';
+        window.location.href = '/login.html?redirect=' + encodeURIComponent(window.location.pathname + window.location.search);
         return;
     }
 
@@ -421,100 +429,8 @@ async function initSession() {
         }
 
         const content = await contentResp.json();
-        let structured = content.content_data;
-        if (typeof structured === 'string') { try { structured = JSON.parse(structured); } catch { structured = null; } }
-        const body = document.getElementById('session-content-body');
-        const isPractice = content.content_type === 'exercise' && structured && typeof structured === 'object';
-        const isAssessment = content.content_type === 'assessment';
-        if (isPractice) SLMPractice.render(body, structured);
-        if (isAssessment) {
-            body.replaceChildren();
-            if (Number.isInteger(structured?.assessment_id) && structured.assessment_id > 0) {
-                const link = document.createElement('a'); link.className = 'btn btn-primary';
-                link.href = `/assessment_taker.html?id=${structured.assessment_id}`;
-                link.textContent = sessionMessage('open_assessment', 'Open assessment'); body.append(link);
-            } else body.textContent = sessionMessage('practice_unavailable', 'This item needs teacher review before it can be answered.');
-        }
-        document.getElementById('session-content-title').textContent = content.title;
-        // Handle content_data which might be JSON object, JSON string, or plain text
-        let bodyText = "No content data.";
-        if (content.content_data) {
-            // Helper function to extract readable text from parsed JSON
-            const extractContent = (parsed) => {
-                if (!parsed || typeof parsed !== 'object') return null;
-
-                // Direct text fields (common patterns)
-                if (parsed.content && typeof parsed.content === 'string') return parsed.content;
-                if (parsed.text && typeof parsed.text === 'string') return parsed.text;
-                if (parsed.body && typeof parsed.body === 'string') return parsed.body;
-                if (parsed.lesson && typeof parsed.lesson === 'string') return parsed.lesson;
-                if (parsed.description && typeof parsed.description === 'string') return parsed.description;
-
-                // AI enhancement wrapper
-                if (parsed.enhanced_content) {
-                    const inner = extractContent(parsed.enhanced_content);
-                    if (inner) return inner;
-                }
-
-                // Nested content object
-                if (parsed.content && typeof parsed.content === 'object') {
-                    const inner = extractContent(parsed.content);
-                    if (inner) return inner;
-                }
-
-                // AI-generated format with sections array
-                if (parsed.sections && Array.isArray(parsed.sections)) {
-                    let markdown = '';
-                    parsed.sections.forEach(section => {
-                        if (section.title) markdown += `## ${section.title}\n\n`;
-                        if (section.content) markdown += `${section.content}\n\n`;
-                        if (section.text) markdown += `${section.text}\n\n`;
-                    });
-                    if (parsed.summary) markdown += `## Summary\n\n${parsed.summary}\n\n`;
-                    if (parsed.vocabulary && Array.isArray(parsed.vocabulary)) {
-                        markdown += `## Key Terms\n\n`;
-                        parsed.vocabulary.forEach(term => {
-                            markdown += `- **${term.term || term}**: ${term.definition || ''}\n`;
-                        });
-                    }
-                    if (parsed.key_concepts && Array.isArray(parsed.key_concepts)) {
-                        markdown += `## Key Concepts\n\n`;
-                        parsed.key_concepts.forEach(concept => {
-                            markdown += `- ${concept}\n`;
-                        });
-                    }
-                    return markdown.trim() || null;
-                }
-
-                // Topics array format
-                if (parsed.topics && Array.isArray(parsed.topics)) {
-                    return parsed.topics.map(t => `## ${t.title || t}\n\n${t.content || t.description || ''}`).join('\n\n');
-                }
-
-                // Fallback to stringified JSON
-                return null;
-            };
-
-
-            // Check if content_data is already an object (from some API responses)
-            if (typeof content.content_data === 'object') {
-                const extracted = extractContent(content.content_data);
-                bodyText = extracted || JSON.stringify(content.content_data, null, 2);
-            } else if (typeof content.content_data === 'string') {
-                try {
-                    const parsed = JSON.parse(content.content_data);
-                    const extracted = extractContent(parsed);
-                    bodyText = extracted || JSON.stringify(parsed, null, 2);
-                } catch {
-                    // Plain text
-                    bodyText = content.content_data;
-                }
-            } else {
-                // Fallback: stringify whatever it is
-                bodyText = String(content.content_data);
-            }
-        }
-        if (!isPractice && !isAssessment) SLMRender.setMarkdown(body, bodyText);
+        if (planId) SLMClient.drafts.write('learning-location', 'current', 0, { planId: Number(planId), contentId: Number(contentId) });
+        renderSessionContent(content);
     } catch (e) {
         console.error("Failed to load content", e);
         showErrorState("Error Loading Content", "An unexpected error occurred while loading the content.");
@@ -542,12 +458,14 @@ async function initSession() {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${authToken}`
             },
-            body: JSON.stringify({ content_id: parseInt(contentId) })
+            body: JSON.stringify({ content_id: parseInt(contentId), ...(planId ? { study_plan_id: Number(planId) } : {}) })
         });
 
         if (response.ok) {
             const session = await response.json();
             sessionId = session.id;
+            sessionEnded = false; completionSaved = false;
+            if (session.content_snapshot) renderSessionContent(session.content_snapshot);
             startTimer();
 
             // Load annotations for this content
@@ -669,29 +587,41 @@ function updateNavigationButtons() {
 
     // Update button text for last item
     if (currentContentIndex >= planContents.length - 1) {
-        nextBtn.textContent = '✅ Complete Plan';
+        nextBtn.dataset.i18n = 'recovery.complete_return';
+        nextBtn.textContent = sessionMessage('complete_return', 'Complete and return');
     } else {
-        nextBtn.textContent = 'Next →';
+        nextBtn.dataset.i18n = 'recovery.complete_next';
+        nextBtn.textContent = sessionMessage('complete_next', 'Complete and next →');
     }
 
     positionText.textContent = `${currentContentIndex + 1} of ${planContents.length}`;
 }
 
 // Navigation changes progress only after the server accepts the transition.
-async function completeCurrentContent() {
+async function completeCurrentContent(difficultyRating = null) {
+    if (completionSaved) return true;
     if (!sessionId || sessionOwner !== SLMClient.account()) return false;
     const notes = document.getElementById('session-notes').value;
     saveNotesDraft(notes);
     clearTimeout(notesAutoSaveTimeout);
     await notesSyncQueue;
-    await SLMClient.request(`/api/learning/${sessionId}/end`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ notes })
-    });
+    if (!sessionEnded) {
+        await SLMClient.request(`/api/learning/${sessionId}/end`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ notes, ...(difficultyRating === null ? {} : { difficulty_rating: difficultyRating }) })
+        });
+        sessionEnded = true;
+        document.getElementById('session-notes').disabled = true;
+        clearInterval(timerInterval);
+        document.getElementById('session-transition-status').textContent = sessionMessage('completion_pending', 'Lesson saved. Updating course progress; if it fails, retry Complete.');
+    }
     if (planId) await SLMClient.request(`/api/study-plans/${planId}/progress`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ completed_content_id: Number(contentId) })
     });
+    completionSaved = true;
+    document.getElementById('session-transition-status').textContent = sessionMessage('completion_saved', 'Lesson and course progress saved.');
+    if (planId && !completedContentIds.includes(Number(contentId))) completedContentIds.push(Number(contentId));
     SLMClient.drafts.remove('notes', contentId, sessionId);
     clearInterval(timerInterval);
     return true;
@@ -703,14 +633,15 @@ window.navigatePlanContent = async function (direction) {
     if (newIndex < 0) return;
     endingSession = true;
     try {
-        if (!await completeCurrentContent()) return;
+        if (direction > 0) { if (!await completeCurrentContent()) return; }
+        else if (!await saveNotesToLocal(document.getElementById('session-notes').value)) return;
         window.location.href = newIndex < planContents.length ?
             `session_player.html?content_id=${planContents[newIndex].id}&plan_id=${encodeURIComponent(planId)}` : '/dashboard.html';
     } catch (error) { showToast(error.message, 'danger'); }
     finally { endingSession = false; }
 };
 window.goToContent = async function (targetContentId) {
-    if (targetContentId === Number(contentId) || endingSession) return;
+    if (targetContentId === Number(contentId) || endingSession || !planContents.some(item => item.id === Number(targetContentId))) return;
     if (!await saveNotesToLocal(document.getElementById('session-notes').value)) return;
     window.location.href = `session_player.html?content_id=${Number(targetContentId)}&plan_id=${encodeURIComponent(planId)}`;
 };
@@ -768,20 +699,30 @@ window.endSessionUI = () => {
 window.confirmEndSession = async () => {
     if (!sessionId || endingSession || sessionOwner !== SLMClient.account()) return;
     endingSession = true;
-    const notes = document.getElementById('session-notes').value;
-    saveNotesDraft(notes);
-    clearTimeout(notesAutoSaveTimeout);
     try {
-        await notesSyncQueue;
-        await SLMClient.request(`/api/learning/${sessionId}/end`, {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ notes, difficulty_rating: Number(document.getElementById('difficulty-rating').value) })
-        });
-        SLMClient.drafts.remove('notes', contentId, sessionId);
-        clearInterval(timerInterval);
-        window.location.href = '/dashboard.html';
+        if (await completeCurrentContent(Number(document.getElementById('difficulty-rating').value))) window.location.href = '/dashboard.html';
     } catch (error) { showToast(error.message, 'danger'); }
     finally { endingSession = false; }
+};
+
+window.pauseSession = async () => {
+    if (endingSession) return;
+    endingSession = true;
+    try {
+        if (await saveNotesToLocal(document.getElementById('session-notes').value)) window.location.href = '/dashboard.html';
+    } finally { endingSession = false; }
+};
+
+window.openSessionHelp = async (kind) => {
+    if (endingSession || !['tutor', 'help'].includes(kind)) return;
+    endingSession = true;
+    try {
+        if (!await saveNotesToLocal(document.getElementById('session-notes').value)) return;
+        const params = new URLSearchParams({ view: kind === 'tutor' ? 'tutor' : 'help-queue', content_id: contentId, from_session: '1' });
+        if (planId) params.set('plan_id', planId);
+        if (kind === 'help') params.set('ask_help', '1');
+        window.location.href = '/dashboard.html?' + params;
+    } finally { endingSession = false; }
 };
 
 // --- Accessibility & Focus Mode ---
@@ -849,3 +790,101 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 document.addEventListener('DOMContentLoaded', initSession);
+
+function renderSessionContent(content) {
+        let structured = content.content_data;
+        if (typeof structured === 'string') { try { structured = JSON.parse(structured); } catch { structured = null; } }
+        const body = document.getElementById('session-content-body');
+        const isPractice = content.content_type === 'exercise' && structured && typeof structured === 'object';
+        const isAssessment = content.content_type === 'assessment';
+        if (isPractice) SLMPractice.render(body, structured);
+        if (isAssessment) {
+            body.replaceChildren();
+            if (Number.isInteger(structured?.assessment_id) && structured.assessment_id > 0) {
+                const link = document.createElement('a'); link.className = 'btn btn-primary';
+                link.href = `/assessment_taker.html?id=${structured.assessment_id}`;
+                link.textContent = sessionMessage('open_assessment', 'Open assessment'); body.append(link);
+            } else body.textContent = sessionMessage('practice_unavailable', 'This item needs teacher review before it can be answered.');
+        }
+        document.getElementById('session-content-title').textContent = content.title;
+        // Handle content_data which might be JSON object, JSON string, or plain text
+        let bodyText = "No content data.";
+        if (content.content_data) {
+            // Helper function to extract readable text from parsed JSON
+            const extractContent = (parsed) => {
+                if (!parsed || typeof parsed !== 'object') return null;
+
+                // AI-generated format with sections array
+                if (parsed.sections && Array.isArray(parsed.sections)) {
+                    let markdown = '';
+                    parsed.sections.forEach(section => {
+                        if (section.title) markdown += `## ${section.title}\n\n`;
+                        if (section.content) markdown += `${section.content}\n\n`;
+                        if (section.text) markdown += `${section.text}\n\n`;
+                    });
+                    if (Array.isArray(parsed.objectives) && parsed.objectives.length) markdown += `## ${sessionMessage('learning_objectives', 'Learning objectives')}\n\n` + parsed.objectives.map(objective => `- ${objective}`).join('\n') + '\n\n';
+                    if (parsed.summary) markdown += `## Summary\n\n${parsed.summary}\n\n`;
+                    if (parsed.vocabulary && Array.isArray(parsed.vocabulary)) {
+                        markdown += `## Key Terms\n\n`;
+                        parsed.vocabulary.forEach(term => {
+                            markdown += `- **${term.term || term}**: ${term.definition || ''}\n`;
+                        });
+                    }
+                    if (parsed.key_concepts && Array.isArray(parsed.key_concepts)) {
+                        markdown += `## Key Concepts\n\n`;
+                        parsed.key_concepts.forEach(concept => {
+                            markdown += `- ${concept}\n`;
+                        });
+                    }
+                    return markdown.trim() || null;
+                }
+
+                // Direct text fields (common patterns)
+                if (parsed.content && typeof parsed.content === 'string') return parsed.content;
+                if (parsed.text && typeof parsed.text === 'string') return parsed.text;
+                if (parsed.body && typeof parsed.body === 'string') return parsed.body;
+                if (parsed.lesson && typeof parsed.lesson === 'string') return parsed.lesson;
+                if (parsed.description && typeof parsed.description === 'string') return parsed.description;
+
+                // AI enhancement wrapper
+                if (parsed.enhanced_content) {
+                    const inner = extractContent(parsed.enhanced_content);
+                    if (inner) return inner;
+                }
+
+                // Nested content object
+                if (parsed.content && typeof parsed.content === 'object') {
+                    const inner = extractContent(parsed.content);
+                    if (inner) return inner;
+                }
+
+                // Topics array format
+                if (parsed.topics && Array.isArray(parsed.topics)) {
+                    return parsed.topics.map(t => `## ${t.title || t}\n\n${t.content || t.description || ''}`).join('\n\n');
+                }
+
+                // Fallback to stringified JSON
+                return null;
+            };
+
+
+            // Check if content_data is already an object (from some API responses)
+            if (typeof content.content_data === 'object') {
+                const extracted = extractContent(content.content_data);
+                bodyText = extracted || JSON.stringify(content.content_data, null, 2);
+            } else if (typeof content.content_data === 'string') {
+                try {
+                    const parsed = JSON.parse(content.content_data);
+                    const extracted = extractContent(parsed);
+                    bodyText = extracted || JSON.stringify(parsed, null, 2);
+                } catch {
+                    // Plain text
+                    bodyText = content.content_data;
+                }
+            } else {
+                // Fallback: stringify whatever it is
+                bodyText = String(content.content_data);
+            }
+        }
+        if (!isPractice && !isAssessment) SLMRender.setMarkdown(body, bodyText);
+}

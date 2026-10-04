@@ -38,6 +38,7 @@ def world(db_session, monkeypatch):
     db_session.flush()
     content = Content(title="Synthetic lesson", creator_id=owner.id,
                       content_type=ContentType.LESSON, difficulty=1, study_plan_id=plan.id)
+    content.set_encrypted_content_data({"content": "Synthetic lesson used by scoring/session regressions."})
     db_session.add(content)
     db_session.flush()
     db_session.add(StudyPlanContent(study_plan_id=plan.id, content_id=content.id, order_index=0))

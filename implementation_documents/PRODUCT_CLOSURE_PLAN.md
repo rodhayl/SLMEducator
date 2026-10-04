@@ -58,3 +58,30 @@ Evidence: 58 affected API/service tests passed; after added phase/position bound
 Focused critical lint and two-module type checks pass. These are overlapping
 bounded scopes, not an aggregate suite or browser acceptance. Remaining phases
 and the annotation UI default/error polish are still in progress.
+
+## Checkpoint 2: connected journeys and captured curriculum
+
+The learner now reaches correction feedback without reserving another attempt;
+grading has a real queue-to-submission link. Complete/Next share retry-safe
+completion, Previous/Pause preserve notes without completing, and Continue selects
+pending IDs. Administration can assign/remove a responsible teacher explicitly,
+with history and prior work preserved. Saved drafts can be edited; assigned
+courses are copied to independently reviewed drafts with lineage. Explicit attempt
+closure preserves draft answers, consumes the reserved attempt and releases active
+assistance policy without a grade or reward. Zero scores remain zero.
+
+Canonical sections preserve distinct legacy bodies and section text for render,
+tutor and handouts. Tutor scope validates course membership and source revision,
+supports explicit sections or bounded query selection including late text, and
+rechecks current access before delivering an answer. New sessions capture encrypted
+instructional revisions; resumed rendering and session-bound tutor use the same
+snapshot. Old sessions remain explicitly unpinned. Additive copy-first upgrade
+preserves historical rows and verifies the new ciphertext field.
+
+Evidence: the affected backend gate had 177 passes and six failures, all traced to
+one old empty-lesson fixture; it now supplies actual synthetic lesson text. The
+73-case temporal/scoring/journey repair scope passes. Canonical/privacy/resource
+checks pass separately. UI evidence: 70 DOM-emulation tests and 18 source/style
+checks. This is not the final aggregate. Durable extraction provenance, in-class
+tutor panel, request lifecycle, portability wizard and operational cleanup remain
+active work; native/browser/model/human gates remain open.

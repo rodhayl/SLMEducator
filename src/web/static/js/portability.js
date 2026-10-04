@@ -47,7 +47,7 @@ function bindPortableAction(id, action) {
     });
 }
 document.addEventListener('DOMContentLoaded', async () => {
-    if (!AuthService.isAuthenticated()) { window.location.href = '/login.html'; return; }
+    if (!AuthService.isAuthenticated()) { window.location.href = AuthService.loginUrl(); return; }
     const role = AuthService.getRole();
     if (role === 'student') {
         document.querySelector('#export-audience option[value=teacher]').remove();

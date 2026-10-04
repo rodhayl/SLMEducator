@@ -23,6 +23,7 @@ function applyRoleUI() {
 
     const teacherNavItems = document.querySelectorAll('[data-role="teacher"]');
     const adminNavItems = document.querySelectorAll('[data-role="admin"]');
+    document.querySelectorAll('[data-role="student"]').forEach(item => item.classList.toggle('hidden', role !== 'student'));
     const libraryCreateBtn = document.getElementById('library-create-btn');
     const sharedQaOpt = document.getElementById('library-filter-qa-shared');
     const studentQaBtn = document.getElementById('student-qa-btn');
@@ -79,7 +80,7 @@ function applyRoleUI() {
 
 async function initAuthAndRoleUI() {
     if (!AuthService.isAuthenticated()) {
-        window.location.href = '/login.html';
+        window.location.href = AuthService.loginUrl();
         return;
     }
 
@@ -248,6 +249,7 @@ function setSettingsTab(tabName) {
 
     tabs.forEach(tab => {
         tab.classList.toggle('active', tab.dataset.settingsTab === tabName);
+        tab.setAttribute('aria-pressed', String(tab.dataset.settingsTab === tabName));
     });
 
     sections.forEach(section => {
@@ -1178,7 +1180,8 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function restoreDashboardView() {
-    const requested = window.location.hash.slice(1);
+    const params = new URLSearchParams(window.location.search);
+    const requested = window.location.hash.slice(1) || params.get('view') || params.get('tab');
     const alias = requested === 'study-plans' ? 'library' : requested;
     const navigation = Array.from(document.querySelectorAll('.nav-item[data-view]')).find(item => item.dataset.view === alias);
     if (!navigation) return;
@@ -1508,9 +1511,10 @@ window.viewContent = async function viewContent(id) {
             try {
                 if (typeof content.content_data === 'string') {
                     const parsed = JSON.parse(content.content_data);
-                    bodyText = parsed.body || parsed.content || parsed.text || JSON.stringify(parsed, null, 2);
+                    bodyText = Array.isArray(parsed.sections) && parsed.sections.length ? parsed.sections.map(section => `## ${section.title || ''}\n\n${section.content || section.text || ''}`).join('\n\n') : parsed.content || parsed.body || parsed.text || JSON.stringify(parsed, null, 2);
                 } else {
-                    bodyText = content.content_data.body || content.content_data.content || JSON.stringify(content.content_data, null, 2);
+                    const parsed = content.content_data;
+                    bodyText = Array.isArray(parsed.sections) && parsed.sections.length ? parsed.sections.map(section => `## ${section.title || ''}\n\n${section.content || section.text || ''}`).join('\n\n') : parsed.content || parsed.body || JSON.stringify(parsed, null, 2);
                 }
             } catch {
                 bodyText = content.content_data;
@@ -1555,9 +1559,10 @@ window.editContent = async function editContent(id) {
             try {
                 if (typeof content.content_data === 'string') {
                     const parsed = JSON.parse(content.content_data);
-                    bodyText = parsed.body || parsed.content || parsed.text || JSON.stringify(parsed, null, 2);
+                    bodyText = Array.isArray(parsed.sections) && parsed.sections.length ? parsed.sections.map(section => `## ${section.title || ''}\n\n${section.content || section.text || ''}`).join('\n\n') : parsed.content || parsed.body || parsed.text || JSON.stringify(parsed, null, 2);
                 } else {
-                    bodyText = content.content_data.body || content.content_data.content || JSON.stringify(content.content_data, null, 2);
+                    const parsed = content.content_data;
+                    bodyText = Array.isArray(parsed.sections) && parsed.sections.length ? parsed.sections.map(section => `## ${section.title || ''}\n\n${section.content || section.text || ''}`).join('\n\n') : parsed.content || parsed.body || JSON.stringify(parsed, null, 2);
                 }
             } catch {
                 bodyText = content.content_data;
@@ -2093,94 +2098,54 @@ window.loadTutorStudyPlans = async function loadTutorStudyPlans() {
 };
 
 // Load content items when study plan selected
-window.loadTutorContentItems = async function loadTutorContentItems() {
-    const planSelect = document.getElementById('tutor-study-plan');
-    const contentSelect = document.getElementById('tutor-content');
-    if (!contentSelect) return;
-
-    const planId = planSelect?.value;
-
-    if (!planId) {
-        // Load all user content when no plan selected
-        contentSelect.innerHTML = `<option value="">${I18n.t('ai.tutor.select_all_content')}</option>`;
-        try {
-            const token = AuthService.getToken();
-            const res = await fetch('/api/content/', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (res.ok) {
-                const contents = await res.json();
-                contents.slice(0, 50).forEach(c => {
-                    const icon = c.content_type === 'lesson' ? '📖' :
-                        c.content_type === 'exercise' ? '🏋️' :
-                            c.content_type === 'assessment' ? '📝' : '📄';
-                    const option = document.createElement('option');
-                    option.value = c.id;
-                    option.textContent = `${icon} ${c.title}`;
-                    contentSelect.appendChild(option);
-                });
-            }
-        } catch (e) { console.error('Failed to load content:', e); }
-        return;
-    }
-
-    // Load content for specific study plan
-    try {
-        const token = AuthService.getToken();
-        const res = await fetch(`/api/study-plans/${planId}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (!res.ok) {
-            contentSelect.innerHTML = `<option value="">${I18n.t('ai.tutor.select_all_content')}</option>`;
-            return;
-        }
-
-        const plan = await res.json();
-        contentSelect.innerHTML = `<option value="">${I18n.t('ai.tutor.select_all_plan_content')}</option>`;
-
-        // Add plan's content items
-        const contents = plan.contents || [];
-        contents.forEach(c => {
-            const icon = c.content_type === 'lesson' ? '📖' :
-                c.content_type === 'exercise' ? '🏋️' :
-                    c.content_type === 'assessment' ? '📝' : '📄';
-            const option = document.createElement('option');
-            option.value = c.content_id || c.id;
-            option.textContent = `${icon} ${c.title}`;
-            contentSelect.appendChild(option);
-        });
-    } catch (err) {
-        console.error('Failed to load plan content:', err);
-        contentSelect.innerHTML = `<option value="">${I18n.t('ai.tutor.select_all_content')}</option>`;
-    }
+let tutorContentRequest = 0;
+window.resetTutorContext = function resetTutorContext() {
+    tutorEpoch++; tutorConversation = []; tutorBusy = false;
+    const history = document.getElementById('chat-history');
+    if (history) history.textContent = I18n.t('ai_tutor.start_conversation');
+    const send = document.querySelector('#chat-form button[type=submit]');
+    if (send) send.disabled = !tutorPolicy || tutorPolicy.mode === 'disabled';
+    const selected = document.getElementById('tutor-content');
+    window.setLearningContext({contentId: selected?.value || null, contentTitle: selected?.selectedOptions[0]?.textContent || null, studyPlanId: document.getElementById('tutor-study-plan')?.value || null, questionId: null});
 };
-
-// Initialize tutor selectors when tutor view is shown
-window.initTutorSelectors = function initTutorSelectors() {
-    loadTutorStudyPlans();
-    loadTutorContentItems();
-    refreshTutorPolicy();
+window.loadTutorContentItems = async function loadTutorContentItems() {
+    const planId = document.getElementById('tutor-study-plan')?.value;
+    const select = document.getElementById('tutor-content');
+    if (!select) return;
+    const version = ++tutorContentRequest;
+    select.replaceChildren(new Option(I18n.t('ai.tutor.select_all_content'), ''));
+    resetTutorContext(); select.disabled = true;
+    try {
+        const data = await SLMClient.request(planId ? `/api/study-plans/${planId}/tree` : '/api/content/');
+        if (version !== tutorContentRequest) return;
+        const contents = planId ? data.contents || [] : data;
+        contents.forEach(content => select.append(new Option(content.title, content.id)));
+    } catch (error) {
+        if (version === tutorContentRequest) showToast(error.message, 'warning');
+    } finally { if (version === tutorContentRequest) select.disabled = false; }
+};
+window.initTutorSelectors = async function initTutorSelectors() {
+    await loadTutorStudyPlans();
+    const params = new URLSearchParams(window.location.search);
+    const planSelect = document.getElementById('tutor-study-plan');
+    if (params.get('from_session') === '1') planSelect.value = params.get('plan_id') || '';
+    await loadTutorContentItems();
+    if (params.get('from_session') === '1') {
+        const contentSelect = document.getElementById('tutor-content');
+        contentSelect.value = params.get('content_id') || '';
+        resetTutorContext();
+    }
+    await refreshTutorPolicy();
 };
 
 // Clear AI Chat (30.3)
-window.clearAIChat = function clearAIChat() {
-    tutorEpoch++; tutorConversation = [];
-    const chatHistory = document.getElementById('chat-history');
-    if (chatHistory) {
-        chatHistory.innerHTML = '<div class="text-muted text-center">Start a conversation with your AI Tutor</div>';
-    }
-
-    // Reset context selectors
+window.clearAIChat = async function clearAIChat() {
     const studyPlanSelect = document.getElementById('tutor-study-plan');
-    const contentSelect = document.getElementById('tutor-content');
     if (studyPlanSelect) studyPlanSelect.value = '';
-    if (contentSelect) contentSelect.value = '';
-
-    // Clear input
     const chatInput = document.getElementById('chat-input');
     if (chatInput) chatInput.value = '';
-
-    showToast('Chat cleared. Start a new conversation!', 'info');
+    await loadTutorContentItems();
+    showToast(SLMClient.message('chat_cleared', 'Chat cleared. Choose a lesson or start a new conversation.'), 'info');
 };
 
 
@@ -2303,7 +2268,7 @@ if (chatForm) {
             input.value = msg;
             document.getElementById('typing-indicator')?.remove();
             chatHistory.innerHTML += `<div class="text-danger text-sm">${I18n.t('ai.chat.error_send')}</div>`;
-        } finally { tutorBusy = false; sendButton.disabled = !tutorPolicy || tutorPolicy.mode === 'disabled'; }
+        } finally { if (epoch === tutorEpoch) { tutorBusy = false; sendButton.disabled = !tutorPolicy || tutorPolicy.mode === 'disabled'; } }
     });
 }
 
@@ -2459,7 +2424,7 @@ function renderUserList(role, users) {
                         <span class="badge bg-primary">Level ${u.level || 1}</span>
                         <span class="badge bg-success">${u.xp || 0} XP</span>
                     </p>
-                    <button class="btn btn-sm btn-outline-primary" onclick="viewStudentDetail(${u.id})">View Details</button>
+                    ${role === 'student' ? `<button class="btn btn-sm btn-outline-primary" onclick="viewStudentDetail(${u.id})">${SLMClient.message('view_details', 'View details')}</button>` : ''}
                 </div>
             </div>
         </div>
@@ -2590,7 +2555,11 @@ window.loadLeaderboard = async function loadLeaderboard() {
 };
 
 let gradingQueueCache = [];
-let currentGradingStatusFilter = 'all';
+let currentGradingStatusFilter = new URLSearchParams(window.location.search).get('grading_filter') || 'all';
+document.querySelectorAll('#grading-filter-tabs .tab').forEach(tab => {
+    const active = tab.dataset.gradingFilter === currentGradingStatusFilter;
+    tab.classList.toggle('active', active); tab.setAttribute('aria-pressed', String(active));
+});
 
 function getGradingStatusLabel(status) {
     const keyByStatus = {
@@ -2653,6 +2622,7 @@ function renderGradingQueue(submissions) {
                         <span class="badge ${statusClass}">${escapeHtml(statusLabel)}</span>
                     </div>
                     <div class="text-muted small">${escapeHtml(submittedAt)}</div>
+                    <a class="btn btn-primary btn-sm mt-2" href="/grading.html?submission_id=${Number(sub.id)}&filter=${encodeURIComponent(currentGradingStatusFilter)}">${SLMClient.message('open_submission', 'Open submission')}</a>
                 </div>
             </div>
         `;
@@ -2677,8 +2647,8 @@ window.filterGradingQueue = function filterGradingQueue(status, tab) {
     currentGradingStatusFilter = status;
 
     const tabs = document.querySelectorAll('#grading-filter-tabs .tab');
-    tabs.forEach(t => t.classList.remove('active'));
-    if (tab) tab.classList.add('active');
+    tabs.forEach(t => { t.classList.remove('active'); t.setAttribute('aria-pressed', 'false'); });
+    if (tab) { tab.classList.add('active'); tab.setAttribute('aria-pressed', 'true'); }
 
     applyGradingFilter();
 };
@@ -2835,6 +2805,7 @@ window.viewStudentDetail = async function viewStudentDetail(id) {
         }
 
         const students = await res.json();
+        if (id !== currentStudentId) return;
         const student = students.find(s => s.id === id);
 
         if (!student) {
@@ -2842,6 +2813,8 @@ window.viewStudentDetail = async function viewStudentDetail(id) {
             return;
         }
 
+        await loadStudentTeacher(student);
+        if (id !== currentStudentId) return;
         // Populate modal
         document.getElementById('student-detail-name').textContent = `${student.first_name} ${student.last_name}`;
         document.getElementById('student-detail-username').textContent = `@${student.username}`;
@@ -2857,6 +2830,7 @@ window.viewStudentDetail = async function viewStudentDetail(id) {
             });
             if (badgeRes.ok) {
                 const badges = await badgeRes.json();
+                if (id !== currentStudentId) return;
                 const earned = badges.filter(b => b.earned);
                 if (earned.length > 0) {
                     badgesContainer.innerHTML = earned.slice(0, 5).map(b =>
@@ -2877,13 +2851,14 @@ window.viewStudentDetail = async function viewStudentDetail(id) {
             });
             if (progressRes.ok) {
                 const progress = await progressRes.json();
+                if (id !== currentStudentId) return;
                 const lessonsEl = document.getElementById('student-lessons-completed');
                 const assessmentsEl = document.getElementById('student-assessments-taken');
                 const avgScoreEl = document.getElementById('student-avg-score');
                 const studyTimeEl = document.getElementById('student-study-time');
                 if (lessonsEl) lessonsEl.textContent = progress.lessons_completed || 0;
                 if (assessmentsEl) assessmentsEl.textContent = progress.assessments_taken || 0;
-                if (avgScoreEl) avgScoreEl.textContent = progress.avg_score ? `${Math.round(progress.avg_score)}%` : '-';
+                if (avgScoreEl) avgScoreEl.textContent = progress.avg_score !== null && progress.avg_score !== undefined ? `${Math.round(progress.avg_score)}%` : '-';
                 if (studyTimeEl) studyTimeEl.textContent = progress.study_time_hours ? `${Math.round(progress.study_time_hours)}h` : '0h';
             }
         } catch (e) {
@@ -2891,6 +2866,7 @@ window.viewStudentDetail = async function viewStudentDetail(id) {
         }
 
         // Load teacher notes
+        if (id !== currentStudentId) return;
         window.currentStudentId = id;
         try {
             const notesRes = await fetch(`/api/students/${id}/notes`, {
@@ -2898,6 +2874,7 @@ window.viewStudentDetail = async function viewStudentDetail(id) {
             });
             if (notesRes.ok) {
                 const notesData = await notesRes.json();
+                if (id !== currentStudentId) return;
                 const notesEl = document.getElementById('student-teacher-notes');
                 if (notesEl) notesEl.value = notesData.notes || '';
             }
@@ -2905,6 +2882,7 @@ window.viewStudentDetail = async function viewStudentDetail(id) {
             console.warn('Failed to load student notes:', e);
         }
 
+        if (id !== currentStudentId) return;
         // Show modal
         new bootstrap.Modal(document.getElementById('studentDetailModal')).show();
 
@@ -2924,16 +2902,25 @@ window.viewStudentDetail = async function viewStudentDetail(id) {
                     selectEl.innerHTML = '<option value="" disabled selected>Loading study plans...</option>';
 
                     const plans = await loadStudyPlans();
+                    if (id !== currentStudentId) return;
                     if (!plans || plans.length === 0) {
                         selectEl.innerHTML = '<option value="" disabled selected>No study plans available</option>';
                         selectEl.disabled = true;
                         btnEl.disabled = true;
                     } else {
-                        selectEl.innerHTML = plans
-                            .map(p => `<option value="${p.id}">${escapeHtml(p.title)}</option>`)
-                            .join('');
-                        selectEl.disabled = false;
-                        btnEl.disabled = false;
+                        const states = await Promise.all(plans.map(async plan => {
+                            try { return { ...plan, workflow: await SLMClient.request(`/api/study-plans/${plan.id}/workflow`) }; }
+                            catch { return { ...plan, workflow: { status: 'unavailable' } }; }
+                        }));
+                        if (id !== currentStudentId) return;
+                        selectEl.replaceChildren();
+                        states.forEach(plan => {
+                            const option = new Option(`${plan.title} (${SLMClient.message('workflow_' + plan.workflow.status, plan.workflow.status)})`, plan.id);
+                            option.disabled = plan.workflow.status !== 'published'; selectEl.append(option);
+                        });
+                        selectEl.value = states.find(plan => plan.workflow.status === 'published')?.id || '';
+                        selectEl.disabled = !selectEl.value;
+                        btnEl.disabled = !selectEl.value;
                     }
                 }
             }
@@ -3381,10 +3368,14 @@ window.loadLibraryTree = async function loadLibraryTree() {
 
         // Render study plans with nested content
         const studyPlans = Object.values(tree.by_study_plan || {});
+        const manageable = isTeacherOrAdmin ? new Set((await SLMClient.request('/api/study-plans')).map(plan => plan.id)) : new Set();
         if (studyPlans.length > 0) {
             html += '<h5 class="mb-3">📚 Study Plans</h5>';
 
             for (const plan of studyPlans) {
+                const workflow = await SLMClient.request(`/api/study-plans/${plan.id}/workflow`).catch(() => ({read_only:true,status:'unavailable'}));
+                const canManage = manageable.has(plan.id);
+                const canEdit = canManage && !workflow.read_only;
                 html += `
                     <div class="card mb-3 study-plan-tree" data-plan-id="${plan.id}">
                         <div class="card-header bg-primary bg-opacity-10 d-flex justify-content-between align-items-center">
@@ -3393,16 +3384,18 @@ window.loadLibraryTree = async function loadLibraryTree() {
                                     <span class="toggle-icon">▶</span>
                                 </button>
                                 <strong>📘 ${escapeHtml(plan.title)}</strong>
-                                <span class="badge bg-secondary ms-2">${plan.contents.length} items</span>
+                                <span class="badge bg-secondary ms-2">${plan.contents.length} ${SLMClient.message('items', 'items')}</span>
+                                <span class="badge bg-secondary ms-2">${SLMClient.message('workflow_' + workflow.status, workflow.status)}</span>
                             </div>
                             <div class="btn-group btn-group-sm">
-                                <button class="btn btn-outline-success" onclick="addTopicToPlan(${plan.id})" title="Add Topic">+ Topic</button>
-                                <button class="btn btn-outline-primary" onclick="generateForPlan(${plan.id})" title="Generate Content">🤖 Generate</button>
-                                <button class="btn btn-outline-info" onclick="viewPlanGrades(${plan.id})" title="View Grades">📊 Grades</button>
+                                ${canManage ? `<a class="btn btn-outline-primary" href="/study_plan_builder.html?id=${plan.id}">${SLMClient.message('edit_or_copy', 'Review, edit or copy')}</a>` : ''}
+                                ${canEdit ? `<button class="btn btn-outline-success" onclick="addTopicToPlan(${plan.id})" title="Add Topic">+ Topic</button>
+                                <button class="btn btn-outline-primary" onclick="generateForPlan(${plan.id})" title="Generate Content">🤖 Generate</button>` : ''}
+                                ${canManage ? `<button class="btn btn-outline-info" onclick="viewPlanGrades(${plan.id})" title="View Grades">📊 Grades</button>` : ''}
                             </div>
                         </div>
                         <div class="card-body plan-contents hidden" id="plan-contents-${plan.id}">
-                            ${renderPlanContents(plan.id, plan.contents)}
+                            ${renderPlanContents(plan.id, plan.contents, canEdit)}
                         </div>
                     </div>
                 `;
@@ -3448,7 +3441,7 @@ window.loadLibraryTree = async function loadLibraryTree() {
 /**
  * Render contents within a study plan
  */
-function renderPlanContents(planId, contents) {
+function renderPlanContents(planId, contents, canEdit = false) {
     if (!contents || contents.length === 0) {
         return '<p class="text-muted">No content in this plan yet.</p>';
     }
@@ -3474,8 +3467,8 @@ function renderPlanContents(planId, contents) {
                     <div class="btn-group btn-group-sm">
                         <button class="btn btn-outline-primary" onclick="viewContent(${item.id})">👁️</button>
                         <button class="btn btn-outline-success" onclick="startSession(${item.id}, ${planId})" title="Start with guided navigation">▶️</button>
-                        <button class="btn btn-outline-warning" onclick="editContent(${item.id})">✏️</button>
-                        <button class="btn btn-outline-danger" onclick="deleteContent(${item.id})">🗑️</button>
+                        ${canEdit ? `<button class="btn btn-outline-warning" onclick="editContent(${item.id})" aria-label="${SLMClient.message('edit', 'Edit')}">✏️</button>
+                        <button class="btn btn-outline-danger" onclick="deleteContent(${item.id})" aria-label="${SLMClient.message('delete', 'Delete')}">🗑️</button>` : ''}
                     </div>
                 </div>
             `).join('')}
@@ -3842,87 +3835,44 @@ let activeNextContentId = null;
  */
 window.loadContinueLearning = async function loadContinueLearning() {
     if (isTeacherOrAdmin) return;
-
     const card = document.getElementById('continue-learning-card');
     if (!card) return;
-
+    activeContinuePlan = null; activeNextContentId = null;
     try {
-        const token = AuthService.getToken();
-        // Get user's study plans
-        const resp = await fetch('/api/study-plans', {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-
-        if (!resp.ok) {
-            card.style.display = 'none';
-            return;
+        const plans = await SLMClient.request('/api/study-plans');
+        const position = SLMClient.drafts.read('learning-location', 'current', 0);
+        const orderedPlans = [...plans].sort((a, b) => Number(b.id === position?.planId) - Number(a.id === position?.planId));
+        let completedCourse = null;
+        for (const plan of orderedPlans) {
+            const tree = await SLMClient.request(`/api/study-plans/${plan.id}/tree`);
+            if (!tree.contents?.length) continue;
+            const progress = await SLMClient.request(`/api/study-plans/${plan.id}/my-progress`);
+            const contents = tree.contents.sort((a, b) => (a.phase_index || 0) - (b.phase_index || 0) || (a.order_index || 0) - (b.order_index || 0));
+            const completed = new Set((progress.completed_content_ids || []).map(Number));
+            let next = contents.findIndex(item => !completed.has(Number(item.id)));
+            const resume = contents.findIndex(item => item.id === position?.contentId && !completed.has(Number(item.id)));
+            if (position?.planId === plan.id && resume >= 0) next = resume;
+            const data = { tree, contents, next, completedIds: contents.filter(item => completed.has(Number(item.id))).map(item => item.id) };
+            if (next < 0) { completedCourse ||= data; continue; }
+            showContinuePlan(data); return;
         }
-
-        const plans = await resp.json();
-        if (!plans || plans.length === 0) {
-            card.style.display = 'none';
-            return;
-        }
-
-        // Get the first plan with content (could enhance to track last active)
-        for (const plan of plans) {
-            const treeResp = await fetch(`/api/study-plans/${plan.id}/tree`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-
-            if (treeResp.ok) {
-                const tree = await treeResp.json();
-                if (tree.contents && tree.contents.length > 0) {
-                    activeContinuePlan = tree;
-                    activePlanContents = tree.contents;
-
-                    // Fetch actual progress from backend
-                    let completedIds = [];
-                    let currentIndex = 0;
-                    try {
-                        const progressResp = await fetch(`/api/study-plans/${plan.id}/my-progress`, {
-                            headers: { 'Authorization': `Bearer ${token}` }
-                        });
-                        if (progressResp.ok) {
-                            const progress = await progressResp.json();
-                            completedIds = progress.completed_content_ids || [];
-                            // Current index is first uncompleted item
-                            currentIndex = completedIds.length;
-                            if (currentIndex >= tree.contents.length) {
-                                currentIndex = tree.contents.length - 1; // All complete
-                            }
-                        }
-                    } catch (e) {
-                        console.warn('Could not load progress:', e);
-                    }
-
-                    // Set next content based on progress
-                    activeNextContentId = tree.contents[currentIndex]?.id || tree.contents[0].id;
-
-                    // Update UI with real progress
-                    document.getElementById('continue-plan-title').textContent = tree.title;
-                    document.getElementById('continue-next-title').textContent =
-                        tree.contents[currentIndex]?.title || tree.contents[0].title;
-                    document.getElementById('continue-progress-text').textContent =
-                        `${completedIds.length} of ${tree.contents.length} completed`;
-
-                    // Render timeline with real progress
-                    renderProgressTimeline(tree.contents, currentIndex, completedIds);
-
-                    card.style.display = 'block';
-                    return;
-                }
-            }
-        }
-
-        // No plans with content found
+        if (completedCourse) showContinuePlan(completedCourse);
+        else card.style.display = 'none';
+    } catch (error) {
         card.style.display = 'none';
-
-    } catch (e) {
-        console.error('Failed to load continue learning:', e);
-        card.style.display = 'none';
+        showToast(SLMClient.message('progress_unavailable', 'Progress could not be loaded. Retry when connected.'), 'warning');
     }
 };
+function showContinuePlan({tree, contents, next, completedIds}) {
+    activeContinuePlan = tree; activePlanContents = contents;
+    activeNextContentId = next >= 0 ? contents[next].id : null;
+    document.getElementById('continue-plan-title').textContent = tree.title;
+    document.getElementById('continue-next-title').textContent = next >= 0 ? contents[next].title : SLMClient.message('course_completed', 'Course completed');
+    document.getElementById('continue-progress-text').textContent = `${completedIds.length}/${contents.length} ` + SLMClient.message('completed_items', 'items completed');
+    document.getElementById('continue-btn').disabled = next < 0;
+    renderProgressTimeline(contents, next, completedIds);
+    document.getElementById('continue-learning-card').style.display = 'block';
+}
 
 /**
  * Render the progress timeline with nodes
@@ -3955,7 +3905,9 @@ function renderProgressTimeline(contents, currentIndex, completedIds = []) {
         }
 
         // Create node
-        const node = document.createElement('div');
+        const node = document.createElement('button');
+        node.type = 'button';
+        node.setAttribute('aria-label', item.title);
         node.className = `timeline-node ${state}`;
         node.onclick = () => goToTimelineContent(item.id);
 
@@ -4174,3 +4126,55 @@ if (librarySearchInput) {
 }
 
 // --- USER PROFILE ---
+
+async function restoreSessionContext() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('from_session') !== '1' || !/^\d+$/.test(params.get('content_id') || '')) return;
+    try {
+        const content = await SLMClient.request(`/api/content/${Number(params.get('content_id'))}`);
+        const planId = /^\d+$/.test(params.get('plan_id') || '') ? Number(params.get('plan_id')) : null;
+        const plan = planId ? await SLMClient.request(`/api/study-plans/${planId}/tree`) : null;
+        if (plan && !plan.contents.some(item => item.id === content.id)) return;
+        window.setLearningContext({contentId: content.id, contentTitle: content.title, contentType: content.content_type, studyPlanId: planId, studyPlanTitle: plan?.title, questionId: null});
+        const back = document.getElementById('session-context-return');
+        back.href = `/session_player.html?content_id=${content.id}` + (planId ? `&plan_id=${planId}` : '');
+        back.classList.remove('d-none');
+        if (params.get('ask_help') === '1') bootstrap.Modal.getOrCreateInstance(document.getElementById('helpModal')).show();
+    } catch (error) { showToast(error.message, 'warning'); }
+}
+document.addEventListener('DOMContentLoaded', restoreSessionContext);
+
+let savingStudentTeacher = false;
+async function loadStudentTeacher(student) {
+    const container = document.getElementById('student-teacher-container');
+    if (!container) return;
+    container.classList.toggle('d-none', AuthService.getRole() !== 'admin');
+    if (AuthService.getRole() !== 'admin') return;
+    const select = document.getElementById('student-teacher-select');
+    const button = document.getElementById('student-teacher-save');
+    select.disabled = true; button.disabled = true;
+    try {
+        const teachers = await SLMClient.request('/api/auth/users?role=teacher');
+        if (student.id !== currentStudentId) return;
+        select.replaceChildren(new Option(SLMClient.message('unassigned_teacher', 'Unassigned'), ''));
+        teachers.forEach(teacher => select.append(new Option(`${teacher.first_name} ${teacher.last_name} (${teacher.username})`, teacher.id)));
+        select.value = student.teacher_id ?? '';
+        select.disabled = false; button.disabled = false;
+        document.getElementById('student-teacher-status').textContent = '';
+    } catch (error) { document.getElementById('student-teacher-status').textContent = error.message; }
+}
+window.saveStudentTeacher = async () => {
+    if (savingStudentTeacher || !currentStudentId || AuthService.getRole() !== 'admin') return;
+    const studentId = currentStudentId;
+    const teacher = document.getElementById('student-teacher-select').value;
+    if (!await showConfirm(SLMClient.message('teacher_change_confirm', 'Change the responsible teacher? This changes who can manage this learner.'))) return;
+    if (studentId !== currentStudentId) return;
+    savingStudentTeacher = true;
+    try {
+        await SLMClient.request(`/api/students/${studentId}/teacher`, {method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify({teacher_id: teacher ? Number(teacher) : null})});
+        document.getElementById('student-teacher-status').textContent = SLMClient.message('teacher_saved', 'Responsible teacher saved.');
+    } catch (error) { document.getElementById('student-teacher-status').textContent = error.message; }
+    finally { savingStudentTeacher = false; }
+};
+
+if (document.readyState !== 'loading') { restoreDashboardView(); restoreSessionContext(); }

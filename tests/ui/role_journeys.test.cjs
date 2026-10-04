@@ -23,7 +23,7 @@ for (const [query,chosen] of [['','teacher'],['?role=teacher','student'],['?role
         const creator=JSON.stringify({id:7,role:'admin'});
         w.localStorage.setItem('token',token); w.localStorage.setItem('user',creator);
         const calls=[]; let succeed=false;
-        w.fetch=async(url,options)=>{calls.push(JSON.parse(options.body));return reply(succeed?{id:8}:{detail:'Retry'},succeed?200:500);};
+        w.fetch=async(url,options)=>{if (url.includes('role=teacher')) return reply([]);calls.push(JSON.parse(options.body));return reply(succeed?{id:8}:{detail:'Retry'},succeed?200:500);};
         w.eval(read('static/js/auth.js').replace('export class AuthService','class AuthService'));
         const form=w.document.getElementById('register-form');
         form.elements.namedItem('role').value=chosen;
@@ -37,7 +37,7 @@ for (const [query,chosen] of [['','teacher'],['?role=teacher','student'],['?role
         assert.equal(w.document.getElementById('register-return').pathname,'/dashboard.html');
         assert.equal(w.document.getElementById('register-success-actions').classList.contains('d-none'),false);
         assert.equal(form.elements.namedItem('password').value,'');
-        assert.equal(w.document.querySelectorAll('#register-form input,#register-form select').length,6);
+        assert.equal(w.document.querySelectorAll('#register-form input,#register-form select').length,7);
         assert.ok([...form.querySelectorAll('input,select')].every(control=>control.labels.length));
         w.document.getElementById('create-another-account').click();
         assert.equal(form.elements.namedItem('role').value,chosen);
@@ -59,4 +59,112 @@ test('teacher creation rejects an injected administrator role without making a r
     assert.equal(w.AuthService.loginDestination('https://attacker.invalid/'),'/dashboard.html');
     assert.equal(w.AuthService.loginDestination('/session_player.html?content_id=8&plan_id=4'),'/session_player.html?content_id=8&plan_id=4');
     dom.window.close();
+});
+async function sessionFixture(query='?content_id=8&plan_id=4') {
+    const context=await fixture('session_player.html',query); const w=context.w;
+    const calls=[];let progressFails=false;
+    w.fetch=async(url,options={})=>{calls.push({url,method:options.method||'GET',body:options.body});
+        if(url.endsWith('/tree'))return reply({id:4,title:'Course',contents:[{id:7,title:'Earlier',phase_index:0,order_index:0},{id:8,title:'Current',phase_index:0,order_index:1},{id:9,title:'Later',phase_index:0,order_index:2}]});
+        if(url.endsWith('/my-progress'))return reply({completed_content_ids:[]});
+        if(url==='/api/content/8')return reply({id:8,title:'Current',content_type:'lesson',content_data:{content:'Synthetic'}});
+        if(url.includes('/history')||url.includes('/annotations'))return reply([]);
+        if(url==='/api/learning/start')return reply({id:30,notes:''});
+        if(url.endsWith('/progress')&&progressFails)return reply({detail:'Retry progress'},500);
+        return reply({});};
+    w.eval(read('static/js/session.js'));await w.initSession();calls.length=0;
+    return {...context,calls,failProgress:value=>{progressFails=value;}};
+}
+test('Complete and next use the same completion and progress transition; repeat is idempotent',async()=>{
+    const {dom,w,calls,failProgress}=await sessionFixture();
+    failProgress(true);await w.confirmEndSession();
+    assert.equal(calls.filter(c=>c.url.endsWith('/end')).length,1);
+    assert.equal(w.toasts.at(-1)[1],'danger');
+    assert.equal(w.document.getElementById('session-notes').disabled,true);
+    assert.match(w.document.getElementById('session-transition-status').textContent,/retry Complete/);
+    failProgress(false);await w.confirmEndSession();await w.confirmEndSession();
+    assert.equal(calls.filter(c=>c.url.endsWith('/end')).length,1);
+    assert.equal(calls.filter(c=>c.url.endsWith('/progress')).length,2);
+    assert.equal(JSON.parse(calls.find(c=>c.url.endsWith('/progress')).body).completed_content_id,8);
+    dom.window.close();
+    const next=await sessionFixture();await next.w.navigatePlanContent(1);
+    assert.equal(next.calls.filter(c=>c.url.endsWith('/end')).length,1);
+    assert.equal(next.calls.filter(c=>c.url.endsWith('/progress')).length,1);next.dom.window.close();
+});
+test('Previous and pause preserve notes without marking a lesson complete',async()=>{
+    for(const action of ['previous','pause']){
+        const {dom,w,calls}=await sessionFixture();w.document.getElementById('session-notes').value='Keep my notes';
+        if(action==='previous')await w.navigatePlanContent(-1);else await w.pauseSession();
+        assert.equal(calls.filter(c=>c.url.endsWith('/end')||c.url.endsWith('/progress')).length,0);
+        assert.equal(calls.find(c=>c.url.endsWith('/notes')).method,'PATCH');dom.window.close();
+    }
+});
+test('Annotations are private by default and failed saves keep visible retryable text',async()=>{
+    const {dom,w}=await sessionFixture();assert.equal(w.document.getElementById('annotation-public').checked,false);
+    let payload;w.fetch=async(url,options)=>{payload=JSON.parse(options.body);return reply({detail:'Failed'},500);};
+    w.document.getElementById('annotation-input').value='Private question';await w.addAnnotation();
+    assert.equal(payload.is_public,false);assert.equal(w.document.getElementById('annotation-input').value,'Private question');
+    assert.match(w.document.getElementById('annotation-status').textContent,/not saved/);dom.window.close();
+});
+for(const completed of [[3],[1,2,3]])test('Continue resolves pending identities and course completion: '+completed,async()=>{
+    const {dom,w}=await fixture('dashboard.html');w.isTeacherOrAdmin=false;
+    const source=read('static/js/dashboard.js');w.eval(source.slice(source.indexOf('let activeContinuePlan = null;'),source.indexOf('function renderProgressTimeline')));w.renderProgressTimeline=()=>{};
+    w.fetch=async url=>reply(url.endsWith('/tree')?{id:4,title:'Course',contents:[{id:1,title:'First unfinished'},{id:2,title:'Second'},{id:3,title:'Third'}]}:url.endsWith('/my-progress')?{completed_content_ids:completed}:[{id:4}]);
+    await w.loadContinueLearning();assert.equal(w.document.getElementById('continue-next-title').textContent,completed.length===3?'Course completed':'First unfinished');
+    assert.equal(w.document.getElementById('continue-btn').disabled,completed.length===3);dom.window.close();
+});
+test('Dashboard grading cards link to submission and retain the current filter',async()=>{
+    const {dom,w}=await fixture('dashboard.html');w.currentGradingStatusFilter='pending';w.escapeHtml=w.SLMRender.escape;w.getGradingStatusLabel=s=>s;w.getGradingStatusBadgeClass=()=>'';
+    const source=read('static/js/dashboard.js');w.eval(source.slice(source.indexOf('function renderGradingQueue'),source.indexOf('function applyGradingFilter')));
+    w.renderGradingQueue([{id:9,student_name:'Synthetic',assessment_title:'Essay',status:'submitted'}]);
+    const link=w.document.querySelector('#grading-list a');assert.equal(link.pathname,'/grading.html');assert.equal(link.search,'?submission_id=9&filter=pending');
+    assert.ok([...w.document.querySelectorAll('#settings-tabs .tab,#grading-filter-tabs .tab')].every(node=>node.tagName==='BUTTON'&&node.type==='button'));dom.window.close();
+});
+test('saved unassigned draft stays editable and updates the same plan before review',async()=>{
+    const {dom,w}=await fixture('study_plan_builder.html','?id=5');w.AuthService.getRole=()=> 'teacher';
+    const calls=[];w.fetch=async(url,options={})=>{calls.push({url,options});
+        if(url.endsWith('/tree'))return reply({id:5,title:'Draft',description:'Before',is_public:false,phases:[{name:'One'}],contents:[{id:1,title:'First',content_type:'lesson',phase_index:0,order_index:0}]});
+        if(url.endsWith('/workflow'))return reply({status:options.method?'reviewed':'draft',read_only:false});
+        if(options.method==='PUT')return reply({id:5});
+        return reply([{id:1,title:'First',content_type:'lesson'}]);};
+    w.eval(read('static/js/study_plan_builder.js').replace("import { AuthService } from './auth.js';",''));
+    w.document.dispatchEvent(new w.Event('DOMContentLoaded'));await new Promise(r=>setImmediate(r));
+    const title=w.document.getElementById('plan-title');assert.equal(title.disabled,false);
+    title.value='Revised';title.dispatchEvent(new w.Event('input',{bubbles:true}));
+    await w.planWorkflow('review');
+    const update=calls.find(call=>call.options.method==='PUT');assert.equal(update.url,'/api/study-plans/5');assert.equal(JSON.parse(update.options.body).title,'Revised');
+    assert.ok(calls.indexOf(update)<calls.findIndex(call=>call.options.method==='POST'));
+    assert.equal(w.document.getElementById('save-plan-btn').disabled,false);dom.window.close();
+});
+test('session renders canonical sections before legacy body and applies pinned session snapshot',async()=>{
+    const {dom,w}=await sessionFixture();
+    w.renderSessionContent({title:'Pinned lesson',content_type:'lesson',content_data:{content:'Obsolete flattened body',sections:[{title:'Step',content:'Canonical section'}],objectives:['Explain it']}});
+    assert.match(w.document.getElementById('session-content-body').textContent,/Canonical section/);
+    assert.match(w.document.getElementById('session-content-body').textContent,/Explain it/);
+    assert.doesNotMatch(w.document.getElementById('session-content-body').textContent,/Obsolete/);
+    w.fetch=async url=>url.includes('/annotations')?reply([]):reply({id:30,notes:'Pinned notes',content_snapshot:{title:'Saved version',content_type:'lesson',content_data:{sections:[{title:'Snapshot',content:'Original lesson'}]}}});
+    await w.restoreSession(30);assert.equal(w.document.getElementById('session-content-title').textContent,'Saved version');assert.match(w.document.getElementById('session-content-body').textContent,/Original lesson/);await new Promise(r=>setImmediate(r));dom.window.close();
+});
+test('tutor uses the tree contract, clears old conversation and rejects late context replies',async()=>{
+    const {dom,w}=await fixture('dashboard.html');w.escapeHtml=w.SLMRender.escape;w.setLearningContext=()=>{};
+    const source=read('static/js/dashboard.js');w.eval(source.slice(source.indexOf('// --- AI TUTOR ---'),source.indexOf('// Old settings logic removed.')));
+    const plan=w.document.getElementById('tutor-study-plan');plan.add(new w.Option('One',4));plan.add(new w.Option('Two',5));plan.value='4';
+    let release;const calls=[];
+    w.fetch=async(url,options)=>{calls.push({url,options});
+        if(url==='/api/study-plans/4/tree')return reply({contents:[{id:8,title:'First'}]});
+        if(url==='/api/study-plans/5/tree')return reply({contents:[{id:9,title:'Second'}]});
+        if(url.endsWith('/assistance-policy'))return reply({mode:'hints_only',active_assessment_ids:[]});
+        return await new Promise(resolve=>{release=()=>resolve(reply({response:'Outdated answer',status:'suggestion'}));});};
+    await w.loadTutorContentItems();assert.equal(w.document.querySelector('#tutor-content option[value="8"]').textContent,'First');
+    await w.refreshTutorPolicy();w.document.getElementById('chat-input').value='Old lesson question';w.document.getElementById('chat-form').dispatchEvent(new w.Event('submit',{cancelable:true}));
+    await new Promise(r=>setImmediate(r));plan.value='5';await w.loadTutorContentItems();release();await new Promise(r=>setImmediate(r));
+    assert.equal(w.document.querySelector('#tutor-content option[value="8"]'),null);assert.ok(w.document.querySelector('#tutor-content option[value="9"]'));
+    assert.doesNotMatch(w.document.getElementById('chat-history').textContent,/Outdated answer|Old lesson question/);
+    assert.ok(calls.some(call=>call.url==='/api/study-plans/4/tree'));dom.window.close();
+});
+test('language changes update html lang and retain choice when browser storage fails',async()=>{
+    const {dom,w}=await fixture('login.html');w.eval(read('static/js/i18n.js'));
+    w.fetch=async()=>reply({recovery:{log_in:'Iniciar sesión'}});await w.I18n.setLanguage('es');w.I18n.translatePage();
+    assert.equal(w.document.documentElement.lang,'es');assert.equal(w.localStorage.getItem('slm_language'),'es');
+    w.Storage.prototype.setItem=()=>{throw new Error('blocked');};w.fetch=async()=>reply({recovery:{log_in:'Log in'}});await w.I18n.setLanguage('en');
+    assert.equal(w.document.documentElement.lang,'en');assert.equal(w.document.querySelector('[data-i18n="recovery.log_in"]').textContent,'Log in');dom.window.close();
 });

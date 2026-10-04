@@ -119,13 +119,13 @@
                         <div class="col-md-3">
                             <div class="card text-center p-2">
                                 <h4 id="stat-total-study-time">0</h4>
-                                <small data-i18n="dashboard.stats.total_study_time">Total Study Time</small>
+                                <small data-i18n="recovery.elapsed_time">Total Study Time</small>
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="card text-center p-2">
                                 <h4 id="stat-completed-lessons">0</h4>
-                                <small data-i18n="dashboard.stats.completed_lessons">Completed Lessons</small>
+                                <small data-i18n="recovery.completed_sessions">Completed Lessons</small>
                             </div>
                         </div>
                     </div>
@@ -550,12 +550,12 @@
 
                 <!-- Filter Tabs -->
                 <div class="tabs mb-3" id="grading-filter-tabs">
-                    <div class="tab active" data-grading-filter="all" onclick="filterGradingQueue('all', this)"
-                        data-i18n="grading.filters.all">📋 All</div>
-                    <div class="tab" data-grading-filter="pending" onclick="filterGradingQueue('pending', this)"
-                        data-i18n="grading.filters.pending">⏳ Pending</div>
-                    <div class="tab" data-grading-filter="graded" onclick="filterGradingQueue('graded', this)"
-                        data-i18n="grading.filters.graded">✅ Graded</div>
+                    <button type="button" class="tab active" data-grading-filter="all" onclick="filterGradingQueue('all', this)"
+                        data-i18n="grading.filters.all">📋 All</button>
+                    <button type="button" class="tab" data-grading-filter="pending" onclick="filterGradingQueue('pending', this)"
+                        data-i18n="grading.filters.pending">⏳ Pending</button>
+                    <button type="button" class="tab" data-grading-filter="graded" onclick="filterGradingQueue('graded', this)"
+                        data-i18n="grading.filters.graded">✅ Graded</button>
                 </div>
 
                 <div id="grading-list" class="card-grid">
@@ -566,6 +566,7 @@
 
             <!-- ASSESSMENTS VIEW -->
             <div id="view-assessments" class="view-section hidden">
+                <a class="btn btn-outline-primary mb-3" href="/assessment_history.html" data-role="student" data-i18n="recovery.submission_history">My submissions and feedback</a>
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h2 class="page-header mb-0" data-i18n="assessments.title">📝 Assessments</h2>
                     <a href="assessment_builder.html" class="btn btn-success"
@@ -1043,6 +1044,7 @@
     </div>
 
     <!-- AI TUTOR VIEW -->
+    <a id="session-context-return" class="btn btn-outline-primary d-none m-3" data-i18n="recovery.return_lesson">Return to lesson</a>
     <div id="view-tutor" class="view-section hidden">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h2 class="page-header mb-0" data-i18n="ai_tutor.title">🤖 AI Tutor</h2>
@@ -1061,13 +1063,13 @@
                 <div class="row g-2">
                     <div class="col-md-6">
                         <select id="tutor-study-plan" class="form-select form-select-sm"
-                            onchange="loadTutorContentItems()">
+                            aria-label="Tutor study plan" onchange="loadTutorContentItems()">
                             <option value="" data-i18n="tutor.all_plans">📋 All Study Plans</option>
                             <!-- Populated via JS -->
                         </select>
                     </div>
                     <div class="col-md-6">
-                        <select id="tutor-content" class="form-select form-select-sm" aria-label="Tutor content">
+                        <select id="tutor-content" onchange="resetTutorContext()" class="form-select form-select-sm" aria-label="Tutor content">
                             <option value="" data-i18n="tutor.all_content">📄 All Content</option>
                             <!-- Populated via JS when study plan selected -->
                         </select>
@@ -1112,9 +1114,9 @@
         <h2 class="page-header" data-i18n="settings.title">⚙️ Settings</h2>
         <a href="/portability.html" class="btn btn-outline-primary mb-3" data-i18n="recovery.portability">Export and backup</a>
         <div class="tabs mb-3" id="settings-tabs">
-            <div class="tab active" data-settings-tab="profile" data-i18n="settings.tabs.profile">Profile</div>
-            <div class="tab" data-settings-tab="ai" data-i18n="settings.tabs.ai_config">AI Configuration</div>
-            <div class="tab" data-settings-tab="appearance" data-i18n="settings.tabs.appearance">Appearance</div>
+            <button type="button" class="tab active" data-settings-tab="profile" data-i18n="settings.tabs.profile">Profile</button>
+            <button type="button" class="tab" data-settings-tab="ai" data-i18n="settings.tabs.ai_config">AI Configuration</button>
+            <button type="button" class="tab" data-settings-tab="appearance" data-i18n="settings.tabs.appearance">Appearance</button>
         </div>
 
         <div id="settings-tab-profile" class="settings-tab-section">
@@ -1735,7 +1737,14 @@
                             </div>
                             <div class="mt-4">
                                 <h6 data-i18n="modals.student_detail.assign_plan_title">Assign Study Plan</h6>
+                                <div id="student-teacher-container" class="d-none mb-3">
+                                    <label for="student-teacher-select" data-i18n="recovery.responsible_teacher">Responsible teacher</label>
+                                    <select id="student-teacher-select" class="form-select"></select>
+                                    <button type="button" id="student-teacher-save" class="btn btn-outline-primary mt-2" onclick="saveStudentTeacher()" data-i18n="recovery.save_teacher">Save responsible teacher</button>
+                                    <p id="student-teacher-status" role="status"></p>
+                                </div>
                                 <div id="student-assign-plan-container" class="d-flex gap-2 flex-wrap">
+                                    <label class="visually-hidden" for="student-assign-plan-select" data-i18n="recovery.published_course">Published course</label>
                                     <select class="form-select" id="student-assign-plan-select"></select>
                                     <button type="button" class="btn btn-primary" id="student-assign-plan-btn"
                                         onclick="assignStudyPlanToStudent()"
@@ -1768,7 +1777,7 @@
                                     </div>
                                     <div class="col-6">
                                         <div class="card card-body p-2 text-center">
-                                            <small class="text-muted">Study Time</small>
+                                            <small class="text-muted" data-i18n="recovery.elapsed_time">Elapsed session time</small>
                                             <h5 id="student-study-time" class="mb-0">0h</h5>
                                         </div>
                                     </div>

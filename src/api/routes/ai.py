@@ -7,14 +7,17 @@ from starlette.concurrency import run_in_threadpool
 from src.api.security import get_current_user
 from src.api.dependencies import get_db, get_ai_service_dependency
 from src.api.policies import require_content, require_plan
-from src.core.models import User
+from src.core.models import User, StudyPlanContent, LearningSession, ContentType
+from types import SimpleNamespace
 from src.core.services.assistance_policy import effective_policy
 from src.core.exceptions import AIResponseParseError, AIContentValidationError
 from src.core.services.learning_context import (
     source_context,
     SourceContext,
     PROMPT_VERSION,
+    combined_source_context,
 )
+from src.core.services.course_workflow import course_items
 
 router = APIRouter(prefix="/api/ai", tags=["ai"])
 
@@ -29,6 +32,9 @@ class ChatRequest(BaseModel):
     context_id: Optional[int] = None
     study_plan_id: Optional[int] = None
     content_id: Optional[int] = None
+    section_ids: List[str] = Field(default_factory=list, max_length=12)
+    source_version: Optional[str] = None
+    session_id: Optional[int] = Field(default=None, gt=0)
     conversation_history: List[ChatMessage] = Field(default_factory=list, max_length=10)
     assistance: Literal["hint", "explanation", "example", "check_understanding"] = (
         "hint"
@@ -71,6 +77,104 @@ def _recheck_assistance(db: Session, user: User, used_mode: str) -> None:
         raise HTTPException(status_code=403, detail=current["reason"])
 
 
+def _authorized_source(
+    db: Session,
+    user: User,
+    content_id: Optional[int],
+    plan_id: Optional[int],
+    section_ids: list[str],
+    query: str,
+    session_id: Optional[int] = None,
+):
+    session = db.get(LearningSession, session_id) if session_id else None
+    if session_id and (not session or session.student_id != user.id):
+        raise HTTPException(
+            status_code=403, detail="Session context is private to its learner"
+        )
+    if session:
+        if content_id and content_id != session.content_id:
+            raise HTTPException(
+                status_code=409, detail="Session and content do not match"
+            )
+        content_id = session.content_id
+        pinned_plan = (session.context_revision or {}).get("study_plan_id")
+        if pinned_plan and plan_id and pinned_plan != plan_id:
+            raise HTTPException(
+                status_code=409, detail="Session and course do not match"
+            )
+        plan_id = pinned_plan or plan_id
+    plan = require_plan(db, user, plan_id) if plan_id else None
+    content = require_content(db, user, content_id) if content_id else None
+    if (
+        plan
+        and content
+        and content.study_plan_id != plan.id
+        and not db.query(StudyPlanContent)
+        .filter_by(study_plan_id=plan.id, content_id=content.id)
+        .first()
+    ):
+        raise HTTPException(
+            status_code=409,
+            detail="The selected content does not belong to this course",
+        )
+    if session:
+        captured = session.decrypted_content_snapshot
+        if captured is None:
+            raise HTTPException(
+                status_code=409,
+                detail="This historical session has no readable captured source; select current content explicitly",
+            )
+        content = SimpleNamespace(
+            id=session.content_id,
+            title=captured["title"],
+            content_type=ContentType(captured["content_type"]),
+            content_data="captured",
+            decrypted_content_data=captured["content_data"],
+        )
+    try:
+        if content:
+            source = source_context(content, section_ids=section_ids, query=query)
+        elif plan:
+            contents = [
+                require_content(db, user, link.content_id)
+                for link in course_items(db, plan.id)
+            ]
+            source = combined_source_context(
+                contents, plan.id, plan.title, section_ids=section_ids, query=query
+            )
+        elif section_ids:
+            raise ValueError("Choose a source before selecting sections")
+        else:
+            source = None
+    except ValueError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+    context = (
+        {
+            "id": plan.id,
+            "title": plan.title,
+            "description": (plan.description or "")[:500],
+        }
+        if plan
+        else None
+    )
+    return source, context
+
+
+@router.get("/context")
+def preview_tutor_context(
+    content_id: Optional[int] = None,
+    study_plan_id: Optional[int] = None,
+    session_id: Optional[int] = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """List actual authorized source sections before sending a model request."""
+    source, _ = _authorized_source(
+        db, current_user, content_id, study_plan_id, [], "", session_id
+    )
+    return {"source": source, "source_verified": False}
+
+
 @router.post("/chat", response_model=ChatResponse)
 async def chat_with_tutor(
     request: ChatRequest,
@@ -79,22 +183,23 @@ async def chat_with_tutor(
 ):
     """Use authorized, bounded source text; AI responses remain unverified suggestions."""
     policy, assistance = _permitted_assistance(db, current_user, request.assistance)
-    source = None
-    plan_context = None
     content_id = request.content_id or request.context_id
-    if content_id:
-        content = require_content(db, current_user, content_id)
-        try:
-            source = source_context(content)
-        except ValueError as exc:
-            raise HTTPException(status_code=409, detail=str(exc))
-    if request.study_plan_id:
-        plan = require_plan(db, current_user, request.study_plan_id)
-        plan_context = {
-            "id": plan.id,
-            "title": plan.title,
-            "description": (plan.description or "")[:500],
-        }
+    source, plan_context = _authorized_source(
+        db,
+        current_user,
+        content_id,
+        request.study_plan_id,
+        request.section_ids,
+        request.message,
+        request.session_id,
+    )
+    if request.source_version and (
+        source is None or source.source_version != request.source_version
+    ):
+        raise HTTPException(
+            status_code=409,
+            detail="Source revision changed; reload the context before asking again",
+        )
     ai_service = None
     try:
         # Authorization precedes service construction and every provider call.
@@ -111,6 +216,22 @@ async def chat_with_tutor(
             ],
         )
         _recheck_assistance(db, current_user, assistance)
+        refreshed, _ = _authorized_source(
+            db,
+            current_user,
+            content_id,
+            request.study_plan_id,
+            request.section_ids,
+            request.message,
+            request.session_id,
+        )
+        if source and (
+            refreshed is None or refreshed.source_version != source.source_version
+        ):
+            raise HTTPException(
+                status_code=409,
+                detail="Source revision changed while the provider responded; ask again with the reviewed context",
+            )
         response = (
             result.get("explanation") or result.get("answer") or result.get("response")
         )

@@ -913,11 +913,15 @@ body.theme-dark .bg-muted {
    -------------------------------------------------------------------------- */
 .tabs {
     display: flex;
+    flex-wrap: wrap;
     border-bottom: 1px solid var(--border-color);
     margin-bottom: var(--spacing-lg);
 }
 
 .tab {
+    background: transparent;
+    border: 0;
+    font: inherit;
     padding: 0.75rem 1.5rem;
     cursor: pointer;
     border-bottom: 2px solid transparent;
@@ -1848,6 +1852,9 @@ body.theme-dark select:autofill {
 }
 
 .timeline-node {
+    background: transparent;
+    border: 0;
+    font: inherit;
     display: flex;
     flex-direction: column;
     align-items: center;

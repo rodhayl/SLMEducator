@@ -9,8 +9,8 @@ from pathlib import Path
 
 from sqlalchemy import create_engine, inspect
 
-REVISION = "20261004_reconcile"
-KNOWN_REVISIONS = {"7924cdebd9c6", REVISION}
+REVISION = "20261004_learning_snapshots"
+KNOWN_REVISIONS = {"7924cdebd9c6", "20261004_reconcile", REVISION}
 
 
 def schema_gaps(connection) -> dict:

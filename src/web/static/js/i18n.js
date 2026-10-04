@@ -5,6 +5,7 @@ class I18nService {
         this.fallbackTranslations = {}; // English fallback
         this.loaded = false;
         this.defaultLang = 'es';
+        try { const saved = localStorage.getItem('slm_language'); if (['en', 'es'].includes(saved)) this.defaultLang = saved; } catch {}
         this.fallbackLang = 'en';
 
         // Debug mode - enabled on localhost
@@ -127,6 +128,8 @@ class I18nService {
     }
 
     translatePage() {
+        document.documentElement.lang = this.currentLang;
+        try { if (['en', 'es'].includes(this.currentLang)) localStorage.setItem('slm_language', this.currentLang); } catch {}
         const elements = document.querySelectorAll('[data-i18n]');
         elements.forEach(el => {
             const key = el.getAttribute('data-i18n');

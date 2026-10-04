@@ -342,10 +342,10 @@ test('course local-storage failure is visible and does not claim a recoverable d
     dom.window.close();
 });
 
-test('saved plan blocks drag/drop, disables sortable and cannot show unsaved order changes', async () => {
+test('assigned plan blocks drag/drop, disables sortable and cannot show unsaved order changes', async () => {
     const { dom, window: w } = await fixture('study_plan_builder.html');
     w.history.replaceState(null, '', '/study_plan_builder.html');
-    w.fetch = async (url, options) => options?.method ? reply(200, {id: 5}) : reply(200, [{id:1,title:'One',content_type:'lesson'},{id:2,title:'Two',content_type:'lesson'}]);
+    w.fetch = async (url, options) => url.endsWith('/workflow') ? reply(200, {status:'published', read_only:true}) : options?.method ? reply(200, {id: 5}) : reply(200, [{id:1,title:'One',content_type:'lesson'},{id:2,title:'Two',content_type:'lesson'}]);
     w.Sortable = class { constructor() {} option(name, value) { w.sortableDisabled = name === 'disabled' && value; } };
     w.eval(read('static/js/study_plan_builder.js').replace("import { AuthService } from './auth.js';", ''));
     w.document.dispatchEvent(new w.Event('DOMContentLoaded'));

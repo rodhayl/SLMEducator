@@ -90,7 +90,9 @@ def _generate(service, request, kind: str, index: int) -> dict:
             "questions": questions,
             "passing_score": 70,
         }
-    return normalize_content(kind, result)
+    # Generated exam definitions are converted transactionally to Assessment;
+    # only the resulting pointer is learner Content and uses that schema.
+    return result if kind == "assessment" else normalize_content(kind, result)
 
 
 def _draft_assessment(db, user, request, data: dict) -> Assessment:

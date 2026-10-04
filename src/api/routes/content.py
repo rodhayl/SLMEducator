@@ -87,6 +87,17 @@ def _require_student_can_create_content(
 
 logger = logging.getLogger(__name__)
 
+
+def _can_edit_content(db: Session, user: User, content: Content) -> bool:
+    if not (is_admin(user) or content.creator_id == user.id):
+        return False
+    try:
+        assert_content_editable(db, content)
+        return True
+    except ValueError:
+        return False
+
+
 # --- Pydantic Models ---
 
 
@@ -125,6 +136,7 @@ class ContentResponse(BaseModel):
     creator_id: Optional[int] = None
     creator_username: Optional[str] = None
     creator_name: Optional[str] = None
+    can_edit: bool = False
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -218,6 +230,7 @@ async def list_content(
                 "creator_id": item.creator_id,
                 "creator_username": creator_meta.get("username"),
                 "creator_name": creator_meta.get("name"),
+                "can_edit": _can_edit_content(db, current_user, item),
             }
         )
     return result
@@ -242,6 +255,7 @@ class ContentTreeItem(BaseModel):
     creator_id: Optional[int] = None
     creator_username: Optional[str] = None
     creator_name: Optional[str] = None
+    can_edit: bool = False
 
 
 class ContentTree(BaseModel):
@@ -405,6 +419,7 @@ async def get_content_tree(
                 creator_id=content.creator_id,
                 creator_username=meta.get("username"),
                 creator_name=meta.get("name"),
+                can_edit=_can_edit_content(db, current_user, content),
             )
             if plan_id not in by_plan:
                 plan = db.query(StudyPlan).filter(StudyPlan.id == plan_id).first()
@@ -438,6 +453,7 @@ async def get_content_tree(
                     creator_id=content.creator_id,
                     creator_username=meta.get("username"),
                     creator_name=meta.get("name"),
+                    can_edit=_can_edit_content(db, current_user, content),
                 )
             )
 
@@ -469,8 +485,24 @@ async def get_content(
             status_code=409,
             detail="Content is unavailable. Check the installation encryption key or ask the author to restore the material.",
         )
-    if is_student(current_user):
-        decrypted_data = learner_content(content.content_type.value, decrypted_data)
+    if content.content_type == ContentType.LESSON:
+        try:
+            decrypted_data = normalize_content("lesson", decrypted_data)
+        except ValueError as error:
+            if content.creator_id != current_user.id and not is_admin(current_user):
+                raise HTTPException(status_code=409, detail=str(error)) from error
+    if not (is_admin(current_user) or content.creator_id == current_user.id):
+        # Invalid historical exam rows are readable only as key-free pointers.
+        if content.content_type == ContentType.ASSESSMENT:
+            decrypted_data = learner_content(content.content_type.value, decrypted_data)
+        else:
+            try:
+                decrypted_data = learner_content(
+                    content.content_type.value,
+                    normalize_content(content.content_type.value, decrypted_data),
+                )
+            except ValueError as error:
+                raise HTTPException(status_code=409, detail=str(error)) from error
 
     creator_username = None
     creator_name = None
@@ -495,6 +527,7 @@ async def get_content(
         "creator_username": creator_username,
         "creator_name": creator_name,
         "content_data": decrypted_data,
+        "can_edit": _can_edit_content(db, current_user, content),
     }
 
 

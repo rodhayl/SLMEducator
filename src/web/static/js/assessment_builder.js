@@ -2,7 +2,7 @@
 // Authentication Check - Redirect to login if not authenticated
 // ============================================================================
 document.addEventListener('DOMContentLoaded', () => {
-    if (!AuthService.isAuthenticated()) window.location.href = '/login.html';
+    if (!AuthService.isAuthenticated()) window.location.href = AuthService.loginUrl();
     else if (!['teacher', 'admin'].includes(AuthService.getRole())) window.location.href = '/dashboard.html';
 });
 
@@ -23,7 +23,7 @@ function setAssessmentFeedback(message, type = 'info', assessmentId = null) {
         feedback.innerHTML = `
             <div>${SLMRender.escape(message)}</div>
             <div class="mt-2 d-flex gap-2 flex-wrap">
-                <a href="assessment_taker.html?id=${assessmentId}" class="btn btn-sm btn-primary">Open Assessment</a>
+                <a href="/dashboard.html?view=assessments" class="btn btn-sm btn-primary" data-i18n="recovery.open_assessments">Open assessments</a>
                 <a href="dashboard.html" class="btn btn-sm btn-outline-secondary">Back to Dashboard</a>
             </div>
         `;

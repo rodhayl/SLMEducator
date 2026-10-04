@@ -1,7 +1,7 @@
 import { AuthService } from './auth.js';
 
 if (!AuthService.isAuthenticated()) {
-    window.location.href = '/login.html';
+    window.location.href = AuthService.loginUrl();
 }
 
 const user = AuthService.getUser();
@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Initialize Sortable for phase reordering (33.1)
     const phasesContainer = document.getElementById('phases-container');
-    if (!savedPlanId && phasesContainer && typeof Sortable !== 'undefined') {
+    if (!planReadOnly && phasesContainer && typeof Sortable !== 'undefined') {
         phaseSortable = new Sortable(phasesContainer, {
             animation: 150,
             handle: '.drag-handle',
@@ -91,14 +91,15 @@ window.allowDrop = event => event.preventDefault();
 window.drag = event => event.dataTransfer.setData('id', event.currentTarget.dataset.id);
 window.drop = event => {
     event.preventDefault();
-    if (savedPlanId) return;
+    if (planReadOnly) return;
     const area = event.target.closest('.phase-content-area');
     const item = availableContent.find(item => String(item.id) === event.dataTransfer.getData('id'));
     if (area && item) appendContent(area, item);
 };
 const builderMessage = (key, fallback) => SLMClient.message(key, fallback);
 function moveElement(element, direction) {
-    if (savedPlanId) return;
+    if (planReadOnly) return;
+    planDirty = true;
     const sibling = direction < 0 ? element.previousElementSibling : element.nextElementSibling;
     if (!sibling) return;
     if (direction < 0) element.parentNode.insertBefore(element, sibling);
@@ -113,6 +114,7 @@ function moveButton(element, direction, label) {
     return button;
 }
 function appendContent(area, item) {
+    planDirty = true;
     area.querySelector('small')?.remove();
     const row = document.createElement('div');
     row.className = 'content-item-draggable bg-light'; row.dataset.contentId = item.id;
@@ -122,12 +124,14 @@ function appendContent(area, item) {
         moveButton(row, 1, builderMessage('move_down', 'Move down')));
     const remove = document.createElement('button'); remove.type = 'button';
     remove.className = 'btn btn-sm btn-outline-danger'; remove.textContent = builderMessage('remove', 'Remove');
-    remove.onclick = () => { const card = row.closest('.phase-card'); row.remove(); card.querySelector('select')?.focus(); };
+    remove.onclick = () => { if (planReadOnly) return; planDirty = true; const card = row.closest('.phase-card'); row.remove(); card.querySelector('select')?.focus(); };
     controls.append(remove); row.append(title, controls); area.append(row);
 }
 
 // PHASE MANAGEMENT
 window.addPhase = () => {
+    if (planReadOnly) return;
+    planDirty = true;
     const clone = document.getElementById('phase-template').content.cloneNode(true);
     const card = clone.querySelector('.phase-card');
     card.querySelector('.phase-name-input').setAttribute('aria-label', builderMessage('phase_name', 'Phase name'));
@@ -148,6 +152,8 @@ window.addPhase = () => {
     document.getElementById('phases-container').append(clone);
 };
 window.removePhase = button => {
+    if (planReadOnly) return;
+    planDirty = true;
     button.closest('.phase-card').remove();
     document.getElementById('add-phase-btn')?.focus();
 };
@@ -158,13 +164,16 @@ document.getElementById('content-search').addEventListener('input', event => {
 // SAVE
 let savingPlan = false;
 let savedPlanId = null;
+let planReadOnly = false;
+let planDirty = false;
+document.querySelectorAll('#plan-title, #plan-description, #plan-public, #phases-container').forEach(node => node.addEventListener('input', () => { planDirty = true; }));
 window.saveStudyPlan = async () => {
-    if (savingPlan || savedPlanId) return;
+    if (savingPlan || planReadOnly) return false;
     const title = document.getElementById('plan-title').value;
     const description = document.getElementById('plan-description').value;
     const isPublic = document.getElementById('plan-public').checked;
 
-    if (!title) { showToast(t('study_plan.title_required'), 'warning'); return; }
+    if (!title) { showToast(t('study_plan.title_required'), 'warning'); return false; }
 
     const phases = [];
     const phaseCards = document.querySelectorAll('.phase-card');
@@ -189,8 +198,8 @@ window.saveStudyPlan = async () => {
     savingPlan = true;
     try {
         const token = AuthService.getToken();
-        const res = await fetch('/api/study-plans', {
-            method: 'POST',
+        const res = await fetch(savedPlanId ? `/api/study-plans/${savedPlanId}` : '/api/study-plans', {
+            method: savedPlanId ? 'PUT' : 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
             body: JSON.stringify(payload)
         });
@@ -200,8 +209,10 @@ window.saveStudyPlan = async () => {
             savedPlanId = plan.id;
             history.replaceState(null, '', `study_plan_builder.html?id=${plan.id}`);
             document.getElementById('plan-workflow').classList.remove('d-none');
-            lockSavedPlan();
-            showToast(t('study_plan.created'), 'success', 2000);
+            planDirty = false;
+            await refreshPlanWorkflow();
+            showToast(builderMessage('draft_saved', 'Draft saved. Changes need a new review before publishing.'), 'success', 2000);
+            return true;
         } else {
             const err = await res.json();
             showToast(t('study_plan.error_save', { error: JSON.stringify(err) }), 'danger');
@@ -209,16 +220,19 @@ window.saveStudyPlan = async () => {
     } catch (e) {
         showToast(t('study_plan.error_network'), 'danger');
     } finally { savingPlan = false; }
+    return false;
 }
 
 window.planWorkflow = async action => {
     if (!savedPlanId) return;
     try {
+        if (planDirty && !await window.saveStudyPlan()) return;
         if (action === 'publish' && !await showConfirm(builderMessage('publish_course_confirm', 'Publish this reviewed course for authorized learners?'))) return;
         await SLMClient.request(`/api/study-plans/${savedPlanId}/workflow`, {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action, is_public: document.getElementById('plan-public').checked })
         });
+        await refreshPlanWorkflow();
         showToast(builderMessage(action === 'publish' ? 'published' : 'reviewed', action === 'publish' ? 'Published successfully.' : 'Review recorded. You can publish when ready.'), 'success');
     } catch (error) { showToast(error.message, 'danger'); }
 };
@@ -239,14 +253,35 @@ async function loadSavedPlan() {
             (plan.contents || []).filter(item => item.phase_index === index).sort((a,b) => a.order_index - b.order_index).forEach(item => appendContent(card.querySelector('.phase-content-area'), item));
         });
         document.getElementById('plan-workflow').classList.remove('d-none');
-        lockSavedPlan();
+        planDirty = false;
+        await refreshPlanWorkflow();
         return true;
     } catch (error) { showToast(error.message, 'danger'); return true; }
 }
 
-function lockSavedPlan() {
-    document.querySelectorAll('#phases-container input, #phases-container select, #phases-container button, #plan-title, #plan-description, #plan-public, #save-plan-btn, #add-phase-btn').forEach(control => { control.disabled = true; });
-    phaseSortable?.option('disabled', true);
-    document.querySelectorAll('[draggable]').forEach(item => { item.draggable = false; });
-    document.querySelectorAll('.drag-handle').forEach(handle => { handle.hidden = true; });
+async function refreshPlanWorkflow() {
+    if (!savedPlanId) return;
+    const workflow = await SLMClient.request(`/api/study-plans/${savedPlanId}/workflow`);
+    planReadOnly = workflow.read_only === true;
+    document.getElementById('plan-workflow-status').textContent = builderMessage('workflow_' + workflow.status, workflow.status);
+    document.getElementById('plan-copy-note').classList.toggle('d-none', !planReadOnly);
+    document.querySelectorAll('#phases-container input, #phases-container select, #phases-container button, #plan-title, #plan-description, #plan-public, #save-plan-btn, #add-phase-btn').forEach(control => { control.disabled = planReadOnly; });
+    phaseSortable?.option('disabled', planReadOnly);
+    document.querySelectorAll('[draggable]').forEach(item => { item.draggable = !planReadOnly; });
+    document.querySelectorAll('.drag-handle').forEach(handle => { handle.hidden = planReadOnly; });
+    document.querySelectorAll('[data-workflow-action]').forEach(button => { button.disabled = planReadOnly; });
 }
+window.copyStudyPlan = async () => {
+    if (!savedPlanId || savingPlan) return;
+    savingPlan = true;
+    try {
+        const copy = await SLMClient.request(`/api/study-plans/${savedPlanId}/copy`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ reason: 'revision' })
+        });
+        const id = copy.id ?? copy.plan_id;
+        if (!Number.isInteger(id)) throw new Error(builderMessage('copy_failed', 'The copy could not be opened. Please retry.'));
+        window.location.href = `/study_plan_builder.html?id=${id}`;
+    } catch (error) { showToast(error.message, 'danger'); }
+    finally { savingPlan = false; }
+};
