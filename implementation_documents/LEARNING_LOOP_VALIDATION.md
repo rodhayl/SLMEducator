@@ -135,3 +135,14 @@ The complete synthetic journey is tested, but native Windows execution, live
 browser/assistive-technology acceptance, real-model quality and an authorized
 human pilot remain unverified. The prepared pilot evaluation cannot mark mock
 results as human evidence. No merge, deployment or visibility change is included.
+
+## Final review regression
+
+An independent frozen review passed 48 assistance/temporal/migration tests. It
+found that Q&A failure responses fell back to unrestricted response metadata even
+when the request had enforced hints only. The fallback now preserves the applied
+policy and assistance mode for empty provider answers, provider exceptions and
+service-construction failures. All three cases failed before the fix; the final
+focused assistance/resource run passed 21 tests (5.46 seconds). Critical lint,
+focused route type checking and whitespace checks pass. This metadata correction
+does not change the server-side authorization or claim model-level compliance.

@@ -150,6 +150,44 @@ def test_teacher_disabling_during_provider_work_blocks_delivery(scenario, monkey
     service.close.assert_called_once()
 
 
+@pytest.mark.parametrize("failure", ["empty_answer", "provider_error", "setup_error"])
+def test_question_fallback_preserves_enforced_hint_policy(
+    scenario, monkeypatch, failure
+):
+    from src.api.routes import ai
+
+    client, db, users, selected, plan, _, _ = scenario
+    assessment = assessment_fixture(db, users, plan)
+    selected[0] = users["learner_a"]
+    assert client.post(f"/api/assessments/{assessment.id}/start").status_code == 200
+    service = MagicMock()
+    service.provide_tutoring.return_value = {"explanation": "   "}
+    if failure == "provider_error":
+        service.provide_tutoring.side_effect = RuntimeError("Synthetic provider failure")
+    dependency = MagicMock(return_value=service)
+    if failure == "setup_error":
+        dependency.side_effect = RuntimeError("Synthetic configuration failure")
+    monkeypatch.setattr(ai, "get_ai_service_dependency", dependency)
+
+    response = client.post(
+        "/api/ai/answer-question",
+        json={"question": "Solve this assessment", "assistance": "explanation"},
+    )
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["success"] is False
+    assert body["assistance_policy"]["mode"] == "hints_only"
+    assert body["assistance_policy"]["active_assessment_ids"] == [assessment.id]
+    assert body["effective_assistance"] == "hint"
+    if failure == "setup_error":
+        service.provide_tutoring.assert_not_called()
+        service.close.assert_not_called()
+    else:
+        assert "Assistance mode: hint" in service.provide_tutoring.call_args.kwargs["context"]
+        service.close.assert_called_once()
+
+
 def test_teacher_package_preserves_assistance_policy_as_new_owner_setting(scenario):
     from src.core.services.portability_service import export_course, import_course
     from src.core.services.assistance_policy import assessment_policy

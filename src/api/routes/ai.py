@@ -234,6 +234,8 @@ Keep answers concise but thorough enough to be helpful."""
             return AnswerQuestionResponse(
                 answer="The provider returned no usable answer. Try again or ask your teacher.",
                 success=False,
+                assistance_policy=policy,
+                effective_assistance=assistance,
             )
         suggestions = result.get("suggestions", result.get("follow_up_questions", None))
 
@@ -257,6 +259,8 @@ Keep answers concise but thorough enough to be helpful."""
             ),
             suggestions=["Check AI settings", "Try a simpler question"],
             success=False,
+            assistance_policy=policy,
+            effective_assistance=assistance,
         )
 
     finally:
