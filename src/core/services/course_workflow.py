@@ -3,8 +3,15 @@
 from hashlib import sha256
 import json
 from sqlalchemy.orm import Session
-from src.core.models import Content, StudyPlan, StudyPlanContent, StudentStudyPlan
+from src.core.models import (
+    Assessment,
+    Content,
+    StudyPlan,
+    StudyPlanContent,
+    StudentStudyPlan,
+)
 from .content_schema import normalize_content
+from .assessment_contract import definition_digest, validate_definition
 
 
 def metadata(plan: StudyPlan) -> dict:
@@ -34,16 +41,50 @@ def course_items(db: Session, plan_id: int) -> list[StudyPlanContent]:
     )
 
 
-def course_snapshot(db: Session, plan: StudyPlan) -> list[dict]:
+def course_snapshot(
+    db: Session, plan: StudyPlan, *, require_assessments_published: bool = False
+) -> list[dict]:
     """Validate and fingerprint the exact reviewed content and its order."""
     result = []
+    positions = set()
+    definitions = [
+        {"assessment_id": item.id, "digest": definition_digest(item)}
+        for item in db.query(Assessment)
+        .filter_by(study_plan_id=plan.id)
+        .order_by(Assessment.id)
+    ]
     for link in course_items(db, plan.id):
+        position = (link.phase_index, link.order_index)
+        if (
+            not 0 <= link.phase_index <= 100
+            or not 0 <= link.order_index <= 1000
+            or position in positions
+        ):
+            raise ValueError(
+                "Course items require bounded, unique phase/order positions"
+            )
+        positions.add(position)
         content = link.content
         if not content or content.is_personal:
             raise ValueError("Course items must reference nonpersonal content")
         data = normalize_content(
             content.content_type.value, content.decrypted_content_data or {}
         )
+        if content.content_type.value == "assessment":
+            assessment = db.get(Assessment, data["assessment_id"])
+            if (
+                not assessment
+                or assessment.study_plan_id != plan.id
+                or assessment.created_by_id != plan.creator_id
+            ):
+                raise ValueError(
+                    "A course assessment must belong to this course and its author"
+                )
+            validate_definition(assessment)
+            if require_assessments_published and not assessment.is_published:
+                raise ValueError(
+                    "Publish each linked assessment before publishing or assigning this course"
+                )
         result.append(
             {
                 "content_id": content.id,
@@ -53,6 +94,7 @@ def course_snapshot(db: Session, plan: StudyPlan) -> list[dict]:
                 "digest": sha256(
                     json.dumps(data, sort_keys=True, ensure_ascii=False).encode()
                 ).hexdigest(),
+                "assessment_definitions": definitions,
             }
         )
     if not result:
@@ -114,7 +156,9 @@ def transition(
     """Review and publish explicit teacher decisions with version fingerprints."""
     data = metadata(plan)
     old = workflow(plan)
-    snapshot = course_snapshot(db, plan)
+    snapshot = course_snapshot(
+        db, plan, require_assessments_published=action == "publish"
+    )
     if action == "review":
         assert_plan_editable(db, plan)
         state = {
@@ -141,7 +185,7 @@ def require_published(db: Session, plan: StudyPlan) -> dict:
     """Only the reviewed exact version can be assigned."""
     state = workflow(plan)
     if state.get("status") != "published" or state.get("snapshot") != course_snapshot(
-        db, plan
+        db, plan, require_assessments_published=True
     ):
         raise ValueError("Review and publish the current course before assigning it")
     return state

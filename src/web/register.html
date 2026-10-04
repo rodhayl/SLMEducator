@@ -17,45 +17,48 @@
 <body>
     <div class="auth-wrapper">
         <div class="auth-container">
-            <h2>Create Account</h2>
-            <div id="error-msg" class="error-message d-none" style="display: none;"></div>
+            <h2 data-i18n="recovery.create_account">Create Account</h2>
+            <div id="error-msg" role="status" aria-live="polite" class="error-message d-none" style="display: none;"></div>
             <form id="register-form">
                 <div class="form-group">
-                    <label class="form-label">Role</label>
-                    <select class="form-select" name="role">
+                    <label class="form-label" for="register-role" data-i18n="recovery.role">Role</label>
+                    <select class="form-select" id="register-role" name="role">
                         <option value="admin">Admin</option>
                         <option value="teacher">Teacher</option>
                         <option value="student">Student</option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">First Name</label>
-                    <input type="text" class="form-control" name="first_name" required>
+                    <label class="form-label" for="register-first_name" data-i18n="recovery.first_name">First Name</label>
+                    <input type="text" class="form-control" id="register-first_name" name="first_name" required>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Last Name</label>
-                    <input type="text" class="form-control" name="last_name" required>
+                    <label class="form-label" for="register-last_name" data-i18n="recovery.last_name">Last Name</label>
+                    <input type="text" class="form-control" id="register-last_name" name="last_name" required>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Email</label>
-                    <input type="email" class="form-control" name="email" required>
+                    <label class="form-label" for="register-email" data-i18n="recovery.email">Email</label>
+                    <input type="email" class="form-control" id="register-email" name="email" required>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Username</label>
-                    <input type="text" class="form-control" name="username" required>
+                    <label class="form-label" for="register-username" data-i18n="recovery.username">Username</label>
+                    <input type="text" class="form-control" id="register-username" name="username" required>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Password</label>
-                    <input type="password" class="form-control" name="password" required>
+                    <label class="form-label" for="register-password" data-i18n="recovery.password">Password</label>
+                    <input type="password" class="form-control" id="register-password" name="password" required>
                 </div>
-                <button type="submit" class="btn btn-primary w-100">Register</button>
+                <p id="register-role-summary" role="status"></p>
+                <button type="submit" class="btn btn-primary w-100" data-i18n="recovery.create_account">Create Account</button>
             </form>
             <div class="auth-links">
-                <a href="/login.html">Back to Login</a>
+                <a href="/dashboard.html" id="register-return" data-i18n="recovery.back_dashboard">Back to dashboard</a>
+                <div id="register-success-actions" class="d-none mt-3"><button type="button" id="create-another-account" class="btn btn-outline-primary" data-i18n="recovery.create_another">Create another account</button></div>
             </div>
         </div>
     </div>
     <script src="/static/js/theme.js"></script>
+    <script src="/static/js/i18n.js"></script>
     <script type="module" src="/static/js/auth.js?v=20260204"></script>
 </body>
 

@@ -1415,6 +1415,21 @@
     "stop_generation": "Stop generation",
     "generation_stop_requested": "Stop requested. The current call may finish; saved items are kept.",
     "generation_stop_unconfirmed": "Server cancellation could not be confirmed. This lesson may finish; no later lesson will be requested here.",
-    "generation_stopped": "Generation stopped. Review saved items or retry the unfinished work."
+    "generation_stopped": "Generation stopped. Review saved items or retry the unfinished work.",
+    "create_account": "Create account",
+    "role": "Role",
+    "role_admin": "Administrator",
+    "role_teacher": "Teacher",
+    "role_student": "Student",
+    "first_name": "First name",
+    "last_name": "Last name",
+    "email": "Email",
+    "username": "Username",
+    "password": "Password",
+    "back_dashboard": "Back to dashboard",
+    "create_another": "Create another account",
+    "selected_role": "Account role:",
+    "account_created": "Account created. You are still signed in to your own account.",
+    "create_user_denied": "Only teachers and administrators can create accounts."
   }
 }

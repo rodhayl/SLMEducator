@@ -41,6 +41,7 @@ from src.core.services.assistance_policy import (
     assessment_policy,
     set_assessment_policy,
 )
+from src.core.services.content_schema import normalize_content, learner_content
 
 PACKAGE_VERSION = 1
 MAX_PACKAGE_BYTES = 10 * 1024 * 1024
@@ -99,8 +100,8 @@ class AssessmentData(PackageModel):
 
 
 class LinkData(PackageModel):
-    phase_index: int = Field(ge=0)
-    order_index: int = Field(ge=0)
+    phase_index: int = Field(ge=0, le=100)
+    order_index: int = Field(ge=0, le=1000)
     is_required: bool = True
 
 
@@ -199,35 +200,7 @@ def _clean_metadata(value: Any) -> Any:
 
 def _learner_content(content: Content, data: dict) -> dict:
     """Handouts contain visible instructional fields, not hidden grading assets."""
-    allowed = {
-        ContentType.LESSON: {
-            "title",
-            "content",
-            "text",
-            "body",
-            "sections",
-            "summary",
-            "objectives",
-            "key_concepts",
-        },
-        ContentType.EXERCISE: {
-            "question",
-            "question_text",
-            "type",
-            "question_type",
-            "options",
-            "points",
-        },
-        ContentType.ASSESSMENT: {"assessment_id", "title", "instructions"},
-        ContentType.QA: {"question", "answer", "content"},
-    }[content.content_type]
-    result = {key: deepcopy(value) for key, value in data.items() if key in allowed}
-    if "sections" in result:
-        result["sections"] = [
-            {key: value for key, value in item.items() if key in {"title", "content"}}
-            for item in result["sections"]
-            if isinstance(item, dict)
-        ]
+    result = learner_content(content.content_type.value, data, handout=True)
     if "options" in result:
         result["options"] = _learner_options(result["options"])
     return result
@@ -398,6 +371,26 @@ def export_course(db: Session, user: User, plan: StudyPlan, audience: str) -> di
         )
         if allowed and (teacher or item.is_published):
             assessments.append(_assessment_data(db, item, teacher, set(linked)))
+    if not teacher:
+        visible_assessments = {item["source_id"] for item in assessments}
+        contents = [
+            item
+            for item in contents
+            if item["kind"] != "assessment"
+            or item["content_data"].get("assessment_id") in visible_assessments
+        ]
+        visible_contents = {item["source_id"] for item in contents}
+        for item in contents:
+            item["prerequisite_source_ids"] = [
+                ref
+                for ref in item["prerequisite_source_ids"]
+                if ref in visible_contents
+            ]
+            if item["remedial_source_id"] not in visible_contents:
+                item["remedial_source_id"] = None
+        for item in assessments:
+            if item["topic_source_id"] not in visible_contents:
+                item["topic_source_id"] = None
     metadata = _clean_metadata(_json_field(plan.content_metadata)) if teacher else {}
     if "workflow" in metadata:
         metadata["workflow"] = {
@@ -421,7 +414,14 @@ def export_course(db: Session, user: User, plan: StudyPlan, audience: str) -> di
         "contents": contents,
         "assessments": assessments,
         "books": [
-            {"title": book.title, "chapter_source_ids": book.chapters or []}
+            {
+                "title": book.title,
+                "chapter_source_ids": [
+                    ref
+                    for ref in book.chapters or []
+                    if teacher or ref in visible_contents
+                ],
+            }
             for book in db.query(Book)
             .filter_by(study_plan_id=plan.id)
             .order_by(Book.id)
@@ -437,7 +437,7 @@ def export_course(db: Session, user: User, plan: StudyPlan, audience: str) -> di
             ]
         ),
     }
-    return CoursePackage.model_validate(data).model_dump(mode="json")
+    return validate_package(data).model_dump(mode="json")
 
 
 def _learner_phases(phases: list) -> list:
@@ -485,13 +485,29 @@ def validate_package(data: dict) -> CoursePackage:
     if len(json.dumps(data, ensure_ascii=False).encode()) > MAX_PACKAGE_BYTES:
         raise ValueError("Course package exceeds the 10 MB limit")
     package = CoursePackage.model_validate(data)
+    if len(package.study_plan.phases) > 101 or any(
+        not isinstance(phase, dict) for phase in package.study_plan.phases
+    ):
+        raise ValueError("Course phases must be a list of at most 101 objects")
+    for phase in package.study_plan.phases:
+        for key in ("content_ids", "lessons"):
+            if key in phase and not isinstance(phase[key], list):
+                raise ValueError("Phase references must be lists")
     content_ids = [item.source_id for item in package.contents]
     assessment_ids = [item.source_id for item in package.assessments]
     if len(content_ids) != len(set(content_ids)) or len(assessment_ids) != len(
         set(assessment_ids)
     ):
         raise ValueError("Duplicate package IDs")
+    positions = set()
     for item in package.contents:
+        # Every ingress shares creation/editing semantics; validate before writes.
+        item.content_data = normalize_content(item.kind.value, item.content_data)
+        for link in item.links:
+            position = (link.phase_index, link.order_index)
+            if position in positions:
+                raise ValueError("Course positions must be unique within each phase")
+            positions.add(position)
         refs = item.prerequisite_source_ids + (
             [item.remedial_source_id] if item.remedial_source_id else []
         )
@@ -535,6 +551,8 @@ def _remap(
                 )
             )
             if mapping is not None and item is not None:
+                if type(item) is not int or item <= 0:
+                    raise ValueError("Embedded reference must be a positive integer")
                 if item not in mapping:
                     raise ValueError("Embedded reference is outside this package")
                 result[key] = mapping[item]
@@ -551,14 +569,19 @@ def _remap(
         return result
     if isinstance(value, list):
         if parent_key in {"content_ids", "lessons", "content"}:
-            return [
-                (
-                    content_ids[item]
-                    if isinstance(item, int) and item in content_ids
-                    else _remap(item, content_ids, assessment_ids, parent_key)
-                )
-                for item in value
-            ]
+            result = []
+            for item in value:
+                if type(item) is int:
+                    if item not in content_ids:
+                        raise ValueError(
+                            "Phase content reference is outside this package"
+                        )
+                    result.append(content_ids[item])
+                elif parent_key == "content_ids":
+                    raise ValueError("Content references must be positive integers")
+                else:
+                    result.append(_remap(item, content_ids, assessment_ids, parent_key))
+            return result
         return [_remap(item, content_ids, assessment_ids, parent_key) for item in value]
     return value
 

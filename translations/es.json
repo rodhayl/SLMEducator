@@ -1415,6 +1415,21 @@
     "stop_generation": "Detener generación",
     "generation_stop_requested": "Parada solicitada. La llamada actual puede terminar; se conservan los elementos guardados.",
     "generation_stop_unconfirmed": "No se pudo confirmar la cancelación en el servidor. Esta lección puede terminar; aquí no se solicitarán lecciones posteriores.",
-    "generation_stopped": "Generación detenida. Revisa lo guardado o reintenta el trabajo pendiente."
+    "generation_stopped": "Generación detenida. Revisa lo guardado o reintenta el trabajo pendiente.",
+    "create_account": "Crear cuenta",
+    "role": "Rol",
+    "role_admin": "Administrador",
+    "role_teacher": "Docente",
+    "role_student": "Alumno",
+    "first_name": "Nombre",
+    "last_name": "Apellidos",
+    "email": "Correo electrónico",
+    "username": "Usuario",
+    "password": "Contraseña",
+    "back_dashboard": "Volver al panel",
+    "create_another": "Crear otra cuenta",
+    "selected_role": "Rol de la cuenta:",
+    "account_created": "Cuenta creada. Sigues conectado con tu propia cuenta.",
+    "create_user_denied": "Sólo docentes y administradores pueden crear cuentas."
   }
 }

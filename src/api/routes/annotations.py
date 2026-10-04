@@ -19,7 +19,7 @@ from src.api.dependencies import get_db
 from src.api.security import get_current_user
 from src.core.models import User, Content, Annotation
 from src.core.roles import is_admin
-from src.api.policies import require_content, can_manage_student, require_allowed
+from src.api.policies import require_content, can_manage_student
 
 router = APIRouter(prefix="/api/annotations", tags=["annotations"])
 
@@ -69,16 +69,18 @@ async def list_annotations(
     # Query annotations for this content
     query = db.query(Annotation).filter(Annotation.content_id == content_id)
 
-    # Filter: public ones OR user's own
-    query = query.filter(
-        (Annotation.is_public == True) | (Annotation.user_id == current_user.id)
-    )
-
     annotations = query.order_by(Annotation.id.desc()).all()
 
     result = []
     for ann in annotations:
         user = db.query(User).filter(User.id == ann.user_id).first()
+        # Historical is_public was labelled "visible to teacher" by the UI.
+        # Preserve that promised audience; it never grants class-wide access.
+        if ann.user_id != current_user.id and not (
+            ann.is_public
+            and (is_admin(current_user) or can_manage_student(db, current_user, user))
+        ):
+            continue
         result.append(
             AnnotationResponse(
                 id=ann.id,
@@ -105,8 +107,7 @@ async def create_annotation(
 ):
     """Create a new annotation on content"""
     # Verify content exists
-    content = db.query(Content).filter(Content.id == data.content_id).first()
-    content = require_content(db, current_user, data.content_id)
+    require_content(db, current_user, data.content_id)
 
     annotation = Annotation(
         content_id=data.content_id,

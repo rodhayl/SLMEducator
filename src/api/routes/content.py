@@ -7,7 +7,7 @@ from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 
 from src.api.dependencies import get_db
-from src.core.services.content_schema import normalize_content
+from src.core.services.content_schema import normalize_content, learner_content
 from src.core.services.course_workflow import (
     assert_content_editable,
     assert_plan_editable,
@@ -469,6 +469,8 @@ async def get_content(
             status_code=409,
             detail="Content is unavailable. Check the installation encryption key or ask the author to restore the material.",
         )
+    if is_student(current_user):
+        decrypted_data = learner_content(content.content_type.value, decrypted_data)
 
     creator_username = None
     creator_name = None

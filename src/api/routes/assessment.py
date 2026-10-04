@@ -1,3 +1,4 @@
+from src.core.services.assessment_contract import usable_answer_key as _usable_answer_key, validate_definition
 from fastapi import APIRouter, Depends, HTTPException, Query
 from src.core.services.temporal_service import utc_now, known_instant, timestamp_provenance, duration_minutes
 
@@ -848,40 +849,12 @@ def _require_submitted(submission: Submission) -> None:
         raise HTTPException(status_code=409, detail="Attempt has not been submitted")
 
 
-def _usable_answer_key(question: Question) -> Optional[str]:
-    """Fail closed on missing, corrupt or unverifiable legacy grading keys."""
-    try:
-        answer = question.get_decrypted_correct_answer()
-    except Exception:
-        return None
-    # Legacy decrypt_data returns raw input on failure. Require actual decryption
-    # before a key can govern a final result or appear as an editable valid key.
-    if (
-        not isinstance(answer, str)
-        or not answer.strip()
-        or answer == question.correct_answer
-    ):
-        return None
-    return answer
-
-
 def _validate_publish(assessment: Assessment) -> None:
-    """Ensure a published assessment has usable questions and answer keys."""
-    if not assessment.questions or any(q.points <= 0 for q in assessment.questions):
-        raise HTTPException(
-            status_code=422,
-            detail="Published assessments require positive-point questions",
-        )
-    objective = {QuestionType.MULTIPLE_CHOICE, QuestionType.TRUE_FALSE}
-    for question in assessment.questions:
-        if (
-            question.question_type in objective
-            and not _usable_answer_key(question)
-        ):
-            raise HTTPException(
-                status_code=422,
-                detail="Objective questions require an answer key before publication",
-            )
+    """Use the same definition contract as course publication."""
+    try:
+        validate_definition(assessment)
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
     assessment.total_points = sum(q.points for q in assessment.questions)
 
 

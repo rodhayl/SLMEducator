@@ -10,6 +10,8 @@ def normalize_content(kind: str, value: dict[str, Any]) -> dict[str, Any]:
     """Validate useful content and provide consistent lesson/practice fields."""
     if not isinstance(value, dict) or value.get("error"):
         raise ValueError("Content must be a valid object without a generation error")
+    if kind not in {"lesson", "exercise", "assessment", "qa"}:
+        raise ValueError("Unsupported learning content kind")
     data = deepcopy(value)
     data["schema_version"] = SCHEMA_VERSION
     data["kind"] = kind
@@ -46,11 +48,91 @@ def normalize_content(kind: str, value: dict[str, Any]) -> dict[str, Any]:
         if data.get("type") == "multiple_choice" and not data.get("options"):
             raise ValueError("Multiple-choice practice needs options")
     elif kind == "assessment":
-        if not data.get("assessment_id") and not data.get("questions"):
+        if type(data.get("assessment_id")) is not int or data["assessment_id"] <= 0:
             raise ValueError(
-                "An assessment needs questions or a linked executable draft"
+                "Assessment content must link an executable assessment_id; import questions and rubrics in the assessments collection"
+            )
+        if any(
+            key in data
+            for key in (
+                "questions",
+                "correct_answer",
+                "answer",
+                "rubric",
+                "rubrics",
+                "solution",
+            )
+        ):
+            raise ValueError(
+                "Inline assessment questions, keys and rubrics are not allowed in content"
             )
     elif kind == "qa":
         if not (data.get("question") or data.get("content") or data.get("answer")):
             raise ValueError("Q&A needs a question or content")
     return data
+
+
+def learner_content(
+    kind: str, value: dict[str, Any], *, handout: bool = False
+) -> dict[str, Any]:
+    """Serialize explicit instructional fields; hidden assessment assets never cross."""
+    allowed = {
+        "lesson": {
+            "title",
+            "content",
+            "text",
+            "body",
+            "sections",
+            "summary",
+            "objectives",
+            "key_concepts",
+            "vocabulary",
+        },
+        "exercise": {
+            "question",
+            "question_text",
+            "type",
+            "question_type",
+            "options",
+            "points",
+            "hint",
+        },
+        "assessment": {"assessment_id", "title", "instructions"},
+        "qa": {"question", "answer", "content"},
+    }.get(kind, set())
+    # Independent practice intentionally supports learner self-checks. A printable
+    # handout has a different purpose and omits its answer/solution keys.
+    if kind == "exercise" and not handout:
+        allowed |= {"answer", "correct_answer", "solution", "explanation", "hints"}
+    result = {key: deepcopy(item) for key, item in value.items() if key in allowed}
+    if "sections" in result:
+        sections = result["sections"]
+        result["sections"] = (
+            [
+                {
+                    key: item[key]
+                    for key in ("title", "content", "text")
+                    if isinstance(item.get(key), str)
+                }
+                for item in sections
+                if isinstance(item, dict)
+            ]
+            if isinstance(sections, list)
+            else []
+        )
+    if "vocabulary" in result:
+        vocabulary = result["vocabulary"]
+        result["vocabulary"] = (
+            [
+                {
+                    key: item[key]
+                    for key in ("term", "definition")
+                    if isinstance(item.get(key), str)
+                }
+                for item in vocabulary
+                if isinstance(item, dict)
+            ]
+            if isinstance(vocabulary, list)
+            else []
+        )
+    return result
