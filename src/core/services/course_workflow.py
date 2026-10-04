@@ -2,6 +2,7 @@
 
 from hashlib import sha256
 import json
+from typing import cast
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 from src.core.models import (
@@ -69,6 +70,9 @@ def course_snapshot(
 ) -> list[dict]:
     """Validate and fingerprint the exact reviewed content and its order."""
     result = []
+    plan_id = plan.id
+    if plan_id is None:
+        raise ValueError("Save the course before reviewing its content")
     positions = set()
     definitions = [
         {"assessment_id": item.id, "digest": definition_digest(item)}
@@ -76,20 +80,24 @@ def course_snapshot(
         .filter_by(study_plan_id=plan.id)
         .order_by(Assessment.id)
     ]
-    for link in course_items(db, plan.id):
-        position = (link.phase_index, link.order_index)
+    for link in course_items(db, plan_id):
+        phase, order = link.phase_index, link.order_index
+        position = (phase, order)
         if (
-            not 0 <= link.phase_index <= 100
-            or not 0 <= link.order_index <= 1000
+            phase is None or order is None
+            or not 0 <= phase <= 100
+            or not 0 <= order <= 1000
             or position in positions
         ):
             raise ValueError(
                 "Course items require bounded, unique phase/order positions"
             )
         positions.add(position)
-        content = link.content
+        content = cast(Content | None, link.content)
         if not content or content.is_personal:
             raise ValueError("Course items must reference nonpersonal content")
+        if content.content_type is None:
+            raise ValueError("Course items require a content type")
         data = normalize_content(
             content.content_type.value, content.decrypted_content_data or {}
         )

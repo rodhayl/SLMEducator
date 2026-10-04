@@ -2,9 +2,9 @@
 
 from hashlib import sha256
 import json
-from typing import Optional
+from typing import Optional, cast
 
-from src.core.models import Assessment, Question, QuestionType
+from src.core.models import Assessment, Question, QuestionType, Rubric, RubricCriterion
 
 
 def usable_answer_key(question: Question) -> Optional[str]:
@@ -24,9 +24,10 @@ def usable_answer_key(question: Question) -> Optional[str]:
 
 def validate_definition(assessment: Assessment) -> None:
     """Reject incomplete definitions before assessment or course publication."""
-    if not assessment.questions or any(q.points <= 0 for q in assessment.questions):
+    questions = cast(list[Question], assessment.questions)
+    if not questions or any(q.points is None or q.points <= 0 for q in questions):
         raise ValueError("Published assessments require positive-point questions")
-    for question in assessment.questions:
+    for question in questions:
         if question.question_type in {
             QuestionType.MULTIPLE_CHOICE,
             QuestionType.TRUE_FALSE,
@@ -46,20 +47,20 @@ def definition_digest(assessment: Assessment) -> str:
         "time_limit_minutes": assessment.time_limit_minutes,
         "max_attempts": assessment.max_attempts,
         "passing_score": assessment.passing_score,
-        "grading_mode": assessment.grading_mode.value,
+        "grading_mode": assessment.grading_mode.value if assessment.grading_mode else None,
         "is_published": assessment.is_published,
         "questions": [
             {
                 "id": q.id,
                 "text": q.question_text,
-                "type": q.question_type.value,
+                "type": q.question_type.value if q.question_type else None,
                 "points": q.points,
                 "order": q.order_index,
                 "options": q.options,
                 "metadata": q.content_metadata,
                 "key": usable_answer_key(q),
             }
-            for q in sorted(assessment.questions, key=lambda q: (q.order_index, q.id))
+            for q in sorted(cast(list[Question], assessment.questions), key=lambda q: (q.order_index or 0, q.id or 0))
         ],
         "rubrics": [
             {
@@ -73,10 +74,10 @@ def definition_digest(assessment: Assessment) -> str:
                         "points": c.max_points,
                         "order": c.order_index,
                     }
-                    for c in sorted(r.criteria, key=lambda c: (c.order_index, c.id))
+                    for c in sorted(cast(list[RubricCriterion], r.criteria), key=lambda c: (c.order_index or 0, c.id or 0))
                 ],
             }
-            for r in sorted(assessment.rubrics, key=lambda r: r.id)
+            for r in sorted(cast(list[Rubric], assessment.rubrics), key=lambda r: r.id or 0)
         ],
     }
     return sha256(

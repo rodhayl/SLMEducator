@@ -37,11 +37,18 @@ jobs:
           npm ci --ignore-scripts --prefix tests/ui
       - name: Check critical Python syntax and names
         run: python -m flake8 src scripts tests --select E9,F63,F7,F82
+      - name: Type-check audited domain contracts
+        run: >-
+          python -m mypy src/core/services/course_workflow.py
+          src/core/services/generation_workflow.py
+          src/core/services/settings_config_service.py
+          src/core/services/progress_tracking_service.py
       - name: Run synthetic API, service and packaging checks
         run: >-
           python -m pytest tests -q -ra --strict-markers
           --ignore=tests/manual --ignore=tests/e2e --ignore=tests/real_ai
           -m "not real_ai"
+          --cov=src --cov-report=term --cov-fail-under=80
           --basetemp="${RUNNER_TEMP}/slm-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
       - name: Run serial DOM regressions
         run: npm test --prefix tests/ui

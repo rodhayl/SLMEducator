@@ -96,6 +96,16 @@ def output_token_limit(config: Any, requested: int) -> int:
     return min(requested, configured) if type(configured) is int and configured > 0 else requested
 
 
+class _JSONLiteralNames(ast.NodeTransformer):
+    """Translate bare JSON constants without rewriting educational string values."""
+
+    def visit_Name(self, node: ast.Name) -> ast.AST:
+        values = {"null": None, "true": True, "false": False}
+        if node.id in values:
+            return ast.copy_location(ast.Constant(value=values[node.id]), node)
+        return node
+
+
 class AIService:
     """
     AI Service for content generation and tutoring functionality.
@@ -657,12 +667,8 @@ class AIService:
             try:
                 return json.loads(json_str)
             except json.JSONDecodeError:
-                normalized = (
-                    json_str.replace("null", "None")
-                    .replace("true", "True")
-                    .replace("false", "False")
-                )
-                parsed = ast.literal_eval(normalized)
+                syntax = ast.parse(json_str, mode="eval")
+                parsed = ast.literal_eval(_JSONLiteralNames().visit(syntax))
                 if not isinstance(parsed, dict):
                     raise ValueError("Parsed response was not a JSON object")
                 return parsed
@@ -814,7 +820,8 @@ class AIService:
             return assessment_data
 
         except Exception as e:
-            self.logger.error(f"Failed to assess progress for user {user.id}: {e}")
+            user_id = user.get("id") if isinstance(user, dict) else user.id
+            self.logger.error(f"Failed to assess progress for user {user_id}: {e}")
             raise AIServiceError(f"Progress assessment failed: {e}")
 
     def generate_content(
@@ -1381,7 +1388,7 @@ class AIService:
 (Grade {user.get('grade_level') if isinstance(user, dict) else user.grade_level})
         Session Duration: {learning_session.duration_minutes} minutes
         Completion Status: {learning_session.completion_status}
-        Score: {learning_session.score or 'N/A'}
+        Score: {learning_session.score if learning_session.score is not None else 'N/A'}
 
         Provide assessment in this format:
         {{
@@ -1457,31 +1464,11 @@ class AIService:
         return data
 
     def _parse_progress_assessment_response(self, response: str) -> Dict[str, Any]:
-        """Parse AI progress assessment response."""
-        try:
-            json_start = response.find("{")
-            json_end = response.rfind("}") + 1
-
-            if json_start != -1 and json_end > json_start:
-                json_str = response[json_start:json_end]
-                return json.loads(json_str)
-            else:
-                return {
-                    "progress_summary": "Good progress made",
-                    "strengths": ["Consistent effort"],
-                    "areas_for_improvement": ["Continue practicing"],
-                    "recommendations": ["Keep studying regularly"],
-                    "next_steps": "Continue with current learning path",
-                }
-
-        except json.JSONDecodeError:
-            return {
-                "progress_summary": "Good progress made",
-                "strengths": ["Consistent effort"],
-                "areas_for_improvement": ["Continue practicing"],
-                "recommendations": ["Keep studying regularly"],
-                "next_steps": "Continue with current learning path",
-            }
+        """Return actual structured feedback, never fabricate progress on failure."""
+        data = self._parse_json_response(response, "progress assessment")
+        if not isinstance(data.get("progress_summary"), str) or not data["progress_summary"].strip():
+            raise AIContentValidationError("Progress feedback needs an actual summary")
+        return data
 
     def close(self):
         """Close HTTP client."""

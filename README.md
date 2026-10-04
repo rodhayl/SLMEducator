@@ -100,7 +100,9 @@ Notes:
 
 The GitHub workflow `.github/workflows/offline-tests.yml` installs pinned test
 dependencies, then runs synthetic API/service/packaging tests and serial DOM
-regressions. The test phase disables provider discovery and real HTTP transports.
+regressions. CI also checks the audited domain types and enforces the existing
+80% whole-source line-coverage target. The test phase disables provider discovery
+and real HTTP transports.
 It excludes manual tests, existing-server browser tests and real-provider suites;
 installation still requires access to package registries.
 

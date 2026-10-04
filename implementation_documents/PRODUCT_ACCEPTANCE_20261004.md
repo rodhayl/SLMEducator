@@ -88,3 +88,48 @@ One local process remains the supported evaluation scope. Cancellation suppresse
 local delivery; a provider may continue processing and charging. Unknown usage,
 source provenance and historical timezone data remain explicitly unknown.
 No main merge, deployment or executable distribution is included.
+
+
+## Quality follow-up: typed boundaries and additional behavior checks
+
+The earlier 21 transitive diagnostics are now repaired without broad ignore rules.
+Explicit relationship types and nullable-value validation preserve unsaved draft
+identity rather than inventing grading defaults. The same transitive command now
+passes for course/generation workflow, settings and progress services. Optional
+streak dates are read once and narrowed; unknown/stale activity cannot claim a
+current streak. Generated assessment totals accumulate validated integer points.
+
+New deterministic adapter tests exercise all four provider payloads, caps, token
+formats, credential absence, model-list URLs, HTTP errors and transport failures
+using synthetic HTTP responses. They exposed and fixed the default OpenAI chat
+URL and malformed-file recovery: partial parsing no longer causes a duplicate
+section crash, fallback does not overwrite the original file, and a later save
+requires repairing/reloading that file. Parse errors no longer log its contents.
+
+The previously untested progress helper also used nonexistent assignment fields
+and could confuse other-course mastery or stale outline items with completion.
+It now reads canonical graph IDs and explicit assignment completion IDs, keeping
+mastery independent. The affected 107-case domain/provider/settings/storage/
+progress/temporal scope passes. These passes do not replace the earlier aggregate.
+
+Additional AI generation/parser and source-extraction coverage is in progress.
+The final measured coverage and CI source identity will be appended after the
+new candidate stabilizes. Original aggregate coverage data remains preserved.
+
+
+## Final quality candidate and measured gate
+
+Additional generation and real synthetic-PDF/text tests cover transport failure,
+strict structured output, source limits/provenance and encrypted enhancement.
+The literal parser now translates bare JSON constants without corrupting words
+inside strings. Malformed progress feedback raises a reviewable service error
+instead of inventing praise, detached-user errors preserve their error type, and
+zero remains zero in the progress prompt. Content-storage regressions check
+ciphertext, filters and rollback on actual SQLite constraint failure.
+
+The final CI candidate enforces the repository's existing **80% whole-src line
+coverage target** and the repaired transitive domain type check. No artificial
+coverage exclusions or provider calls were added. The local 721-pass aggregate
+and its 72.58% result remain historical evidence for their original commit; the
+new CI result must be checked for this final candidate before claiming the
+quality gate is complete. The native/browser/model/human gates above remain open.

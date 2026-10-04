@@ -112,6 +112,7 @@ def _draft_assessment(db, user, request, data: dict) -> Assessment:
     )
     db.add(assessment)
     db.flush()
+    total_points = 0
     for index, item in enumerate(questions):
         text = item.get("question_text") or item.get("question")
         if not isinstance(text, str) or not text.strip():
@@ -186,7 +187,8 @@ def _draft_assessment(db, user, request, data: dict) -> Assessment:
                         order_index=order,
                     )
                 )
-        assessment.total_points += points
+        total_points += points
+        assessment.total_points = total_points
     return assessment
 
 

@@ -939,8 +939,9 @@ class DatabaseService:
                 # Get streak information from user
                 user = session.get(User, user_id)
                 streak_days = 0
-                if user and last_activity_day(user):
-                    days_since_activity = (local_date(user) - last_activity_day(user)).days
+                activity_day = last_activity_day(user) if user else None
+                if user and activity_day is not None:
+                    days_since_activity = (local_date(user) - activity_day).days
                     # Only count as active streak if activity was today or yesterday
                     if 0 <= days_since_activity <= 1:
                         streak_days = user.current_streak or 0
