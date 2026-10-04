@@ -76,3 +76,15 @@ Native Tk button shutdown, manual Windows-package restoration, complete
 Chrome DevTools/native accessibility acceptance, the user's configured real
 provider and an authorized human pilot remain separate. This continuation does
 not install a large model or consume paid inference. No merge or deployment.
+
+
+## First real-browser run
+
+Run `37223476147` on `0162b82e` executed real Chromium successfully: four cases
+passed. Teacher roster isolation and saved English/dark preferences, learner
+notes/help/pause/resume/next completion, narrow keyboard login and fixture setup
+were exercised. The fifth case downloaded the teacher package but the harness
+then attempted import without selecting the visible Import purpose. That hidden
+panel timeout is retained as a test-harness failure, not reported as an application
+defect. The harness now clicks the purpose control and verifies the import panel
+is visible before uploading. Its complete rerun remains required.

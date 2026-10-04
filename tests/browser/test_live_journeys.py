@@ -102,6 +102,7 @@ def test_portability_preview_download_and_teacher_roundtrip(live_page, browser_w
     page, world = live_page, browser_world
     login(page, world, "teacher_a")
     page.goto(world.base_url + "/portability.html")
+    page.locator('[data-portability-purpose="teacher"]').click()
     page.locator("#export-plan").select_option(str(world.manifest["plan_id"]))
     page.locator("#export-audience").select_option("teacher")
     expect(page.locator("#download-export")).to_be_disabled()
@@ -113,6 +114,8 @@ def test_portability_preview_download_and_teacher_roundtrip(live_page, browser_w
     download.value.save_as(destination)
     package = json.loads(destination.read_text(encoding="utf-8"))
     assert package["version"] == 2 and package["audience"] == "teacher"
+    page.locator('[data-portability-purpose="import"]').click()
+    expect(page.locator("#import-section")).to_be_visible()
     page.locator("#import-file").set_input_files(destination)
     expect(page.locator("#confirm-import")).to_be_disabled()
     page.locator("#preview-import").click()
