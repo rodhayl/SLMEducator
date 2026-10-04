@@ -25,6 +25,7 @@ def login(page, world, account):
     page.locator("#login-form button[type=submit]").click()
     expect(page).to_have_url(re.compile(r"/dashboard\.html"))
     expect(page.locator("#user-name-display")).to_be_visible()
+    expect(page.locator("#dashboard-app")).to_have_attribute("aria-busy", "false")
 
 
 def screenshot(page, name):
@@ -53,7 +54,11 @@ def test_teacher_roster_and_interface_preferences(live_page, browser_world):
     expect(page.locator("html")).to_have_attribute("lang", "en")
     expect(page.locator("body")).to_have_class(re.compile("theme-dark"))
     page.reload()
+    page.wait_for_load_state("networkidle")
     expect(page.locator("body")).to_have_class(re.compile("theme-dark"))
+    expect(page.locator("body")).to_have_css("background-color", "rgb(17, 24, 39)")
+    expect(page.locator(".sidebar")).to_have_css("background-color", "rgb(17, 24, 39)")
+    expect(page.locator('label[for="profile-grade-level"]')).to_have_text("Grade (Optional)")
     screenshot(page, "teacher-en-dark.png")
 
 

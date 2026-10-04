@@ -103,6 +103,11 @@ body {
     overflow-x: hidden;
 }
 
+#dashboard-app[inert] {
+    opacity: 0.55;
+    pointer-events: none;
+}
+
 body.theme-dark {
     /* Override design tokens so the whole system flips correctly */
     --bg-body: #111827;

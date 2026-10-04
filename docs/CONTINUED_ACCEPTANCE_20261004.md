@@ -88,3 +88,22 @@ then attempted import without selecting the visible Import purpose. That hidden
 panel timeout is retained as a test-harness failure, not reported as an application
 defect. The harness now clicks the purpose control and verifies the import panel
 is visible before uploading. Its complete rerun remains required.
+
+
+## Startup race reproduced by Chromium
+
+The second browser run `37223776484` completed the portability roundtrip but
+reproduced a different failure: a visible Students click occurred while the
+module was awaiting authentication/timezone initialization, before navigation
+handlers were attached. The dashboard remained on Overview. A related focused
+regression confirmed that binding the settings select applied its HTML Auto
+default over the already-applied saved theme during initialization.
+
+The dashboard now exposes a retryable loading status and keeps the application
+inert until all startup handlers are registered. Settings binding preserves the
+saved theme instead of reapplying a default. The dashboard entry assets are
+versioned with the updated service-worker cache, preventing old cached JavaScript
+from leaving a new inert dashboard locked. Two regressions failed before the
+repair; the 25-case startup/settings/role DOM scope passes after it. The browser
+check also verifies actual dark background styles after network readiness, not
+merely a class name or a screenshot taken during a transition.

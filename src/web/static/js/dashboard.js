@@ -293,7 +293,12 @@ function initSettingsTabs() {
 function initSettingsUI() {
     const themeSelect = document.getElementById('app-theme');
     if (themeSelect && !settingsThemeBound) {
-        applyTheme(themeSelect.value || 'auto');
+        // ThemeService already applied the saved setting. Binding a default
+        // HTML selector must not briefly replace it while requests are pending.
+        try {
+            const saved = localStorage.getItem('slm_theme_preference');
+            if (['auto', 'light', 'dark'].includes(saved)) themeSelect.value = saved;
+        } catch { /* The current applied theme remains usable without storage. */ }
         themeSelect.addEventListener('change', () => applyTheme(themeSelect.value));
         settingsThemeBound = true;
     }
@@ -4209,4 +4214,12 @@ window.saveStudentTeacher = async () => {
     finally { savingStudentTeacher = false; }
 };
 
-if (document.readyState !== 'loading') { restoreDashboardView(); restoreSessionContext(); }
+if (document.readyState !== 'loading') { initSettingsUI(); restoreDashboardView(); restoreSessionContext(); }
+
+function finishDashboardStartup() {
+    const app = document.getElementById('dashboard-app');
+    if (app) { app.removeAttribute('inert'); app.setAttribute('aria-busy', 'false'); }
+    const loading = document.getElementById('dashboard-loading');
+    if (loading) loading.hidden = true;
+}
+finishDashboardStartup();
