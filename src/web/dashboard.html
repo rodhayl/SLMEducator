@@ -14,6 +14,7 @@
     <script src="/static/vendor/marked@15.0.12/marked.min.js"></script>
     <script src="/static/js/safe-render.js"></script>
     <script src="/static/js/learning-client.js"></script>
+    <script src="/static/js/time-display.js"></script>
 </head>
 
 <body>
@@ -1084,8 +1085,12 @@
                 <div class="text-muted text-center" data-i18n="ai_tutor.start_conversation">Start a conversation with
                     your AI Tutor</div>
             </div>
+            <div class="px-3 py-2">
+                <p id="tutor-policy-status" class="small mb-1" role="status" aria-live="polite" data-i18n="recovery.policy_checking">Checking teacher assistance policy…</p>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="refreshTutorPolicy()" data-i18n="recovery.refresh_policy">Refresh policy</button>
+            </div>
             <label for="tutor-assistance" class="visually-hidden" data-i18n="recovery.assistance_mode">Assistance mode</label>
-            <select id="tutor-assistance" class="form-select">
+            <select id="tutor-assistance" class="form-select" aria-describedby="tutor-policy-status" disabled>
                 <option value="hint" data-i18n="recovery.hint">Hint</option>
                 <option value="explanation" data-i18n="recovery.explanation">Explanation</option>
                 <option value="example" data-i18n="recovery.example">Example</option>
@@ -1095,7 +1100,7 @@
                 <input type="text" id="chat-input" class="form-control" placeholder="Ask something..."
                     data-i18n-placeholder="ai_tutor.input_placeholder" required aria-label="Tutor message">
                 <button type="submit" class="btn btn-primary" data-i18n="common.buttons.send"
-                    aria-label="Send tutor message">Send</button>
+                    aria-label="Send tutor message" disabled>Send</button>
             </form>
         </div>
     </div>
@@ -1234,6 +1239,16 @@
                 </div>
 
                 <!-- Security / Password Change Card -->
+                <div class="col-md-8 mt-4">
+                    <div class="card"><div class="card-body">
+                        <label for="settings-timezone" class="form-label" data-i18n="recovery.timezone_label">Timezone for dates and daily goals</label>
+                        <input id="settings-timezone" class="form-control mb-2" value="UTC" placeholder="Europe/Madrid" aria-describedby="timezone-help timezone-status">
+                        <p id="timezone-help" class="small text-muted" data-i18n="recovery.timezone_help">Use an IANA timezone, for example Europe/Madrid or America/New_York. UTC is the default. Older dates with no recorded timezone keep their original text.</p>
+                        <button id="save-timezone" type="button" class="btn btn-primary" onclick="saveTimezoneSettings()" data-i18n="recovery.save_timezone">Save timezone</button>
+                        <button type="button" class="btn btn-outline-secondary" onclick="loadTimezoneSettings()" data-i18n="recovery.reload_timezone">Reload saved timezone</button>
+                        <p id="timezone-status" class="small mt-2 mb-0" role="status" aria-live="polite"></p>
+                    </div></div>
+                </div>
                 <div class="col-md-8 mt-4">
                     <div class="card">
                         <div class="card-header">

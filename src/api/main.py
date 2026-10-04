@@ -91,6 +91,8 @@ app.include_router(study_plans.router)
 app.include_router(gamification.router)
 app.include_router(annotations.router)
 app.include_router(portability.router)
+from src.api.routes import timezone as timezone_settings
+app.include_router(timezone_settings.router)
 
 from src.api.routes import upload
 
@@ -159,3 +161,8 @@ async def read_page(page_name: str):
 # Mount other static directories
 if (WEB_DIR / "images").exists():
     app.mount("/images", StaticFiles(directory=str(WEB_DIR / "images")), name="images")
+
+
+from src.api.routes import assistance
+
+app.include_router(assistance.router)

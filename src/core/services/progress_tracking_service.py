@@ -3,6 +3,8 @@ Progress Tracking Service - Phase 1
 Tracks student progress on study plans and content mastery
 """
 
+from src.core.services.temporal_service import utc_now, local_date, last_activity_day, record_activity_day, known_timestamp_clause
+
 from datetime import datetime, date
 from typing import Dict, Any, List
 from sqlalchemy import select, and_, func
@@ -94,7 +96,7 @@ class ProgressTrackingService:
 
                     if self._check_badge_criteria(session, user, badge):
                         new_user_badge = UserBadge(
-                            user_id=user_id, badge_id=badge.id, earned_at=datetime.now()
+                            user_id=user_id, badge_id=badge.id, earned_at=utc_now()
                         )
                         session.add(new_user_badge)
 
@@ -247,7 +249,7 @@ class ProgressTrackingService:
 
                 if node:
                     node.mastery_level = level_int
-                    node.last_reviewed = datetime.now()
+                    node.last_reviewed = utc_now()
                 else:
                     node = MasteryNode(
                         student_id=student_id,
@@ -352,29 +354,7 @@ class ProgressTrackingService:
                 if not user:
                     return {"current_streak": 0, "longest_streak": 0}
 
-                today = date.today()
-                last_activity = user.last_activity_date
-
-                # If this is the first activity ever
-                if not last_activity:
-                    user.current_streak = 1
-                    user.longest_streak = max(user.longest_streak, 1)
-                    user.last_activity_date = today
-
-                # If already active today, no change needed
-                elif last_activity == today:
-                    pass  # Streak unchanged
-
-                # If last activity was yesterday, increment streak
-                elif (today - last_activity).days == 1:
-                    user.current_streak += 1
-                    user.longest_streak = max(user.longest_streak, user.current_streak)
-                    user.last_activity_date = today
-
-                # If more than 1 day gap, reset streak to 1
-                else:
-                    user.current_streak = 1
-                    user.last_activity_date = today
+                record_activity_day(user)
 
                 session.commit()
 
@@ -402,7 +382,9 @@ class ProgressTrackingService:
                 total_minutes = (
                     session.execute(
                         select(func.sum(LearningSession.duration_minutes)).where(
-                            LearningSession.student_id == user_id
+                            LearningSession.student_id == user_id,
+                            known_timestamp_clause(LearningSession.start_time),
+                            known_timestamp_clause(LearningSession.end_time),
                         )
                     ).scalar()
                     or 0
@@ -469,11 +451,11 @@ class ProgressTrackingService:
                     return {"current_streak": 0, "longest_streak": 0}
 
                 # Check if streak is still valid (last activity was today or yesterday)
-                if user.last_activity_date:
-                    days_since_activity = (date.today() - user.last_activity_date).days
+                if last_activity_day(user):
+                    days_since_activity = (local_date(user) - last_activity_day(user)).days
 
                     # Streak is broken if more than 1 day has passed
-                    if days_since_activity > 1:
+                    if not 0 <= days_since_activity <= 1:
                         return {
                             "current_streak": 0,
                             "longest_streak": user.longest_streak,

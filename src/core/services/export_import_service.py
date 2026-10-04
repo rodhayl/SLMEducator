@@ -11,6 +11,8 @@ This module provides comprehensive export/import capabilities including:
 
 import json
 import importlib
+from src.core.services.temporal_service import utc_now
+
 from datetime import datetime
 from typing import Dict, Any, Optional, cast, TYPE_CHECKING
 import logging
@@ -106,7 +108,7 @@ class ExportImportService:
 
             data: Dict[str, Any] = {
                 "schema_version": self.current_schema_version,
-                "export_date": datetime.now().isoformat(),
+                "export_date": utc_now().isoformat(),
                 "type": "study_plan",
                 "study_plan": {
                     "id": study_plan_id,
@@ -512,7 +514,7 @@ class ExportImportService:
 
         data: Dict[str, Any] = {
             "schema_version": self.current_schema_version,
-            "export_date": datetime.now().isoformat(),
+            "export_date": utc_now().isoformat(),
             "type": "assessment",
             "assessment": {
                 "id": getattr(assessment, "id", None),
@@ -907,7 +909,7 @@ class ExportImportService:
 
         data: Dict[str, Any] = {
             "schema_version": self.current_schema_version,
-            "export_date": datetime.now().isoformat(),
+            "export_date": utc_now().isoformat(),
             "user": {
                 "username": getattr(user, "username", None) or "",
                 "full_name": getattr(user, "full_name", None) or "",
@@ -1103,7 +1105,7 @@ class ExportImportService:
                     data["analytics"]["auth_attempts"].append(attempt_data)
 
         # Create temporary file
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        timestamp = utc_now().strftime("%Y%m%d_%H%M%S")
         username = user.username
         filename = f"slmeducator_export_{username}_{timestamp}.{format}"
 

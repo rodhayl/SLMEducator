@@ -78,6 +78,41 @@ function addCriterionUI() {
 
 let assessmentSaving = false;
 let assessmentDirty = false;
+let assessmentPublished = false;
+let assessmentPolicyReady = true;
+let assessmentPolicyDirty = true;
+const assessmentPolicyModes = ['hints_only', 'explanations', 'disabled'];
+
+function updateAssessmentPublishButton() {
+    document.getElementById('publish-btn').disabled = !window.editingAssessmentId ||
+        assessmentSaving || !assessmentPolicyReady || assessmentDirty || assessmentPolicyDirty;
+}
+
+async function loadAssessmentAssistancePolicy() {
+    if (!window.editingAssessmentId) return false;
+    const selector = document.getElementById('assessment-assistance');
+    const retry = document.getElementById('retry-assistance-policy');
+    selector.disabled = true;
+    assessmentPolicyReady = false;
+    updateAssessmentPublishButton();
+    try {
+        const policy = await SLMClient.request(`/api/assessments/${window.editingAssessmentId}/assistance-policy`);
+        if (!assessmentPolicyModes.includes(policy?.mode) || Number(policy.assessment_id) !== Number(window.editingAssessmentId)) throw new Error('Invalid assistance policy');
+        selector.value = policy.mode;
+        assessmentPolicyReady = true;
+        assessmentPolicyDirty = false;
+        retry.classList.add('d-none');
+        setAssessmentFeedback(SLMClient.message('policy_loaded', 'Assistance policy loaded for review.'), 'info');
+        return true;
+    } catch (error) {
+        retry.classList.remove('d-none');
+        setAssessmentFeedback(SLMClient.message('policy_load_failed', 'The assistance policy could not be loaded. Retry before saving or publishing.'), 'danger');
+        return false;
+    } finally {
+        selector.disabled = !assessmentPolicyReady;
+        updateAssessmentPublishButton();
+    }
+}
 function collectAssessment() {
     return {
         title: document.getElementById('quiz-title').value.trim(),
@@ -108,35 +143,54 @@ function collectRubric() {
 }
 window.saveAssessmentDraft = async () => {
     if (assessmentSaving) return;
+    if (!assessmentPolicyReady) { setAssessmentFeedback(SLMClient.message('policy_load_failed', 'The assistance policy could not be loaded. Retry before saving or publishing.'), 'danger'); return; }
     const payload = collectAssessment();
     if (!payload.title) { setAssessmentFeedback('Title is required', 'danger'); return; }
     assessmentSaving = true;
+    updateAssessmentPublishButton();
     try {
         payload.rubric = collectRubric();
-        const saved = await SLMClient.request(window.editingAssessmentId ? `/api/assessments/${window.editingAssessmentId}` : '/api/assessments/', {
-            method: window.editingAssessmentId ? 'PUT' : 'POST',
-            headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
-        });
-        if (!Number.isInteger(saved?.id) || saved.id <= 0 || saved.is_published !== false) {
-            throw new Error(SLMClient.message('failed', 'The server could not confirm a saved draft. Keep this page open and retry.'));
+        if (!window.editingAssessmentId || assessmentDirty) {
+            const saved = await SLMClient.request(window.editingAssessmentId ? `/api/assessments/${window.editingAssessmentId}` : '/api/assessments/', {
+                method: window.editingAssessmentId ? 'PUT' : 'POST',
+                headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+            });
+            if (!Number.isInteger(saved?.id) || saved.id <= 0 || saved.is_published !== false) {
+                throw new Error(SLMClient.message('failed', 'The server could not confirm a saved draft. Keep this page open and retry.'));
+            }
+            window.editingAssessmentId = saved.id;
+            history.replaceState(null, '', `assessment_builder.html?id=${saved.id}`);
+            assessmentPublished = false;
+            assessmentDirty = JSON.stringify({ ...collectAssessment(), rubric: collectRubric() }) !== JSON.stringify(payload);
         }
-        window.editingAssessmentId = saved.id;
-        history.replaceState(null, '', `assessment_builder.html?id=${saved.id}`);
-        assessmentDirty = false;
-        document.getElementById('publish-btn').disabled = false;
-        setAssessmentFeedback(SLMClient.message('draft_saved', 'Draft saved. Review the questions and answers, then publish when ready.'), 'info');
+        const mode = document.getElementById('assessment-assistance').value;
+        assessmentPolicyDirty = true;
+        const policy = await SLMClient.request(`/api/assessments/${window.editingAssessmentId}/assistance-policy`, {
+            method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mode })
+        });
+        if (policy?.mode !== mode || Number(policy.assessment_id) !== Number(window.editingAssessmentId)) throw new Error(SLMClient.message('policy_save_failed', 'The assistance policy was not confirmed saved. Keep this page open and retry; publishing is blocked.'));
+        assessmentPolicyDirty = document.getElementById('assessment-assistance').value !== mode;
+        const policyLabel = document.getElementById('assessment-assistance').selectedOptions[0].textContent;
+        setAssessmentFeedback((assessmentDirty || assessmentPolicyDirty ? SLMClient.message('save_before_publish', 'Save your changes before publishing.') :
+            assessmentPublished ? SLMClient.message('policy_saved', 'Assistance policy saved.') :
+                SLMClient.message('draft_saved', 'Draft saved. Review the questions and answers, then publish when ready.')) + ` ${SLMClient.message('assistance_mode', 'Assistance mode')}: ${policyLabel}.`, 'info');
     } catch (error) { setAssessmentFeedback(error.message, 'danger'); }
-    finally { assessmentSaving = false; }
+    finally { assessmentSaving = false; updateAssessmentPublishButton(); }
 };
 window.publishAssessment = async () => {
     if (assessmentSaving || !window.editingAssessmentId) return;
-    if (assessmentDirty) { setAssessmentFeedback(SLMClient.message('save_before_publish', 'Save your changes before publishing.'), 'warning'); return; }
+    if (assessmentDirty || assessmentPolicyDirty || !assessmentPolicyReady) { setAssessmentFeedback(SLMClient.message('save_before_publish', 'Save your changes before publishing.'), 'warning'); return; }
     const approved = await showConfirm(SLMClient.message('publish_assessment_confirm', 'Have you reviewed every question, correct answer and grading rule? Publishing makes the assessment available to authorized learners.'),
         SLMClient.message('publish', 'Publish'));
     if (!approved) return;
+    if (assessmentSaving || assessmentDirty || assessmentPolicyDirty || !assessmentPolicyReady) {
+        setAssessmentFeedback(SLMClient.message('save_before_publish', 'Save your changes before publishing.'), 'warning');
+        return;
+    }
     assessmentSaving = true;
     try {
         await SLMClient.request(`/api/assessments/${window.editingAssessmentId}/publish`, { method: 'POST' });
+        assessmentPublished = true;
         setAssessmentFeedback(SLMClient.message('published', 'Published successfully.'), 'success', window.editingAssessmentId);
     } catch (error) { setAssessmentFeedback(error.message, 'danger'); }
     finally { assessmentSaving = false; }
@@ -181,10 +235,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             textContent: '✏️ Edit Assessment'
         }));
         // Update button text
-        const publishBtn = document.getElementById('publish-btn');
-        if (publishBtn) {
-            publishBtn.disabled = false;
-        }
+        updateAssessmentPublishButton();
     } else {
         addQuestionUI();
     }
@@ -207,6 +258,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 window.editingAssessmentId = null;
 
 async function loadAssessmentForEdit(assessmentId) {
+    assessmentPolicyReady = false;
+    document.getElementById('assessment-assistance').disabled = true;
+    updateAssessmentPublishButton();
     try {
         const response = await fetch(`/api/assessments/${assessmentId}`, {
             headers: {
@@ -221,6 +275,7 @@ async function loadAssessmentForEdit(assessmentId) {
 
         const assessment = await response.json();
         window.editingAssessmentId = assessmentId;
+        assessmentPublished = assessment.is_published === true;
 
         // Populate form fields
         document.getElementById('quiz-title').value = assessment.title || '';
@@ -234,6 +289,7 @@ async function loadAssessmentForEdit(assessmentId) {
         }
 
         // Load questions
+        document.getElementById('questions-container').replaceChildren();
         if (assessment.questions && assessment.questions.length > 0) {
             for (const q of assessment.questions) {
                 addQuestionUI();
@@ -267,7 +323,7 @@ async function loadAssessmentForEdit(assessmentId) {
             item.querySelector('input[type="number"]').value = criterion.max_points;
         });
         assessmentDirty = false;
-        setAssessmentFeedback('Loaded assessment for review', 'info');
+        await loadAssessmentAssistancePolicy();
     } catch (e) {
         console.error('Failed to load assessment:', e);
         setAssessmentFeedback('Error loading assessment', 'danger');
@@ -281,4 +337,10 @@ function previewAssessment() {
         `<p><strong>${index + 1}.</strong> ${SLMRender.escape(question.question_text)} (${question.points} pts)</p>`).join('');
     showInfoModal(SLMClient.message('preview', 'Preview'), html);
 }
-document.addEventListener('input', () => { assessmentDirty = true; });
+function markAssessmentChange(event) {
+    if (event.target.id === 'assessment-assistance') assessmentPolicyDirty = true;
+    else assessmentDirty = true;
+    updateAssessmentPublishButton();
+}
+document.addEventListener('input', markAssessmentChange);
+document.addEventListener('change', markAssessmentChange);

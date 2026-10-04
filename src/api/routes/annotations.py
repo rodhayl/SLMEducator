@@ -7,6 +7,8 @@ Provides endpoints for Phase 2 content annotations:
 - Delete annotations
 """
 
+from src.core.services.temporal_service import utc_now
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List, Optional
@@ -72,7 +74,7 @@ async def list_annotations(
         (Annotation.is_public == True) | (Annotation.user_id == current_user.id)
     )
 
-    annotations = query.order_by(Annotation.created_at.desc()).all()
+    annotations = query.order_by(Annotation.id.desc()).all()
 
     result = []
     for ann in annotations:
@@ -114,7 +116,7 @@ async def create_annotation(
         text_selection_start=data.text_selection_start,
         text_selection_end=data.text_selection_end,
         is_public=data.is_public,
-        created_at=datetime.now(),
+        created_at=utc_now(),
     )
 
     db.add(annotation)

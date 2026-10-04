@@ -21,6 +21,7 @@ let completedTasks = 0;
 let failedTasks = 0;  // Track failures for accurate status
 let createdStudyPlanId = null;
 let generationRunning = false;
+let generationStopRequested = false;
 let generationTasks = [];
 let courseOwner = null;
 function persistCourse() {
@@ -488,10 +489,14 @@ async function createStudyPlanShell() {
  * Start the cascading content generation process
  */
 async function startCascade() {
+    generationStopRequested = false;
+    const stop = document.getElementById('stop-generation');
+    if (stop) { stop.classList.remove('d-none'); stop.disabled = false; }
     totalGenerationTasks = generationTasks.length;
     completedTasks = generationTasks.filter(task => task.status === 'saved').length;
     failedTasks = 0;
     for (const task of generationTasks) {
+        if (generationStopRequested) break;
         if (task.status === 'saved') continue;
         const unit = generatedOutline.units[task.unit];
         const lesson = unit.lessons[task.lesson];
@@ -502,7 +507,9 @@ async function startCascade() {
         persistCourse();
         updateProgress(Math.round(completedTasks / totalGenerationTasks * 100), `${completedTasks}/${totalGenerationTasks} saved; ${failedTasks} failed.`);
     }
+    failedTasks = generationTasks.filter(task => task.status !== 'saved').length;
     finishGeneration(completedTasks === 0);
+    if (stop) stop.classList.add('d-none');
     document.getElementById('retry-generation').classList.toggle('d-none', failedTasks === 0);
 }
 
@@ -529,6 +536,25 @@ async function generateAndSaveLesson(lesson, phaseIndex) {
         return false;
     }
 }
+window.stopCourseGeneration = async () => {
+    if (!generationRunning || !createdStudyPlanId || courseOwner !== SLMClient.account()) return;
+    generationStopRequested = true;
+    const button = document.getElementById('stop-generation');
+    if (button) button.disabled = true;
+    log(SLMClient.message('generation_stop_requested', 'Stop requested. The current call may finish; saved items are kept.'));
+    try {
+        const state = await SLMClient.request(`/api/generate/courses/${createdStudyPlanId}/jobs`, { headers: getAuthHeaders() });
+        for (const [key, job] of Object.entries(state.jobs || {})) {
+            if (Object.values(job.items || {}).some(item => item.status === 'running')) {
+                await SLMClient.request(`/api/generate/courses/${createdStudyPlanId}/jobs/${encodeURIComponent(key)}/cancel`, {
+                    method: 'POST', headers: getAuthHeaders()
+                });
+            }
+        }
+    } catch (error) {
+        showError(SLMClient.message('generation_stop_unconfirmed', 'Server cancellation could not be confirmed. This lesson may finish; no later lesson will be requested here.'));
+    }
+};
 window.retryCourseGeneration = async () => {
     if (generationRunning || courseOwner !== SLMClient.account()) return;
     generationRunning = true;
@@ -653,7 +679,9 @@ function finishGeneration(allFailed = false) {
         }
     }
 
-    if (allFailed) {
+    if (generationStopRequested) {
+        updatePreview(`<p>${escapeHtml(SLMClient.message('generation_stopped', 'Generation stopped. Review saved items or retry the unfinished work.'))}</p>`);
+    } else if (allFailed) {
         updatePreview(`
             <div class="text-center text-danger">
                 <h4>⚠️ Generation Failed</h4>

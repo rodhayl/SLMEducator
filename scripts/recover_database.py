@@ -9,7 +9,6 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 
-
 def parser() -> argparse.ArgumentParser:
     """Describe commands without reading any database, configuration or key."""
     root = argparse.ArgumentParser(description=__doc__)
@@ -24,6 +23,15 @@ def parser() -> argparse.ArgumentParser:
     upgrade.add_argument("--database", type=Path, required=True)
     upgrade.add_argument("--output", type=Path, required=True)
     upgrade.add_argument("--backup", type=Path, required=True)
+    upgrade.add_argument(
+        "--source-timezone",
+        help="Known IANA zone of legacy naive timestamps, e.g. Europe/Madrid. "
+             "Omit to preserve timestamp bytes. Ambiguous or nonexistent local times stop conversion.",
+    )
+    upgrade.add_argument(
+        "--timestamp-field", action="append", dest="timestamp_fields",
+        help="Exact table.column with this known source timezone; repeat for each field. Required with --source-timezone.",
+    )
     inspect_command = commands.add_parser("inspect", help="Validate database integrity and the matching key")
     inspect_command.add_argument("--database", type=Path, required=True)
     return root
@@ -42,6 +50,7 @@ def main(argv=None) -> int:
     )
     try:
         fingerprint = key_fingerprint(key)
+        result: dict[str, object]
         if args.command == "backup":
             write_new(args.output, create_backup(args.database, key))
             result = {"backup": str(args.output), "key_fingerprint": fingerprint}
@@ -51,7 +60,9 @@ def main(argv=None) -> int:
             summary = restore_backup(args.backup.read_bytes(), args.output, key)
             result = {"database": str(args.output), "summary": summary}
         elif args.command == "upgrade":
-            result = upgrade_database(args.database, args.output, args.backup, key)
+            result = upgrade_database(
+                args.database, args.output, args.backup, key, source_timezone=args.source_timezone, timestamp_fields=args.timestamp_fields,
+            )
         else:
             result = {"summary": inspect_database(args.database, key), "key_fingerprint": fingerprint}
         print(json.dumps(result, indent=2))

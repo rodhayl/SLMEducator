@@ -113,6 +113,59 @@ restore the verified pre-upgrade backup into a new path instead. Existing column
 meaning/type changes that need a bespoke migration are not inferred by this
 additive reconciliation tool.
 
+## Timestamp provenance and local days
+
+New application timestamps are UTC instants with an explicit `+00:00` offset,
+including model defaults, authentication, attempts, sessions, review scheduling
+and cache expiry. The SQLite codec preserves that offset in existing `DATETIME`
+columns; no schema rewrite is required. An old offset-free value stays unchanged
+and is classified as `legacy_unknown`. Loading a database or changing a user's
+timezone never assigns an assumed origin to these values.
+
+`GET /api/settings/timezone` shows the explicit default, UTC.
+`PUT /api/settings/timezone` accepts `{"timezone":"Europe/Madrid"}` and changes
+that authenticated user's future civil-day calculations. It does not infer a
+browser/system timezone. Daily goals and participation streaks use this policy.
+Known prior activity instants are evaluated in the selected zone; old date-only
+streak evidence is saved separately as unknown. Existing goal date labels and
+values remain intact; goal updates record their timezone and flag mixed policy
+history. The dashboard timezone control exposes this setting.
+
+Unknown legacy instants do not enter recent-activity, due-review or automatic
+age-based cleanup calculations. History remains available in insertion order.
+Session duration is unknown unless both endpoints identify instants; duration
+totals exclude unknown intervals and report their count. A timed assessment with
+an unknown start keeps its answers pending teacher review. Cache entries with
+unknown deadlines are misses, retained until replacement or explicit clearing.
+Unknown authentication deadlines/history are handled conservatively and can
+require administrator provenance review; waiting is not represented as a fix.
+
+Legacy installations can contain both local-wall-time and UTC-written fields.
+Only convert fields whose source timezone is independently known. The following
+example is appropriate **only if both selected fields are confirmed to have used
+Europe/Madrid**:
+
+```powershell
+.\venv\Scripts\python.exe scripts\recover_database.py upgrade --database C:\SLM\slm_educator.db --output C:\SLM-Upgraded\timestamps.db --backup C:\Backups\pre-timestamps.slmbackup --source-timezone Europe/Madrid --timestamp-field learning_sessions.start_time --timestamp-field learning_sessions.end_time
+```
+
+Both `--source-timezone` and repeatable `--timestamp-field table.column` selections
+are required for conversion. With neither, the default upgrade preserves all
+timestamp bytes. Unselected fields, date-only fields, JSON/encrypted payloads
+and already offset-bearing strings stay unchanged. Invalid values, daylight-saving
+gaps and repeated/ambiguous local times stop the entire conversion transaction.
+The source and verified encrypted backup remain available; a failed output copy
+is retained for inspection and is not automatically activated.
+
+Successful conversion records the selected fields, supplied zone, migration
+version, UTC completion time and aggregate counts in `slm_temporal_migrations`.
+If a selected field itself mixes origins, leave it unknown and arrange a reviewed
+record-specific migration; this command cannot establish provenance for you.
+Timezone data uses the Python project's pinned
+[tzdata package](https://pypi.org/project/tzdata/2026.5/) and is collected into the
+Windows packaging inputs. Python fallback lookup without system timezone data is
+tested separately from a native Windows executable.
+
 ## Validation boundary
 
 Focused synthetic tests cover learner/teacher field exclusions, owner scope,

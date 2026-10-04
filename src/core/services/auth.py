@@ -3,6 +3,7 @@ Authentication service for SLMEducator
 """
 
 import secrets
+from src.core.services.temporal_service import known_instant, known_after, known_timestamp_clause
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any
 import jwt
@@ -135,6 +136,11 @@ class AuthService:
                 session.commit()
                 raise AuthenticationError("Invalid username or password")
 
+            if user.locked_until and not known_instant(user.locked_until):
+                raise AuthenticationError(
+                    "Account lock timestamp has an unknown timezone. Ask the administrator to review its provenance."
+                )
+
             # Check rate limiting early (before expensive bcrypt work).
             if not self._check_rate_limit(
                 session, user_id=user.id, username=username, ip_address=ip_address
@@ -265,7 +271,7 @@ class AuthService:
             return False
 
         # Check if account is explicitly locked
-        if user.locked_until and user.locked_until > datetime.now(timezone.utc):
+        if user.locked_until and (not known_instant(user.locked_until) or user.locked_until > datetime.now(timezone.utc)):
             return True
 
         # Check recent failed attempts within lockout window
@@ -277,7 +283,7 @@ class AuthService:
             .filter(
                 AuthAttempt.user_id == user_id,
                 AuthAttempt.success.is_(False),
-                AuthAttempt.timestamp > cutoff_time,
+                (~known_timestamp_clause(AuthAttempt.timestamp)) | known_after(AuthAttempt.timestamp, cutoff_time),
             )
             .count()
         )
@@ -310,9 +316,9 @@ class AuthService:
                 .filter(
                     AuthAttempt.user_id == user_id,
                     AuthAttempt.success.is_(False),
-                    AuthAttempt.timestamp
-                    > datetime.now(timezone.utc)
-                    - timedelta(minutes=self.lockout_duration_minutes),
+                    (~known_timestamp_clause(AuthAttempt.timestamp)) | known_after(
+                        AuthAttempt.timestamp, datetime.now(timezone.utc) - timedelta(minutes=self.lockout_duration_minutes)
+                    ),
                 )
                 .count()
             )
@@ -345,7 +351,7 @@ class AuthService:
             minutes=self.rate_limit_window_minutes
         )
 
-        query = session.query(AuthAttempt).filter(AuthAttempt.timestamp > cutoff_time)
+        query = session.query(AuthAttempt).filter((~known_timestamp_clause(AuthAttempt.timestamp)) | known_after(AuthAttempt.timestamp, cutoff_time))
         if user_id is not None:
             query = query.filter(AuthAttempt.user_id == user_id)
         else:
@@ -356,6 +362,10 @@ class AuthService:
             query = query.filter(AuthAttempt.ip_address == ip_address)
 
         recent_attempts = query.count()
+        if recent_attempts >= self.rate_limit_max_attempts and query.filter(~known_timestamp_clause(AuthAttempt.timestamp)).count():
+            raise AuthenticationError(
+                "Authentication history has timestamps with unknown timezone. Ask the administrator to review their provenance."
+            )
         return recent_attempts < self.rate_limit_max_attempts
 
     def validate_password(self, password: str) -> bool:

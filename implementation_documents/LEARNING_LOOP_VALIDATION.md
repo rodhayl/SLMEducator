@@ -99,15 +99,39 @@ uses a decrypted runtime credential without returning it to the browser.
 | Reviewed course, assignment version and coherent practice | Draft/review/publish, immutable assigned content/assessment rules, actual assessment drafts, reserved order and per-item retry | Full synthetic three-lesson API journey passes; human usability not established |
 | Maintained UI, keyboard alternatives and languages | Existing Bootstrap/tokens/modules retained, non-drag controls, focus/status handling, English/Spanish pilot strings, Continue Learning | Static/DOM contracts pass; full keyboard, screen reader, theme/zoom/reflow and bilingual browser journeys unverified |
 | Grounded optional AI with source limits | Bounded authorized text, source/page/section/hash/coverage, hint/explanation modes, typed failures and saved rubric/model/prompt provenance | Deterministic source/failure cases pass; source references are not automatic factual verification |
-| Teacher-configurable assessment-assistance policy | Current fixed hint/hidden-answer safeguards | Partial: per-assessment teacher policy configuration remains to be completed; do not claim this control exists |
+| Teacher-configurable assessment-assistance policy | Author/admin settings for hints, explanations or disabled; strictest open attempt applies across tutor/Q&A, including omitted context and delivery recheck; UI and portable mode | API/DOM contracts pass; requested hint semantics still need real-model evaluation. See ASSISTANCE_POLICY |
 | Real-model usefulness and latency/cancellation | Proposed 12-case educator evaluation pack; bounded generation cancellation/resume | No real model/hardware or educator-rated evaluation; requires separate authorization and observation |
 | Confidence, observed attempts and review | Confidence stored separately; final linked assessment scores drive review heuristic; legacy evidence labelled | Idempotent observed-review tests pass; heuristic is not validated learning efficacy |
 | Exports, transactional import, backup and upgrade | Preview-first learner/teacher packages, remapped IDs/books/rubrics, encrypted private database archive, new-path restore, copy-first schema reconciliation | Synthetic roundtrip, corruption, wrong-key and packaging regressions pass; archive excludes keys/config/external files |
 | Reproducible local setup/offline assets | Runtime/dev dependency separation, no launch-time install/upgrade, pinned bundled assets | Source/asset/package tests pass; native Windows build/start/restore and real offline browser operation unverified |
-| Consistent legacy timestamps/user-local day | Existing local-session data preserved; explicit UTC timestamps for new confidence records | Partial: a safe legacy timezone migration and complete user-local day policy remain; existing timestamps must not be silently reinterpreted |
+| Consistent legacy timestamps/user-local day | Offset-preserving UTC writes, explicit IANA setting/UTC default, known-instant day arithmetic, unknown legacy labels/guards, field-scoped copy-first migration | Temporal/auth/cache/scoring/recovery tests pass; unknown source zones remain unresolved by design, not silently guessed |
 | Chosen shared deployment and protected Windows secret custody | Safe local-only default retained; backup requires matching separately held key | No remote-classroom deployment or OS-protected key-store rollout selected/validated |
 | Pilot, evaluation and evidence-driven expansion | Synthetic scenario, proposed cases, observation template and conservative evaluator | Tooling tested; human pilot, institution/minors review, teaching acceptance and continuation decision not performed |
 
-These are implementation and verification boundaries, not excuses to claim the
-whole six-phase product plan is accepted. Any remaining configurable policy or
-timezone work should be tracked explicitly alongside the external acceptance gates.
+Implementation and real-world acceptance are tracked separately. Unknown historical timezone semantics and external acceptance gates remain explicit; no automatic inference or real-world readiness is claimed.
+
+
+## Assistance and temporal completion checkpoint
+
+The two previously partial code contracts are now implemented:
+
+- Instructor-owned assistance mode is saved through a separate authorized API,
+  enforced across chat and Q&A during open attempts, rechecked before delivery,
+  exposed in the teacher/learner UI and preserved in teacher package import.
+- New application timestamp writes preserve UTC offsets in the existing SQLite
+  DATETIME schema. Offset-free history remains explicit unknown data. Daily goals
+  and streaks use a selected IANA zone or an explicit UTC default. Conversion is
+  opt-in, field-scoped, copy-first and backed up; DST gaps/folds are rejected.
+  A field mixing unknown origins remains unresolved until provenance is supplied.
+
+The final bounded integrated **policy/temporal/learning/recovery/packaging gate
+passed 281 tests** (121.08 seconds); the **30-case DOM-emulation suite passed**.
+This was an affected-contract gate, not a second aggregate suite. Earlier worker
+batches of 105, 107 and 72 are overlapping scopes and are not added to this total.
+Focused mypy passes five assistance/temporal modules, and critical lint, compilation,
+JavaScript syntax and whitespace checks pass. No live provider was used.
+
+The complete synthetic journey is tested, but native Windows execution, live
+browser/assistive-technology acceptance, real-model quality and an authorized
+human pilot remain unverified. The prepared pilot evaluation cannot mark mock
+results as human evidence. No merge, deployment or visibility change is included.

@@ -176,6 +176,8 @@ New accounts require an authenticated administrator or teacher. Bootstrap remain
 
 New courses and assessments are drafts. Review and publish a course before assigning it. Assigned material is immutable; create a separate draft for revisions. AI-generated subjective grading remains provisional until the assessment author reviews it. Provider failure never becomes a final failing grade.
 
+Assessment authors can configure assistance during open attempts: hints only, explanations, or disabled. See [assistance policy](docs/ASSISTANCE_POLICY.md). Timezone settings use an explicit UTC default or your chosen IANA zone; old offset-free history stays labelled unknown until a field-scoped, backed-up conversion with a known source zone. See [portability and recovery](docs/PORTABILITY_RECOVERY.md).
+
 See [the implementation boundary](implementation_documents/LEARNING_LOOP_PLAN.md) for the two-teacher/two-learner synthetic scenario and the separate browser, native Windows and human-pilot acceptance gates.
 
 ## Repository Layout

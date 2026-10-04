@@ -90,7 +90,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 100);
 });
 
-function loadSubmissions() {
+async function loadSubmissions() {
+    await SLMTime.load().catch(() => {});
     console.log('[Grading] loadSubmissions called');
     const list = document.getElementById('submission-list');
     if (!list) {
@@ -179,7 +180,7 @@ function renderList(submissions) {
         link.onclick = (e) => { e.preventDefault(); selectSubmission(sub); };
         clone.querySelector('.student-name').textContent = sub.student_name || `Student #${sub.student_id}`;
         clone.querySelector('.assessment-title').textContent = sub.assessment_title || `Assessment #${sub.assessment_id}`;
-        clone.querySelector('.submission-date').textContent = new Date(sub.submitted_at).toLocaleDateString();
+        clone.querySelector('.submission-date').textContent = SLMTime.format(sub.submitted_at, { dateOnly: true });
 
         const badge = clone.querySelector('.status-badge');
         badge.textContent = getStatusLabel(sub.status);

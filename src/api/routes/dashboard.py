@@ -4,6 +4,8 @@ Dashboard API Routes
 Provides real-time statistics and activity feed for the dashboard.
 """
 
+from src.core.services.temporal_service import utc_now, known_instant, known_after, known_timestamp_clause, last_activity_day
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -43,12 +45,18 @@ async def get_dashboard_stats(
     )
     completed_lessons = completed_sessions.count()
     total_study_time_minutes = (
-        completed_sessions.with_entities(
+        completed_sessions.filter(
+            known_timestamp_clause(LearningSession.start_time),
+            known_timestamp_clause(LearningSession.end_time),
+        ).with_entities(
             func.coalesce(func.sum(LearningSession.duration_minutes), 0)
         ).scalar()
         or 0
     )
     total_study_time_minutes = int(total_study_time_minutes)
+    unknown_duration_sessions = completed_sessions.filter(
+        (~known_timestamp_clause(LearningSession.start_time)) | (~known_timestamp_clause(LearningSession.end_time)) | LearningSession.end_time.is_(None)
+    ).count()
     total_content = (
         db.query(Content).filter(Content.creator_id == current_user.id).count()
     )
@@ -94,6 +102,7 @@ async def get_dashboard_stats(
             "total_content": total_content,
             "completed_lessons": completed_lessons,
             "total_study_time_minutes": total_study_time_minutes,
+            "unknown_duration_sessions": unknown_duration_sessions,
         }
     else:
         # Student stats
@@ -105,7 +114,9 @@ async def get_dashboard_stats(
             "total_content": total_content,
             "completed_lessons": completed_lessons,
             "total_study_time_minutes": total_study_time_minutes,
+            "unknown_duration_sessions": unknown_duration_sessions,
             "current_streak": current_streak,
+            "streak_provenance": "recorded" if last_activity_day(current_user) else "legacy_unknown",
             "points": points,
         }
 
@@ -119,7 +130,7 @@ async def get_recent_activity(
 
     Returns learning sessions and assessment completions from the last 7 days.
     """
-    seven_days_ago = datetime.now() - timedelta(days=7)
+    seven_days_ago = utc_now() - timedelta(days=7)
     activities = []
 
     # Get recent learning sessions
@@ -128,9 +139,9 @@ async def get_recent_activity(
         .filter(
             LearningSession.student_id == current_user.id,
             LearningSession.status == SessionStatus.COMPLETED,
-            LearningSession.end_time >= seven_days_ago,
+            known_after(LearningSession.end_time, seven_days_ago, inclusive=True),
         )
-        .order_by(LearningSession.end_time.desc())
+        .order_by(func.julianday(LearningSession.end_time).desc())
         .limit(5)
         .all()
     )
@@ -143,7 +154,7 @@ async def get_recent_activity(
 
         time_str = _format_relative_time(session.end_time)
         activities.append(
-            {"id": session.id, "text": f"Completed '{content_title}'", "time": time_str}
+            {"id": session.id, "text": f"Completed '{content_title}'", "time": time_str, "_instant": session.end_time}
         )
 
     # Get recent assessment submissions
@@ -152,9 +163,9 @@ async def get_recent_activity(
         .filter(
             AssessmentSubmission.student_id == current_user.id,
             AssessmentSubmission.submitted_at.isnot(None),
-            AssessmentSubmission.submitted_at >= seven_days_ago,
+            known_after(AssessmentSubmission.submitted_at, seven_days_ago, inclusive=True),
         )
-        .order_by(AssessmentSubmission.submitted_at.desc())
+        .order_by(func.julianday(AssessmentSubmission.submitted_at).desc())
         .limit(5)
         .all()
     )
@@ -177,11 +188,14 @@ async def get_recent_activity(
                 "id": sub.id + 10000,  # Offset to avoid ID collision
                 "text": f"{score_text} on '{assessment_title}'",
                 "time": time_str,
+                "_instant": sub.submitted_at,
             }
         )
 
     # Sort by recency and limit to 10
-    activities.sort(key=lambda x: x["id"], reverse=True)
+    activities.sort(key=lambda x: x["_instant"], reverse=True)
+    for activity in activities:
+        activity.pop("_instant")
     return (
         activities[:10]
         if activities
@@ -191,10 +205,10 @@ async def get_recent_activity(
 
 def _format_relative_time(dt: datetime) -> str:
     """Format datetime as relative time string."""
-    if not dt:
-        return "Unknown"
+    if not known_instant(dt):
+        return "Unknown timezone"
 
-    now = datetime.now()
+    now = utc_now()
     diff = now - dt
 
     if diff.days > 0:

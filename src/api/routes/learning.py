@@ -1,8 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
+from src.core.services.temporal_service import utc_now, known_instant, timestamp_provenance, local_date, record_goal_day
+
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from pydantic import BaseModel, ConfigDict, Field
-from datetime import datetime, date, timezone
+from datetime import datetime
 
 from src.api.dependencies import get_db
 from src.api.security import get_current_user
@@ -45,6 +47,8 @@ class SessionResponse(BaseModel):
     status: str
     duration_minutes: Optional[int]
     notes: Optional[str]
+    timestamp_provenance: str = "legacy_unknown"
+    duration_known: bool = False
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -70,20 +74,13 @@ async def start_session(
         student_id=current_user.id,
         content_id=data.content_id,
         status=SessionStatus.ACTIVE,
-        start_time=datetime.now(),
+        start_time=utc_now(),
     )
     db.add(session)
     db.commit()
     db.refresh(session)
 
-    return SessionResponse(
-        id=session.id,
-        content_id=session.content_id,
-        start_time=session.start_time,
-        status=session.status.value,
-        duration_minutes=0,
-        notes=None,
-    )
+    return _session_response(session)
 
 
 @router.post("/{session_id}/heartbeat")
@@ -130,7 +127,7 @@ async def end_session(
         return _session_response(session)
     if session.status != SessionStatus.ACTIVE:
         raise HTTPException(status_code=409, detail="Session is not active")
-    now = datetime.now()
+    now = utc_now()
     claimed = db.query(LearningSession).filter(
         LearningSession.id == session_id, LearningSession.status == SessionStatus.ACTIVE,
     ).update({LearningSession.status: SessionStatus.COMPLETED, LearningSession.end_time: now}, synchronize_session=False)
@@ -140,7 +137,7 @@ async def end_session(
         return _session_response(session)
     if data.notes is not None:
         session.notes = data.notes
-    session.duration_minutes = max(0, session.calculate_duration() or 0)
+    session.duration_minutes = session.calculate_duration()
     first_completion = session.completion_status not in {"rewarded", "previously_completed"}
     if first_completion:
         award_activity_xp(db, current_user.id, 50)
@@ -154,11 +151,13 @@ async def end_session(
 
 
 def _session_response(session: LearningSession) -> SessionResponse:
-    """Serialize the server's preserved notes and lifecycle."""
+    """Serialize preserved history with explicit timestamp provenance."""
+    known = known_instant(session.start_time)
     return SessionResponse(
         id=session.id, content_id=session.content_id, start_time=session.start_time,
-        status=session.status.value, duration_minutes=session.duration_minutes or 0,
-        notes=session.notes,
+        status=session.status.value, duration_minutes=session.calculate_duration() if session.end_time else (0 if known else None),
+        notes=session.notes, timestamp_provenance=timestamp_provenance(session.start_time),
+        duration_known=known and (session.end_time is None or known_instant(session.end_time)),
     )
 
 
@@ -181,7 +180,7 @@ def _record_self_confidence(db: Session, user_id: int, content_id: int, rating: 
     confidence = dict(settings.get("self_confidence", {}))
     confidence[str(content_id)] = {
         "rating": rating,
-        "recorded_at": datetime.now(timezone.utc).isoformat(),
+        "recorded_at": utc_now().isoformat(),
     }
     settings["self_confidence"] = confidence
     user.settings = settings
@@ -189,7 +188,7 @@ def _record_self_confidence(db: Session, user_id: int, content_id: int, rating: 
 
 def _update_daily_goal(db: Session, user_id: int, session: LearningSession) -> None:
     """Advance an existing daily goal in the completion transaction."""
-    goal = db.query(DailyGoal).filter_by(user_id=user_id, goal_date=date.today()).first()
+    goal = db.query(DailyGoal).filter_by(user_id=user_id, goal_date=local_date(db.get(User, user_id))).first()
     if not goal or goal.completed:
         return
     content = db.get(Content, session.content_id)
@@ -200,6 +199,8 @@ def _update_daily_goal(db: Session, user_id: int, session: LearningSession) -> N
         increment = 1
     elif goal.goal_type == "time":
         increment = session.duration_minutes or 0
+    if increment:
+        record_goal_day(db.get(User, user_id), goal)
     goal.current_value += increment
     goal.completed = goal.current_value >= goal.target_value
 
@@ -215,7 +216,7 @@ async def get_active_session(
             LearningSession.student_id == current_user.id,
             LearningSession.status == SessionStatus.ACTIVE,
         )
-        .order_by(LearningSession.start_time.desc())
+        .order_by(LearningSession.id.desc())
         .first()
     )
 
@@ -224,14 +225,7 @@ async def get_active_session(
 
     require_content(db, current_user, session.content_id)
 
-    return SessionResponse(
-        id=session.id,
-        content_id=session.content_id,
-        start_time=session.start_time,
-        status=session.status.value,
-        duration_minutes=session.calculate_duration(),
-        notes=session.notes,
-    )
+    return _session_response(session)
 
 
 @router.patch("/{session_id}/notes", response_model=SessionResponse)
@@ -266,14 +260,7 @@ async def update_session_notes(
     db.commit()
     db.refresh(session)
 
-    return SessionResponse(
-        id=session.id,
-        content_id=session.content_id,
-        start_time=session.start_time,
-        status=session.status.value,
-        duration_minutes=session.calculate_duration(),
-        notes=session.notes,
-    )
+    return _session_response(session)
 
 
 @router.get("/history/{content_id}", response_model=List[SessionResponse])
@@ -295,22 +282,12 @@ async def get_session_history(
             LearningSession.content_id == content_id,
             LearningSession.student_id == current_user.id,
         )
-        .order_by(LearningSession.start_time.desc())
+        .order_by(LearningSession.id.desc())
         .limit(limit)
         .all()
     )
 
-    return [
-        SessionResponse(
-            id=s.id,
-            content_id=s.content_id,
-            start_time=s.start_time,
-            status=s.status.value,
-            duration_minutes=s.calculate_duration(),
-            notes=s.notes,
-        )
-        for s in sessions
-    ]
+    return [_session_response(session) for session in sessions]
 
 
 @router.post("/{session_id}/restore", response_model=SessionResponse)
@@ -353,14 +330,7 @@ async def restore_session(
     db.commit()
     db.refresh(session)
 
-    return SessionResponse(
-        id=session.id,
-        content_id=session.content_id,
-        start_time=session.start_time,
-        status=session.status.value,
-        duration_minutes=session.calculate_duration(),
-        notes=session.notes,
-    )
+    return _session_response(session)
 
 
 @router.post("/restart/{content_id}", response_model=SessionResponse)
@@ -396,7 +366,7 @@ async def restart_session(
     for active in active_sessions:
         active.status = SessionStatus.COMPLETED
         active.completion_status = "previously_completed"
-        active.end_time = datetime.now()
+        active.end_time = utc_now()
         active.duration_minutes = active.calculate_duration()
 
     # Create new session
@@ -405,17 +375,10 @@ async def restart_session(
         content_id=content_id,
         status=SessionStatus.ACTIVE,
         completion_status="restarted",
-        start_time=datetime.now(),
+        start_time=utc_now(),
     )
     db.add(new_session)
     db.commit()
     db.refresh(new_session)
 
-    return SessionResponse(
-        id=new_session.id,
-        content_id=new_session.content_id,
-        start_time=new_session.start_time,
-        status=new_session.status.value,
-        duration_minutes=0,
-        notes=None,
-    )
+    return _session_response(new_session)

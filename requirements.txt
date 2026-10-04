@@ -28,3 +28,6 @@ reportlab==4.4.9
 
 # Optional: For markdown processing
 markdown==3.10.2
+
+# IANA timezone data for Windows and packaged runtimes
+tzdata==2026.5

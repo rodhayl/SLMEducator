@@ -249,9 +249,9 @@ function updateAnnotationCount() {
  */
 function formatTimeAgo(timestamp) {
     if (!timestamp) return '';
-    const now = new Date();
-    const then = new Date(timestamp);
-    const diffMs = now - then;
+    const instant = SLMTime.epoch(timestamp);
+    if (instant === null) return escapeHtml(SLMTime.format(timestamp));
+    const diffMs = Date.now() - instant;
     const diffMin = Math.floor(diffMs / 60000);
     const diffHour = Math.floor(diffMs / 3600000);
     const diffDay = Math.floor(diffMs / 86400000);
@@ -260,7 +260,7 @@ function formatTimeAgo(timestamp) {
     if (diffMin < 60) return `${diffMin} min ago`;
     if (diffHour < 24) return `${diffHour} hr ago`;
     if (diffDay < 7) return `${diffDay} day${diffDay > 1 ? 's' : ''} ago`;
-    return then.toLocaleDateString();
+    return escapeHtml(SLMTime.format(timestamp, { dateOnly: true }));
 }
 
 /**
@@ -343,7 +343,7 @@ function showSessionChoiceModal(previousSession) {
         const notesEl = document.getElementById('prev-session-notes-preview');
 
         if (dateEl && previousSession.start_time) {
-            dateEl.textContent = new Date(previousSession.start_time).toLocaleString();
+            dateEl.textContent = SLMTime.format(previousSession.start_time, { provenance: previousSession.timestamp_provenance });
         }
         if (notesEl && previousSession.notes) {
             notesEl.textContent = previousSession.notes.substring(0, 200) + (previousSession.notes.length > 200 ? '...' : '');
@@ -386,6 +386,7 @@ async function restoreSession(previousSessionId) {
 }
 
 async function initSession() {
+    await SLMTime.load().catch(() => {});
     const urlParams = new URLSearchParams(window.location.search);
     contentId = urlParams.get('content_id');
     planId = urlParams.get('plan_id');

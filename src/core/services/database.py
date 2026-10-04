@@ -4,6 +4,8 @@ Database service for SLMEducator
 
 import os
 import sqlite3
+from src.core.services.temporal_service import utc_now, local_date, last_activity_day, known_before
+
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, Any, cast
@@ -299,7 +301,7 @@ class DatabaseService:
         assignment = StudentStudyPlan(
             student_id=student_id,
             study_plan_id=study_plan_id,
-            assigned_at=datetime.now(),
+            assigned_at=utc_now(),
         )
         return self.create_student_study_plan(assignment)
 
@@ -557,14 +559,14 @@ class DatabaseService:
         """Clean up learning sessions older than specified days"""
         from datetime import datetime, timedelta
 
-        cutoff_date = datetime.now() - timedelta(days=days_old)
+        cutoff_date = utc_now() - timedelta(days=days_old)
 
         with self.get_session() as session:
             # Delete old learning sessions
             old_sessions = (
                 session.execute(
                     select(LearningSession).where(
-                        LearningSession.start_time < cutoff_date
+                        known_before(LearningSession.start_time, cutoff_date)
                     )
                 )
                 .scalars()
@@ -583,14 +585,14 @@ class DatabaseService:
         """Clean up audit logs older than specified days"""
         from datetime import datetime, timedelta
 
-        cutoff_date = datetime.now() - timedelta(days=days_old)
+        cutoff_date = utc_now() - timedelta(days=days_old)
 
         with self.get_session() as session:
             # Delete old audit logs - handle invalid enum values gracefully
             try:
                 old_logs = (
                     session.execute(
-                        select(AuditLog).where(AuditLog.timestamp < cutoff_date)
+                        select(AuditLog).where(known_before(AuditLog.timestamp, cutoff_date))
                     )
                     .scalars()
                     .all()
@@ -631,13 +633,13 @@ class DatabaseService:
         """Clean up old authentication attempts"""
         from datetime import datetime, timedelta
 
-        cutoff_date = datetime.now() - timedelta(days=days_old)
+        cutoff_date = utc_now() - timedelta(days=days_old)
 
         with self.get_session() as session:
             # Delete old auth attempts
             old_attempts = (
                 session.execute(
-                    select(AuthAttempt).where(AuthAttempt.timestamp < cutoff_date)
+                    select(AuthAttempt).where(known_before(AuthAttempt.timestamp, cutoff_date))
                 )
                 .scalars()
                 .all()
@@ -915,7 +917,7 @@ class DatabaseService:
                     .all()
                 )
                 total_seconds = sum(
-                    (s.duration_minutes or (s.calculate_duration() or 0)) * 60
+                    (s.calculate_duration() or 0) * 60
                     for s in sessions
                 )
 
@@ -937,14 +939,15 @@ class DatabaseService:
                 # Get streak information from user
                 user = session.get(User, user_id)
                 streak_days = 0
-                if user and user.last_activity_date:
-                    days_since_activity = (date.today() - user.last_activity_date).days
+                if user and last_activity_day(user):
+                    days_since_activity = (local_date(user) - last_activity_day(user)).days
                     # Only count as active streak if activity was today or yesterday
-                    if days_since_activity <= 1:
+                    if 0 <= days_since_activity <= 1:
                         streak_days = user.current_streak or 0
 
                 return {
                     "total_study_time": total_seconds,
+                    "unknown_duration_sessions": sum(1 for item in sessions if item.end_time and item.calculate_duration() is None),
                     "completed_items": completed_items,
                     "streak_days": streak_days,
                 }

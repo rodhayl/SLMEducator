@@ -19,6 +19,7 @@ async function fixture(page = 'assessment_taker.html') {
     window.eval(read('static/vendor/marked@15.0.12/marked.min.js'));
     window.eval(read('static/js/safe-render.js'));
     window.eval(read('static/js/learning-client.js'));
+    window.eval(read('static/js/time-display.js'));
     return { dom, window };
 }
 const reply = (status, data) => ({ ok: status >= 200 && status < 300, status, json: async () => data });
@@ -26,13 +27,13 @@ const assessment = { id: 4, title: '<script>unsafe()</script>', description: 'Sy
     { id: 10, question_text: '<img src=x onerror=unsafe()>', question_type: 'multiple_choice', points: 10, options: { choices: ['a" onclick="unsafe()', 'b'] } },
     { id: 11, question_text: 'Explain <svg/onload=unsafe()>', question_type: 'short_answer', points: 20 }
 ] };
-async function loadedAssessment(status, result) {
+async function loadedAssessment(status, result, startOptions = {}) {
     const context = await fixture();
     const w = context.window;
     w.requests = [];
     w.fetch = async (url, options) => {
         w.requests.push({ url, options });
-        if (url.endsWith('/start')) return reply(200, { submission_id: 21, expires_at: new Date(Date.now() + 60000).toISOString() });
+        if (url.endsWith('/start')) return reply(200, { submission_id: 21, expires_at: new Date(Date.now() + 60000).toISOString(), ...startOptions });
         if (url.endsWith('/submit')) return reply(status, result);
         return reply(200, assessment);
     };
@@ -208,9 +209,9 @@ test('question authoring safely previews text and explicitly saves before publis
     w.previewAssessment();
     assert.ok(preview.includes('&lt;img'));
     const requests = [];
-    w.fetch = async (url, options) => { requests.push({url, options}); return reply(200, {id: 2, is_published: false}); };
+    w.fetch = async (url, options) => { requests.push({url, options}); return reply(200, url.endsWith('/assistance-policy') ? {assessment_id:2,mode:JSON.parse(options.body).mode} : {id: 2, is_published: false}); };
     await w.saveAssessmentDraft();
-    assert.equal(requests.length, 1);
+    assert.equal(requests.length, 2);
     assert.equal(requests[0].url, '/api/assessments/');
     assert.equal(JSON.parse(requests[0].options.body).time_limit_minutes, null);
     assert.equal(JSON.parse(requests[0].options.body).max_attempts, 1);
@@ -277,6 +278,7 @@ test('published assessment saves request draft state and rubric/drag changes req
     const requests = [];
     w.fetch = async (url, options = {}) => {
         requests.push({ url, options });
+        if (url.endsWith('/assistance-policy')) return reply(200, {assessment_id:4, mode: options.body ? JSON.parse(options.body).mode : 'hints_only'});
         if (options.method) return reply(200, { id: 4, is_published: false });
         return reply(200, { ...assessment, is_published: true, rubric: { name: 'Review', criteria: [{ name: 'Reasoning', max_points: 10, description: 'Explain' }] } });
     };
@@ -284,6 +286,8 @@ test('published assessment saves request draft state and rubric/drag changes req
     w.eval(read('static/js/assessment_builder.js'));
     w.document.dispatchEvent(new w.Event('DOMContentLoaded'));
     await new Promise(resolve => setImmediate(resolve));
+    w.document.getElementById('quiz-title').value = 'Revised published title';
+    w.document.getElementById('quiz-title').dispatchEvent(new w.Event('input', {bubbles:true}));
     await w.saveAssessmentDraft();
     assert.equal(JSON.parse(requests.find(request => request.options.method === 'PUT').options.body).is_published, false);
     w.document.querySelector('#rubric-section .btn-close').click();
@@ -354,5 +358,186 @@ test('saved plan blocks drag/drop, disables sortable and cannot show unsaved ord
     assert.ok(Array.from(w.document.querySelectorAll('[draggable]')).every(item => !item.draggable));
     w.drop({ preventDefault() {}, target: card.querySelector('.phase-content-area'), dataTransfer: {getData: () => '2'} });
     assert.equal(card.querySelectorAll('[data-content-id]').length, 1);
+    dom.window.close();
+});
+
+test('failed assistance policy save blocks publish and retry reuses saved assessment', async () => {
+    const { dom, window: w } = await fixture('assessment_builder.html');
+    w.eval(read('static/js/assessment_builder.js'));
+    w.addQuestionUI();
+    w.document.getElementById('quiz-title').value = 'Policy draft';
+    w.document.getElementById('assessment-assistance').value = 'disabled';
+    const calls = []; let failPolicy = true;
+    w.fetch = async (url, options) => {
+        calls.push({url, options});
+        if (url.endsWith('/assistance-policy')) return failPolicy ? reply(500, {detail:'Policy storage failed'}) : reply(200, {assessment_id:9, mode:JSON.parse(options.body).mode});
+        return reply(200, {id:9, is_published:false});
+    };
+    await w.saveAssessmentDraft();
+    assert.equal(w.editingAssessmentId, 9);
+    assert.equal(w.document.getElementById('assessment-assistance').value, 'disabled');
+    assert.equal(w.document.getElementById('publish-btn').disabled, true);
+    assert.match(w.document.getElementById('assessment-feedback').textContent, /Policy storage failed/);
+    await w.publishAssessment();
+    assert.equal(calls.some(call => call.url.endsWith('/publish')), false);
+    failPolicy = false;
+    await w.saveAssessmentDraft();
+    assert.equal(calls.filter(call => call.url === '/api/assessments/').length, 1);
+    assert.equal(calls.filter(call => call.url === '/api/assessments/9').length, 0);
+    assert.equal(w.document.getElementById('publish-btn').disabled, false);
+    w.showConfirm = async () => true;
+    await w.publishAssessment();
+    assert.equal(calls.filter(call => call.url.endsWith('/publish')).length, 1);
+    dom.window.close();
+});
+
+test('policy load failure cannot overwrite an existing policy and policy-only edit avoids definition PUT', async () => {
+    const { dom, window: w } = await fixture('assessment_builder.html');
+    w.eval(read('static/js/assessment_builder.js'));
+    const calls = []; let failLoad = true;
+    w.fetch = async (url, options = {}) => {
+        calls.push({url, options});
+        if (url.endsWith('/assistance-policy')) return failLoad ? reply(503, {}) : reply(200, {assessment_id:4, mode:options.body ? JSON.parse(options.body).mode : 'explanations'});
+        return reply(200, {...assessment, is_published:true});
+    };
+    await w.loadAssessmentForEdit(4);
+    assert.equal(w.document.getElementById('assessment-assistance').disabled, true);
+    assert.equal(w.document.getElementById('publish-btn').disabled, true);
+    const count = calls.length; await w.saveAssessmentDraft();
+    assert.equal(calls.length, count);
+    failLoad = false; await w.loadAssessmentAssistancePolicy();
+    const selector = w.document.getElementById('assessment-assistance');
+    assert.equal(selector.value, 'explanations');
+    selector.value = 'hints_only'; selector.dispatchEvent(new w.Event('change', {bubbles:true}));
+    await w.saveAssessmentDraft();
+    assert.equal(calls.some(call => call.options.method === 'PUT' && !call.url.endsWith('/assistance-policy')), false);
+    assert.equal(w.document.getElementById('publish-btn').disabled, false);
+    dom.window.close();
+});
+
+async function tutorFixture() {
+    const context = await fixture('dashboard.html');
+    const source = read('static/js/dashboard.js');
+    context.window.escapeHtml = context.window.SLMRender.escape;
+    context.window.eval(source.slice(source.indexOf('// --- AI TUTOR ---'), source.indexOf('// Old settings logic removed.')));
+    return context;
+}
+
+test('tutor exposes enforced policy, blocks disabled attempts and labels server-forced hints', async () => {
+    const { dom, window: w } = await tutorFixture();
+    let mode = 'disabled'; const calls = [];
+    w.fetch = async (url, options = {}) => {
+        calls.push({url, options});
+        if (url.endsWith('/assistance-policy')) return reply(200, {mode, active_assessment_ids:[4], reason:'<img src=x onerror=unsafe()>'});
+        return reply(200, {response:'Try an independent step.',status:'suggestion',assistance_policy:{mode:'hints_only',active_assessment_ids:[4]},effective_assistance:'hint'});
+    };
+    await w.refreshTutorPolicy();
+    const input = w.document.getElementById('chat-input'); const form = w.document.getElementById('chat-form');
+    input.value = 'Keep this question'; form.dispatchEvent(new w.Event('submit',{cancelable:true}));
+    assert.equal(calls.filter(call => call.url === '/api/ai/chat').length, 0);
+    assert.match(w.document.getElementById('tutor-policy-status').textContent, /disabled/);
+    assert.equal(w.document.querySelector('#tutor-policy-status img'), null);
+    mode = 'hints_only'; await w.refreshTutorPolicy();
+    assert.ok(Array.from(w.document.querySelectorAll('#tutor-assistance option')).filter(option => option.value !== 'hint').every(option => option.disabled));
+    form.dispatchEvent(new w.Event('submit',{cancelable:true}));
+    await new Promise(resolve => setImmediate(resolve));
+    assert.match(w.document.getElementById('chat-history').textContent, /Requested help: hint/);
+    assert.equal(JSON.parse(calls.find(call => call.url === '/api/ai/chat').options.body).assistance, 'hint');
+    mode = 'explanations'; await w.refreshTutorPolicy();
+    assert.ok(Array.from(w.document.querySelectorAll('#tutor-assistance option')).every(option => !option.disabled));
+    dom.window.close();
+});
+
+test('tutor denial refreshes policy and preserves question for retry', async () => {
+    const { dom, window: w } = await tutorFixture();
+    let mode = 'hints_only';
+    w.fetch = async url => {
+        if (url.endsWith('/assistance-policy')) return reply(200, {mode,active_assessment_ids:[4]});
+        mode = 'disabled'; return reply(403, {detail:'Teacher policy disables AI assistance while this assessment attempt is open'});
+    };
+    await w.refreshTutorPolicy();
+    w.document.getElementById('chat-input').value = 'Retain after policy changes';
+    w.document.getElementById('chat-form').dispatchEvent(new w.Event('submit',{cancelable:true}));
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(w.document.getElementById('chat-input').value, 'Retain after policy changes');
+    assert.equal(w.document.querySelector('#chat-form button').disabled, true);
+    assert.match(w.document.getElementById('tutor-policy-status').textContent, /disabled/);
+    dom.window.close();
+});
+
+test('known timestamps use explicit IANA timezone including DST; legacy values remain literal', async () => {
+    const { dom, window: w } = await fixture();
+    const time = w.SLMTime;
+    assert.equal(time.epoch('2026-03-08T06:59:00'), null);
+    assert.equal(time.format('2026-03-08 06:59:00'), '2026-03-08 06:59:00 (timezone unknown)');
+    assert.equal(time.epoch('2026-03-08T06:59:00+00:00', 'legacy_unknown'), null);
+    assert.match(time.format('2026-03-08T06:59:00+00:00', {timezone:'America/New_York',locale:'en-US'}), /01:59:00 AM/);
+    assert.match(time.format('2026-03-08T07:01:00+00:00', {timezone:'America/New_York',locale:'en-US'}), /03:01:00 AM/);
+    assert.match(time.format('2026-03-08T07:01:00+00:00'), /\(UTC\)$/);
+    assert.equal(time.validTimezone('Not/A_Zone'), false);
+    dom.window.close();
+});
+
+test('timezone changes require confirmed explicit save and failure preserves selection', async () => {
+    const { dom, window: w } = await fixture('dashboard.html');
+    const calls = []; let fail = true;
+    w.fetch = async (url, options = {}) => {
+        calls.push({url, options});
+        if (!options.method) return reply(200,{timezone:'UTC',timezone_source:'default'});
+        return fail ? reply(500,{}) : reply(200,{timezone:JSON.parse(options.body).timezone,timezone_source:'user'});
+    };
+    await w.loadTimezoneSettings();
+    assert.equal(w.SLMTime.getTimezone(), 'UTC');
+    const field = w.document.getElementById('settings-timezone'); field.value = 'Europe/Madrid';
+    assert.equal(calls.length, 1);
+    await w.saveTimezoneSettings();
+    assert.equal(field.value, 'Europe/Madrid');
+    assert.equal(w.SLMTime.getTimezone(), 'UTC');
+    assert.match(w.document.getElementById('timezone-status').textContent, /could not be saved/);
+    fail = false; await w.saveTimezoneSettings();
+    assert.equal(w.SLMTime.getTimezone(), 'Europe/Madrid');
+    assert.match(w.SLMTime.format('2026-10-04T12:00:00+00:00'), /\(Europe\/Madrid\)$/);
+    assert.match(w.SLMTime.format('2026-10-04T12:00:00'), /timezone unknown/);
+    field.value = 'Bad/Zone'; const count = calls.length; await w.saveTimezoneSettings();
+    assert.equal(calls.length, count);
+    assert.equal(w.document.activeElement, field);
+    dom.window.close();
+});
+
+test('legacy unknown attempt timer is not treated as local time or auto-submitted', async () => {
+    const { dom, window: w } = await loadedAssessment(200, {}, {timing_provenance:'legacy_unknown',expires_at:null});
+    w.startTimer();
+    assert.match(w.document.getElementById('assessment-timer').textContent, /timezone unknown/);
+    assert.equal(w.requests.some(call => call.url.endsWith('/submit')), false);
+    dom.window.close();
+});
+
+test('course stop requests server cancellation and preserves unfinished lessons for retry', async () => {
+    const { dom, window: w } = await fixture('course_designer.html');
+    w.SLMClient = { ...w.SLMClient, chooseDraft: async () => 'restore' };
+    w.SLMClient.drafts.write('course','designer','active', {
+        currentConfig:{subject:'Synthetic',grade_level:'adult'},
+        generatedOutline:{units:[{lessons:[{title:'One'},{title:'Two'}]}]},
+        sourceMaterialText:null,sourceCoverage:null,createdStudyPlanId:3,
+        generationTasks:[{unit:0,lesson:0,status:'pending'},{unit:0,lesson:1,status:'pending'}]
+    });
+    w.eval(read('static/js/course_designer.js'));
+    await w.restoreCourse();
+    const calls = []; let finish;
+    w.fetch = async (url, options = {}) => {
+        calls.push({url, options});
+        if (url.endsWith('/jobs')) return reply(200,{jobs:{synthetic_job:{items:{lesson:{status:'running'}}}}});
+        if (url.endsWith('/cancel')) return reply(200,{status:'cancellation_requested',in_flight_call_may_finish:true});
+        return new Promise(resolve => { finish = () => resolve(reply(200,{success:false,saved_content_ids:[8],items:[{status:'ready'},{status:'cancelled'}]})); });
+    };
+    const run = w.retryCourseGeneration();
+    await new Promise(resolve => setImmediate(resolve));
+    await w.stopCourseGeneration();
+    assert.ok(calls.some(call => call.url.endsWith('/synthetic_job/cancel')));
+    finish(); await run;
+    assert.equal(calls.filter(call => call.url === '/api/generate/full-topic-package').length,1);
+    assert.match(w.document.getElementById('live-preview').textContent,/Generation stopped/);
+    assert.equal(w.document.getElementById('retry-generation').classList.contains('d-none'),false);
+    assert.equal(w.SLMClient.drafts.read('course','designer','active').generationTasks[1].status,'pending');
     dom.window.close();
 });

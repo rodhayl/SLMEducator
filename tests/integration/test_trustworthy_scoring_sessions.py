@@ -1,6 +1,6 @@
 """Synthetic regressions for attempt, grading and session trust boundaries."""
 
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from types import SimpleNamespace
 from unittest.mock import Mock
 
@@ -239,7 +239,7 @@ def test_timed_attempt_contract_and_late_work_preservation(world):
     start = world.client.post(f"/api/assessments/{quiz_id}/start").json()
     assert start["expires_at"] and start["time_limit_minutes"] == 45
     submission = world.db.get(Submission, start["id"])
-    submission.started_at = datetime.now() - timedelta(minutes=46)
+    submission.started_at = datetime.now(timezone.utc) - timedelta(minutes=46)
     world.db.commit()
     result = world.client.post(f"/api/assessments/{quiz_id}/submit", json={"submission_id": start["id"], "answers": [{"question_id": questions[0]["id"], "response_text": "A"}]}).json()
     assert result["status"] == "submitted" and result["score"] is None

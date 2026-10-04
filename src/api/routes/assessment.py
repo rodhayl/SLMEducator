@@ -1,4 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
+from src.core.services.temporal_service import utc_now, known_instant, timestamp_provenance, duration_minutes
+
 from sqlalchemy.orm import Session
 from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, ConfigDict, Field
@@ -487,7 +489,7 @@ async def list_submissions(
         if status_enums:
             query = query.filter(Submission.status.in_(status_enums))
 
-    submissions = query.order_by(Submission.submitted_at.desc()).all()
+    submissions = query.order_by(Submission.id.desc()).all()
 
     result = []
     for sub in submissions:
@@ -618,7 +620,7 @@ async def grade_submission(
     submission.score = grade_data.score
     submission.feedback = grade_data.feedback
     submission.status = SubmissionStatus.GRADED
-    submission.graded_at = datetime.now()
+    submission.graded_at = utc_now()
     submission.teacher_approved = True
 
     record_assessed_mastery(db, submission)
@@ -670,13 +672,13 @@ async def accept_ai_grades(
             response.score = response.ai_suggested_score
             response.feedback = response.ai_suggested_feedback
             response.is_correct = response.score == response.question.points
-            response.graded_at = datetime.now()
+            response.graded_at = utc_now()
         if response.score is not None:
             total_score += response.score
 
     submission.score = total_score
     submission.status = SubmissionStatus.GRADED
-    submission.graded_at = datetime.now()
+    submission.graded_at = utc_now()
     submission.teacher_approved = True
 
     record_assessed_mastery(db, submission)
@@ -727,7 +729,7 @@ async def grade_single_response(
     response.score = grade_data.score
     response.feedback = grade_data.feedback
     response.is_correct = grade_data.score == response.question.points
-    response.graded_at = datetime.now()
+    response.graded_at = utc_now()
 
     # Recalculate submission total
     submission = db.query(Submission).filter(Submission.id == submission_id).first()
@@ -744,7 +746,7 @@ async def grade_single_response(
         all_graded = all(r.score is not None for r in submission.responses)
         if all_graded:
             submission.status = SubmissionStatus.GRADED
-            submission.graded_at = datetime.now()
+            submission.graded_at = utc_now()
             submission.teacher_approved = True
         else:
             submission.status = (
@@ -935,7 +937,7 @@ def _reserve_attempt(db: Session, user: User, assessment: Assessment) -> Submiss
         assessment_id=assessment.id,
         student_id=user.id,
         status=SubmissionStatus.DRAFT,
-        started_at=datetime.now(),
+        started_at=utc_now(),
         total_points=sum(q.points for q in assessment.questions),
     )
     db.add(submission)
@@ -956,16 +958,17 @@ async def start_assessment_attempt(
     db.commit()
     expires = (
         submission.started_at + timedelta(minutes=assessment.time_limit_minutes)
-        if assessment.time_limit_minutes
+        if assessment.time_limit_minutes and known_instant(submission.started_at)
         else None
     )
     return {
         "id": submission.id,
         "submission_id": submission.id,
         "status": submission.status.value,
-        "started_at": submission.started_at.astimezone(),
+        "started_at": submission.started_at,
+        "timing_provenance": timestamp_provenance(submission.started_at),
         "time_limit_minutes": assessment.time_limit_minutes,
-        "expires_at": expires.astimezone() if expires else None,
+        "expires_at": expires,
     }
 
 
@@ -973,6 +976,8 @@ def _submission_result(submission: Submission) -> dict:
     """Serialize persisted state consistently for initial responses and retries."""
     return {
         "id": submission.id,
+        "timing_provenance": timestamp_provenance(submission.started_at),
+        "time_spent_minutes": duration_minutes(submission.started_at, submission.submitted_at),
         "submission_id": submission.id,
         "score": submission.score,
         "total_points": submission.total_points,
@@ -1196,12 +1201,11 @@ def submit_assessment(
         db.rollback()
         return _submission_result(submission)
     submission.status = SubmissionStatus.SUBMITTED
-    submission.submitted_at = datetime.now()
-    submission.time_spent_minutes = max(
-        0, int((submission.submitted_at - submission.started_at).total_seconds() / 60)
-    )
+    submission.submitted_at = utc_now()
+    submission.time_spent_minutes = duration_minutes(submission.started_at, submission.submitted_at) or 0
+    timing_unknown = bool(assessment.time_limit_minutes and not known_instant(submission.started_at))
     late = bool(
-        assessment.time_limit_minutes
+        assessment.time_limit_minutes and not timing_unknown
         and submission.submitted_at
         > submission.started_at + timedelta(minutes=assessment.time_limit_minutes)
     )
@@ -1246,13 +1250,15 @@ def submit_assessment(
                 }
             )
     complete = all(response.score is not None for response in submission.responses)
-    if complete and not late:
+    if complete and not late and not timing_unknown:
         submission.score = sum(response.score for response in submission.responses)
         submission.status = SubmissionStatus.GRADED
-        submission.graded_at = datetime.now()
+        submission.graded_at = utc_now()
     else:
         submission.score = None
-        if late:
+        if timing_unknown:
+            submission.feedback = "Original attempt timezone unknown. Answers preserved for teacher review."
+        elif late:
             submission.feedback = (
                 "Time limit exceeded. Answers preserved for teacher review."
             )

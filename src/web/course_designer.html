@@ -12,6 +12,7 @@
     <script src="/static/vendor/marked@15.0.12/marked.min.js"></script>
     <script src="/static/js/safe-render.js"></script>
     <script src="/static/js/learning-client.js"></script>
+    <script src="/static/js/time-display.js"></script>
 </head>
 
 <body>
@@ -193,6 +194,7 @@
                     </div>
                 </div>
 
+                <button id="stop-generation" class="btn btn-outline-danger d-none" onclick="stopCourseGeneration()" data-i18n="recovery.stop_generation">Stop generation</button>
                 <button id="retry-generation" class="btn btn-warning d-none" onclick="retryCourseGeneration()" data-i18n="recovery.retry_failed">Retry failed items</button>
                 <div id="course-workflow" class="d-none alert alert-info mt-3">
                     <p data-i18n="recovery.plan_saved_review">Draft saved. Review the saved material in the library before publishing.</p>

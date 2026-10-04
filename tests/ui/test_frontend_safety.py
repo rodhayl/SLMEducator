@@ -24,6 +24,7 @@ def test_pages_load_safe_helpers_before_application_scripts_without_cdn():
         assert "https://cdn" not in source
         assert source.index("purify.min.js") < source.index("safe-render.js")
         assert source.index("safe-render.js") < source.index("</head>")
+        assert source.index("learning-client.js") < source.index("time-display.js") < source.index("</head>")
         for url in re.findall(r'(?:src|href)="(/static/[^"?#]+)', source):
             assert (WEB / url.lstrip("/")).is_file(), (page.name, url)
 
@@ -46,7 +47,7 @@ def test_recovery_translations_have_parity_and_required_keys():
     en = json.loads((translations / "en.json").read_text())["recovery"]
     es = json.loads((translations / "es.json").read_text())["recovery"]
     assert en.keys() == es.keys()
-    for key in ["reauth", "pending_review", "move_up", "retry_failed", "review_publish", "restore", "discard"]:
+    for key in ["reauth", "pending_review", "move_up", "retry_failed", "review_publish", "restore", "discard", "policy_hints_only", "policy_disabled_reason", "timezone_unknown", "timezone_save_failed"]:
         assert en[key] and es[key]
 
 
@@ -54,7 +55,8 @@ def test_critical_form_labels_and_live_regions():
     """Targeted semantic checks supplement, not replace, real keyboard/screen-reader QA."""
     required = {
         "study_plan_builder.html": ["plan-title", "plan-description", "plan-public"],
-        "assessment_builder.html": ["quiz-title", "quiz-desc", "quiz-pass", "grading-mode", "quiz-time", "quiz-attempts"],
+        "assessment_builder.html": ["quiz-title", "quiz-desc", "quiz-pass", "grading-mode", "quiz-time", "quiz-attempts", "assessment-assistance"],
+        "dashboard.html": ["tutor-assistance", "settings-timezone"],
         "session_player.html": ["difficulty-rating"],
     }
     for page, ids in required.items():
@@ -76,6 +78,17 @@ def test_existing_endpoint_and_publication_contracts():
     course = (WEB / "static/js/course_designer.js").read_text()
     assert "/api/generate/full-topic-package" in course
     assert "if (!data?.success || !data.saved_content_ids?.length)" in course
+
+
+def test_server_timestamps_use_shared_explicit_provenance_boundary():
+    """Server instants cannot silently acquire the browser's local timezone."""
+    for file in ["dashboard.js", "session.js", "grading.js", "modules/inbox.js"]:
+        source = (WEB / "static/js" / file).read_text()
+        assert "SLMTime.format(" in source
+        assert not re.search(r"new Date\([^)]*(?:created_at|start_time|submitted_at|sent_at|last_login|earned_at|timestamp)", source)
+    taker = (WEB / "static/js/assessment_taker.js").read_text()
+    assert "SLMTime.epoch(rawDeadline, currentAttempt.timing_provenance)" in taker
+    assert "rawDeadline + 'Z'" not in taker
 
 
 def test_muted_text_tokens_meet_aa_normal_text_contrast():

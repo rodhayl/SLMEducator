@@ -4,7 +4,7 @@
  * Version: 1.0.2
  */
 
-const CACHE_NAME = 'slm-educator-v6-safe-render';
+const CACHE_NAME = 'slm-educator-v7-assistance-timezone';
 const OFFLINE_URL = '/404.html';
 
 // Static assets to cache on install
@@ -21,6 +21,7 @@ const STATIC_ASSETS = [
     '/static/js/toast.js',
     '/static/js/safe-render.js',
     '/static/js/learning-client.js',
+    '/static/js/time-display.js',
     '/static/vendor/dompurify@3.4.16/purify.min.js',
     '/static/vendor/marked@15.0.12/marked.min.js',
     '/static/vendor/bootstrap@5.3.0/dist/css/bootstrap.min.css',

@@ -17,6 +17,7 @@ from datetime import datetime, date
 
 from src.api.dependencies import get_db
 from src.api.security import get_current_user
+from src.core.services.temporal_service import local_date, record_activity_day, user_timezone, record_goal_day, goal_day_info, last_activity_day
 from src.api.policies import teacher_student_ids
 from src.core.roles import is_admin, is_student, is_teacher
 from src.core.models import (
@@ -43,6 +44,8 @@ class GamificationProfile(BaseModel):
     longest_streak: int
     last_activity_date: Optional[date]
     badges_earned: int
+    timezone: str = "UTC"
+    day_provenance: str = "legacy_unknown"
 
 
 class BadgeResponse(BaseModel):
@@ -80,6 +83,10 @@ class DailyGoalResponse(BaseModel):
     current_value: int
     completed: bool
     goal_date: date
+    timezone: str = "UTC"
+    day_timezone: Optional[str] = None
+    day_provenance: str = "legacy_unknown"
+    mixed_day_policy: bool = False
 
 
 class DailyGoalCreate(BaseModel):
@@ -113,6 +120,8 @@ async def get_gamification_profile(
         longest_streak=current_user.longest_streak or 0,
         last_activity_date=current_user.last_activity_date,
         badges_earned=badges_count,
+        timezone=user_timezone(current_user),
+        day_provenance="recorded" if last_activity_day(current_user) else "legacy_unknown",
     )
 
 
@@ -208,7 +217,8 @@ async def get_daily_goal(
     current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     """Get today's daily goal"""
-    today = date.today()
+    current_user = db.get(User, current_user.id)
+    today = local_date(current_user)
 
     goal = (
         db.query(DailyGoal)
@@ -235,6 +245,8 @@ async def get_daily_goal(
                 completed=False,
             )
             db.add(goal)
+            db.flush()
+            record_goal_day(current_user, goal, new=True)
             db.commit()
             db.refresh(goal)
         else:
@@ -246,6 +258,7 @@ async def get_daily_goal(
                 current_value=0,
                 completed=False,
                 goal_date=today,
+                **goal_day_info(current_user),
             )
 
     return DailyGoalResponse(
@@ -255,6 +268,7 @@ async def get_daily_goal(
         current_value=goal.current_value,
         completed=goal.completed,
         goal_date=goal.goal_date,
+        **goal_day_info(current_user, goal),
     )
 
 
@@ -267,7 +281,7 @@ async def get_daily_goal_progress(
 
     Returns progress data for dashboard widgets.
     """
-    today = date.today()
+    today = local_date(current_user)
 
     goal = (
         db.query(DailyGoal)
@@ -291,6 +305,7 @@ async def get_daily_goal_progress(
                 "percentage": 0,
                 "completed": False,
                 "has_goal": True,
+                **goal_day_info(current_user),
             }
         else:
             return {
@@ -300,6 +315,7 @@ async def get_daily_goal_progress(
                 "percentage": 0,
                 "completed": False,
                 "has_goal": False,
+                **goal_day_info(current_user),
             }
 
     percentage = (
@@ -315,6 +331,7 @@ async def get_daily_goal_progress(
         "percentage": percentage,
         "completed": goal.completed,
         "has_goal": True,
+        **goal_day_info(current_user, goal),
     }
 
 
@@ -325,7 +342,8 @@ async def set_daily_goal(
     db: Session = Depends(get_db),
 ):
     """Set or update today's daily goal"""
-    today = date.today()
+    current_user = db.get(User, current_user.id)
+    today = local_date(current_user)
 
     goal = (
         db.query(DailyGoal)
@@ -333,6 +351,7 @@ async def set_daily_goal(
         .first()
     )
 
+    new_goal = goal is None
     if goal:
         goal.goal_type = goal_data.goal_type
         goal.target_value = goal_data.target_value
@@ -346,6 +365,9 @@ async def set_daily_goal(
             completed=False,
         )
         db.add(goal)
+
+    db.flush()
+    record_goal_day(current_user, goal, new=new_goal)
 
     # Handle save as default
     if goal_data.save_as_default:
@@ -376,6 +398,7 @@ async def set_daily_goal(
         current_value=goal.current_value,
         completed=goal.completed,
         goal_date=goal.goal_date,
+        **goal_day_info(current_user, goal),
     )
 
 
@@ -390,12 +413,7 @@ def award_activity_xp(db: Session, user_id: int, amount: int) -> None:
     )
     user = db.get(User, user_id)
     db.refresh(user)
-    today = date.today()
-    if user.last_activity_date != today:
-        yesterday = user.last_activity_date and (today - user.last_activity_date).days == 1
-        user.current_streak = (user.current_streak or 0) + 1 if yesterday else 1
-        user.longest_streak = max(user.longest_streak or 0, user.current_streak)
-        user.last_activity_date = today
+    record_activity_day(user)
     user.level = (user.xp // 1000) + 1
     from src.core.services.progress_tracking_service import ProgressTrackingService
 

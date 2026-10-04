@@ -2,7 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, ConfigDict, Field
-from datetime import datetime, date
+from datetime import datetime
+from src.core.services.temporal_service import utc_now
 
 from src.api.dependencies import get_db
 from src.api.security import get_current_user
@@ -148,7 +149,7 @@ async def create_study_plan(
             creator_id=current_user.id,
             is_public=False,
             phases=[p.model_dump() for p in plan.phases],  # Store structure as JSON
-            created_at=datetime.now(),
+            created_at=utc_now(),
         )
         new_plan.set_encrypted_metadata({"workflow": {"status": "draft", "version": 0}})
         db.add(new_plan)
@@ -465,7 +466,7 @@ async def add_topic_to_study_plan(
             difficulty=topic.difficulty,
             creator_id=current_user.id,
             study_plan_id=plan_id,
-            created_at=datetime.now(),
+            created_at=utc_now(),
         )
 
         if topic.content_data:
@@ -842,29 +843,13 @@ async def update_progress(
         student_plan.progress = progress_data
 
         # Mark as completed if all content done
-        if len(completed_ids) >= total_contents:
-            # from datetime import datetime
-            student_plan.completed_at = datetime.now()
+        if len(completed_ids) >= total_contents and student_plan.completed_at is None:
+            student_plan.completed_at = utc_now()
 
         db.commit()
 
-        # Update Daily Goal
-        today = date.today()
-        daily_goal = (
-            db.query(DailyGoal)
-            .filter(DailyGoal.user_id == current_user.id, DailyGoal.goal_date == today)
-            .first()
-        )
-
-        if daily_goal and not daily_goal.completed:
-            # Basic logic: always increment.
-            # Ideally we check goal_type, but let's assume 'lessons' or count any content for now.
-            daily_goal.current_value += 1
-            if daily_goal.current_value >= daily_goal.target_value:
-                daily_goal.completed = True
-                # Optional: Award bonus XP for goal completion? (Handled by awardXP separately?)
-
-        db.commit()
+        # Session completion owns participation goals/rewards. Course position
+        # updates (including retries) must not count the same activity twice.
 
         completion_pct = (
             (len(completed_ids) / total_contents * 100) if total_contents > 0 else 0.0

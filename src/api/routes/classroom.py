@@ -4,6 +4,8 @@ Classroom API Routes
 Provides messaging and help request functionality for the connected classroom.
 """
 
+from src.core.services.temporal_service import utc_now
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_
@@ -196,7 +198,7 @@ async def get_messages(
                 TeacherMessage.from_id == current_user.id,
                 TeacherMessage.archived_at.is_(None),
             )
-            .order_by(TeacherMessage.sent_at.desc())
+            .order_by(TeacherMessage.id.desc())
             .all()
         )
 
@@ -274,7 +276,7 @@ async def get_messages(
                 TeacherMessage.to_id == current_user.id,
                 TeacherMessage.archived_at.is_(None),
             )
-            .order_by(TeacherMessage.sent_at.desc())
+            .order_by(TeacherMessage.id.desc())
             .all()
         )
 
@@ -341,7 +343,7 @@ async def send_message(
         to_id=recipient_id,
         subject=msg.subject,
         content=msg.body,
-        sent_at=datetime.now(),
+        sent_at=utc_now(),
     )
     db.add(new_msg)
     db.commit()
@@ -403,7 +405,7 @@ async def mark_message_read(
         raise HTTPException(status_code=404, detail="Message not found")
 
     if not msg.read_at:
-        msg.read_at = datetime.now()
+        msg.read_at = utc_now()
         db.commit()
 
     return {"status": "ok", "read_at": msg.read_at}
@@ -456,7 +458,7 @@ async def archive_message(
         raise HTTPException(status_code=404, detail="Message not found")
 
     if not msg.archived_at:
-        msg.archived_at = datetime.now()
+        msg.archived_at = utc_now()
         db.commit()
 
     return {"status": "ok", "archived_at": msg.archived_at}
@@ -541,7 +543,7 @@ async def get_help_requests(
     elif not is_admin(current_user):
         query = query.filter(HelpRequest.student_id == current_user.id)
 
-    requests = query.order_by(HelpRequest.created_at.desc()).all()
+    requests = query.order_by(HelpRequest.id.desc()).all()
 
     result = []
     for req in requests:
@@ -625,7 +627,7 @@ async def create_help_request(
         ),
         priority=req.urgency,
         status="open",
-        created_at=datetime.now(),
+        created_at=utc_now(),
         # Store learning context
         content_id=req.content_id,
         study_plan_id=req.study_plan_id,
@@ -707,7 +709,7 @@ async def resolve_help_request(
     require_allowed(can_manage_student(db, current_user, db.get(User, req.student_id)))
     req.status = "resolved"
     req.resolved_by_id = current_user.id
-    req.resolved_at = datetime.now()
+    req.resolved_at = utc_now()
     if notes:
         req.resolution_notes = notes
 

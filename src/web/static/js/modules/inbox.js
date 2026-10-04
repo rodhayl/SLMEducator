@@ -283,7 +283,7 @@ window.loadInbox = async function loadInbox() {
                             <h6 class="mb-0">${escapeHtml(msg.subject)}${statusBadge}</h6>
                         </div>
                         <p class="mb-1 text-truncate message-preview" style="max-width: 500px;">${escapeHtml(msg.content)}</p>
-                        <small class="text-muted">${escapeHtml(displayName)} • ${new Date(msg.sent_at).toLocaleString()}</small>
+                        <small class="text-muted">${escapeHtml(displayName)} • ${escapeHtml(SLMTime.format(msg.sent_at))}</small>
                         <div class="message-full-content d-none mt-2 p-2 bg-light rounded">
                             <p class="mb-0">${escapeHtml(msg.content)}</p>
                         </div>

@@ -1,4 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from src.core.services.temporal_service import utc_now
+
 from sqlalchemy.orm import Session
 from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, ConfigDict
@@ -150,7 +152,7 @@ async def list_content(
         query = query.filter(Content.content_type == ContentType(content_type))
 
     if is_admin(current_user):
-        items = query.order_by(Content.created_at.desc()).all()
+        items = query.order_by(Content.id.desc()).all()
     elif is_teacher(current_user):
         student_ids = _teacher_student_ids(db, current_user.id)
         teacher_filter = or_(
@@ -162,7 +164,7 @@ async def list_content(
                 Content.content_type == ContentType.QA,
             ),
         )
-        items = query.filter(teacher_filter).order_by(Content.created_at.desc()).all()
+        items = query.filter(teacher_filter).order_by(Content.id.desc()).all()
     else:
         plan_ids = list(
             set(_student_assigned_plan_ids(db, current_user.id) + _public_plan_ids(db))
@@ -178,7 +180,7 @@ async def list_content(
                 ),
             ),
         )
-        items = query.filter(student_filter).order_by(Content.created_at.desc()).all()
+        items = query.filter(student_filter).order_by(Content.id.desc()).all()
 
     items = [item for item in items if _can_view_content(db, current_user, item)]
 
@@ -284,7 +286,7 @@ async def get_content_tree(
                 .filter(
                     Content.id.notin_(plan_content_ids) if plan_content_ids else True
                 )
-                .order_by(Content.created_at.desc())
+                .order_by(Content.id.desc())
                 .all()
             )
         elif is_teacher(current_user):
@@ -314,7 +316,7 @@ async def get_content_tree(
                 .filter(
                     Content.id.notin_(plan_content_ids) if plan_content_ids else True
                 )
-                .order_by(Content.created_at.desc())
+                .order_by(Content.id.desc())
                 .all()
             )
 
@@ -329,7 +331,7 @@ async def get_content_tree(
                         Content.shared_with_teacher.is_(True),
                         Content.content_type == ContentType.QA,
                     )
-                    .order_by(Content.created_at.desc())
+                    .order_by(Content.id.desc())
                     .all()
                 )
                 extra = list(extra) + list(shared_qa)
@@ -357,7 +359,7 @@ async def get_content_tree(
             extra = (
                 db.query(Content)
                 .filter(Content.creator_id == current_user.id)
-                .order_by(Content.created_at.desc())
+                .order_by(Content.id.desc())
                 .all()
             )
 
@@ -538,7 +540,7 @@ async def create_content(
             study_plan_id=content_data.study_plan_id,  # Link to study plan if provided
             is_personal=is_personal,
             shared_with_teacher=shared_with_teacher,
-            created_at=datetime.now(),
+            created_at=utc_now(),
         )
         new_content.set_encrypted_content_data(
             normalize_content(resolved_type, resolved_data)
@@ -808,7 +810,7 @@ async def create_content_batch(
                 difficulty=item.difficulty,
                 creator_id=current_user.id,
                 study_plan_id=batch_data.study_plan_id,
-                created_at=datetime.now(),
+                created_at=utc_now(),
             )
 
             if item.content_data:

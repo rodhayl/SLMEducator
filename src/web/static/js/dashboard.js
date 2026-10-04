@@ -95,6 +95,7 @@ async function initAuthAndRoleUI() {
 
 // Initial auth + role UI
 await initAuthAndRoleUI();
+await SLMTime.load().catch(() => {});
 
 // Update on language load (and re-apply role UI)
 document.addEventListener('i18n-loaded', () => {
@@ -720,9 +721,9 @@ window.loadProfile = async function () {
 
         // Update account info
         document.getElementById('profile-created-at').textContent =
-            profile.created_at ? new Date(profile.created_at).toLocaleDateString() : 'N/A';
+            profile.created_at ? SLMTime.format(profile.created_at, { dateOnly: true }) : 'N/A';
         document.getElementById('profile-last-login').textContent =
-            profile.last_login ? new Date(profile.last_login).toLocaleString() : 'N/A';
+            profile.last_login ? SLMTime.format(profile.last_login) : 'N/A';
 
         // Populate form fields
         document.getElementById('profile-first-name').value = profile.first_name || '';
@@ -895,7 +896,7 @@ window.loadProfileBadges = async function () {
                 <div class="flex-grow-1">
                     <div class="fw-bold small">${escapeHtml(badge.name)}</div>
                     <div class="text-muted" style="font-size: 0.75rem;">
-                        ${badge.earned_at ? new Date(badge.earned_at).toLocaleDateString() : ''}
+                        ${badge.earned_at ? escapeHtml(SLMTime.format(badge.earned_at, { dateOnly: true })) : ''}
                     </div>
                 </div>
             </div>
@@ -1145,6 +1146,7 @@ document.querySelectorAll('.nav-item').forEach(item => {
             initSettingsUI();
             loadSettings();
             loadProfile();
+            loadTimezoneSettings();
             setSettingsTab(item.dataset.settingsTab || 'profile');
         }
         if (viewName === 'inbox') loadInbox();
@@ -1304,7 +1306,7 @@ window.loadLibrary = async function loadLibrary() {
                                 <small class="text-muted d-block">${escapeHtml(confidenceLabel)}</small>
                             </div>` : ''}
                             <p class="text-muted small">
-                                ${I18n.t('content.editor.errors.created_at')} ${new Date(item.created_at).toLocaleDateString()}
+                                ${I18n.t('content.editor.errors.created_at')} ${escapeHtml(SLMTime.format(item.created_at, { dateOnly: true }))}
                             </p>
                         </div>
                         <div class="card-footer bg-transparent border-0">
@@ -1498,7 +1500,7 @@ window.viewContent = async function viewContent(id) {
         document.getElementById('content-view-title').textContent = content.title;
         document.getElementById('content-view-type').textContent = type.toUpperCase();
         document.getElementById('content-view-difficulty').textContent = `Difficulty: ${content.difficulty || 1}`;
-        document.getElementById('content-view-date').textContent = `Created: ${new Date(content.created_at).toLocaleDateString()}`;
+        document.getElementById('content-view-date').textContent = `Created: ${SLMTime.format(content.created_at, { dateOnly: true })}`;
 
         // Parse content body
         let bodyText = I18n.t('content.viewer.empty_content');
@@ -2157,6 +2159,7 @@ window.loadTutorContentItems = async function loadTutorContentItems() {
 window.initTutorSelectors = function initTutorSelectors() {
     loadTutorStudyPlans();
     loadTutorContentItems();
+    refreshTutorPolicy();
 };
 
 // Clear AI Chat (30.3)
@@ -2184,6 +2187,43 @@ window.clearAIChat = function clearAIChat() {
 let tutorBusy = false;
 let tutorEpoch = 0;
 let tutorConversation = [];
+let tutorPolicy = null;
+let tutorPolicyRequest = 0;
+
+function applyTutorPolicy(policy) {
+    if (!['hints_only', 'explanations', 'disabled'].includes(policy?.mode)) throw new Error('Invalid assistance policy');
+    tutorPolicy = policy;
+    const selector = document.getElementById('tutor-assistance');
+    const status = document.getElementById('tutor-policy-status');
+    const labels = {
+        hints_only: SLMClient.message('policy_hints_only', 'Hints only'),
+        explanations: SLMClient.message('policy_explanations', 'Hints and explanations'),
+        disabled: SLMClient.message('policy_disabled', 'AI help disabled')
+    };
+    status.textContent = `${SLMClient.message('assistance_mode', 'Assistance mode')}: ${labels[policy.mode]}. ` +
+        (policy.mode === 'disabled' ? SLMClient.message('policy_disabled_reason', 'Your teacher has disabled AI help while an assessment attempt is open. Complete the attempt, then refresh the policy.') :
+            (policy.active_assessment_ids?.length ? SLMClient.message('policy_active_attempt', 'Teacher policy applies while an assessment attempt is open.') : SLMClient.message('policy_study_default', 'Independent study starts with hints.')));
+    selector.querySelectorAll('option').forEach(option => {
+        option.disabled = policy.mode !== 'explanations' && option.value !== 'hint';
+    });
+    if (policy.mode !== 'explanations') selector.value = 'hint';
+    selector.disabled = policy.mode === 'disabled';
+    chatForm.querySelector('button[type=submit]').disabled = tutorBusy || policy.mode === 'disabled';
+}
+
+window.refreshTutorPolicy = async function refreshTutorPolicy() {
+    const version = ++tutorPolicyRequest;
+    tutorPolicy = null;
+    document.getElementById('tutor-assistance').disabled = true;
+    chatForm.querySelector('button[type=submit]').disabled = true;
+    document.getElementById('tutor-policy-status').textContent = SLMClient.message('policy_checking', 'Checking teacher assistance policy…');
+    try {
+        const policy = await SLMClient.request('/api/ai/assistance-policy');
+        if (version === tutorPolicyRequest) applyTutorPolicy(policy);
+    } catch (error) {
+        if (version === tutorPolicyRequest) document.getElementById('tutor-policy-status').textContent = SLMClient.message('policy_check_failed', 'Could not check assistance policy. Refresh the policy to retry. Your message is kept.');
+    }
+};
 function appendTutorMessage(text, modelResponse, metadata = {}) {
     const row = document.createElement('div');
     row.className = 'chat-message ' + (modelResponse ? 'chat-message-ai' : 'chat-message-user');
@@ -2195,9 +2235,10 @@ function appendTutorMessage(text, modelResponse, metadata = {}) {
     if (modelResponse) {
         const details = document.createElement('small');
         details.className = 'd-block text-secondary';
-        const label = metadata.status && metadata.status !== 'suggestion' ?
+        let label = metadata.status && metadata.status !== 'suggestion' ?
             SLMClient.message('ai_unavailable', 'AI response unavailable. Try again or ask your teacher.') :
             SLMClient.message('ai_suggestion', 'AI suggestion; check it against your learning material.');
+        if (metadata.effective_assistance === 'hint') label += ' ' + SLMClient.message('effective_hint', 'Requested help: hint under the current policy.');
         const source = metadata.source;
         details.textContent = label + (source ? ` ${SLMClient.message('source_context', 'Context')}: ${source.title}; ${(source.references || []).join(', ')}. ${source.included_characters}/${source.total_characters} ${SLMClient.message('characters', 'characters')}. ${source.truncated ? SLMClient.message('source_partial', 'Partial source: some material was not included.') : ''}` :
             ` ${SLMClient.message('no_source', 'No source material selected.')}`);
@@ -2211,7 +2252,7 @@ if (chatForm) {
         e.preventDefault();
         const input = document.getElementById('chat-input');
         const msg = input.value;
-        if (!msg || tutorBusy) return;
+        if (!msg || tutorBusy || !tutorPolicy || tutorPolicy.mode === 'disabled') return;
         tutorBusy = true;
         const epoch = tutorEpoch;
         const sendButton = chatForm.querySelector('button[type=submit]');
@@ -2248,7 +2289,11 @@ if (chatForm) {
             document.getElementById('typing-indicator')?.remove();
 
             // Append AI Response
-            if (!res.ok) throw new Error(data.detail || 'Tutor request failed');
+            if (!res.ok) {
+                if (res.status === 403) await refreshTutorPolicy();
+                throw new Error(data.detail || 'Tutor request failed');
+            }
+            if (data.assistance_policy) applyTutorPolicy(data.assistance_policy);
             appendTutorMessage(data.response, true, data);
             if (data.status === 'suggestion') tutorConversation.push({ role: 'user', content: msg }, { role: 'assistant', content: data.response });
             tutorConversation = tutorConversation.slice(-10);
@@ -2258,7 +2303,7 @@ if (chatForm) {
             input.value = msg;
             document.getElementById('typing-indicator')?.remove();
             chatHistory.innerHTML += `<div class="text-danger text-sm">${I18n.t('ai.chat.error_send')}</div>`;
-        } finally { tutorBusy = false; sendButton.disabled = false; }
+        } finally { tutorBusy = false; sendButton.disabled = !tutorPolicy || tutorPolicy.mode === 'disabled'; }
     });
 }
 
@@ -2593,7 +2638,7 @@ function renderGradingQueue(submissions) {
     container.innerHTML = submissions.map(sub => {
         const studentName = sub.student_name || `Student #${sub.student_id}`;
         const assessmentTitle = sub.assessment_title || `Assessment #${sub.assessment_id}`;
-        const submittedAt = sub.submitted_at ? new Date(sub.submitted_at).toLocaleDateString() : '';
+        const submittedAt = sub.submitted_at ? SLMTime.format(sub.submitted_at, { dateOnly: true }) : '';
         const statusLabel = getGradingStatusLabel(sub.status);
         const statusClass = getGradingStatusBadgeClass(sub.status);
 
@@ -4129,4 +4174,3 @@ if (librarySearchInput) {
 }
 
 // --- USER PROFILE ---
-

@@ -154,22 +154,43 @@ def restore_backup(archive_bytes: bytes, destination: Path, key: bytes) -> dict:
     return summary
 
 
-def upgrade_database(source: Path, destination: Path, backup_path: Path, key: bytes) -> dict:
-    """Back up and reconcile a NEW database, preserving the source installation."""
+def upgrade_database(
+    source: Path, destination: Path, backup_path: Path, key: bytes,
+    source_timezone: str | None = None, timestamp_fields: list[str] | None = None,
+) -> dict:
+    """Back up and reconcile a NEW copy, optionally resolving legacy timestamps.
+
+    Naive timestamp bytes remain unchanged unless the operator explicitly supplies
+    their known IANA source timezone. Conversion and its audit are atomic.
+    """
     source, destination, backup_path = Path(source), Path(destination), Path(backup_path)
     if destination.exists() or backup_path.exists():
         raise FileExistsError("Upgrade destination and backup must both be new paths")
     if destination.resolve() == backup_path.resolve():
         raise ValueError("Upgrade database and backup must use different paths")
+    if source_timezone is not None:
+        from src.core.services.temporal_service import validate_timezone
+        source_timezone = validate_timezone(source_timezone)
+        if not timestamp_fields:
+            raise ValueError("--source-timezone requires explicit --timestamp-field selections")
+    elif timestamp_fields:
+        raise ValueError("--timestamp-field requires a known --source-timezone")
     archive = create_backup(source, key)
     write_new(backup_path, archive)
     restore_backup(archive, destination, key)
     from src.core.services.schema_migrations import reconcile_database
     try:
         changes = reconcile_database(destination)
+        timestamp_migration = None
+        if source_timezone is not None:
+            from src.core.services.temporal_migration import migrate_timestamps
+            timestamp_migration = migrate_timestamps(destination, source_timezone, timestamp_fields)
     except Exception:
         # The unchanged source and verified backup remain available. The failed
         # destination is retained for inspection and is never silently promoted.
         raise
-    return {"backup": str(backup_path), "database": str(destination), "changes": changes,
-            "summary": inspect_database(destination, key)}
+    result = {"backup": str(backup_path), "database": str(destination), "changes": changes,
+              "summary": inspect_database(destination, key)}
+    if timestamp_migration is not None:
+        result["timestamp_migration"] = timestamp_migration
+    return result

@@ -11,6 +11,8 @@ import re
 import weakref
 import time
 import httpx
+from src.core.services.temporal_service import utc_now
+
 from typing import Dict, List, Optional, Any, Protocol
 from datetime import datetime
 from dataclasses import dataclass
@@ -200,7 +202,7 @@ class AIService:
             enhanced_content = enhanced_data.get("enhanced_content")
             enhancement_metadata = {
                 "enhancement_type": enhancement_type,
-                "enhancement_timestamp": datetime.now().isoformat(),
+                "enhancement_timestamp": utc_now().isoformat(),
                 "ai_model": response.model,
                 "tokens_used": response.tokens_used,
             }
@@ -997,7 +999,7 @@ for use in an educational tutoring response. Keep essential facts and questions:
                 model=str(response.get("model") or self.config.model or "unknown"),
                 provider=AIProvider(self.config.provider),
                 response_time=response_time,
-                timestamp=datetime.now(),
+                timestamp=utc_now(),
             )
 
             self.logger.info(

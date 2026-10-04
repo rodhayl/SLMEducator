@@ -11,7 +11,6 @@ from sqlalchemy import (
     Column,
     Integer,
     String,
-    DateTime,
     Boolean,
     ForeignKey,
     Text,
@@ -22,10 +21,10 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import relationship
-from sqlalchemy.sql import func
 from sqlalchemy.dialects.sqlite import JSON
 from cryptography.fernet import Fernet
 import json
+from ..temporal import UTCDateTime, utc_now, duration_minutes
 
 Base = declarative_base()
 
@@ -133,11 +132,11 @@ class User(Base):
     last_name = Column(String(100), nullable=False)
     grade_level = Column(String(50), nullable=True)  # For students
     active = Column(Boolean, default=True, nullable=False)
-    created_at = Column(DateTime, default=func.now(), nullable=False)
-    last_login = Column(DateTime, nullable=True)
+    created_at = Column(UTCDateTime, default=utc_now, nullable=False)
+    last_login = Column(UTCDateTime, nullable=True)
     teacher_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     failed_login_count = Column(Integer, default=0, nullable=False)
-    locked_until = Column(DateTime, nullable=True)
+    locked_until = Column(UTCDateTime, nullable=True)
 
     # Phase 3: Gamification fields
 
@@ -203,9 +202,9 @@ class StudyPlan(Base):
     phases = Column(JSON, nullable=False, default=list)  # JSON structure as specified
     content_metadata = Column(Text, nullable=True)  # Encrypted JSON
     is_public = Column(Boolean, default=False, nullable=False)
-    created_at = Column(DateTime, default=func.now(), nullable=False)
+    created_at = Column(UTCDateTime, default=utc_now, nullable=False)
     updated_at = Column(
-        DateTime, default=func.now(), onupdate=func.now(), nullable=False
+        UTCDateTime, default=utc_now, onupdate=utc_now, nullable=False
     )
 
     # Relationships
@@ -254,7 +253,7 @@ class StudyPlanContent(Base):
     phase_index = Column(Integer, nullable=False, default=0)
     order_index = Column(Integer, nullable=False, default=0)
     is_required = Column(Boolean, default=True, nullable=False)
-    created_at = Column(DateTime, default=func.now(), nullable=False)
+    created_at = Column(UTCDateTime, default=utc_now, nullable=False)
 
     # Relationships
     study_plan = relationship("StudyPlan", back_populates="plan_contents")
@@ -281,9 +280,9 @@ class Content(Base):
     estimated_time_min = Column(Integer, default=15, nullable=False)
     is_personal = Column(Boolean, default=False, nullable=False)
     shared_with_teacher = Column(Boolean, default=False, nullable=False)
-    created_at = Column(DateTime, default=func.now(), nullable=False)
+    created_at = Column(UTCDateTime, default=utc_now, nullable=False)
     updated_at = Column(
-        DateTime, default=func.now(), onupdate=func.now(), nullable=False
+        UTCDateTime, default=utc_now, onupdate=utc_now, nullable=False
     )
 
     # Phase 1: Adaptive AI Tutor fields
@@ -340,9 +339,9 @@ class Book(Base):
     )
     title = Column(String(200), nullable=False)
     chapters = Column(JSON, nullable=False, default=list)  # List of topic_ids
-    created_at = Column(DateTime, default=func.now(), nullable=False)
+    created_at = Column(UTCDateTime, default=utc_now, nullable=False)
     updated_at = Column(
-        DateTime, default=func.now(), onupdate=func.now(), nullable=False
+        UTCDateTime, default=utc_now, onupdate=utc_now, nullable=False
     )
 
     # Relationships
@@ -361,11 +360,11 @@ class StudentStudyPlan(Base):
     study_plan_id = Column(
         Integer, ForeignKey("study_plans.id"), primary_key=True, index=True
     )
-    assigned_at = Column(DateTime, default=func.now(), nullable=False)
+    assigned_at = Column(UTCDateTime, default=utc_now, nullable=False)
     progress = Column(
         JSON, nullable=False, default=dict
     )  # {completed: int, score: float}
-    completed_at = Column(DateTime, nullable=True)
+    completed_at = Column(UTCDateTime, nullable=True)
 
     # Phase 1: Adaptive AI Tutor fields
     mastery_graph = Column(
@@ -398,8 +397,8 @@ class LearningSession(Base):
     id = Column(Integer, primary_key=True)
     student_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     content_id = Column(Integer, ForeignKey("contents.id"), nullable=True, index=True)
-    start_time = Column(DateTime, default=func.now(), nullable=False)
-    end_time = Column(DateTime, nullable=True)
+    start_time = Column(UTCDateTime, default=utc_now, nullable=False)
+    end_time = Column(UTCDateTime, nullable=True)
     status = Column(
         SQLEnum(SessionStatus), nullable=False, default=SessionStatus.ACTIVE, index=True
     )
@@ -417,10 +416,7 @@ class LearningSession(Base):
 
     def calculate_duration(self):
         """Calculate session duration in minutes"""
-        if self.end_time and self.start_time:
-            delta = self.end_time - self.start_time
-            return int(delta.total_seconds() / 60)
-        return None
+        return duration_minutes(self.start_time, self.end_time)
 
 
 class AIModelConfiguration(Base):
@@ -436,9 +432,9 @@ class AIModelConfiguration(Base):
     api_key = Column(Text, nullable=True)  # Encrypted
     validated = Column(Boolean, default=False, nullable=False)
     model_parameters = Column(JSON, nullable=True)  # temperature, max_tokens, etc.
-    created_at = Column(DateTime, default=func.now(), nullable=False)
+    created_at = Column(UTCDateTime, default=utc_now, nullable=False)
     updated_at = Column(
-        DateTime, default=func.now(), onupdate=func.now(), nullable=False
+        UTCDateTime, default=utc_now, onupdate=utc_now, nullable=False
     )
 
     # Relationships
@@ -475,9 +471,9 @@ class TeacherMessage(Base):
     to_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     subject = Column(String(200), nullable=False)
     content = Column(Text, nullable=False)
-    sent_at = Column(DateTime, default=func.now(), nullable=False)
-    read_at = Column(DateTime, nullable=True, index=True)
-    archived_at = Column(DateTime, nullable=True, index=True)  # NEW: Archive support
+    sent_at = Column(UTCDateTime, default=utc_now, nullable=False)
+    read_at = Column(UTCDateTime, nullable=True, index=True)
+    archived_at = Column(UTCDateTime, nullable=True, index=True)  # NEW: Archive support
 
     # Relationships
     sender = relationship(
@@ -497,7 +493,7 @@ class TeacherMessage(Base):
     def mark_as_read(self):
         """Mark message as read"""
         if not self.read_at:
-            self.read_at = datetime.now()
+            self.read_at = utc_now()
 
 
 class AuditLog(Base):
@@ -511,7 +507,7 @@ class AuditLog(Base):
     details = Column(JSON, nullable=False, default=dict)
     ip_address = Column(String(45), nullable=True)  # IPv6 compatible
     user_agent = Column(String(500), nullable=True)
-    timestamp = Column(DateTime, default=func.now(), nullable=False, index=True)
+    timestamp = Column(UTCDateTime, default=utc_now, nullable=False, index=True)
 
     # Relationships
     user = relationship("User", back_populates="audit_logs")
@@ -548,7 +544,7 @@ class AuthAttempt(Base):
     username = Column(String(100), nullable=False, index=True)
     ip_address = Column(String(45), nullable=True)  # IPv6 compatible
     success = Column(Boolean, nullable=False, default=False)
-    timestamp = Column(DateTime, default=func.now(), nullable=False, index=True)
+    timestamp = Column(UTCDateTime, default=utc_now, nullable=False, index=True)
 
     # Relationships
     user = relationship("User", back_populates="auth_attempts")
@@ -589,9 +585,9 @@ class Assessment(Base):
         Integer, ForeignKey("study_plans.id"), nullable=True, index=True
     )
     topic_id = Column(Integer, ForeignKey("contents.id"), nullable=True, index=True)
-    created_at = Column(DateTime, default=func.now(), nullable=False)
+    created_at = Column(UTCDateTime, default=utc_now, nullable=False)
     updated_at = Column(
-        DateTime, default=func.now(), onupdate=func.now(), nullable=False
+        UTCDateTime, default=utc_now, onupdate=utc_now, nullable=False
     )
 
     # Grading configuration
@@ -635,9 +631,9 @@ class AssessmentQuestion(Base):
     correct_answer = Column(Text, nullable=True)  # Encrypted for security
     options = Column(JSON, nullable=True)  # For multiple choice, true/false
     content_metadata = Column(JSON, nullable=True)  # Rubrics, hints, explanations
-    created_at = Column(DateTime, default=func.now(), nullable=False)
+    created_at = Column(UTCDateTime, default=utc_now, nullable=False)
     updated_at = Column(
-        DateTime, default=func.now(), onupdate=func.now(), nullable=False
+        UTCDateTime, default=utc_now, onupdate=utc_now, nullable=False
     )
 
     # Relationships
@@ -687,14 +683,14 @@ class AssessmentSubmission(Base):
     )
     score = Column(Integer, nullable=True)
     total_points = Column(Integer, nullable=True)
-    started_at = Column(DateTime, default=func.now(), nullable=False)
-    submitted_at = Column(DateTime, nullable=True, index=True)
-    graded_at = Column(DateTime, nullable=True)
+    started_at = Column(UTCDateTime, default=utc_now, nullable=False)
+    submitted_at = Column(UTCDateTime, nullable=True, index=True)
+    graded_at = Column(UTCDateTime, nullable=True)
     time_spent_minutes = Column(Integer, default=0, nullable=False)
     feedback = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=func.now(), nullable=False)
+    created_at = Column(UTCDateTime, default=utc_now, nullable=False)
     updated_at = Column(
-        DateTime, default=func.now(), onupdate=func.now(), nullable=False
+        UTCDateTime, default=utc_now, onupdate=utc_now, nullable=False
     )
 
     # Phase 2: Connected Classroom - AI-assisted grading fields
@@ -748,8 +744,8 @@ class QuestionResponse(Base):
     score = Column(Integer, nullable=True)
     feedback = Column(Text, nullable=True)
     is_correct = Column(Boolean, nullable=True)
-    answered_at = Column(DateTime, default=func.now(), nullable=False)
-    graded_at = Column(DateTime, nullable=True)
+    answered_at = Column(UTCDateTime, default=utc_now, nullable=False)
+    graded_at = Column(UTCDateTime, nullable=True)
 
     # AI grading fields
     ai_suggested_score = Column(Integer, nullable=True)  # AI's suggested score
@@ -799,9 +795,9 @@ class Rubric(Base):
     question_id = Column(
         Integer, ForeignKey("assessment_questions.id"), nullable=True, index=True
     )
-    created_at = Column(DateTime, default=func.now(), nullable=False)
+    created_at = Column(UTCDateTime, default=utc_now, nullable=False)
     updated_at = Column(
-        DateTime, default=func.now(), onupdate=func.now(), nullable=False
+        UTCDateTime, default=utc_now, onupdate=utc_now, nullable=False
     )
 
     # Relationships
@@ -850,9 +846,9 @@ class LoggingConfiguration(Base):
     log_to_console = Column(Boolean, default=True, nullable=False)
     log_to_file = Column(Boolean, default=True, nullable=False)
     structured_logging = Column(Boolean, default=True, nullable=False)
-    created_at = Column(DateTime, default=func.now(), nullable=False)
+    created_at = Column(UTCDateTime, default=utc_now, nullable=False)
     updated_at = Column(
-        DateTime, default=func.now(), onupdate=func.now(), nullable=False
+        UTCDateTime, default=utc_now, onupdate=utc_now, nullable=False
     )
 
     # Relationships
@@ -881,9 +877,9 @@ class ApplicationConfiguration(Base):
     enable_tooltips = Column(Boolean, default=True, nullable=False)
     enable_animations = Column(Boolean, default=True, nullable=False)
     show_welcome_screen = Column(Boolean, default=True, nullable=False)
-    created_at = Column(DateTime, default=func.now(), nullable=False)
+    created_at = Column(UTCDateTime, default=utc_now, nullable=False)
     updated_at = Column(
-        DateTime, default=func.now(), onupdate=func.now(), nullable=False
+        UTCDateTime, default=utc_now, onupdate=utc_now, nullable=False
     )
 
     # Relationships
@@ -907,12 +903,12 @@ class MasteryNode(Base):
     student_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     content_id = Column(Integer, ForeignKey("contents.id"), nullable=False, index=True)
     mastery_level = Column(Integer, default=0, nullable=False)  # 0-100
-    last_reviewed = Column(DateTime, nullable=True)
-    next_review_due = Column(DateTime, nullable=True, index=True)
+    last_reviewed = Column(UTCDateTime, nullable=True)
+    next_review_due = Column(UTCDateTime, nullable=True, index=True)
     review_count = Column(Integer, default=0, nullable=False)
-    created_at = Column(DateTime, default=func.now(), nullable=False)
+    created_at = Column(UTCDateTime, default=utc_now, nullable=False)
     updated_at = Column(
-        DateTime, default=func.now(), onupdate=func.now(), nullable=False
+        UTCDateTime, default=utc_now, onupdate=utc_now, nullable=False
     )
 
     # Relationships
@@ -948,7 +944,7 @@ class Annotation(Base):
         String(50), nullable=False, default="comment"
     )  # question/comment/highlight
     is_public = Column(Boolean, default=True, nullable=False)
-    created_at = Column(DateTime, default=func.now(), nullable=False)
+    created_at = Column(UTCDateTime, default=utc_now, nullable=False)
 
     # Relationships
     content = relationship("Content", foreign_keys=[content_id])
@@ -979,8 +975,8 @@ class HelpRequest(Base):
     )  # pending, in_progress, resolved
     resolved_by_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     resolution_notes = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=func.now(), nullable=False, index=True)
-    resolved_at = Column(DateTime, nullable=True)
+    created_at = Column(UTCDateTime, default=utc_now, nullable=False, index=True)
+    resolved_at = Column(UTCDateTime, nullable=True)
 
     # Relationships
     student = relationship("User", foreign_keys=[student_id])
@@ -1013,7 +1009,7 @@ class Badge(Base):
     )  # xp_threshold, streak, content_complete, assessment_score
     criteria_value = Column(JSON, nullable=False)  # Flexible criteria storage
     is_active = Column(Boolean, default=True, nullable=False)
-    created_at = Column(DateTime, default=func.now(), nullable=False)
+    created_at = Column(UTCDateTime, default=utc_now, nullable=False)
 
     # Relationships
     user_badges = relationship(
@@ -1031,7 +1027,7 @@ class UserBadge(Base):
 
     user_id = Column(Integer, ForeignKey("users.id"), primary_key=True, index=True)
     badge_id = Column(Integer, ForeignKey("badges.id"), primary_key=True, index=True)
-    earned_at = Column(DateTime, default=func.now(), nullable=False)
+    earned_at = Column(UTCDateTime, default=utc_now, nullable=False)
     progress = Column(Integer, default=0, nullable=False)  # For partially earned badges
 
     # Relationships
@@ -1054,7 +1050,7 @@ class DailyGoal(Base):
     target_value = Column(Integer, nullable=False)
     current_value = Column(Integer, default=0, nullable=False)
     completed = Column(Boolean, default=False, nullable=False)
-    created_at = Column(DateTime, default=func.now(), nullable=False)
+    created_at = Column(UTCDateTime, default=utc_now, nullable=False)
 
     # Relationships
     user = relationship("User", foreign_keys=[user_id])
@@ -1079,7 +1075,7 @@ class LeaderboardEntry(Base):
     xp = Column(Integer, nullable=False)
     rank = Column(Integer, nullable=False, index=True)
     updated_at = Column(
-        DateTime, default=func.now(), onupdate=func.now(), nullable=False
+        UTCDateTime, default=utc_now, onupdate=utc_now, nullable=False
     )
 
     # Relationships
@@ -1103,9 +1099,9 @@ class GamificationSettings(Base):
     )
     default_goal_type = Column(String(50), nullable=True)
     default_goal_target = Column(Integer, nullable=True)
-    created_at = Column(DateTime, default=func.now(), nullable=False)
+    created_at = Column(UTCDateTime, default=utc_now, nullable=False)
     updated_at = Column(
-        DateTime, default=func.now(), onupdate=func.now(), nullable=False
+        UTCDateTime, default=utc_now, onupdate=utc_now, nullable=False
     )
 
     # Relationships

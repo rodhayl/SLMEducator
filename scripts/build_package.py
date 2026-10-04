@@ -88,7 +88,7 @@ HIDDEN_IMPORTS = (
     "src.core.services.database",
     "src.core.services.ai_service",
 )
-COLLECT_ALL = ("fastapi", "pydantic", "sqlalchemy", "cryptography")
+COLLECT_ALL = ("fastapi", "pydantic", "sqlalchemy", "cryptography", "tzdata")
 
 
 def snapshot_database(source: Path, destination: Path) -> None:

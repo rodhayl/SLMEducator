@@ -213,7 +213,7 @@ class LoggingService:
             log_path = self.log_dir / log_file
             if log_path.exists() and log_path.stat().st_size > max_size:
                 # Rename old log
-                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
                 backup_path = self.log_dir / f"{log_file}.{timestamp}"
                 log_path.rename(backup_path)
 

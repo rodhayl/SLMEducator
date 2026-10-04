@@ -97,12 +97,20 @@ function startTimer() {
     if (timerInterval) clearInterval(timerInterval);
     const timer = document.getElementById('assessment-timer');
     // The server owns the deadline; refresh never grants another time limit.
+    if (currentAssessment.time_limit_minutes && currentAttempt.timing_provenance === 'legacy_unknown') {
+        timer.textContent = assessmentMessage('timer_unknown', 'Timer timezone unknown; teacher review required.');
+        return;
+    }
     if (!currentAssessment.time_limit_minutes || !currentAttempt.expires_at) {
         timer.textContent = assessmentMessage('no_limit', 'No time limit');
         return;
     }
     const rawDeadline = currentAttempt.expires_at;
-    const deadline = Date.parse(/(Z|[+-]\d\d:\d\d)$/.test(rawDeadline) ? rawDeadline : rawDeadline + 'Z');
+    const deadline = SLMTime.epoch(rawDeadline, currentAttempt.timing_provenance);
+    if (deadline === null) {
+        timer.textContent = assessmentMessage('timer_unknown', 'Timer timezone unknown; teacher review required.');
+        return;
+    }
     const tick = () => {
         const remaining = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
         timer.textContent = `${Math.floor(remaining / 60).toString().padStart(2, '0')}:${(remaining % 60).toString().padStart(2, '0')}`;

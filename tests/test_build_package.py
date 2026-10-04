@@ -14,6 +14,12 @@ import pytest
 from scripts import build_package as builder
 
 
+def test_windows_freezer_collects_iana_timezone_database(tmp_path):
+    command = builder._pyinstaller_command(tmp_path / "staging", tmp_path / "work", "Synthetic")
+    collected = [command[index + 1] for index, value in enumerate(command) if value == "--collect-all"]
+    assert "tzdata" in collected
+
+
 @pytest.fixture
 def project(tmp_path: Path) -> Path:
     """Copy code only; all runtime/config fixtures below are synthetic."""

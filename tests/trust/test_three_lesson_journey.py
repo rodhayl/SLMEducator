@@ -148,3 +148,36 @@ def test_three_lessons_notes_attempt_review_and_portability(scenario):
         imported.json()["status"] == "draft"
         and imported.json()["study_plan_id"] != plan.id
     )
+
+
+def test_course_position_retry_does_not_award_extra_daily_goal(scenario):
+    from src.core.models import DailyGoal
+    from src.core.services.temporal_service import local_date
+
+    client, db, users, selected, plan, lessons, _ = scenario
+    selected[0] = users["learner_a"]
+    goal = DailyGoal(
+        user_id=selected[0].id,
+        goal_date=local_date(selected[0]),
+        goal_type="lessons",
+        target_value=5,
+        current_value=0,
+    )
+    db.add(goal)
+    db.commit()
+    started = client.post(
+        "/api/learning/start", json={"content_id": lessons[0].id}
+    ).json()
+    assert client.post(f'/api/learning/{started["id"]}/end', json={}).status_code == 200
+    db.refresh(goal)
+    assert goal.current_value == 1
+    for _ in range(3):
+        assert (
+            client.post(
+                f"/api/study-plans/{plan.id}/progress",
+                json={"completed_content_id": lessons[0].id},
+            ).status_code
+            == 200
+        )
+    db.refresh(goal)
+    assert goal.current_value == 1

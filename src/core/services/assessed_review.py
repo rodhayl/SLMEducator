@@ -1,5 +1,7 @@
 """Feed review scheduling from final observed attempts, separately from confidence."""
 
+from src.core.services.temporal_service import utc_now
+
 from datetime import datetime
 from sqlalchemy.orm import Session
 from src.core.models import (
@@ -49,7 +51,7 @@ def record_assessed_mastery(db: Session, submission: AssessmentSubmission) -> No
         db.add(node)
     node.mastery_level = level
     node.review_count = len(attempts)
-    node.last_reviewed = submission.graded_at or datetime.now()
+    node.last_reviewed = submission.graded_at or utc_now()
     node.next_review_due = get_spaced_repetition_service().calculate_next_review(
         level, len(attempts), round(100 * submission.score / submission.total_points)
     )
