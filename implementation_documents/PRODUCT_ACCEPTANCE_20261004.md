@@ -133,3 +133,28 @@ coverage exclusions or provider calls were added. The local 721-pass aggregate
 and its 72.58% result remain historical evidence for their original commit; the
 new CI result must be checked for this final candidate before claiming the
 quality gate is complete. The native/browser/model/human gates above remain open.
+
+
+## Verified final source gate
+
+GitHub Actions run [37217285824](https://github.com/rodhayl/SLMEducator/actions/runs/37217285824)
+completed successfully for published source commit
+`3f47e41c8c04043227ba70589e95dcb7f5e70dca`, exact tree
+`682dad6de28ddf9890940ac13f8c1fe2eae57499` (local equivalent `367b13b`).
+
+- **888 Python tests passed, 0 failed, 23 skipped, 5 real-AI cases deselected**
+  in **416.65 seconds**. The same explicit manual/browser/real-provider exclusions
+  and fail-closed offline transport boundaries apply.
+- **81.28% whole-src line coverage: 7,116 / 8,755 statements**. The existing
+  **80% target is met and enforced in CI**, with no new coverage exclusions.
+- All **154 serial DOM tests passed**, with zero failures, skips or cancellations.
+- Pinned dependency installation/compatibility, critical syntax/name lint and
+  the repaired transitive domain type contract all passed on the clean runner.
+- The frozen implementation delta secret scan passed. No source edits followed
+  this successful run; this addition records its outcome only.
+
+This closes the implementation and automated quality portions of phases 0–5.
+The separate Windows, real-browser/accessibility, model and human acceptance gates
+remain unperformed, as detailed above. No merge, deployment or live inference
+was performed. Earlier checkpoints and failing/partial evidence are retained
+with their original source identities rather than rewritten as new full passes.
