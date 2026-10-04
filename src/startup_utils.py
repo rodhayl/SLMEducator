@@ -5,6 +5,8 @@ Used by both starter.py (GUI) and starter_headless.py (headless)
 to handle frozen-environment stdout/stderr redirection and port finding.
 """
 
+import os
+from pathlib import Path
 import sys
 import socket
 
@@ -28,6 +30,12 @@ def setup_frozen_logging():
         sys.stdout = NullWriter()
     if sys.stderr is None:
         sys.stderr = NullWriter()
+
+
+def setup_frozen_working_directory() -> None:
+    """Keep packaged database/config paths beside the executable, not the caller."""
+    if getattr(sys, "frozen", False):
+        os.chdir(Path(sys.executable).resolve().parent)
 
 
 def find_free_port(start_port: int = 8000) -> int:

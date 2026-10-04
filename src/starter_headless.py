@@ -19,7 +19,7 @@ sys.path.insert(0, str(SRC_PATH))
 sys.path.insert(0, str(SRC_PATH.parent))
 
 # Shared startup utilities
-from src.startup_utils import setup_frozen_logging
+from src.startup_utils import setup_frozen_logging, setup_frozen_working_directory
 
 
 def check_previous_instances():
@@ -31,6 +31,7 @@ def check_previous_instances():
 
 def run_server(port):
     """Run Uvicorn server (target for subprocess)."""
+    setup_frozen_working_directory()
     setup_frozen_logging()
 
     import logging
@@ -48,6 +49,7 @@ def run_server(port):
 
 
 def main():
+    setup_frozen_working_directory()
     setup_frozen_logging()
     print("SLM Educator - Headless Starting...")
 

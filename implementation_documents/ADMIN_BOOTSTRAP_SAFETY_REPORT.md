@@ -1,5 +1,8 @@
 # Create-only administrator bootstrap
 
+Historical bootstrap-only validation. The subsequent packaging repair is
+documented in [PACKAGING_SAFETY_REPORT.md](PACKAGING_SAFETY_REPORT.md).
+
 Validated on 4 October 2026 against base
 `20776835356856953e07a2777cce7b10059e977a`.
 Code and test candidate: `06d0c26` (following `1bd3911`).
