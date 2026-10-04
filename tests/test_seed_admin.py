@@ -1,5 +1,6 @@
 """Create-only admin bootstrap contracts using disposable, real SQLite databases."""
 
+from contextlib import closing
 from datetime import date, datetime
 from pathlib import Path
 import re
@@ -32,7 +33,7 @@ def bootstrap_db(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[An
 
 def _snapshot(database: Any) -> dict[str, list[tuple[Any, ...]]]:
     """Read every persisted column without mixing core/src.core ORM classes."""
-    with sqlite3.connect(database.db_path) as connection:
+    with closing(sqlite3.connect(database.db_path)) as connection:
         return {
             table: connection.execute(f"SELECT * FROM {table} ORDER BY id").fetchall()
             for table in ("users", "auth_attempts")
