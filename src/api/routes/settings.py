@@ -23,8 +23,10 @@ class AIConfigModel(BaseModel):
     # Advanced settings
     temperature: float = Field(default=0.7, ge=0, le=2)
     max_tokens: int = Field(default=1000, ge=1, le=16384)
-    preprocessing_model: Optional[str] = None
-    enable_preprocessing: bool = False
+    # Accepted only to migrate old clients; never persisted or advertised active.
+    preprocessing_model: Optional[str] = Field(default=None, exclude=True)
+    enable_preprocessing: Optional[bool] = Field(default=None, exclude=True)
+    compatibility_warnings: List[str] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -65,18 +67,29 @@ async def get_ai_config(
 def _public_ai_config(config: AIModelConfiguration) -> AIConfigModel:
     """Return settings and key presence without revealing the saved credential."""
     parameters = config.model_parameters or {}
+    if config.provider not in {"ollama", "lm_studio", "openai", "openrouter"}:
+        raise HTTPException(
+            status_code=409,
+            detail="Saved AI provider is unsupported. Choose Ollama, LM Studio, OpenAI or OpenRouter and save a supported configuration.",
+        )
     return AIConfigModel(
         provider=config.provider,
         model=config.model,
         endpoint=config.endpoint,
         has_api_key=bool(config.api_key),
+        compatibility_warnings=(
+            [
+                "Legacy preprocessing settings are inactive and will be removed on the next save."
+            ]
+            if parameters.get("enable_preprocessing")
+            or parameters.get("preprocessing_model")
+            else []
+        ),
         **{
             key: parameters[key]
             for key in (
                 "temperature",
                 "max_tokens",
-                "preprocessing_model",
-                "enable_preprocessing",
             )
             if key in parameters
         },
@@ -114,13 +127,16 @@ async def update_ai_config(
         for key in (
             "temperature",
             "max_tokens",
-            "preprocessing_model",
-            "enable_preprocessing",
         )
     }
     db.commit()
     db.refresh(config)
-    return _public_ai_config(config)
+    public = _public_ai_config(config)
+    if data.enable_preprocessing or data.preprocessing_model:
+        public.compatibility_warnings = [
+            "Preprocessing is retired. These legacy settings were ignored; the selected model receives the bounded source directly."
+        ]
+    return public
 
 
 @router.get("/app", response_model=AppConfigModel)
@@ -207,7 +223,7 @@ async def fetch_models(
     Fetch available models from the specified AI provider.
 
     If no provider is specified, uses the user's configured provider.
-    Supports: ollama, lm_studio, openai, anthropic, openrouter
+    Supports: ollama, lm_studio, openai, openrouter
     """
     try:
         # Get user's AI configuration for defaults
@@ -231,10 +247,15 @@ async def fetch_models(
                 status_code=400,
                 detail=(
                     f"Invalid provider: {target_provider}. "
-                    "Valid options: ollama, lm_studio, openai, anthropic, openrouter"
+                    "Valid options: ollama, lm_studio, openai, openrouter"
                 ),
             )
 
+        if target_provider not in {"ollama", "lm_studio", "openai", "openrouter"}:
+            raise HTTPException(
+                status_code=422,
+                detail="Unsupported provider; choose a supported provider in settings",
+            )
         models = ai_service.fetch_available_models(provider=target_enum)
 
         return ModelsResponse(models=models, provider=target_provider)

@@ -18,6 +18,7 @@ let endingSession = false;
 let sessionEnded = false;
 let completionSaved = false;
 let annotationSaving = false;
+let sessionHelp = null;
 const t = (key) => window.I18n?.t?.(key) || key;
 const sessionMessage = (key, fallback) => SLMClient.message(key, fallback);
 
@@ -385,6 +386,7 @@ async function restoreSession(previousSessionId) {
         sessionId = session.id;
         sessionEnded = false; completionSaved = false;
         if (session.content_snapshot) renderSessionContent(session.content_snapshot);
+        bindSessionHelp(session);
         startTimer();
         await initNotesAutoSave(session.notes);
         loadAnnotations();
@@ -439,6 +441,7 @@ async function initSession() {
 
     // Check for previous sessions with notes (restore/restart logic)
     const previousSession = await checkPreviousSession();
+    let restartRequested = false;
     if (previousSession && previousSession.notes) {
         // Show restore/restart modal
         const choice = await showSessionChoiceModal(previousSession);
@@ -447,18 +450,19 @@ async function initSession() {
             await restoreSession(previousSession.id);
             return; // restoreSession handles initialization
         }
-        // Otherwise continue to start new session (restart)
+        restartRequested = true;
     }
 
     // Start Session API
     try {
-        const response = await fetch('/api/learning/start', {
+        const startUrl = restartRequested ? `/api/learning/restart/${Number(contentId)}` + (planId ? `?study_plan_id=${Number(planId)}` : '') : '/api/learning/start';
+        const response = await fetch(startUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${authToken}`
             },
-            body: JSON.stringify({ content_id: parseInt(contentId), ...(planId ? { study_plan_id: Number(planId) } : {}) })
+            ...(restartRequested ? {} : { body: JSON.stringify({ content_id: parseInt(contentId), ...(planId ? { study_plan_id: Number(planId) } : {}) }) })
         });
 
         if (response.ok) {
@@ -466,6 +470,7 @@ async function initSession() {
             sessionId = session.id;
             sessionEnded = false; completionSaved = false;
             if (session.content_snapshot) renderSessionContent(session.content_snapshot);
+            bindSessionHelp(session);
             startTimer();
 
             // Load annotations for this content
@@ -713,18 +718,15 @@ window.pauseSession = async () => {
     } finally { endingSession = false; }
 };
 
-window.openSessionHelp = async (kind) => {
-    if (endingSession || !['tutor', 'help'].includes(kind)) return;
-    endingSession = true;
-    try {
-        if (!await saveNotesToLocal(document.getElementById('session-notes').value)) return;
-        const params = new URLSearchParams({ view: kind === 'tutor' ? 'tutor' : 'help-queue', content_id: contentId, from_session: '1' });
-        if (planId) params.set('plan_id', planId);
-        if (kind === 'help') params.set('ask_help', '1');
-        window.location.href = '/dashboard.html?' + params;
-    } finally { endingSession = false; }
-};
-
+function bindSessionHelp(session) {
+    if (!window.SLMHelp) return;
+    const host = document.getElementById('session-help-host');
+    const options = { sessionId: session.id, contentId: Number(contentId), studyPlanId: planId ? Number(planId) : null,
+        contentTitle: document.getElementById('session-content-title').textContent, contextRevision: session.context_revision,
+        returnFocus: document.getElementById('session-content-title') };
+    if (sessionHelp) sessionHelp.setContext(options);
+    else sessionHelp = SLMHelp.mount(host, options);
+}
 // --- Accessibility & Focus Mode ---
 
 /**

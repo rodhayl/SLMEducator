@@ -16,6 +16,8 @@ let currentConfig = {};
 let generatedOutline = null;
 let sourceMaterialText = null;
 let sourceCoverage = null;
+let sourceDocumentId = null;
+let sourceSavedVersion = null;
 let totalGenerationTasks = 0;
 let completedTasks = 0;
 let failedTasks = 0;  // Track failures for accurate status
@@ -26,7 +28,7 @@ let generationTasks = [];
 let courseOwner = null;
 function persistCourse() {
     if (courseOwner !== SLMClient.account()) return;
-    const saved = SLMClient.drafts.write('course', 'designer', 'active', { currentConfig, generatedOutline, sourceMaterialText, sourceCoverage, createdStudyPlanId, generationTasks });
+    const saved = SLMClient.drafts.write('course', 'designer', 'active', { currentConfig, generatedOutline, sourceMaterialText, sourceCoverage, sourceDocumentId, sourceSavedVersion, createdStudyPlanId, generationTasks });
     if (!saved) showError(SLMClient.message('course_storage_failed', 'The course draft could not be saved on this device. Keep this page open; confirmed server items remain in the library.'));
     return saved;
 }
@@ -37,7 +39,7 @@ async function restoreCourse() {
     const choice = await SLMClient.chooseDraft();
     if (choice === 'discard') { SLMClient.drafts.remove('course', 'designer', 'active'); return; }
     if (choice !== 'restore') { window.location.href = '/dashboard.html'; return; }
-    ({ currentConfig, generatedOutline, sourceMaterialText, sourceCoverage, createdStudyPlanId, generationTasks } = draft);
+    ({ currentConfig, generatedOutline, sourceMaterialText, sourceCoverage, sourceDocumentId, sourceSavedVersion, createdStudyPlanId, generationTasks } = draft);
     if (generatedOutline) {
         renderOutline(generatedOutline);
         document.getElementById('stage-1').classList.add('hidden');
@@ -160,46 +162,16 @@ async function handleFileSelect() {
     const file = fileInput.files[0];
     if (!file) return;
 
-    // Validate file type
-    const validTypes = ['.pdf', '.txt', '.md'];
-    const ext = '.' + file.name.split('.').pop().toLowerCase();
-    if (!validTypes.includes(ext)) {
-        showError('Please upload a PDF, TXT, or MD file.');
-        return;
-    }
-
-    // Validate file size
-    if (file.size > MAX_FILE_SIZE_BYTES) {
-        showError(`File size exceeds ${MAX_FILE_SIZE_MB}MB limit. Please upload a smaller file.`);
-        return;
-    }
-
     // Show preview UI
     document.getElementById('filename').textContent = file.name;
     document.getElementById('file-preview').classList.remove('hidden');
     document.getElementById('drop-zone').classList.add('hidden');
 
-    // Upload immediately
-    const formData = new FormData();
-    formData.append('file', file);
-
     try {
-        const response = await fetch('/api/upload/source-material', {
-            method: 'POST',
-            headers: getAuthHeaders(true),
-            body: formData
-        });
-
-        if (!response.ok) {
-            const errData = await response.json().catch(() => ({}));
-            throw new Error(errData.detail || 'Upload failed');
-        }
-
-        const data = await response.json();
+        const data = await uploadSourceManifest(file);
         sourceMaterialText = data.extracted_text;
-        sourceCoverage = { coverage: data.coverage, truncated: data.truncated,
-            char_count: data.char_count, unreadable_pages: data.unreadable_pages,
-            source_version: data.source_version, sections: (data.sections || []).map(section => ({ reference: section.reference })) };
+        sourceCoverage = data;
+        sourceDocumentId = null; sourceSavedVersion = null;
         renderSourceCoverage();
         persistCourse();
         console.log("Source material processed:", data.char_count, "chars");
@@ -207,9 +179,48 @@ async function handleFileSelect() {
     } catch (e) {
         console.error(e);
         showError("Failed to process file: " + e.message);
-        handleRemoveFile();
+        if (sourceCoverage) document.getElementById('filename').textContent = sourceCoverage.filename || '';
+        else handleRemoveFile();
     }
 }
+
+async function uploadSourceManifest(file) {
+    if (!/\.(pdf|txt|md)$/i.test(file?.name || '') || file.size > MAX_FILE_SIZE_BYTES) {
+        throw new Error(SLMClient.message('source_file_invalid', 'Choose a PDF, TXT or MD file no larger than 10 MB.'));
+    }
+    const formData = new FormData(); formData.append('file', file);
+    const data = await SLMClient.request('/api/upload/source-material', {method: 'POST', headers: getAuthHeaders(true), body: formData});
+    if (!data?.extracted_text || !data?.source_version || !Array.isArray(data.sections)) throw new Error(SLMClient.message('source_save_unconfirmed', 'The server did not confirm the source was saved. Retry before generating.'));
+    return data;
+}
+
+window.replaceCourseSource = async () => {
+    const input = document.getElementById('replace-source-file');
+    const file = input.files[0];
+    if (!file || !createdStudyPlanId || generationRunning || courseOwner !== SLMClient.account()) return;
+    const button = document.getElementById('replace-source-btn'); button.disabled = true;
+    try {
+        const workflow = await SLMClient.request(`/api/study-plans/${createdStudyPlanId}/workflow`);
+        if (workflow.read_only) throw new Error(SLMClient.message('assigned_copy', 'Assigned courses are fixed. Create a draft copy to revise the material.'));
+        if (!await showConfirm(SLMClient.message('source_replace_confirm', 'Keep all previous content and generate a new version from this source? This resets review and marks previous generation jobs obsolete. New generation starts only when you choose Generate new version.'))) return;
+        if (courseOwner !== SLMClient.account()) return;
+        const manifest = await uploadSourceManifest(file);
+        if (manifest.source_version === sourceCoverage?.source_version) { document.getElementById('source-replacement-status').textContent = SLMClient.message('source_unchanged', 'This source is already saved. No generation tasks were changed.'); return; }
+        const saved = await SLMClient.request(`/api/study-plans/${createdStudyPlanId}/source`, {method:'PUT', headers:getAuthHeaders(), body:JSON.stringify(manifest)});
+        if (!saved?.document_id) throw new Error(SLMClient.message('source_save_unconfirmed', 'The server did not confirm the source was saved. Retry before generating.'));
+        sourceCoverage = manifest; sourceMaterialText = manifest.extracted_text;
+        sourceDocumentId = saved.document_id; sourceSavedVersion = manifest.source_version;
+        generationTasks = generationTasks.map(task => ({ ...task, status: 'pending' }));
+        completedTasks = 0; failedTasks = generationTasks.length;
+        renderSourceCoverage(); persistCourse();
+        const retry = document.getElementById('retry-generation'); retry.classList.remove('d-none');
+        retry.dataset.i18n = 'recovery.generate_new_version'; retry.textContent = SLMClient.message('generate_new_version', 'Generate new version');
+        const status = document.getElementById('source-replacement-status');
+        status.textContent = SLMClient.message('source_replaced', 'New source saved. Previous content is preserved. Review both versions before publishing.');
+        updateProgress(0, status.textContent); input.value = '';
+    } catch (error) { document.getElementById('source-replacement-status').textContent = error.message; }
+    finally { button.disabled = false; }
+};
 
 /**
  * Remove uploaded file and reset UI
@@ -220,6 +231,7 @@ function handleRemoveFile() {
     document.getElementById('file-input').value = '';
     sourceMaterialText = null;
     sourceCoverage = null;
+    sourceDocumentId = null; sourceSavedVersion = null;
     renderSourceCoverage();
     persistCourse();
 }
@@ -462,6 +474,7 @@ async function proceedToGeneration() {
     generationRunning = true;
     try {
         if (!createdStudyPlanId) await createStudyPlanShell();
+        await ensureCourseSource();
         showGenerationStage();
         await startCascade();
     } catch (error) { showError(error.message); }
@@ -483,6 +496,20 @@ async function createStudyPlanShell() {
     createdStudyPlanId = plan.id;
     persistCourse();
     log(`Study plan draft saved (${createdStudyPlanId}).`);
+}
+
+async function ensureCourseSource() {
+    if (!sourceCoverage || !sourceMaterialText || !createdStudyPlanId) return;
+    if (sourceDocumentId && sourceSavedVersion === sourceCoverage.source_version) return;
+    if (!sourceCoverage.extracted_text || !sourceCoverage.filename || !Array.isArray(sourceCoverage.sections) || !sourceCoverage.source_version) {
+        throw new Error(SLMClient.message('source_reupload', 'This older draft does not contain the complete source manifest. Upload the source again before generating.'));
+    }
+    const saved = await SLMClient.request(`/api/study-plans/${createdStudyPlanId}/source`, {
+        method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify(sourceCoverage)
+    });
+    if (!saved?.document_id) throw new Error(SLMClient.message('source_save_unconfirmed', 'The server did not confirm the source was saved. Retry before generating.'));
+    sourceDocumentId = saved.document_id; sourceSavedVersion = sourceCoverage.source_version;
+    persistCourse();
 }
 
 /**
@@ -516,13 +543,15 @@ async function startCascade() {
 async function generateAndSaveLesson(lesson, phaseIndex) {
     log(`Generating: ${lesson.title}`);
     try {
+        if (courseOwner !== null && courseOwner !== SLMClient.account()) throw new Error(SLMClient.message('account_changed', 'The signed-in account changed. Reload before continuing.'));
+        await ensureCourseSource();
         const data = await SLMClient.request('/api/generate/full-topic-package', {
             method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({
                 subject: currentConfig.subject, topic_name: lesson.title,
                 grade_level: currentConfig.grade_level,
                 learning_objectives: lesson.learning_objectives || [`Understand ${lesson.title}`],
                 include_lesson: true, include_exercises: true, include_assessment: false,
-                source_material: sourceMaterialText, auto_save: true,
+                source_material: sourceMaterialText, source_document_id: sourceDocumentId || null, auto_save: true,
                 study_plan_id: createdStudyPlanId, phase_index: phaseIndex
             })
         });
@@ -558,7 +587,7 @@ window.stopCourseGeneration = async () => {
 window.retryCourseGeneration = async () => {
     if (generationRunning || courseOwner !== SLMClient.account()) return;
     generationRunning = true;
-    try { await startCascade(); } finally { generationRunning = false; }
+    try { await ensureCourseSource(); await startCascade(); } catch (error) { showError(error.message); } finally { generationRunning = false; }
 };
 window.courseWorkflow = async action => {
     if (!createdStudyPlanId || generationRunning) return;
@@ -740,4 +769,6 @@ function renderSourceCoverage() {
     const references = (sourceCoverage.sections || []).map(section => section.reference).join(', ');
     status.textContent = `${prefix} ${sourceCoverage.char_count || 0} ${SLMClient.message('characters', 'characters')}. ${references}`;
     if (sourceCoverage.unreadable_pages?.length) status.textContent += ` ${SLMClient.message('unreadable_pages', 'Unreadable pages')}: ${sourceCoverage.unreadable_pages.join(', ')}.`;
+    const generationStatus = document.getElementById('generation-source-coverage');
+    if (generationStatus) generationStatus.textContent = status.textContent;
 }

@@ -127,6 +127,7 @@ class TestLearningSessionNewEndpoints:
             creator_id=test_teacher.id,
             created_at=datetime.now(timezone.utc),
         )
+        content.set_encrypted_content_data({"content": "Synthetic session lesson"})
         db_service.session.add(content)
         db_service.session.commit()
         db_service.session.refresh(content)

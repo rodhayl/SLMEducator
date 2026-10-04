@@ -26,6 +26,7 @@ from src.core.models import (
 from src.core.roles import is_admin, is_student, is_teacher_or_admin
 from src.core.services import course_workflow
 from src.core.services.content_schema import normalize_content
+from src.core.services.source_documents import SourceDocumentInput, save_document
 
 router = APIRouter(prefix="/api/study-plans", tags=["study-plans"])
 
@@ -267,6 +268,40 @@ def edit_study_plan(
 class CourseCopyRequest(BaseModel):
     title: Optional[str] = Field(default=None, min_length=1, max_length=200)
     reason: str = "copy"
+
+
+@router.get("/{plan_id}/source")
+def get_course_source(
+    plan_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Raw author source is separate from learner-approved instructional content."""
+    plan = db.get(StudyPlan, plan_id)
+    require_allowed(can_manage_plan(db, current_user, plan))
+    return {"source": course_workflow.metadata(plan).get("source_document")}
+
+
+@router.put("/{plan_id}/source")
+def set_course_source(
+    plan_id: int,
+    request: SourceDocumentInput,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    plan = db.get(StudyPlan, plan_id)
+    require_allowed(can_manage_plan(db, current_user, plan))
+    try:
+        source = save_document(db, plan, request.model_dump())
+        db.commit()
+        return {
+            "document_id": source["document_id"],
+            "source": source,
+            "review_required": True,
+        }
+    except ValueError as error:
+        db.rollback()
+        raise HTTPException(status_code=409, detail=str(error)) from error
 
 
 @router.post("/{plan_id}/copy")

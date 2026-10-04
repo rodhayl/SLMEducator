@@ -94,7 +94,9 @@ async def start_session(
             detail="The selected content does not belong to this course",
         )
     _lock_sessions(db, current_user.id)
-    existing = _active_for_content(db, current_user.id, data.content_id)
+    existing = _active_for_content(
+        db, current_user.id, data.content_id, data.study_plan_id
+    )
     if existing:
         db.commit()
         return _session_response(existing)
@@ -105,6 +107,16 @@ async def start_session(
         status=SessionStatus.ACTIVE,
         start_time=utc_now(),
     )
+    _capture_revision(db, session, content, plan)
+    db.add(session)
+    db.commit()
+    db.refresh(session)
+
+    return _session_response(session)
+
+
+def _capture_revision(db, session, content, plan) -> None:
+    """Capture one canonical instructional revision for every new session path."""
     try:
         visible = learner_content(
             content.content_type.value,
@@ -124,17 +136,21 @@ async def start_session(
             "content_digest": content_revision(content),
             "study_plan_id": plan.id if plan else None,
             "course_version": workflow(plan).get("version") if plan else None,
+            "plan_context": (
+                {
+                    "id": plan.id,
+                    "title": plan.title,
+                    "description": (plan.description or "")[:500],
+                }
+                if plan
+                else None
+            ),
             "captured_at": utc_now().isoformat(),
             "provenance": "captured_at_start",
         }
     except ValueError as error:
         db.rollback()
         raise HTTPException(status_code=409, detail=str(error)) from error
-    db.add(session)
-    db.commit()
-    db.refresh(session)
-
-    return _session_response(session)
 
 
 @router.post("/{session_id}/heartbeat")
@@ -227,6 +243,12 @@ async def end_session(
 def _session_response(session: LearningSession) -> SessionResponse:
     """Serialize preserved history with explicit timestamp provenance."""
     known = known_instant(session.start_time)
+    captured = session.decrypted_content_snapshot
+    if session.content_snapshot and captured is None:
+        raise HTTPException(
+            status_code=409,
+            detail="Captured session content cannot be decrypted; restore this revision instead of substituting current content",
+        )
     return SessionResponse(
         id=session.id,
         content_id=session.content_id,
@@ -239,7 +261,7 @@ def _session_response(session: LearningSession) -> SessionResponse:
         timestamp_provenance=timestamp_provenance(session.start_time),
         duration_known=known
         and (session.end_time is None or known_instant(session.end_time)),
-        content_snapshot=session.decrypted_content_snapshot,
+        content_snapshot=captured,
         context_revision=session.context_revision or {"provenance": "legacy_unpinned"},
     )
 
@@ -251,9 +273,11 @@ def _lock_sessions(db: Session, user_id: int) -> None:
     )
 
 
-def _active_for_content(db: Session, user_id: int, content_id: int):
+def _active_for_content(
+    db: Session, user_id: int, content_id: int, study_plan_id: Optional[int] = None
+):
     """Return the server-authoritative open session for this learner/content."""
-    return (
+    candidates = (
         db.query(LearningSession)
         .filter_by(
             student_id=user_id,
@@ -261,7 +285,15 @@ def _active_for_content(db: Session, user_id: int, content_id: int):
             status=SessionStatus.ACTIVE,
         )
         .order_by(LearningSession.id.desc())
-        .first()
+        .all()
+    )
+    return next(
+        (
+            session
+            for session in candidates
+            if (session.context_revision or {}).get("study_plan_id") == study_plan_id
+        ),
+        None,
     )
 
 
@@ -420,7 +452,12 @@ async def restore_session(
     if session.status == SessionStatus.ACTIVE:
         db.commit()
         return _session_response(session)
-    existing = _active_for_content(db, current_user.id, session.content_id)
+    existing = _active_for_content(
+        db,
+        current_user.id,
+        session.content_id,
+        (session.context_revision or {}).get("study_plan_id"),
+    )
     if existing:
         raise HTTPException(
             status_code=409, detail="Another session for this content is active"
@@ -441,6 +478,7 @@ async def restore_session(
 @router.post("/restart/{content_id}", response_model=SessionResponse)
 async def restart_session(
     content_id: int,
+    study_plan_id: Optional[int] = None,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -450,9 +488,21 @@ async def restart_session(
     Creates a new session, marking any active sessions for this content as completed.
     Previous session data is preserved in history but not carried over.
     """
-    require_content(db, current_user, content_id)
+    content = require_content(db, current_user, content_id)
+    plan = require_plan(db, current_user, study_plan_id) if study_plan_id else None
+    if (
+        plan
+        and content.study_plan_id != plan.id
+        and not db.query(StudyPlanContent)
+        .filter_by(study_plan_id=plan.id, content_id=content.id)
+        .first()
+    ):
+        raise HTTPException(
+            status_code=409,
+            detail="The selected content does not belong to this course",
+        )
     _lock_sessions(db, current_user.id)
-    existing = _active_for_content(db, current_user.id, content_id)
+    existing = _active_for_content(db, current_user.id, content_id, study_plan_id)
     if existing and not existing.notes and existing.completion_status == "restarted":
         db.commit()
         return _session_response(existing)
@@ -469,8 +519,9 @@ async def restart_session(
     )
 
     for active in active_sessions:
-        active.status = SessionStatus.COMPLETED
-        active.completion_status = "previously_completed"
+        if (active.context_revision or {}).get("study_plan_id") != study_plan_id:
+            continue
+        active.status = SessionStatus.CLOSED
         active.end_time = utc_now()
         active.duration_minutes = active.calculate_duration()
 
@@ -482,6 +533,7 @@ async def restart_session(
         completion_status="restarted",
         start_time=utc_now(),
     )
+    _capture_revision(db, new_session, content, plan)
     db.add(new_session)
     db.commit()
     db.refresh(new_session)

@@ -85,3 +85,42 @@ checks pass separately. UI evidence: 70 DOM-emulation tests and 18 source/style
 checks. This is not the final aggregate. Durable extraction provenance, in-class
 tutor panel, request lifecycle, portability wizard and operational cleanup remain
 active work; native/browser/model/human gates remain open.
+
+## Checkpoint 3: durable sources and in-class help
+
+Source extraction now obeys one character budget including reference labels.
+Course-owned encrypted source manifests persist text, byte-hash reports, parser,
+sections/pages, omitted pages and extraction coverage. They explicitly exclude the
+original binary and distinguish reported extraction from legacy text with unknown
+provenance. Teacher packages preserve this manifest; learner exports do not expose
+the raw author source. Generation records the actual bounded fragment/hash and
+usage coverage separately from extraction coverage; late relevant segments can
+be selected. Explicit replacement preserves prior content/history, invalidates
+review and marks old generation jobs obsolete; stale-source requests fail.
+
+The session player now has an in-place tutor and teacher-help panel with current
+authorization, captured-session binding, section selection, partial-source and
+unverified-response disclosures. Dashboard context changes invalidate conversation
+and late replies. Unsupported Anthropic options and inactive preprocessing UI/
+runtime methods were removed; old saved provider records have actionable errors,
+and deprecated settings are ignored with explicit compatibility warnings.
+
+Independent review identified two additional snapshot boundaries. Both were
+reproduced before fixing: present-but-unreadable ciphertext must not fall back to
+current content, and a session from one course must not masquerade as another
+course sharing the same content. The fixed paths return a recovery error or select
+the correct course-bound session; restart captures a revision too and closes only
+the selected course's prior session without a completion reward.
+
+Evidence: 28 source/generation/session cases pass; 24 settings/session cases pass;
+two new restart/unsupported-provider edges pass. The UI worker reports 115 pinned
+DOM cases and 18 source/style checks before later bounded refinements. Exact frozen
+UI validation is recorded at publication. Limits/receipts/cancellation remain
+the next active slice; no remote-provider stop or known-cost claim is made yet.
+
+The frozen serial DOM check exposed an unbounded test fixture: a delayed context
+resolver was accidentally replaced by a concurrent usage request. The fixture now
+defers only context and has a five-second timeout. The corrected panel and all
+remaining role/receipt modules pass **66 tests** in 3.45 seconds. Earlier modules
+had passed before the fixture stalled; this record does not invent a completed
+aggregate result. Secret scan and critical lint/type checks pass.

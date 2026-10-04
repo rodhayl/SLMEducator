@@ -58,6 +58,7 @@ class SessionStatus(enum.Enum):
     ACTIVE = "active"
     COMPLETED = "completed"
     FAILED = "failed"
+    CLOSED = "closed"  # Replaced without completing the activity
 
 
 class EventType(enum.Enum):

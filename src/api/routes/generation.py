@@ -258,6 +258,7 @@ class FullTopicPackageRequest(BaseModel):
     assessment_difficulty: str = "medium"
 
     source_material: Optional[str] = Field(default=None, max_length=100000)
+    source_document_id: Optional[str] = Field(default=None, pattern="^[a-f0-9]{64}$")
 
     # Auto-save options
     auto_save: bool = False

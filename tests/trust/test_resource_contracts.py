@@ -259,11 +259,9 @@ def test_ai_settings_roundtrip_keeps_secret_private(scenario):
     assert response.status_code == 200, response.text
     data = client.get("/api/settings/ai").json()
     assert data["api_key"] is None and data["has_api_key"] is True
-    assert (data["temperature"], data["max_tokens"], data["enable_preprocessing"]) == (
-        0.13,
-        321,
-        True,
-    )
+    assert (data["temperature"], data["max_tokens"]) == (0.13, 321)
+    assert "enable_preprocessing" not in data and "preprocessing_model" not in data
+    assert response.json()["compatibility_warnings"]
     assert client.post(
         "/api/settings/ai",
         json={"provider": "ollama", "model": "synthetic", "api_key": ""},

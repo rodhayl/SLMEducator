@@ -44,6 +44,24 @@ class FileProcessingService:
         else:
             raise ValueError("Supported sources are PDF, UTF-8 text and Markdown")
         result["source_version"] = sha256(content).hexdigest()
+        # The common limit includes reference labels and separators, not just body.
+        remaining, bounded = MAX_SOURCE_CHARACTERS, []
+        for section in result["sections"]:
+            overhead = len(section["reference"]) + 3 + (2 if bounded else 0)
+            if remaining <= overhead:
+                result["truncated"] = True
+                break
+            text = section["text"][: remaining - overhead]
+            if len(text) != len(section["text"]):
+                result["truncated"] = True
+            bounded.append({"reference": section["reference"], "text": text})
+            remaining -= overhead + len(text)
+        result["sections"] = bounded
+        result["parser"] = (
+            f"pypdf-{pypdf.__version__}"
+            if filename.endswith(".pdf") or file.content_type == "application/pdf"
+            else "utf8-text-v1"
+        )
         result["extracted_text"] = "\n\n".join(
             f"[{section['reference']}]\n{section['text']}"
             for section in result["sections"]

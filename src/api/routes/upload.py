@@ -45,6 +45,7 @@ async def upload_source_material(
             "sections": document["sections"],
             "unreadable_pages": document["unreadable_pages"],
             "total_pages": document["total_pages"],
+            "parser": document["parser"],
         }
     except HTTPException:
         # Re-raise HTTP exceptions as-is

@@ -48,7 +48,6 @@ def test_all_features():
         model="gguf-gpt-oss-20b-derestricted",
         api_key="not-needed",
         endpoint="http://localhost:1234/v1",
-        enable_preprocessing=False,
     )
 
     service = AIService(config, logger)

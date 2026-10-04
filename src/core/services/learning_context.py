@@ -44,7 +44,7 @@ def canonical_visible(content) -> dict:
 
 
 def content_revision(content) -> str:
-    """Portable identity excludes local database IDs and hidden grading keys."""
+    """Instructional-text identity excludes hidden keys; exam pointers retain local linkage."""
     return sha256(
         json.dumps(
             canonical_visible(content), sort_keys=True, ensure_ascii=False

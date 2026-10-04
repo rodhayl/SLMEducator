@@ -305,3 +305,126 @@ def test_public_session_resumes_captured_revision_after_republication(scenario):
         client.get("/api/ai/context", params={"session_id": first["id"]}).status_code
         == 403
     )
+
+
+def test_corrupt_captured_session_does_not_fall_back_to_current_content(scenario):
+    client, db, users, selected, plan, lessons, _ = scenario
+    selected[0] = users["learner_a"]
+    payload = {"content_id": lessons[0].id, "study_plan_id": plan.id}
+    started = client.post("/api/learning/start", json=payload).json()
+    session = db.get(LearningSession, started["id"])
+    session.content_snapshot = "gAAAA_corrupt_synthetic_capture"
+    db.commit()
+    response = client.post("/api/learning/start", json=payload)
+    assert response.status_code == 409, response.text
+    assert "captured" in response.json()["detail"].lower()
+
+
+def test_same_content_in_two_courses_has_distinct_pinned_sessions(scenario):
+    from src.core.models import StudyPlan, StudyPlanContent
+
+    client, db, users, selected, plan, lessons, _ = scenario
+    other = StudyPlan(
+        title="Second authorized course",
+        creator_id=users["teacher_a"].id,
+        is_public=True,
+    )
+    db.add(other)
+    db.flush()
+    db.add(
+        StudyPlanContent(
+            study_plan_id=other.id,
+            content_id=lessons[0].id,
+            phase_index=0,
+            order_index=0,
+        )
+    )
+    db.commit()
+    selected[0] = users["learner_a"]
+    first = client.post(
+        "/api/learning/start",
+        json={"content_id": lessons[0].id, "study_plan_id": plan.id},
+    ).json()
+    second = client.post(
+        "/api/learning/start",
+        json={"content_id": lessons[0].id, "study_plan_id": other.id},
+    ).json()
+    assert second["id"] != first["id"]
+    assert second["context_revision"]["study_plan_id"] == other.id
+    retry = client.post(
+        "/api/learning/start",
+        json={"content_id": lessons[0].id, "study_plan_id": other.id},
+    ).json()
+    assert retry["id"] == second["id"]
+
+
+def test_restart_is_scoped_and_captures_the_same_canonical_contract(scenario):
+    from src.core.models import StudyPlan, StudyPlanContent, SessionStatus
+
+    client, db, users, selected, plan, lessons, _ = scenario
+    other = StudyPlan(
+        title="Another course", creator_id=users["teacher_a"].id, is_public=True
+    )
+    db.add(other)
+    db.flush()
+    db.add(
+        StudyPlanContent(
+            study_plan_id=other.id,
+            content_id=lessons[0].id,
+            phase_index=0,
+            order_index=0,
+        )
+    )
+    db.commit()
+    selected[0] = users["learner_a"]
+    first = client.post(
+        "/api/learning/start",
+        json={"content_id": lessons[0].id, "study_plan_id": plan.id},
+    ).json()
+    other_session = client.post(
+        "/api/learning/start",
+        json={"content_id": lessons[0].id, "study_plan_id": other.id},
+    ).json()
+    response = client.post(
+        f"/api/learning/restart/{lessons[0].id}", params={"study_plan_id": plan.id}
+    )
+    assert response.status_code == 200, response.text
+    restarted = response.json()
+    assert restarted["id"] != first["id"] and restarted["content_snapshot"]
+    assert restarted["context_revision"]["study_plan_id"] == plan.id
+    assert db.get(LearningSession, other_session["id"]).status == SessionStatus.ACTIVE
+    assert db.get(LearningSession, first["id"]).status == SessionStatus.CLOSED
+    assert (
+        client.post(
+            f"/api/learning/restart/{lessons[0].id}", params={"study_plan_id": plan.id}
+        ).json()["id"]
+        == restarted["id"]
+    )
+    assert users["learner_a"].xp == 0
+
+
+def test_unsupported_legacy_provider_is_actionable_and_never_exposes_credential(
+    scenario,
+):
+    from src.core.models import AIModelConfiguration
+
+    client, db, users, selected, _, _, _ = scenario
+    selected[0] = users["teacher_a"]
+    config = AIModelConfiguration(
+        user_id=selected[0].id,
+        provider="anthropic",
+        model="legacy",
+        model_parameters={"enable_preprocessing": True},
+    )
+    config.set_encrypted_api_key("SYNTHETIC_LEGACY_PROVIDER_SECRET")
+    db.add(config)
+    db.commit()
+    response = client.get("/api/settings/ai")
+    assert response.status_code == 409 and "supported" in response.text
+    assert "SYNTHETIC_LEGACY_PROVIDER_SECRET" not in response.text
+    updated = client.post(
+        "/api/settings/ai", json={"provider": "ollama", "model": "synthetic"}
+    )
+    assert updated.status_code == 200 and not updated.json()["has_api_key"]
+    db.refresh(config)
+    assert "enable_preprocessing" not in config.model_parameters

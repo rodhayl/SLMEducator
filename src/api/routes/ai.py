@@ -157,6 +157,8 @@ def _authorized_source(
         if plan
         else None
     )
+    if session and (session.context_revision or {}).get("plan_context"):
+        context = session.context_revision["plan_context"]
     return source, context
 
 

@@ -60,7 +60,7 @@ test('teacher creation rejects an injected administrator role without making a r
     assert.equal(w.AuthService.loginDestination('/session_player.html?content_id=8&plan_id=4'),'/session_player.html?content_id=8&plan_id=4');
     dom.window.close();
 });
-async function sessionFixture(query='?content_id=8&plan_id=4') {
+async function sessionFixture(query='?content_id=8&plan_id=4', withHelp=false) {
     const context=await fixture('session_player.html',query); const w=context.w;
     const calls=[];let progressFails=false;
     w.fetch=async(url,options={})=>{calls.push({url,method:options.method||'GET',body:options.body});
@@ -71,6 +71,7 @@ async function sessionFixture(query='?content_id=8&plan_id=4') {
         if(url==='/api/learning/start')return reply({id:30,notes:''});
         if(url.endsWith('/progress')&&progressFails)return reply({detail:'Retry progress'},500);
         return reply({});};
+    if(withHelp)w.eval(read('static/js/learning-help.js'));
     w.eval(read('static/js/session.js'));await w.initSession();calls.length=0;
     return {...context,calls,failProgress:value=>{progressFails=value;}};
 }
@@ -150,16 +151,22 @@ test('tutor uses the tree contract, clears old conversation and rejects late con
     const plan=w.document.getElementById('tutor-study-plan');plan.add(new w.Option('One',4));plan.add(new w.Option('Two',5));plan.value='4';
     let release;const calls=[];
     w.fetch=async(url,options)=>{calls.push({url,options});
+        if(url.endsWith('/cancel'))return reply({request_id:url.split('/').at(-2),status:'cancelled',provider_may_continue:true});
         if(url==='/api/study-plans/4/tree')return reply({contents:[{id:8,title:'First'}]});
         if(url==='/api/study-plans/5/tree')return reply({contents:[{id:9,title:'Second'}]});
         if(url.endsWith('/assistance-policy'))return reply({mode:'hints_only',active_assessment_ids:[]});
+        if(url.startsWith('/api/ai/context'))return reply({source:{source_version:'revision-v1',title:'Current',available_sections:[{id:'section-1',title:'One',characters:30}],included_characters:30,total_characters:30}});
         return await new Promise(resolve=>{release=()=>resolve(reply({response:'Outdated answer',status:'suggestion'}));});};
     await w.loadTutorContentItems();assert.equal(w.document.querySelector('#tutor-content option[value="8"]').textContent,'First');
-    await w.refreshTutorPolicy();w.document.getElementById('chat-input').value='Old lesson question';w.document.getElementById('chat-form').dispatchEvent(new w.Event('submit',{cancelable:true}));
+    await w.refreshTutorPolicy();
+    const section=w.document.querySelector('#tutor-source-sections input');assert.ok(section);section.checked=true;section.dispatchEvent(new w.Event('change'));
+    w.document.getElementById('chat-input').value='Old lesson question';w.document.getElementById('chat-form').dispatchEvent(new w.Event('submit',{cancelable:true}));
     await new Promise(r=>setImmediate(r));plan.value='5';await w.loadTutorContentItems();release();await new Promise(r=>setImmediate(r));
     assert.equal(w.document.querySelector('#tutor-content option[value="8"]'),null);assert.ok(w.document.querySelector('#tutor-content option[value="9"]'));
     assert.doesNotMatch(w.document.getElementById('chat-history').textContent,/Outdated answer|Old lesson question/);
-    assert.ok(calls.some(call=>call.url==='/api/study-plans/4/tree'));dom.window.close();
+    assert.ok(calls.some(call=>call.url==='/api/study-plans/4/tree'));
+    const sent=JSON.parse(calls.find(call=>call.url==='/api/ai/chat').options.body);assert.equal(sent.source_version,'revision-v1');assert.deepEqual(sent.section_ids,['section-1']);
+    assert.match(w.document.getElementById('tutor-source-status').textContent,/not verified/);dom.window.close();
 });
 test('language changes update html lang and retain choice when browser storage fails',async()=>{
     const {dom,w}=await fixture('login.html');w.eval(read('static/js/i18n.js'));
@@ -167,4 +174,42 @@ test('language changes update html lang and retain choice when browser storage f
     assert.equal(w.document.documentElement.lang,'es');assert.equal(w.localStorage.getItem('slm_language'),'es');
     w.Storage.prototype.setItem=()=>{throw new Error('blocked');};w.fetch=async()=>reply({recovery:{log_in:'Log in'}});await w.I18n.setLanguage('en');
     assert.equal(w.document.documentElement.lang,'en');assert.equal(w.document.querySelector('[data-i18n="recovery.log_in"]').textContent,'Log in');dom.window.close();
+});
+test('source preview failure blocks contextual requests and preserves the learner question',async()=>{
+    const {dom,w}=await fixture('dashboard.html');w.escapeHtml=w.SLMRender.escape;w.setLearningContext=()=>{};
+    const source=read('static/js/dashboard.js');w.eval(source.slice(source.indexOf('// --- AI TUTOR ---'),source.indexOf('// Old settings logic removed.')));
+    const plan=w.document.getElementById('tutor-study-plan');plan.add(new w.Option('One',4));plan.value='4';
+    let postCount=0;w.fetch=async(url,options={})=>{
+        if(options.method==='POST')postCount++;
+        if(url.endsWith('/assistance-policy'))return reply({mode:'hints_only',active_assessment_ids:[]});
+        return reply({detail:'Source unavailable'},500);
+    };
+    await w.refreshTutorSource();await w.refreshTutorPolicy();
+    const input=w.document.getElementById('chat-input');input.value='Keep my question';w.document.getElementById('chat-form').dispatchEvent(new w.Event('submit',{cancelable:true}));
+    await new Promise(r=>setImmediate(r));assert.equal(postCount,0);assert.equal(input.value,'Keep my question');assert.equal(w.document.querySelector('#chat-form button').disabled,true);dom.window.close();
+});
+test('library editing follows the server can_edit decision, including admin-owned foreign content',async()=>{
+    const {dom,w}=await fixture('dashboard.html');w.escapeHtml=w.SLMRender.escape;w.currentUserId=7;w.isTeacherOrAdmin=true;
+    const source=read('static/js/dashboard.js');w.eval(source.slice(source.indexOf('function applyLibraryPermissionUI'),source.indexOf('// --- STUDENT Q&A ---')));
+    const root=w.document.createElement('div');root.innerHTML='<div data-can-edit="false" data-creator-id="7"><button onclick="editContent(1)">Edit own assigned</button></div><div data-can-edit="true" data-creator-id="9"><button onclick="editContent(2)">Edit admin-permitted</button></div>';
+    w.applyLibraryPermissionUI(root);assert.equal(root.querySelector('[data-can-edit=false] button').classList.contains('hidden'),true);assert.equal(root.querySelector('[data-can-edit=true] button').classList.contains('hidden'),false);dom.window.close();
+});
+test('lesson mounts contextual help with pinned session ID without navigation or losing notes',async()=>{
+    const {dom,w}=await sessionFixture('?content_id=8&plan_id=4',true);const calls=[];
+    w.fetch=async url=>{calls.push(url);return reply(url.includes('/context?')?{source:{id:8,title:'Current',source_version:'pinned-v1',available_sections:[{id:'s-1',title:'Pinned section',characters:20}],references:['s-1'],included_characters:20,total_characters:20,truncated:false}}:{mode:'hints_only',active_assessment_ids:[]});};
+    const notes=w.document.getElementById('session-notes');notes.value='Continue my thinking';notes.dispatchEvent(new w.Event('input'));
+    const host=w.document.getElementById('session-help-host');host.querySelector('[data-i18n="help_panel.tutor"]').click();await new Promise(r=>setImmediate(r));
+    assert.equal(host.querySelector('section').hidden,false);assert.ok(calls.some(url=>url.includes('session_id=30')&&url.includes('content_id=8')&&url.includes('study_plan_id=4')));
+    assert.equal(w.location.pathname,'/session_player.html');assert.equal(notes.value,'Continue my thinking');
+    host.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
+    assert.equal(host.querySelector('section').hidden,true);assert.equal(notes.value,'Continue my thinking');assert.equal(w.document.activeElement.id,'session-content-title');dom.window.close();
+});
+test('admin teacher assignment shows current owner, permits explicit removal and ignores stale confirmation',async()=>{
+    const {dom,w}=await fixture('dashboard.html');w.AuthService.getRole=()=> 'admin';w.currentStudentId=8;let confirm;
+    w.showConfirm=async()=>confirm;const calls=[];w.fetch=async(url,options={})=>{calls.push({url,options});return reply(options.method?{student_id:8,teacher_id:null}:[{id:9,first_name:'Synthetic',last_name:'Teacher',username:'teacher'}]);};
+    const source=read('static/js/dashboard.js');w.eval(source.slice(source.indexOf('let savingStudentTeacher = false;'),source.indexOf("if (document.readyState !== 'loading')")));
+    await w.loadStudentTeacher({id:8,teacher_id:9});assert.equal(w.document.getElementById('student-teacher-select').value,'9');
+    confirm=true;w.document.getElementById('student-teacher-select').value='';await w.saveStudentTeacher();
+    const request=calls.find(call=>call.options.method==='PUT');assert.equal(request.url,'/api/students/8/teacher');assert.equal(JSON.parse(request.options.body).teacher_id,null);
+    w.showConfirm=async()=>{w.currentStudentId=10;return true;};await w.saveStudentTeacher();assert.equal(calls.filter(call=>call.options.method==='PUT').length,1);dom.window.close();
 });

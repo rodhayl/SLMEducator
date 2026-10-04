@@ -429,7 +429,7 @@ test('tutor exposes enforced policy, blocks disabled attempts and labels server-
     w.fetch = async (url, options = {}) => {
         calls.push({url, options});
         if (url.endsWith('/assistance-policy')) return reply(200, {mode, active_assessment_ids:[4], reason:'<img src=x onerror=unsafe()>'});
-        return reply(200, {response:'Try an independent step.',status:'suggestion',assistance_policy:{mode:'hints_only',active_assessment_ids:[4]},effective_assistance:'hint'});
+        return reply(200, {receipt:{request_id:JSON.parse(options.body).client_request_id,status:'completed',requests_used_today:1,requests_limit_daily:100,cost_known:false},response:'Try an independent step.',status:'suggestion',assistance_policy:{mode:'hints_only',active_assessment_ids:[4]},effective_assistance:'hint'});
     };
     await w.refreshTutorPolicy();
     const input = w.document.getElementById('chat-input'); const form = w.document.getElementById('chat-form');

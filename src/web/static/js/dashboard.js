@@ -195,7 +195,12 @@ window.loadProfileSettings = function () {
     }
 };
 
+window.reloadAIConfiguration = () => loadSettings();
+const supportedAIProviders = ['ollama', 'lm_studio', 'openai', 'openrouter'];
+let savingAISettings = false;
+let aiConfigLoadState = 'loading';
 async function loadSettings() {
+    aiConfigLoadState = 'loading'; onProviderChange();
     const token = AuthService.getToken();
     try {
         // Load AI Config
@@ -203,7 +208,10 @@ async function loadSettings() {
         if (aiRes.ok) {
             const aiData = await aiRes.json();
             // Populate Form
-            document.getElementById('ai-provider').value = aiData.provider || 'ollama';
+            if (!supportedAIProviders.includes(aiData.provider)) throw new Error(SLMClient.message('ai_config_repair', 'Choose a supported provider and save a replacement configuration. Your existing configuration has not changed.'));
+            aiConfigLoadState = 'ready';
+            document.getElementById('ai-config-status').textContent = '';
+            document.getElementById('ai-provider').value = aiData.provider;
             document.getElementById('ai-model').value = aiData.model || '';
             document.getElementById('ai-endpoint').value = aiData.endpoint || '';
             // Key is likely masked or null if hidden
@@ -218,15 +226,16 @@ async function loadSettings() {
             if (aiData.max_tokens !== undefined) {
                 document.getElementById('ai-max-tokens').value = aiData.max_tokens;
             }
-            if (aiData.enable_preprocessing) {
-                document.getElementById('ai-preprocessing').checked = true;
-                document.getElementById('preprocessing-model-group').classList.remove('d-none');
-            }
-            if (aiData.preprocessing_model) {
-                document.getElementById('ai-preprocessing-model').value = aiData.preprocessing_model;
-            }
-
             // Update UI hints based on provider
+            onProviderChange();
+        } else {
+            aiConfigLoadState = aiRes.status === 409 ? 'repair' : 'failed';
+            document.getElementById('ai-provider').value = '';
+            document.getElementById('ai-model').value = '';
+            document.getElementById('ai-endpoint').value = '';
+            document.getElementById('ai-key').value = '';
+            document.getElementById('ai-key').dataset.hasKey = 'false';
+            document.getElementById('ai-config-status').textContent = SLMClient.message(aiRes.status === 409 ? 'ai_config_repair' : 'ai_config_load_failed', aiRes.status === 409 ? 'Choose a supported provider and save a replacement configuration. Your existing configuration has not changed.' : 'AI configuration could not be loaded. Retry before changing it.');
             onProviderChange();
         }
 
@@ -239,7 +248,7 @@ async function loadSettings() {
             applyTheme(appData.theme || 'auto');
         }
 
-    } catch (err) { console.error("Settings load error", err); }
+    } catch (err) { aiConfigLoadState = 'failed'; onProviderChange(); document.getElementById('ai-config-status').textContent = SLMClient.message('ai_config_load_failed', 'AI configuration could not be loaded. Retry before changing it.'); }
 }
 
 function setSettingsTab(tabName) {
@@ -318,50 +327,34 @@ function buildAIConfigPayload() {
         endpoint: endpointValue || null,
         // Advanced settings
         temperature: parseFloat(document.getElementById('ai-temperature').value),
-        max_tokens: parseInt(document.getElementById('ai-max-tokens').value),
-        enable_preprocessing: document.getElementById('ai-preprocessing').checked,
-        preprocessing_model: document.getElementById('ai-preprocessing-model').value || null
+        max_tokens: parseInt(document.getElementById('ai-max-tokens').value)
     };
 }
 
 window.saveAISettings = async () => {
-    const token = AuthService.getToken();
+    if (savingAISettings || !['ready', 'repair'].includes(aiConfigLoadState)) return;
     const resultDiv = document.getElementById('ai-test-result');
     const data = buildAIConfigPayload();
+    if (!supportedAIProviders.includes(data.provider)) {
+        document.getElementById('ai-config-status').textContent = SLMClient.message('ai_config_repair', 'Choose a supported provider and save a replacement configuration. Your existing configuration has not changed.'); return;
+    }
     const apiKeyValue = document.getElementById('ai-key').value;
-    if (apiKeyValue) {
-        data.api_key = apiKeyValue;
-    }
-
-    // Show saving state
-    resultDiv.classList.remove('d-none');
-    resultDiv.className = 'mt-3 alert alert-info';
-    resultDiv.innerHTML = I18n.t('settings.save.saving');
-
+    if (apiKeyValue) data.api_key = apiKeyValue;
+    savingAISettings = true;
+    const controls = [...document.querySelectorAll('#settings-ai-form input, #settings-ai-form select, #settings-ai-form button')];
+    controls.forEach(control => { control.disabled = true; });
+    resultDiv.className = 'mt-3 alert alert-info'; resultDiv.textContent = I18n.t('settings.save.saving');
     try {
-        const res = await fetch('/api/settings/ai', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-            body: JSON.stringify(data)
-        });
-        if (res.ok) {
-            resultDiv.className = 'mt-3 alert alert-success';
-            resultDiv.innerHTML = `
-                <strong>${I18n.t('settings.save.success')}</strong><br>
-                Provider: ${escapeHtml(data.provider)}<br>
-                Model: ${escapeHtml(data.model || '(default)')}
-            `;
-            // Auto-hide after 5 seconds
-            setTimeout(() => { resultDiv.classList.add('d-none'); }, 5000);
-        } else {
-            const err = await res.json();
-            resultDiv.className = 'mt-3 alert alert-danger';
-            resultDiv.innerHTML = `<strong>${I18n.t('settings.save.failed')}</strong><br>${escapeHtml(err.detail || 'Unknown error')}`;
-        }
-    } catch (e) {
-        resultDiv.className = 'mt-3 alert alert-danger';
-        resultDiv.innerHTML = `<strong>${I18n.t('settings.save.network_error')}</strong><br>${I18n.t('settings.save.failed_msg')}`;
-    }
+        const saved = await SLMClient.request('/api/settings/ai', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
+        if (saved?.provider !== data.provider || typeof saved.model !== 'string') throw new Error(SLMClient.message('ai_save_unconfirmed', 'The server did not confirm this configuration. Your entries are kept; retry.'));
+        aiConfigLoadState = 'ready';
+        document.getElementById('ai-key').value = '';
+        document.getElementById('ai-key').dataset.hasKey = String(Boolean(saved.has_api_key));
+        document.getElementById('ai-config-status').textContent = '';
+        resultDiv.className = 'mt-3 alert alert-success'; resultDiv.textContent = I18n.t('settings.save.success');
+    } catch (error) {
+        resultDiv.className = 'mt-3 alert alert-danger'; resultDiv.textContent = error.message;
+    } finally { savingAISettings = false; controls.forEach(control => { control.disabled = false; }); onProviderChange(); }
 };
 // --- AI SETTINGS HELPER FUNCTIONS ---
 
@@ -369,6 +362,7 @@ window.saveAISettings = async () => {
  * Fetch available models from the current provider
  */
 window.fetchModels = async function () {
+    if (!['ready', 'repair'].includes(aiConfigLoadState) || !supportedAIProviders.includes(document.getElementById('ai-provider').value)) return;
     const token = AuthService.getToken();
     const provider = document.getElementById('ai-provider').value;
     const btn = document.getElementById('fetch-models-btn');
@@ -430,8 +424,9 @@ window.onProviderChange = function () {
     modelSelect.classList.add('d-none');
 
     // Cloud providers need API key
-    const cloudProviders = ['openai', 'anthropic', 'openrouter'];
-    const localProviders = ['ollama', 'lm_studio'];
+    const cloudProviders = ['openai', 'openrouter'];
+    const valid = supportedAIProviders.includes(provider);
+    ['fetch-models-btn', 'save-ai-config', 'test-ai-config'].forEach(id => { const control = document.getElementById(id); if (control) control.disabled = !valid || savingAISettings || !['ready', 'repair'].includes(aiConfigLoadState); });
 
     if (cloudProviders.includes(provider)) {
         apiKeyGroup.classList.remove('d-none');
@@ -446,7 +441,6 @@ window.onProviderChange = function () {
         'ollama': 'http://localhost:11434',
         'lm_studio': 'http://localhost:1234',
         'openai': 'https://api.openai.com/v1',
-        'anthropic': 'https://api.anthropic.com',
         'openrouter': 'https://openrouter.ai/api/v1'
     };
     endpointInput.placeholder = `${I18n.t('settings.ai.endpoint_placeholder_default')} ${defaultEndpoints[provider] || I18n.t('settings.ai.endpoint_required')}`;
@@ -463,6 +457,7 @@ window.onProviderChange = function () {
  * Test AI connection
  */
 window.testAIConnection = async function () {
+    if (!['ready', 'repair'].includes(aiConfigLoadState) || !supportedAIProviders.includes(document.getElementById('ai-provider').value)) return;
     const token = AuthService.getToken();
     const resultDiv = document.getElementById('ai-test-result');
     const data = buildAIConfigPayload();
@@ -484,6 +479,7 @@ window.testAIConnection = async function () {
 
         const result = await res.json();
 
+        if (!res.ok) throw new Error(result.detail || I18n.t('settings.ai.error_connection_failed'));
         if (result.status === 'connected') {
             resultDiv.className = 'mt-3 alert alert-success';
             resultDiv.innerHTML = `
@@ -512,23 +508,6 @@ window.updateTempDisplay = function () {
     const temp = document.getElementById('ai-temperature').value;
     document.getElementById('temp-value').textContent = temp;
 };
-
-/**
- * Toggle preprocessing model input visibility
- */
-document.addEventListener('DOMContentLoaded', () => {
-    const preprocessingCheckbox = document.getElementById('ai-preprocessing');
-    if (preprocessingCheckbox) {
-        preprocessingCheckbox.addEventListener('change', function () {
-            const group = document.getElementById('preprocessing-model-group');
-            if (this.checked) {
-                group.classList.remove('d-none');
-            } else {
-                group.classList.add('d-none');
-            }
-        });
-    }
-});
 
 /**
  * Show toast notification (helper function if not exists)
@@ -1290,7 +1269,7 @@ window.loadLibrary = async function loadLibrary() {
 
             return `
                 <div class="col-md-4 col-lg-3">
-                    <div class="card h-100" data-creator-id="${item.creator_id || ''}">
+                    <div class="card h-100" data-creator-id="${item.creator_id || ''}" data-can-edit="${item.can_edit === true}">
                         <div class="card-body">
                             <span class="badge ${typeColors[type] || 'bg-secondary'} mb-2">
                                 ${typeIcons[type] || '📄'} ${escapeHtml(type.toUpperCase())}
@@ -1341,24 +1320,9 @@ window.loadLibrary = async function loadLibrary() {
 
 function applyLibraryPermissionUI(container) {
     if (!container) return;
-    const buttons = container.querySelectorAll('button[onclick^="editContent("],button[onclick^="deleteContent("]');
-
-    // Students should not see manage actions on assigned content.
-    if (!isTeacherOrAdmin) {
-        buttons.forEach(b => b.classList.add('hidden'));
-    }
-
-    if (!currentUserId) return;
-
-    // Allow managing own content (cards only).
-    container.querySelectorAll('.card[data-creator-id]').forEach(card => {
-        const creatorId = Number(card.getAttribute('data-creator-id') || 0);
-        const canManage = creatorId === Number(currentUserId);
-        if (canManage) {
-            card.querySelectorAll('button[onclick^="editContent("],button[onclick^="deleteContent("]').forEach(b => b.classList.remove('hidden'));
-        } else {
-            card.querySelectorAll('button[onclick^="editContent("],button[onclick^="deleteContent("]').forEach(b => b.classList.add('hidden'));
-        }
+    container.querySelectorAll('[data-can-edit]').forEach(card => {
+        const canEdit = card.dataset.canEdit === 'true';
+        card.querySelectorAll('button[onclick^="editContent("], button[onclick^="deleteContent("]').forEach(button => button.classList.toggle('hidden', !canEdit));
     });
 }
 
@@ -1545,6 +1509,7 @@ window.editContent = async function editContent(id) {
         if (!res.ok) throw new Error(I18n.t('content.viewer.error_load'));
 
         const content = await res.json();
+        if (content.can_edit !== true) { showToast(SLMClient.message('content_read_only', 'This content cannot be edited. Open its course to create a draft copy.'), 'warning'); return; }
 
         // Populate edit form
         document.getElementById('edit-content-id').value = content.id;
@@ -2100,13 +2065,16 @@ window.loadTutorStudyPlans = async function loadTutorStudyPlans() {
 // Load content items when study plan selected
 let tutorContentRequest = 0;
 window.resetTutorContext = function resetTutorContext() {
+    cancelTutorRequest(true);
     tutorEpoch++; tutorConversation = []; tutorBusy = false;
+    tutorOwner = SLMClient.account();
     const history = document.getElementById('chat-history');
     if (history) history.textContent = I18n.t('ai_tutor.start_conversation');
     const send = document.querySelector('#chat-form button[type=submit]');
-    if (send) send.disabled = !tutorPolicy || tutorPolicy.mode === 'disabled';
+    if (send) send.disabled = !tutorSourceReady || !tutorPolicy || tutorPolicy.mode === 'disabled';
     const selected = document.getElementById('tutor-content');
     window.setLearningContext({contentId: selected?.value || null, contentTitle: selected?.selectedOptions[0]?.textContent || null, studyPlanId: document.getElementById('tutor-study-plan')?.value || null, questionId: null});
+    refreshTutorSource();
 };
 window.loadTutorContentItems = async function loadTutorContentItems() {
     const planId = document.getElementById('tutor-study-plan')?.value;
@@ -2136,6 +2104,7 @@ window.initTutorSelectors = async function initTutorSelectors() {
         resetTutorContext();
     }
     await refreshTutorPolicy();
+    await refreshTutorUsage();
 };
 
 // Clear AI Chat (30.3)
@@ -2154,6 +2123,11 @@ let tutorEpoch = 0;
 let tutorConversation = [];
 let tutorPolicy = null;
 let tutorPolicyRequest = 0;
+let tutorSource = null;
+let tutorSourceReady = true;
+let tutorSourceRequest = 0;
+let tutorOwner = SLMClient.account();
+let tutorPending = null;
 
 function applyTutorPolicy(policy) {
     if (!['hints_only', 'explanations', 'disabled'].includes(policy?.mode)) throw new Error('Invalid assistance policy');
@@ -2173,7 +2147,7 @@ function applyTutorPolicy(policy) {
     });
     if (policy.mode !== 'explanations') selector.value = 'hint';
     selector.disabled = policy.mode === 'disabled';
-    chatForm.querySelector('button[type=submit]').disabled = tutorBusy || policy.mode === 'disabled';
+    chatForm.querySelector('button[type=submit]').disabled = tutorBusy || !tutorSourceReady || policy.mode === 'disabled';
 }
 
 window.refreshTutorPolicy = async function refreshTutorPolicy() {
@@ -2189,6 +2163,83 @@ window.refreshTutorPolicy = async function refreshTutorPolicy() {
         if (version === tutorPolicyRequest) document.getElementById('tutor-policy-status').textContent = SLMClient.message('policy_check_failed', 'Could not check assistance policy. Refresh the policy to retry. Your message is kept.');
     }
 };
+window.refreshTutorSource = async function refreshTutorSource() {
+    const revision = ++tutorSourceRequest;
+    tutorSource = null;
+    const box = document.getElementById('tutor-source-sections');
+    const status = document.getElementById('tutor-source-status');
+    const contentId = document.getElementById('tutor-content')?.value;
+    const studyPlanId = document.getElementById('tutor-study-plan')?.value;
+    box?.replaceChildren();
+    const params = new URLSearchParams();
+    if (contentId) params.set('content_id', contentId);
+    if (studyPlanId) params.set('study_plan_id', studyPlanId);
+    tutorSourceReady = !params.size;
+    if (!params.size) { if (status) status.textContent = SLMClient.message('no_source', 'No source material selected.'); return; }
+    if (status) status.textContent = SLMClient.message('source_loading', 'Loading available source sections…');
+    chatForm.querySelector('button[type=submit]').disabled = true;
+    try {
+        const preview = await SLMClient.request('/api/ai/context?' + params);
+        if (revision !== tutorSourceRequest || tutorOwner !== SLMClient.account()) return;
+        const source = preview?.source;
+        if (!source?.source_version || !Array.isArray(source.available_sections)) throw new Error(SLMClient.message('source_load_failed', 'Source could not be loaded. Reload before asking.'));
+        tutorSource = source; tutorSourceReady = true;
+        if (status) status.textContent = `${source.title}: ${source.included_characters}/${source.total_characters} ${SLMClient.message('characters', 'characters')}. ` + (source.truncated ? SLMClient.message('source_partial', 'Partial source: some material was not included.') : '') + ' ' + SLMClient.message('answer_unverified', 'Response not verified against the source.');
+        source.available_sections.forEach(section => {
+            const label = document.createElement('label'); label.className = 'form-check d-block';
+            const input = document.createElement('input'); input.type = 'checkbox'; input.value = section.id; input.className = 'form-check-input';
+            const caption = document.createElement('span'); caption.textContent = `${section.title} (${section.characters})`; caption.className = 'form-check-label';
+            input.onchange = () => {
+                if (box.querySelectorAll('input:checked').length > 12) { input.checked = false; showToast(SLMClient.message('source_section_limit', 'Select at most 12 sections.'), 'warning'); return; }
+                cancelTutorRequest(true);
+                tutorEpoch++; tutorConversation = []; tutorBusy = false; chatHistory.textContent = I18n.t('ai_tutor.start_conversation');
+                chatForm.querySelector('button[type=submit]').disabled = !tutorPolicy || tutorPolicy.mode === 'disabled';
+            };
+            label.append(input, caption); box?.append(label);
+        });
+    } catch (error) { if (revision === tutorSourceRequest && status) status.textContent = error.message; }
+    finally { if (revision === tutorSourceRequest) chatForm.querySelector('button[type=submit]').disabled = !tutorSourceReady || tutorBusy || !tutorPolicy || tutorPolicy.mode === 'disabled'; }
+};
+
+function tutorReceiptText(receipt) {
+    const unknown = SLMClient.message('unknown', 'Unknown');
+    return `${receipt.provider || unknown} / ${receipt.model || unknown}. ${receipt.elapsed_seconds ?? unknown}s. ` +
+        `${SLMClient.message('ai_request_usage', 'Requests today')}: ${receipt.requests_used_today ?? unknown}/${receipt.requests_limit_daily ?? unknown}. ` +
+        `${SLMClient.message('ai_tokens', 'Tokens used')}: ${receipt.tokens_used ?? unknown}. ` + SLMClient.message('ai_cost_unknown', 'Cost is unknown.') + ' ' +
+        (receipt.provider_may_continue ? SLMClient.message('ai_provider_may_continue', 'The provider may continue working and may charge for this request.') : '');
+}
+window.refreshTutorUsage = async () => {
+    try {
+        const usage = await SLMClient.request('/api/ai/usage');
+        const target = document.getElementById('tutor-usage-status');
+        if (Number.isFinite(usage.requests_used_today) && Number.isFinite(usage.requests_limit_daily)) target.textContent = `${SLMClient.message('ai_request_usage', 'Requests today')}: ${usage.requests_used_today}/${usage.requests_limit_daily}.`;
+    } catch { document.getElementById('tutor-usage-status').textContent = SLMClient.message('ai_usage_unavailable', 'Usage could not be loaded.'); }
+};
+window.cancelTutorRequest = async (contextChanged = false) => {
+    const pending = tutorPending;
+    if (!pending || pending.terminal || pending.cancelling) return;
+    pending.cancelling = true;
+    tutorEpoch++; tutorBusy = false; pending.controller?.abort();
+    const input = document.getElementById('chat-input'); input.disabled = false;
+    if (!input.value) input.value = pending.message;
+    document.getElementById('typing-indicator')?.remove();
+    document.getElementById('tutor-cancel-btn').disabled = true;
+    const status = document.getElementById('tutor-request-status');
+    status.textContent = SLMClient.message('ai_cancel_pending', 'Cancellation requested; waiting for the server.');
+    try {
+        const result = await SLMClient.request(`/api/ai/requests/${encodeURIComponent(pending.id)}/cancel`, {method:'POST'});
+        const receipt = result;
+        if (receipt?.request_id !== pending.id || !['cancelled', 'completed', 'failed', 'timed_out'].includes(receipt.status)) throw new Error('Unconfirmed cancellation');
+        pending.terminal = receipt.status !== 'completed';
+        if (tutorPending === pending) status.textContent = (receipt.status === 'cancelled' ? SLMClient.message('ai_cancel_confirmed', 'The server confirmed cancellation of delivery.') : SLMClient.message('ai_already_finished', 'This request had already finished. Retry the same question to retrieve its result.')) + ' ' + tutorReceiptText(receipt);
+    } catch {
+        if (tutorPending === pending) status.textContent = SLMClient.message('ai_cancel_unconfirmed', 'Server cancellation is unconfirmed. The provider may still run and charge. Your question is kept.');
+    } finally {
+        pending.cancelling = false;
+        if (tutorPending === pending && !contextChanged) chatForm.querySelector('button[type=submit]').disabled = !tutorSourceReady || !tutorPolicy || tutorPolicy.mode === 'disabled';
+    }
+};
+
 function appendTutorMessage(text, modelResponse, metadata = {}) {
     const row = document.createElement('div');
     row.className = 'chat-message ' + (modelResponse ? 'chat-message-ai' : 'chat-message-user');
@@ -2200,7 +2251,8 @@ function appendTutorMessage(text, modelResponse, metadata = {}) {
     if (modelResponse) {
         const details = document.createElement('small');
         details.className = 'd-block text-secondary';
-        let label = metadata.status && metadata.status !== 'suggestion' ?
+        let label = SLMClient.message('answer_unverified', 'Response not verified against the source.') + ' ';
+        label += metadata.status && metadata.status !== 'suggestion' ?
             SLMClient.message('ai_unavailable', 'AI response unavailable. Try again or ask your teacher.') :
             SLMClient.message('ai_suggestion', 'AI suggestion; check it against your learning material.');
         if (metadata.effective_assistance === 'hint') label += ' ' + SLMClient.message('effective_hint', 'Requested help: hint under the current policy.');
@@ -2213,62 +2265,44 @@ function appendTutorMessage(text, modelResponse, metadata = {}) {
 }
 
 if (chatForm) {
-    chatForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
+    chatForm.addEventListener('submit', async event => {
+        event.preventDefault();
         const input = document.getElementById('chat-input');
-        const msg = input.value;
-        if (!msg || tutorBusy || !tutorPolicy || tutorPolicy.mode === 'disabled') return;
-        tutorBusy = true;
-        const epoch = tutorEpoch;
-        const sendButton = chatForm.querySelector('button[type=submit]');
-        sendButton.disabled = true;
-
-        // Get selected context
-        const studyPlanId = document.getElementById('tutor-study-plan')?.value || null;
-        const contentId = document.getElementById('tutor-content')?.value || null;
-
-        // Append User Message
-        appendTutorMessage(msg, false);
-        input.value = '';
-        chatHistory.scrollTop = chatHistory.scrollHeight;
-
-        // Show typing indicator
-        chatHistory.innerHTML += `<div class="chat-message chat-message-ai" id="typing-indicator"><span class="chat-bubble text-muted">${I18n.t('ai.chat.status.thinking')}</span></div>`;
-        chatHistory.scrollTop = chatHistory.scrollHeight;
-
+        if (tutorOwner !== SLMClient.account()) { resetTutorContext(); showToast(SLMClient.message('account_changed', 'The signed-in account changed. Reload before continuing.'), 'warning'); return; }
+        const message = input.value.trim();
+        if (!message || tutorBusy || !tutorSourceReady || !tutorPolicy || tutorPolicy.mode === 'disabled' || tutorPending?.cancelling) return;
+        const payload = {message, assistance: document.getElementById('tutor-assistance').value, conversation_history: tutorConversation.slice(-10)};
+        const plan = document.getElementById('tutor-study-plan').value, content = document.getElementById('tutor-content').value;
+        if (plan) payload.study_plan_id = Number(plan);
+        if (content) payload.content_id = Number(content);
+        if (tutorSource) { payload.source_version = tutorSource.source_version; payload.section_ids = [...document.querySelectorAll('#tutor-source-sections input:checked')].map(item => item.value); }
+        const fingerprint = JSON.stringify(payload);
+        if (!tutorPending || tutorPending.terminal || tutorPending.fingerprint !== fingerprint) tutorPending = {id: crypto.randomUUID(), fingerprint, message};
+        const pending = tutorPending; pending.controller = new AbortController();
+        payload.client_request_id = pending.id;
+        const epoch = tutorEpoch; tutorBusy = true; input.disabled = true;
+        const send = chatForm.querySelector('button[type=submit]'); send.disabled = true;
+        const cancel = document.getElementById('tutor-cancel-btn'); cancel.disabled = false;
+        const status = document.getElementById('tutor-request-status'); status.textContent = I18n.t('ai.chat.status.thinking');
         try {
-            const token = AuthService.getToken();
-            const payload = { message: msg, assistance: document.getElementById('tutor-assistance')?.value || 'hint', conversation_history: tutorConversation.slice(-10) };
-            if (studyPlanId) payload.study_plan_id = parseInt(studyPlanId);
-            if (contentId) payload.content_id = parseInt(contentId);
-
-            const res = await fetch('/api/ai/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify(payload)
-            });
-            const data = await res.json();
-
-            if (epoch !== tutorEpoch) return;
-            // Remove typing indicator
-            document.getElementById('typing-indicator')?.remove();
-
-            // Append AI Response
-            if (!res.ok) {
-                if (res.status === 403) await refreshTutorPolicy();
-                throw new Error(data.detail || 'Tutor request failed');
-            }
-            if (data.assistance_policy) applyTutorPolicy(data.assistance_policy);
-            appendTutorMessage(data.response, true, data);
-            if (data.status === 'suggestion') tutorConversation.push({ role: 'user', content: msg }, { role: 'assistant', content: data.response });
-            tutorConversation = tutorConversation.slice(-10);
-            chatHistory.scrollTop = chatHistory.scrollHeight;
-        } catch (err) {
-            if (epoch !== tutorEpoch) return;
-            input.value = msg;
-            document.getElementById('typing-indicator')?.remove();
-            chatHistory.innerHTML += `<div class="text-danger text-sm">${I18n.t('ai.chat.error_send')}</div>`;
-        } finally { if (epoch === tutorEpoch) { tutorBusy = false; sendButton.disabled = !tutorPolicy || tutorPolicy.mode === 'disabled'; } }
+            const result = await SLMClient.request('/api/ai/chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload), signal:pending.controller.signal});
+            if (epoch !== tutorEpoch || tutorOwner !== SLMClient.account()) return;
+            const receipt = result?.receipt;
+            if (receipt && (receipt.request_id !== pending.id || !['completed','failed','cancelled','timed_out'].includes(receipt.status))) throw new Error(SLMClient.message('ai_receipt_unconfirmed', 'The server did not confirm this request. Your question is kept; retry.'));
+            pending.terminal = true; status.textContent = receipt ? tutorReceiptText(receipt) : SLMClient.message('ai_usage_unreported', 'Request usage was not reported. Cost is unknown.');
+            if ((receipt && receipt.status !== 'completed') || result.status !== 'suggestion') return;
+            if (result.assistance_policy) applyTutorPolicy(result.assistance_policy);
+            appendTutorMessage(message, false); appendTutorMessage(result.response, true, result);
+            tutorConversation.push({role:'user',content:message},{role:'assistant',content:result.response}); tutorConversation = tutorConversation.slice(-10);
+            input.value = ''; chatHistory.scrollTop = chatHistory.scrollHeight;
+        } catch (error) {
+            if (epoch !== tutorEpoch || tutorOwner !== SLMClient.account()) return;
+            if (error.status === 403) await refreshTutorPolicy();
+            if (error.status === 409 && /source|revision/i.test(error.message)) { tutorSourceReady = false; document.getElementById('tutor-source-status').textContent = SLMClient.message('source_changed', 'Source changed. Reload the source, review your sections, and retry.'); }
+            status.textContent = error.message || I18n.t('ai.chat.error_send');
+        } finally {
+            if (epoch === tutorEpoch) { tutorBusy = false; input.disabled = false; cancel.disabled = true; send.disabled = !tutorSourceReady || !tutorPolicy || tutorPolicy.mode === 'disabled'; }
+        }
     });
 }
 
@@ -3467,7 +3501,7 @@ function renderPlanContents(planId, contents, canEdit = false) {
                     <div class="btn-group btn-group-sm">
                         <button class="btn btn-outline-primary" onclick="viewContent(${item.id})">👁️</button>
                         <button class="btn btn-outline-success" onclick="startSession(${item.id}, ${planId})" title="Start with guided navigation">▶️</button>
-                        ${canEdit ? `<button class="btn btn-outline-warning" onclick="editContent(${item.id})" aria-label="${SLMClient.message('edit', 'Edit')}">✏️</button>
+                        ${canEdit && item.can_edit === true ? `<button class="btn btn-outline-warning" onclick="editContent(${item.id})" aria-label="${SLMClient.message('edit', 'Edit')}">✏️</button>
                         <button class="btn btn-outline-danger" onclick="deleteContent(${item.id})" aria-label="${SLMClient.message('delete', 'Delete')}">🗑️</button>` : ''}
                     </div>
                 </div>
@@ -3490,7 +3524,7 @@ function renderContentCard(item) {
 
     return `
         <div class="col-md-4 col-lg-3">
-            <div class="card h-100" data-creator-id="${item.creator_id || ''}">
+            <div class="card h-100" data-creator-id="${item.creator_id || ''}" data-can-edit="${item.can_edit === true}">
                 <div class="card-body">
                     <span class="badge ${typeColors[type] || 'bg-secondary'} mb-2">
                         ${typeIcons[type] || '📄'} ${escapeHtml(type.toUpperCase())}

@@ -196,6 +196,13 @@
 
                 <button id="stop-generation" class="btn btn-outline-danger d-none" onclick="stopCourseGeneration()" data-i18n="recovery.stop_generation">Stop generation</button>
                 <button id="retry-generation" class="btn btn-warning d-none" onclick="retryCourseGeneration()" data-i18n="recovery.retry_failed">Retry failed items</button>
+                <div class="card card-body mt-3">
+                    <p id="generation-source-coverage" class="small" role="status"></p>
+                    <label for="replace-source-file" data-i18n="recovery.replace_source">Replace source for a new draft version</label>
+                    <input id="replace-source-file" class="form-control" type="file" accept=".pdf,.txt,.md">
+                    <button id="replace-source-btn" type="button" class="btn btn-outline-primary mt-2" onclick="replaceCourseSource()" data-i18n="recovery.replace_source">Replace source for a new draft version</button>
+                    <p id="source-replacement-status" class="small" role="status" aria-live="polite"></p>
+                </div>
                 <div id="course-workflow" class="d-none alert alert-info mt-3">
                     <p data-i18n="recovery.plan_saved_review">Draft saved. Review the saved material in the library before publishing.</p>
                     <a href="/dashboard.html#library" data-i18n="recovery.open_library">Open library</a>

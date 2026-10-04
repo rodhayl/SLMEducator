@@ -21,7 +21,7 @@
         <div class="brand">SLM Educator <span class="badge bg-success ms-2" data-i18n="session_player.badge">Session
                 Player</span></div>
         <div class="actions d-flex align-items-center gap-2">
-            <span id="session-content-title" class="fw-bold text-muted session-title me-3"
+            <span id="session-content-title" tabindex="-1" class="fw-bold text-muted session-title me-3"
                 data-i18n="session_player.loading">Loading...</span>
 
             <!-- Accessibility & Focus -->
@@ -78,12 +78,11 @@
                     <!-- Content injected here -->
                 </div>
                 <div class="mt-3 d-flex justify-content-end flex-wrap gap-2">
-                    <button type="button" class="btn btn-outline-primary" onclick="openSessionHelp('tutor')" data-i18n="recovery.context_tutor">Ask AI tutor</button>
-                    <button type="button" class="btn btn-outline-primary" onclick="openSessionHelp('help')" data-i18n="recovery.context_help">Ask my teacher</button>
                     <button id="exit-session-btn" class="btn btn-success" onclick="endSessionUI()"
                         data-i18n="session_player.complete">Complete</button>
                 </div>
 
+                <div id="session-help-host" class="mt-3"></div>
                 <p id="session-transition-status" role="status" aria-live="polite" class="small text-muted"></p>
                 <!-- Navigation Buttons (shown when plan_id provided) -->
                 <div class="d-none mt-3" id="plan-navigation">
@@ -219,6 +218,7 @@
     <script src="/static/js/toast.js"></script>
     <script type="module" src="/static/js/auth.js?v=20260204"></script>
     <script src="/static/js/practice.js"></script>
+    <script src="/static/js/learning-help.js"></script>
     <script src="/static/js/session.js"></script>
     <script>
         // Initialize i18n when page loads

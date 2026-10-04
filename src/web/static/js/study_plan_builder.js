@@ -41,7 +41,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             handle: '.drag-handle',
             ghostClass: 'bg-warning-subtle',
             onEnd: function () {
-                console.log('Phases reordered');
+                planDirty = true;
             }
         });
     }
@@ -284,4 +284,20 @@ window.copyStudyPlan = async () => {
         window.location.href = `/study_plan_builder.html?id=${id}`;
     } catch (error) { showToast(error.message, 'danger'); }
     finally { savingPlan = false; }
+};
+
+window.loadSavedPlanSource = async () => {
+    if (!savedPlanId) return;
+    const status = document.getElementById('saved-plan-source-status');
+    const text = document.getElementById('saved-plan-source-text');
+    status.textContent = builderMessage('loading', 'Loading…'); text.textContent = '';
+    try {
+        const result = await SLMClient.request(`/api/study-plans/${savedPlanId}/source`);
+        const source = result?.source;
+        if (!source) { status.textContent = builderMessage('source_not_saved', 'No source document is saved with this course.'); return; }
+        const partial = source.extraction_coverage === 'partial' || source.truncated || source.unreadable_pages?.length;
+        const coverage = partial ? builderMessage('source_partial', 'Partial source: some material was not included.') : source.extraction_coverage === 'complete' ? builderMessage('source_extracted', 'Source text extracted; review it before generation.') : builderMessage('source_coverage_unknown', 'Original extraction coverage is unknown.');
+        status.textContent = `${source.filename || ''}. ${coverage} ` + builderMessage('source_binary_excluded', 'Original file bytes are not stored with this text.') + (source.unreadable_pages?.length ? ` ${builderMessage('unreadable_pages', 'Unreadable pages')}: ${source.unreadable_pages.join(', ')}.` : '');
+        text.textContent = source.extracted_text || '';
+    } catch (error) { status.textContent = error.message; }
 };

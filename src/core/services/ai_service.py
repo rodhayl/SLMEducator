@@ -21,6 +21,7 @@ import logging
 
 from ..models import User, Content, LearningSession, AIModelConfig
 from .settings_config_service import get_settings_service
+from .source_documents import source_prompt
 from ..exceptions import (
     AIServiceError,
     ConfigurationError,
@@ -48,8 +49,6 @@ class RuntimeAIConfig:
     model: str
     api_key: Optional[str] = None
     endpoint: Optional[str] = None
-    preprocessing_model: Optional[str] = None
-    enable_preprocessing: bool = False
     temperature: Optional[float] = None
     max_tokens: Optional[int] = None
 
@@ -299,14 +298,7 @@ class AIService:
 
         objectives_str = "\n".join(f"- {obj}" for obj in learning_objectives)
 
-        context_block = ""
-        if source_material:
-            truncated = (
-                source_material[:3000] + "..."
-                if len(source_material) > 3000
-                else source_material
-            )
-            context_block = f"\nSOURCE MATERIAL:\nUse the following content as the source of truth:\n{truncated}\n"
+        context_block, source_usage = source_prompt(source_material, topic + " " + objectives_str)
 
         prompt = f"""
         Create a comprehensive educational lesson on the topic: {topic}
@@ -354,6 +346,7 @@ class AIService:
             lesson_data = self._parse_json_response(response.content, "lesson")
 
             self.logger.info(f"Successfully generated lesson for {topic}")
+            lesson_data["_source_usage"] = source_usage
             return lesson_data
 
         except AIServiceError:
@@ -396,14 +389,7 @@ class AIService:
         objectives_str = "\n".join(f"- {obj}" for obj in learning_objectives)
         types_str = ", ".join(content_types)
 
-        context_block = ""
-        if source_material:
-            truncated = (
-                source_material[:3500] + "..."
-                if len(source_material) > 3500
-                else source_material
-            )
-            context_block = f"\nSOURCE MATERIAL:\nUse the following content as the source of truth:\n{truncated}\n"
+        context_block, source_usage = source_prompt(source_material, subject + " " + topic_name + " " + objectives_str)
 
         prompt = f"""
         Create a complete educational content package for:
@@ -462,6 +448,7 @@ class AIService:
             topic_data = self._parse_json_response(response.content, "topic_content")
 
             self.logger.info(f"Successfully generated topic content for {topic_name}")
+            topic_data["_source_usage"] = source_usage
             return topic_data
 
         except AIServiceError:
@@ -573,18 +560,7 @@ class AIService:
         """
         self.logger.info(f"Generating course outline for {subject}")
 
-        context_block = ""
-        if source_material:
-            # Truncate if too long (approx 4000 chars for safety if using smaller models)
-            truncated_material = (
-                source_material[:4000] + "..."
-                if len(source_material) > 4000
-                else source_material
-            )
-            context_block = (
-                f"\n\nSOURCE MATERIAL:\nUse the following material as the primary basis for the outline:\n"
-                f"{truncated_material}\n"
-            )
+        context_block, source_usage = source_prompt(source_material, subject)
 
         prompt = f"""
         Create a detailed hierarchical course outline for: {subject}
@@ -623,7 +599,9 @@ class AIService:
 
         try:
             response = self._call_ai(prompt, max_tokens=2000, temperature=0.7)
-            return self._parse_json_response(response.content, "course_outline")
+            outline = self._parse_json_response(response.content, "course_outline")
+            outline["_source_usage"] = source_usage
+            return outline
         except AIServiceError:
             raise
         except Exception as e:
@@ -719,7 +697,7 @@ class AIService:
         # Sanitize user input
         question = sanitize_input(question)
 
-        # Build context data for preprocessing
+        # Build bounded context for the selected model
         context_data = {
             "user_query": question,
             "study_plan": study_plan_context,
@@ -883,61 +861,6 @@ class AIService:
             self.logger.error(f"Content generation failed: {e}")
             raise AIServiceError(f"Failed to generate content: {e}")
 
-    def _preprocess_context(self, context: str) -> str:
-        """
-        Preprocess context using a smaller model before main AI call.
-
-        This method uses the preprocessing_model (if configured) to
-        summarize or restructure the context for more efficient processing
-        by the main model.
-
-        Args:
-            context: The raw context string to preprocess
-
-        Returns:
-            Preprocessed context string (or original if preprocessing disabled)
-        """
-        # Check if preprocessing is enabled
-        if not getattr(self.config, "enable_preprocessing", False):
-            return context
-
-        # Check if preprocessing model is configured
-        preprocessing_model = getattr(self.config, "preprocessing_model", None)
-        if not preprocessing_model:
-            return context
-
-        try:
-            # Store the current model and switch to preprocessing model
-            original_model = self.config.model
-            self.config.model = preprocessing_model
-
-            # Preprocess the context
-            preprocessing_prompt = f"""Summarize and extract key information from the following context
-for use in an educational tutoring response. Keep essential facts and questions:
-
-{context}"""
-
-            response = self._call_ai(
-                prompt=preprocessing_prompt,
-                max_tokens=500,
-                temperature=0.3,  # Lower temperature for more focused output
-            )
-
-            # Restore original model
-            self.config.model = original_model
-
-            self.logger.debug(
-                f"Preprocessed context from {len(context)} to {len(response.content)} chars"
-            )
-            return response.content
-
-        except Exception as e:
-            self.logger.warning(f"Context preprocessing failed, using original: {e}")
-            # Restore model in case of failure
-            if "original_model" in dir():
-                self.config.model = original_model
-            return context
-
     def _call_ai(
         self,
         prompt: str,
@@ -1005,6 +928,7 @@ for use in an educational tutoring response. Keep essential facts and questions:
             self.logger.info(
                 f"AI call completed in {response_time:.2f}s, {ai_response.tokens_used} tokens used"
             )
+            self.last_response = ai_response
             return ai_response
 
         except Exception as e:
@@ -1916,8 +1840,6 @@ for use in an educational tutoring response. Keep essential facts and questions:
                 return self._fetch_lm_studio_models(base_url)
             elif target_provider == AIProvider.OPENAI:
                 return self._fetch_openai_models(base_url)
-            elif target_provider == AIProvider.ANTHROPIC:
-                return self._fetch_anthropic_models(base_url)
             elif target_provider == AIProvider.OPENROUTER:
                 return self._fetch_openrouter_models(base_url)
             else:
@@ -2008,17 +1930,6 @@ for use in an educational tutoring response. Keep essential facts and questions:
         except Exception as e:
             self.logger.error(f"Failed to fetch OpenAI models: {e}")
             raise AIServiceError(f"OpenAI model fetching failed: {e}")
-
-    def _fetch_anthropic_models(self, base_url: Optional[str] = None) -> List[str]:
-        """Fetch available models from Anthropic."""
-        if not self.config.api_key:
-            raise AIServiceError("Anthropic API key is required to fetch models")
-
-        # Anthropic doesn't have a public models endpoint, so we cannot fetch real models
-        # This is a limitation of the Anthropic API
-        raise AIServiceError(
-            "Anthropic does not provide a models endpoint. Please manually enter the model name."
-        )
 
     def _fetch_openrouter_models(self, base_url: Optional[str] = None) -> List[str]:
         """Fetch available models from OpenRouter."""

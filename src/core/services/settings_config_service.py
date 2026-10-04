@@ -118,7 +118,6 @@ class SettingsConfigService:
         # Other AI providers
         self.config.set("ai", "lm_studio.url", "http://localhost:1234")
         self.config.set("ai", "openai.url", "https://api.openai.com")
-        self.config.set("ai", "anthropic.url", "https://api.anthropic.com")
         self.config.set("ai", "openai.endpoint", "https://api.openai.com/v1")
         self.config.set("ai", "default_temperature", "0.7")
         self.config.set("ai", "default_max_tokens", "1000")
@@ -255,7 +254,6 @@ class SettingsConfigService:
             "ollama_url": self.get("ai", "ollama.url"),
             "lm_studio_url": self.get("ai", "lm_studio.url"),
             "openai_url": self.get("ai", "openai.url"),
-            "anthropic_url": self.get("ai", "anthropic.url"),
             "openrouter_url": self.get("ai", "openrouter.url"),
             "openrouter_api_key": self.get("ai", "openrouter.api_key"),
             "openrouter_model": self.get("ai", "openrouter.model"),
@@ -268,10 +266,6 @@ class SettingsConfigService:
             "temperature_max": self.getfloat("ai", "temperature.max"),
             "max_tokens_min": self.getint("ai", "max_tokens.min"),
             "max_tokens_max": self.getint("ai", "max_tokens.max"),
-            "preprocessing_model": self.get("ai", "preprocessing_model"),
-            "enable_preprocessing": self.getboolean(
-                "ai", "enable_preprocessing", False
-            ),
         }
 
         # Override model based on provider if using environment variable
