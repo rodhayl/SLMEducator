@@ -7,6 +7,27 @@ function setUserNameDisplay(name) {
     if (legacy && legacy !== primary) legacy.textContent = name;
 }
 
+let dashboardStartupFailed = false;
+
+function failDashboardStartup() {
+    dashboardStartupFailed = true;
+    const app = document.getElementById('dashboard-app');
+    if (app) app.setAttribute('aria-busy', 'false');
+    const loading = document.getElementById('dashboard-loading');
+    if (!loading) return;
+    loading.hidden = false;
+    loading.setAttribute('role', 'alert');
+    loading.classList.replace('alert-info', 'alert-danger');
+    const message = loading.querySelector('[data-i18n]');
+    if (message) {
+        const key = 'recovery.dashboard_startup_failed';
+        const translated = typeof I18n !== 'undefined' ? I18n.t(key) : key;
+        message.dataset.i18n = key;
+        message.textContent = translated && translated !== key ? translated :
+            'The dashboard could not start. Check your connection and retry. Your saved work is unchanged.';
+    }
+}
+
 let currentUserId = null;
 let isTeacherOrAdmin = false;
 
@@ -81,11 +102,12 @@ function applyRoleUI() {
 async function initAuthAndRoleUI() {
     if (!AuthService.isAuthenticated()) {
         window.location.href = AuthService.loginUrl();
-        return;
+        throw new Error('Authentication is required');
     }
 
     // Canonical source of truth: API profile (fixes stale/missing localStorage user).
-    await AuthService.refreshUser();
+    const profile = await AuthService.refreshUser();
+    if (!profile) throw new Error('Profile could not be verified');
 
     const { user } = refreshRoleState();
     const displayName = user ? `${user.first_name} ${user.last_name}`.trim() : I18n.t('common.roles.user');
@@ -94,12 +116,23 @@ async function initAuthAndRoleUI() {
     applyRoleUI();
 }
 
-// Initial auth + role UI
-await initAuthAndRoleUI();
-await SLMTime.load().catch(() => {});
+// Keep a failed or stalled initialization closed until an explicit retry.
+async function initializeDashboardStartup() {
+    const watchdog = setTimeout(failDashboardStartup, 20000);
+    try {
+        await initAuthAndRoleUI();
+        if (!dashboardStartupFailed) await SLMTime.load().catch(() => {});
+    } catch {
+        failDashboardStartup();
+    } finally {
+        clearTimeout(watchdog);
+    }
+}
+await initializeDashboardStartup();
 
 // Update on language load (and re-apply role UI)
 document.addEventListener('i18n-loaded', () => {
+    if (dashboardStartupFailed) return;
     const { user } = refreshRoleState();
     const d = user ? `${user.first_name} ${user.last_name}`.trim() : I18n.t('common.roles.user');
     setUserNameDisplay(d || I18n.t('common.roles.user'));
@@ -308,6 +341,7 @@ function initSettingsUI() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    if (dashboardStartupFailed) return;
     initSettingsUI();
 
     // FIX: Trigger initial load for the active view (default is Overview)
@@ -1148,6 +1182,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function restoreDashboardView() {
+    if (dashboardStartupFailed) return;
     const params = new URLSearchParams(window.location.search);
     const requested = window.location.hash.slice(1) || params.get('view') || params.get('tab');
     const alias = requested === 'study-plans' ? 'library' : requested;
@@ -4130,6 +4165,7 @@ window.saveStudentNotes = async function () {
 // Initial Load (at end of file to ensure all functions are defined)
 // ===============================
 function initializeDashboard() {
+    if (dashboardStartupFailed) return;
     // Only initialize if I18n is ready
     if (typeof I18n === 'undefined' || !I18n.isReady) {
         console.log('[Dashboard] Waiting for I18n to be ready...');
@@ -4165,6 +4201,7 @@ if (librarySearchInput) {
 // --- USER PROFILE ---
 
 async function restoreSessionContext() {
+    if (dashboardStartupFailed) return;
     const params = new URLSearchParams(window.location.search);
     if (params.get('from_session') !== '1' || !/^\d+$/.test(params.get('content_id') || '')) return;
     try {
@@ -4214,9 +4251,10 @@ window.saveStudentTeacher = async () => {
     finally { savingStudentTeacher = false; }
 };
 
-if (document.readyState !== 'loading') { initSettingsUI(); restoreDashboardView(); restoreSessionContext(); }
+if (!dashboardStartupFailed && document.readyState !== 'loading') { initSettingsUI(); restoreDashboardView(); restoreSessionContext(); }
 
 function finishDashboardStartup() {
+    if (dashboardStartupFailed) return;
     const app = document.getElementById('dashboard-app');
     if (app) { app.removeAttribute('inert'); app.setAttribute('aria-busy', 'false'); }
     const loading = document.getElementById('dashboard-loading');

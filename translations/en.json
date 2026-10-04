@@ -1272,6 +1272,7 @@
     "new_chat": "New Chat"
   },
   "recovery": {
+    "dashboard_startup_failed": "The dashboard could not start. Check your connection and retry. Your saved work is unchanged.",
     "reauth": "Sign in again, then retry. Your draft is kept on this device.",
     "forbidden": "You do not have permission. Your draft is kept on this device.",
     "failed": "The server could not save your work. Please retry.",

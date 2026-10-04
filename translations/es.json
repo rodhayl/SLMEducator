@@ -1272,6 +1272,7 @@
     }
   },
   "recovery": {
+    "dashboard_startup_failed": "No se pudo iniciar el panel. Comprueba la conexión y reinténtalo. Tu trabajo guardado no ha cambiado.",
     "reauth": "Vuelve a iniciar sesión y reinténtalo. Tu borrador se conserva en este dispositivo.",
     "forbidden": "No tienes permiso. Tu borrador se conserva en este dispositivo.",
     "failed": "El servidor no pudo guardar tu trabajo. Reinténtalo.",

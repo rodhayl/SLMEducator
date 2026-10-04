@@ -26,6 +26,7 @@ def login(page, world, account):
     expect(page).to_have_url(re.compile(r"/dashboard\.html"))
     expect(page.locator("#user-name-display")).to_be_visible()
     expect(page.locator("#dashboard-app")).to_have_attribute("aria-busy", "false")
+    expect(page.locator("#dashboard-app")).not_to_have_attribute("inert", "")
 
 
 def screenshot(page, name):
@@ -58,7 +59,7 @@ def test_teacher_roster_and_interface_preferences(live_page, browser_world):
     expect(page.locator("body")).to_have_class(re.compile("theme-dark"))
     expect(page.locator("body")).to_have_css("background-color", "rgb(17, 24, 39)")
     expect(page.locator(".sidebar")).to_have_css("background-color", "rgb(17, 24, 39)")
-    expect(page.locator('label[for="profile-grade-level"]')).to_have_text("Grade (Optional)")
+    expect(page.locator('label[for="profile-grade-level"]')).to_have_text("Grade Level")
     screenshot(page, "teacher-en-dark.png")
 
 
@@ -154,3 +155,21 @@ def test_isolated_fixture_has_only_synthetic_course(browser_world):
     )
     assert len(world.api("GET", "/api/study-plans/", account="learner_a").json()) == 1
     assert world.api("GET", "/api/study-plans/", account="learner_b").json() == []
+
+
+def test_unavailable_profile_keeps_dashboard_closed_until_retry(live_page, browser_world):
+    page, world = live_page, browser_world
+    login(page, world, "teacher_a")
+    page.route("**/api/auth/me", lambda route: route.fulfill(status=503, json={"detail": "Synthetic outage"}))
+    page.reload()
+    expect(page.locator("#dashboard-loading")).to_have_attribute("role", "alert")
+    expect(page.locator("#dashboard-loading")).to_contain_text(re.compile("could not start|No se pudo iniciar"))
+    expect(page.locator("#dashboard-app")).to_have_attribute("inert", "")
+    expect(page.locator("#dashboard-app")).to_have_attribute("aria-busy", "false")
+    screenshot(page, "dashboard-profile-unavailable.png")
+    page.unroute("**/api/auth/me")
+    page.locator("#dashboard-loading button").click()
+    expect(page.locator("#dashboard-loading")).to_be_hidden()
+    expect(page.locator("#dashboard-app")).not_to_have_attribute("inert", "")
+    page.locator('[data-view="students"]').click()
+    expect(page.locator("#student-list")).to_contain_text("learner_a")

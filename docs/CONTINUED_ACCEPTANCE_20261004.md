@@ -53,12 +53,13 @@ setting was changed and no alternate host or tunnel was introduced.
 
 A narrow isolated Chromium workflow is provided in
 `.github/workflows/browser-acceptance.yml`. It runs only the new branch's relevant
-changes or explicit manual dispatch. Its five cases cover:
+changes or explicit manual dispatch. Its six cases cover:
 
 - Teacher roster isolation, language/theme save and reload
 - Learner notes, contextual help, pause/resume and next-item completion
 - Preview-gated teacher export and import to a separate draft
 - Keyboard focus and a narrow login viewport
+- Profile HTTP failure and explicit retry without enabling stale authenticated UI
 - The isolated synthetic setup contract
 
 The fixture creates its own loopback-only server and new database. Browser
@@ -107,3 +108,22 @@ from leaving a new inert dashboard locked. Two regressions failed before the
 repair; the 25-case startup/settings/role DOM scope passes after it. The browser
 check also verifies actual dark background styles after network readiness, not
 merely a class name or a screenshot taken during a transition.
+
+
+## Failed startup recovery
+
+Parent review identified a further error path: the profile helper returns null
+for HTTP failures, and cached role data previously allowed startup to continue.
+The dashboard now requires a refreshed profile. A null/rejected refresh or a
+20-second stalled startup leaves the application inert with an English/Spanish
+error and explicit Retry; a late response cannot silently unlock it. Existing
+saved work is untouched. The new browser case intercepts only the synthetic
+profile request with HTTP 503, verifies the closed error state, then restores the
+route and checks that Retry returns to working roster navigation.
+
+Run `37224654294` passed the navigation readiness and actual dark CSS checks. Its
+one failure was the harness's incorrect English label expectation, now corrected
+from “Grade (Optional)” to the translation's “Grade Level”. No product translation
+was changed to satisfy that assertion. Three focused startup-error regressions
+were red before the fail-closed repair; the next candidate requires a fresh
+browser and offline gate.

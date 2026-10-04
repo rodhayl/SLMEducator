@@ -207,7 +207,7 @@ test('lesson mounts contextual help with pinned session ID without navigation or
 test('admin teacher assignment shows current owner, permits explicit removal and ignores stale confirmation',async()=>{
     const {dom,w}=await fixture('dashboard.html');w.AuthService.getRole=()=> 'admin';w.currentStudentId=8;let confirm;
     w.showConfirm=async()=>confirm;const calls=[];w.fetch=async(url,options={})=>{calls.push({url,options});return reply(options.method?{student_id:8,teacher_id:null}:[{id:9,first_name:'Synthetic',last_name:'Teacher',username:'teacher'}]);};
-    const source=read('static/js/dashboard.js');w.eval(source.slice(source.indexOf('let savingStudentTeacher = false;'),source.indexOf("if (document.readyState !== 'loading')")));
+    const source=read('static/js/dashboard.js');w.eval(source.slice(source.indexOf('let savingStudentTeacher = false;'),source.indexOf("if (!dashboardStartupFailed && document.readyState !== 'loading')")));
     await w.loadStudentTeacher({id:8,teacher_id:9});assert.equal(w.document.getElementById('student-teacher-select').value,'9');
     confirm=true;w.document.getElementById('student-teacher-select').value='';await w.saveStudentTeacher();
     const request=calls.find(call=>call.options.method==='PUT');assert.equal(request.url,'/api/students/8/teacher');assert.equal(JSON.parse(request.options.body).teacher_id,null);

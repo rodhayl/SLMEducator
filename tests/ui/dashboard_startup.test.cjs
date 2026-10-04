@@ -42,10 +42,52 @@ test('dashboard exposes a retryable loading state until startup completes', () =
     const start = code.indexOf('function finishDashboardStartup(');
     const end = code.indexOf('\nfinishDashboardStartup();', start);
     assert.ok(start > code.indexOf('// Navigation Handler'));
-    w.eval(code.slice(start, end));
+    w.eval('let dashboardStartupFailed = false;\n' + code.slice(start, end));
     w.finishDashboardStartup();
     assert.equal(app.hasAttribute('inert'), false);
     assert.equal(app.getAttribute('aria-busy'), 'false');
     assert.equal(loading.hidden, true);
     dom.window.close();
 });
+
+for (const failure of ['missing-profile', 'rejected-profile', 'timeout']) {
+    test(`dashboard startup fails closed with a retryable explanation: ${failure}`, async () => {
+        const dom = new JSDOM(html, {url:'http://localhost/dashboard.html', runScripts:'outside-only'});
+        const w = dom.window;
+        let watchdog;
+        let release;
+        w.setTimeout = callback => { watchdog = callback; return 1; };
+        w.clearTimeout = () => {};
+        w.I18n = {t: key => key};
+        w.SLMTime = {load: async () => {}};
+        const profile = {id:1, role:'teacher', first_name:'Synthetic', last_name:'Teacher'};
+        w.AuthService = {
+            isAuthenticated: () => true,
+            refreshUser: async () => {
+                if (failure === 'rejected-profile') throw new Error('Synthetic server failure');
+                if (failure === 'timeout') return new Promise(resolve => { release = resolve; });
+                return null;
+            },
+            getUser: () => profile,
+            getRole: () => 'teacher',
+        };
+        const prefix = code.slice(code.indexOf('function setUserNameDisplay'), code.indexOf('// Update on language load'));
+        const finish = code.slice(code.indexOf('function finishDashboardStartup('), code.indexOf('\nfinishDashboardStartup();'));
+        const running = w.eval(`(async () => { ${prefix}\n${finish}\nfinishDashboardStartup(); })()`);
+        if (failure === 'timeout') {
+            assert.equal(typeof watchdog, 'function');
+            watchdog();
+            release(profile);
+        }
+        await running;
+        const app = w.document.getElementById('dashboard-app');
+        const loading = w.document.getElementById('dashboard-loading');
+        assert.ok(app.hasAttribute('inert'));
+        assert.equal(app.getAttribute('aria-busy'), 'false');
+        assert.equal(loading.hidden, false);
+        assert.equal(loading.getAttribute('role'), 'alert');
+        assert.match(loading.textContent, /could not start/i);
+        assert.ok(loading.querySelector('button'));
+        dom.window.close();
+    });
+}
