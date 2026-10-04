@@ -13,6 +13,16 @@ from datetime import datetime
 
 from src.api.dependencies import get_db
 from src.api.security import get_current_user
+from src.api.policies import (
+    can_message,
+    can_manage_student,
+    require_allowed,
+    require_content,
+    require_plan,
+    can_view_assessment,
+    teacher_student_ids,
+)
+from src.core.roles import is_admin, is_teacher
 from src.core.models import (
     User,
     UserRole,
@@ -161,6 +171,7 @@ async def list_users_for_messaging(
             role=role_str(u),
         )
         for u in users
+        if can_message(db, current_user, u)
     ]
 
 
@@ -322,6 +333,8 @@ async def send_message(
     recipient = db.query(User).filter(User.id == recipient_id).first()
     if not recipient:
         raise HTTPException(status_code=404, detail="Recipient not found")
+
+    require_allowed(can_message(db, current_user, recipient))
 
     new_msg = TeacherMessage(
         from_id=current_user.id,
@@ -521,7 +534,11 @@ async def get_help_requests(
         joinedload(HelpRequest.question),
     )
 
-    if not is_teacher_or_admin(current_user):
+    if is_teacher(current_user):
+        query = query.filter(
+            HelpRequest.student_id.in_(teacher_student_ids(db, current_user.id))
+        )
+    elif not is_admin(current_user):
         query = query.filter(HelpRequest.student_id == current_user.id)
 
     requests = query.order_by(HelpRequest.created_at.desc()).all()
@@ -591,6 +608,16 @@ async def create_help_request(
     db: Session = Depends(get_db),
 ):
     """Student raises a hand for help with automatic learning context capture."""
+    if req.content_id:
+        require_content(db, current_user, req.content_id)
+    if req.study_plan_id:
+        require_plan(db, current_user, req.study_plan_id)
+    if req.question_id:
+        question = db.get(AssessmentQuestion, req.question_id)
+        require_allowed(
+            question is not None
+            and can_view_assessment(db, current_user, question.assessment)
+        )
     new_req = HelpRequest(
         student_id=current_user.id,
         request_text=(
@@ -677,6 +704,7 @@ async def resolve_help_request(
     if not req:
         raise HTTPException(status_code=404, detail="Help request not found")
 
+    require_allowed(can_manage_student(db, current_user, db.get(User, req.student_id)))
     req.status = "resolved"
     req.resolved_by_id = current_user.id
     req.resolved_at = datetime.now()

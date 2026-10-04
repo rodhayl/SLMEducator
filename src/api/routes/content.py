@@ -5,7 +5,19 @@ from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 
 from src.api.dependencies import get_db
+from src.core.services.content_schema import normalize_content
+from src.core.services.course_workflow import (
+    assert_content_editable,
+    assert_plan_editable,
+    invalidate_reviews,
+)
 from src.api.security import get_current_user
+from src.api.policies import (
+    can_view_content as _can_view_content,
+    teacher_student_ids as _teacher_student_ids,
+    can_manage_plan,
+    require_allowed,
+)
 from src.core.models import User, Content, ContentType
 from src.core.roles import is_admin, is_student, is_teacher, is_teacher_or_admin
 
@@ -32,20 +44,6 @@ def _public_plan_ids(db: Session) -> List[int]:
     return [r[0] for r in rows]
 
 
-def _teacher_student_ids(db: Session, teacher_id: int) -> List[int]:
-    """Students assigned to any study plan created by this teacher."""
-    from src.core.models import StudentStudyPlan, StudyPlan
-
-    rows = (
-        db.query(StudentStudyPlan.student_id)
-        .join(StudyPlan, StudyPlan.id == StudentStudyPlan.study_plan_id)
-        .filter(StudyPlan.creator_id == teacher_id)
-        .distinct()
-        .all()
-    )
-    return [r[0] for r in rows]
-
-
 def _content_ids_for_plan_ids(db: Session, plan_ids: List[int]) -> List[int]:
     if not plan_ids:
         return []
@@ -58,46 +56,6 @@ def _content_ids_for_plan_ids(db: Session, plan_ids: List[int]) -> List[int]:
         .all()
     )
     return [r[0] for r in rows]
-
-
-def _can_view_content(db: Session, current_user: User, content: Content) -> bool:
-    if is_admin(current_user):
-        return True
-
-    if is_teacher(current_user):
-        if content.creator_id == current_user.id:
-            return True
-
-        # Teachers may view student-created personal Q&A if the student shared it
-        # and that student is assigned to one of the teacher's plans.
-        if (
-            content.is_personal
-            and content.shared_with_teacher
-            and content.content_type == ContentType.QA
-            and content.creator_id is not None
-        ):
-            return content.creator_id in set(_teacher_student_ids(db, current_user.id))
-
-        return False
-
-    # Students can view their own content, and any non-personal content that is
-    # part of a study plan assigned to them (or public).
-    if is_student(current_user):
-        if content.creator_id == current_user.id:
-            return True
-        if content.is_personal:
-            return False
-        plan_ids = list(
-            set(_student_assigned_plan_ids(db, current_user.id) + _public_plan_ids(db))
-        )
-        allowed_content_ids = set(_content_ids_for_plan_ids(db, plan_ids))
-        if content.id in allowed_content_ids:
-            return True
-        if content.study_plan_id and content.study_plan_id in set(plan_ids):
-            return True
-        return False
-
-    return False
 
 
 def _require_student_can_create_content(
@@ -221,6 +179,8 @@ async def list_content(
             ),
         )
         items = query.filter(student_filter).order_by(Content.created_at.desc()).all()
+
+    items = [item for item in items if _can_view_content(db, current_user, item)]
 
     # Manual conversion to avoid Pydantic issues with missing 'description' attribute on Content model
     creator_ids = {i.creator_id for i in items if i.creator_id is not None}
@@ -501,25 +461,12 @@ async def get_content(
     if not _can_view_content(db, current_user, content):
         raise HTTPException(status_code=403, detail="Access denied")
 
-    # Return with decrypted content data for viewing
-    # If decryption fails or content_data is null, provide a meaningful fallback
-    try:
-        decrypted_data = content.decrypted_content_data
-    except Exception as e:
-        logger.warning(f"Failed to decrypt content {content_id}: {e}")
-        decrypted_data = None
-
-    # Provide fallback content if decrypted_data is None
+    decrypted_data = content.decrypted_content_data
     if decrypted_data is None:
-        # Check if title/description can provide context
-        fallback_content = f"# {content.title}\n\n"
-        fallback_content += (
-            "This content is currently unavailable or being prepared.\n\n"
+        raise HTTPException(
+            status_code=409,
+            detail="Content is unavailable. Check the installation encryption key or ask the author to restore the material.",
         )
-        fallback_content += (
-            "Please contact your instructor if this content should be accessible."
-        )
-        decrypted_data = {"content": fallback_content}
 
     creator_username = None
     creator_name = None
@@ -571,6 +518,15 @@ async def create_content(
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized"
                 )
+            if content_data.study_plan_id is not None:
+                from src.core.models import StudyPlan
+
+                require_allowed(
+                    can_manage_plan(
+                        db, current_user, db.get(StudyPlan, content_data.study_plan_id)
+                    )
+                )
+                assert_plan_editable(db, db.get(StudyPlan, content_data.study_plan_id))
             is_personal = bool(content_data.is_personal)
             shared_with_teacher = bool(content_data.shared_with_teacher)
 
@@ -584,9 +540,29 @@ async def create_content(
             shared_with_teacher=shared_with_teacher,
             created_at=datetime.now(),
         )
-        new_content.set_encrypted_content_data(resolved_data)
+        new_content.set_encrypted_content_data(
+            normalize_content(resolved_type, resolved_data)
+        )
 
         db.add(new_content)
+        db.flush()
+        if content_data.study_plan_id is not None and not is_student(current_user):
+            from src.core.models import StudyPlanContent
+
+            position = (
+                db.query(StudyPlanContent)
+                .filter_by(study_plan_id=content_data.study_plan_id, phase_index=0)
+                .count()
+            )
+            db.add(
+                StudyPlanContent(
+                    study_plan_id=content_data.study_plan_id,
+                    content_id=new_content.id,
+                    phase_index=0,
+                    order_index=position,
+                )
+            )
+            invalidate_reviews(db, new_content)
         db.commit()
         db.refresh(new_content)
 
@@ -659,6 +635,7 @@ async def update_content(
             )
 
     try:
+        assert_content_editable(db, content)
         # Update fields if provided
         if update_data.title is not None:
             content.title = update_data.title
@@ -675,8 +652,11 @@ async def update_content(
             # Students may toggle whether their personal Q&A is visible to their teacher.
             content.shared_with_teacher = bool(update_data.shared_with_teacher)
         if update_data.content_data is not None:
-            content.set_encrypted_content_data(update_data.content_data)
+            content.set_encrypted_content_data(
+                normalize_content(content.content_type.value, update_data.content_data)
+            )
 
+        invalidate_reviews(db, content)
         db.commit()
         db.refresh(content)
 
@@ -734,6 +714,10 @@ async def delete_content(
                 status_code=403, detail="Students can only delete their own Q&A content"
             )
 
+    try:
+        assert_content_editable(db, content)
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
     try:
         db.delete(content)
         db.commit()
@@ -802,6 +786,8 @@ async def create_content_batch(
     created_items = []
 
     try:
+        if batch_data.study_plan_id:
+            assert_plan_editable(db, plan)
         # Get starting order index
         if batch_data.study_plan_id:
             max_order = (
@@ -826,7 +812,9 @@ async def create_content_batch(
             )
 
             if item.content_data:
-                new_content.set_encrypted_content_data(item.content_data)
+                new_content.set_encrypted_content_data(
+                    normalize_content(item.content_type, item.content_data)
+                )
 
             db.add(new_content)
             db.flush()

@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 from typing import Optional, List
 from fastapi.security import OAuth2PasswordRequestForm
 
 from src.core.services.auth import get_auth_service, AuthService, AuthenticationError
 from src.core.models import UserRole, User
+from src.api.policies import teacher_student_ids
 from src.api.security import (
     get_current_user,
     get_optional_current_user,
@@ -82,19 +83,14 @@ async def register(
         try:
             role_enum = UserRole(user_data.role.lower())
         except ValueError:
-            role_enum = UserRole.TEACHER  # Fallback
+            raise HTTPException(status_code=422, detail="Invalid role")
 
-        # Role-based creation policy:
-        # - Unauthenticated self-registration: teacher/student only
-        # - Admins can create admin/teacher/student
-        # - Teachers can create students only
-        # - Students cannot create users
+        # Bootstrap creates the first administrator; all other accounts require approval.
         if current_user is None:
-            if role_enum == UserRole.ADMIN:
-                raise HTTPException(
-                    status_code=403,
-                    detail="Admin account creation requires authentication",
-                )
+            raise HTTPException(
+                status_code=403,
+                detail="Account creation requires an administrator or teacher",
+            )
         elif current_user.role == UserRole.ADMIN:
             pass
         elif current_user.role == UserRole.TEACHER:
@@ -114,6 +110,9 @@ async def register(
             first_name=user_data.first_name,
             last_name=user_data.last_name,
             role=role_enum,
+            teacher_id=(
+                current_user.id if current_user.role == UserRole.TEACHER else None
+            ),
         )
         return user
     except AuthenticationError as e:
@@ -197,6 +196,11 @@ async def list_users(
             User.active.is_(True), User.id != current_user.id
         )
 
+        if current_user.role == UserRole.TEACHER:
+            query = query.filter(
+                User.id.in_(teacher_student_ids(session, current_user.id))
+            )
+
         if role:
             try:
                 role_enum = UserRole(role.lower())
@@ -222,3 +226,24 @@ async def list_users(
             )
             for u in users
         ]
+
+
+class PasswordChange(BaseModel):
+    current_password: str = Field(min_length=1, max_length=128)
+    new_password: str = Field(min_length=12, max_length=128)
+
+
+@router.post("/change-password")
+async def change_password(
+    data: PasswordChange,
+    current_user: User = Depends(get_current_user),
+    auth_service: AuthService = Depends(get_auth_service),
+):
+    """Rotate a known password and invalidate previously issued sessions."""
+    try:
+        auth_service.change_password(
+            current_user.id, data.current_password, data.new_password
+        )
+        return {"success": True, "reauthentication_required": True}
+    except AuthenticationError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))

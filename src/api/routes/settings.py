@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session
 import logging
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Literal
 
 from src.api.dependencies import get_db, get_ai_service_dependency
 from src.api.security import get_current_user, get_optional_current_user
@@ -14,13 +14,15 @@ logger = logging.getLogger(__name__)
 
 
 class AIConfigModel(BaseModel):
-    provider: str = "ollama"
+    provider: Literal["ollama", "lm_studio", "openai", "openrouter"] = "ollama"
     model: str = "llama3"
     endpoint: Optional[str] = None
     api_key: Optional[str] = None
+    has_api_key: bool = False
+    clear_api_key: bool = False
     # Advanced settings
-    temperature: float = 0.7
-    max_tokens: int = 1000
+    temperature: float = Field(default=0.7, ge=0, le=2)
+    max_tokens: int = Field(default=1000, ge=1, le=16384)
     preprocessing_model: Optional[str] = None
     enable_preprocessing: bool = False
 
@@ -57,15 +59,27 @@ async def get_ai_config(
         # Return defaults
         return AIConfigModel()
 
-    # Decrypt key for display? Or keep hidden?
-    # Usually we don't send back the key unless requested or masked.
-    # For now, let's send it back specific for the user to edit.
-    key = config.decrypted_api_key
+    return _public_ai_config(config)
+
+
+def _public_ai_config(config: AIModelConfiguration) -> AIConfigModel:
+    """Return settings and key presence without revealing the saved credential."""
+    parameters = config.model_parameters or {}
     return AIConfigModel(
         provider=config.provider,
         model=config.model,
         endpoint=config.endpoint,
-        api_key=key,
+        has_api_key=bool(config.api_key),
+        **{
+            key: parameters[key]
+            for key in (
+                "temperature",
+                "max_tokens",
+                "preprocessing_model",
+                "enable_preprocessing",
+            )
+            if key in parameters
+        },
     )
 
 
@@ -88,20 +102,22 @@ async def update_ai_config(
     config.provider = data.provider
     config.model = data.model
     config.endpoint = data.endpoint
-    if "api_key" in data.model_fields_set:
-        if data.api_key:
-            config.set_encrypted_api_key(data.api_key)
-        else:
-            config.api_key = None
-
+    if data.clear_api_key:
+        config.api_key = None
+    elif data.api_key:
+        config.set_encrypted_api_key(data.api_key)
+    config.model_parameters = {
+        key: getattr(data, key)
+        for key in (
+            "temperature",
+            "max_tokens",
+            "preprocessing_model",
+            "enable_preprocessing",
+        )
+    }
     db.commit()
     db.refresh(config)
-    return AIConfigModel(
-        provider=config.provider,
-        model=config.model,
-        endpoint=config.endpoint,
-        api_key=config.decrypted_api_key,
-    )
+    return _public_ai_config(config)
 
 
 @router.get("/app", response_model=AppConfigModel)

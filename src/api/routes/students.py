@@ -12,6 +12,7 @@ import logging
 
 from src.api.dependencies import get_db
 from src.api.security import require_teacher_or_admin
+from src.api.policies import can_manage_student, require_allowed
 from src.core.models import (
     User,
     UserRole,
@@ -46,6 +47,7 @@ async def list_students(
             "current_streak": s.current_streak or 0,
         }
         for s in students
+        if can_manage_student(db, current_user, s)
     ]
 
 
@@ -60,6 +62,8 @@ async def get_student_progress(
     student = db.query(User).filter(User.id == student_id).first()
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
+
+    require_allowed(can_manage_student(db, current_user, student))
 
     # Calculate lessons completed
     lessons_completed = (
@@ -124,6 +128,7 @@ async def get_student_notes(
     db: Session = Depends(get_db),
 ):
     """Get teacher notes for a specific student (stored in user settings)."""
+    require_allowed(can_manage_student(db, current_user, db.get(User, student_id)))
     # Use the settings field on User if available, or return empty
     # Merge detached user or re-query to ensure fresh settings
     current_user = db.merge(current_user)
@@ -141,6 +146,7 @@ async def save_student_notes(
     db: Session = Depends(get_db),
 ):
     """Save teacher notes for a specific student (stored in user settings)."""
+    require_allowed(can_manage_student(db, current_user, db.get(User, student_id)))
     try:
         # Re-query user in current session to ensure we are modifying the attached instance
         user = db.query(User).filter(User.id == current_user.id).first()

@@ -16,7 +16,8 @@ from datetime import datetime
 from src.api.dependencies import get_db
 from src.api.security import get_current_user
 from src.core.models import User, Content, Annotation
-from src.core.roles import is_teacher_or_admin
+from src.core.roles import is_admin
+from src.api.policies import require_content, can_manage_student, require_allowed
 
 router = APIRouter(prefix="/api/annotations", tags=["annotations"])
 
@@ -32,7 +33,7 @@ class AnnotationCreate(BaseModel):
     annotation_type: str = "comment"  # comment, question, highlight
     text_selection_start: Optional[int] = None
     text_selection_end: Optional[int] = None
-    is_public: bool = True
+    is_public: bool = False
 
 
 class AnnotationResponse(BaseModel):
@@ -62,6 +63,7 @@ async def list_annotations(
     db: Session = Depends(get_db),
 ):
     """Get annotations for a specific content item"""
+    require_content(db, current_user, content_id)
     # Query annotations for this content
     query = db.query(Annotation).filter(Annotation.content_id == content_id)
 
@@ -102,8 +104,7 @@ async def create_annotation(
     """Create a new annotation on content"""
     # Verify content exists
     content = db.query(Content).filter(Content.id == data.content_id).first()
-    if not content:
-        raise HTTPException(status_code=404, detail="Content not found")
+    content = require_content(db, current_user, data.content_id)
 
     annotation = Annotation(
         content_id=data.content_id,
@@ -147,7 +148,11 @@ async def delete_annotation(
         raise HTTPException(status_code=404, detail="Annotation not found")
 
     # Permission check (owner, teacher, or admin)
-    if annotation.user_id != current_user.id and not is_teacher_or_admin(current_user):
+    require_content(db, current_user, annotation.content_id)
+    owner = db.get(User, annotation.user_id)
+    if annotation.user_id != current_user.id and not (
+        is_admin(current_user) or can_manage_student(db, current_user, owner)
+    ):
         raise HTTPException(status_code=403, detail="Cannot delete this annotation")
 
     db.delete(annotation)

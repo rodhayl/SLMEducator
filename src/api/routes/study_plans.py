@@ -1,11 +1,18 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List, Optional, Dict, Any
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from datetime import datetime, date
 
 from src.api.dependencies import get_db
 from src.api.security import get_current_user
+from src.api.policies import (
+    can_view_plan as _can_view_plan,
+    can_reuse_content,
+    can_manage_student,
+    can_manage_plan,
+    require_allowed,
+)
 from src.core.models import (
     User,
     StudyPlan,
@@ -16,6 +23,8 @@ from src.core.models import (
     DailyGoal,
 )
 from src.core.roles import is_admin, is_student, is_teacher_or_admin
+from src.core.services import course_workflow
+from src.core.services.content_schema import normalize_content
 
 router = APIRouter(prefix="/api/study-plans", tags=["study-plans"])
 
@@ -32,19 +41,6 @@ def _is_assigned_student(db: Session, student_id: int, plan_id: int) -> bool:
         .first()
         is not None
     )
-
-
-def _can_view_plan(db: Session, user: User, plan: StudyPlan) -> bool:
-    if is_admin(user):
-        return True
-    if is_teacher_or_admin(user) and plan.creator_id == user.id:
-        return True
-    if plan.is_public:
-        return True
-    # Students can view plans assigned to them
-    if is_student(user):
-        return _is_assigned_student(db, user.id, plan.id)
-    return False
 
 
 def _can_access_progress(db: Session, user: User, plan: StudyPlan) -> bool:
@@ -142,10 +138,11 @@ async def create_study_plan(
             title=plan.title,
             description=plan.description,
             creator_id=current_user.id,
-            is_public=plan.is_public,
+            is_public=False,
             phases=[p.model_dump() for p in plan.phases],  # Store structure as JSON
             created_at=datetime.now(),
         )
+        new_plan.set_encrypted_metadata({"workflow": {"status": "draft", "version": 0}})
         db.add(new_plan)
         db.flush()  # Get ID
 
@@ -159,7 +156,8 @@ async def create_study_plan(
                 # Verify content exists using proper SQLAlchemy 2.0 pattern
                 content = db.query(Content).filter(Content.id == content_id).first()
                 if not content:
-                    continue  # Skip invalid IDs or raise? Skip for now.
+                    raise HTTPException(status_code=422, detail="Unknown content ID")
+                require_allowed(can_reuse_content(db, current_user, content))
 
                 assoc = StudyPlanContent(
                     study_plan_id=new_plan.id,
@@ -225,6 +223,11 @@ async def assign_students_to_plan(
     if not is_admin(current_user) and plan.creator_id != current_user.id:
         raise HTTPException(status_code=403, detail="Access denied")
 
+    try:
+        publication = course_workflow.require_published(db, plan)
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+
     student_ids = sorted({int(sid) for sid in (req.student_ids or [])})
     if not student_ids:
         return AssignStudentsResponse(
@@ -248,6 +251,9 @@ async def assign_students_to_plan(
             status_code=400, detail=f"Not student role: {non_student_ids}"
         )
 
+    for student in students:
+        require_allowed(can_manage_student(db, current_user, student))
+
     existing = (
         db.query(StudentStudyPlan.student_id)
         .filter(
@@ -260,7 +266,16 @@ async def assign_students_to_plan(
     to_assign = [sid for sid in student_ids if sid not in set(already_assigned)]
 
     for sid in to_assign:
-        db.add(StudentStudyPlan(student_id=sid, study_plan_id=plan_id, progress={}))
+        db.add(
+            StudentStudyPlan(
+                student_id=sid,
+                study_plan_id=plan_id,
+                progress={
+                    "course_version": publication["version"],
+                    "assigned_snapshot": publication["snapshot"],
+                },
+            )
+        )
 
     db.commit()
 
@@ -372,7 +387,9 @@ async def get_study_plan_tree(
     contents = []
     for assoc in associations:
         content = assoc.content
-        if content:
+        from src.api.policies import can_view_content
+
+        if content and can_view_content(db, current_user, content):
             contents.append(
                 ContentItemTree(
                     id=content.id,
@@ -430,6 +447,7 @@ async def add_topic_to_study_plan(
         raise HTTPException(status_code=403, detail="Only the creator can add topics")
 
     try:
+        course_workflow.assert_plan_editable(db, plan)
         # Create the content
         content_type_enum = ContentType(topic.content_type)
 
@@ -443,7 +461,9 @@ async def add_topic_to_study_plan(
         )
 
         if topic.content_data:
-            new_content.set_encrypted_content_data(topic.content_data)
+            new_content.set_encrypted_content_data(
+                normalize_content(topic.content_type, topic.content_data)
+            )
 
         db.add(new_content)
         db.flush()
@@ -466,6 +486,7 @@ async def add_topic_to_study_plan(
             order_index=max_order,
         )
         db.add(assoc)
+        course_workflow.invalidate_reviews(db, new_content)
 
         db.commit()
         db.refresh(new_content)
@@ -501,8 +522,7 @@ async def get_study_plan_grades(
     if not plan:
         raise HTTPException(status_code=404, detail="Study plan not found")
 
-    if plan.creator_id != current_user.id and not plan.is_public:
-        raise HTTPException(status_code=403, detail="Access denied")
+    require_allowed(can_manage_plan(db, current_user, plan))
 
     # Get all assessments linked to this study plan
     assessments = db.query(Assessment).filter(Assessment.study_plan_id == plan_id).all()
@@ -578,8 +598,7 @@ async def get_topic_grades(
     if not plan:
         raise HTTPException(status_code=404, detail="Study plan not found")
 
-    if plan.creator_id != current_user.id and not plan.is_public:
-        raise HTTPException(status_code=403, detail="Access denied")
+    require_allowed(can_manage_plan(db, current_user, plan))
 
     # Verify topic exists in this plan
     content = db.query(Content).filter(Content.id == topic_id).first()
@@ -843,3 +862,101 @@ async def update_progress(
         db.rollback()
         logger.error(f"Error updating progress: {e}")
         raise HTTPException(status_code=500, detail="Failed to update progress")
+
+
+class CourseAction(BaseModel):
+    action: str
+    is_public: bool = False
+
+
+@router.get("/{plan_id}/workflow")
+async def get_course_workflow(
+    plan_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Show current review state and assigned version to authorized readers."""
+    from src.api.policies import require_plan
+
+    plan = require_plan(db, current_user, plan_id)
+    try:
+        state = course_workflow.workflow(plan)
+        return {
+            "status": state["status"],
+            "version": state["version"],
+            "read_only": bool(
+                db.query(StudentStudyPlan.student_id)
+                .filter_by(study_plan_id=plan.id)
+                .first()
+            ),
+        }
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+
+
+@router.post("/{plan_id}/workflow")
+async def change_course_workflow(
+    plan_id: int,
+    request: CourseAction,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Keep teacher review explicit; generation can never publish itself."""
+    plan = db.get(StudyPlan, plan_id)
+    require_allowed(can_manage_plan(db, current_user, plan))
+    try:
+        for link in course_workflow.course_items(db, plan_id):
+            require_allowed(can_reuse_content(db, current_user, link.content))
+        state = course_workflow.transition(
+            db, plan, request.action, current_user.id, request.is_public
+        )
+        db.commit()
+        return state
+    except ValueError as exc:
+        db.rollback()
+        raise HTTPException(status_code=409, detail=str(exc))
+
+
+class CourseOrderItem(BaseModel):
+    content_id: int
+    phase_index: int = Field(ge=0, le=100)
+    order_index: int = Field(ge=0, le=1000)
+
+
+@router.put("/{plan_id}/order")
+async def reorder_course(
+    plan_id: int,
+    items: List[CourseOrderItem],
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Persist keyboard/button or drag ordering with the same validated contract."""
+    plan = db.get(StudyPlan, plan_id)
+    require_allowed(can_manage_plan(db, current_user, plan))
+    try:
+        course_workflow.assert_plan_editable(db, plan)
+        links = {
+            link.content_id: link for link in course_workflow.course_items(db, plan_id)
+        }
+        if len(items) != len(links) or {item.content_id for item in items} != set(
+            links
+        ):
+            raise ValueError("Order must include every course item exactly once")
+        positions = {(item.phase_index, item.order_index) for item in items}
+        if len(positions) != len(items):
+            raise ValueError("Course positions must be unique")
+        for item in items:
+            link = links[item.content_id]
+            link.phase_index, link.order_index = item.phase_index, item.order_index
+        data = course_workflow.metadata(plan)
+        data["workflow"] = {
+            "status": "draft",
+            "version": course_workflow.workflow(plan)["version"],
+        }
+        plan.set_encrypted_metadata(data)
+        plan.is_public = False
+        db.commit()
+        return {"success": True}
+    except ValueError as exc:
+        db.rollback()
+        raise HTTPException(status_code=409, detail=str(exc))

@@ -221,6 +221,10 @@ class AuthService:
 
             with self.db_service.get_session() as session:
                 user = session.query(User).filter_by(id=user_id, active=True).first()
+                if user and payload.get("auth_version", 0) != (user.settings or {}).get(
+                    "auth_version", 0
+                ):
+                    return None
                 return user
 
         except jwt.ExpiredSignatureError:
@@ -247,6 +251,7 @@ class AuthService:
             "user_id": user.id,
             "username": user.username,
             "role": role_value,
+            "auth_version": (user.settings or {}).get("auth_version", 0),
             "exp": datetime.now(timezone.utc)
             + timedelta(minutes=self.token_expiry_minutes),
             "iat": datetime.now(timezone.utc),
@@ -356,7 +361,7 @@ class AuthService:
     def validate_password(self, password: str) -> bool:
         """Validate password strength"""
         # Check minimum length
-        if len(password) < 8:
+        if len(password) < 8 or len(password.encode("utf-8")) > 72:
             return False
 
         # Check for uppercase letters
@@ -376,6 +381,34 @@ class AuthService:
             return False
 
         return True
+
+    def change_password(
+        self, user_id: int, current_password: str, new_password: str
+    ) -> bool:
+        """Verify the current credential and atomically rotate/revoke old tokens."""
+        if (
+            len(new_password) < 12
+            or len(new_password.encode("utf-8")) > 72
+            or not self.validate_password(new_password)
+        ):
+            raise AuthenticationError(
+                "Use 12 or more characters, uppercase, lowercase, number and symbol (maximum 72 UTF-8 bytes)"
+            )
+        with self.db_service.get_session() as session:
+            user = session.query(User).filter_by(id=user_id, active=True).first()
+            if not user or not self._verify_password(
+                current_password, user.password_hash
+            ):
+                raise AuthenticationError("Current password is incorrect")
+            if self._verify_password(new_password, user.password_hash):
+                raise AuthenticationError("Choose a different password")
+            user.password_hash = self._hash_password(new_password)
+            settings = dict(user.settings or {})
+            settings["auth_version"] = int(settings.get("auth_version", 0)) + 1
+            user.settings = settings
+            session.commit()
+            self._log_event(session, user_id, "auth.password_reset", {})
+            return True
 
     def reset_password(self, user_id: int, new_password: str) -> bool:
         """Reset user password"""

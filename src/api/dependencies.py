@@ -1,7 +1,7 @@
 from fastapi import Depends
 from sqlalchemy.orm import Session
 from src.core.models import User, AIModelConfiguration
-from src.core.services.ai_service import AIService
+from src.core.services.ai_service import AIService, RuntimeAIConfig
 from src.core.services.database import get_db_service as _get_db_service
 from src.core.services.settings_config_service import get_settings_service
 
@@ -78,4 +78,13 @@ def get_ai_service_dependency(
             # API key handling omitted for brevity/safety in this transient object
         )
 
-    return AIService(config, logger)
+    parameters = config.model_parameters or {}
+    runtime = RuntimeAIConfig(
+        provider=config.provider,
+        model=config.model,
+        endpoint=config.endpoint,
+        api_key=config.decrypted_api_key,
+        preprocessing_model=parameters.get("preprocessing_model"),
+        enable_preprocessing=parameters.get("enable_preprocessing", False),
+    )
+    return AIService(runtime, logger)

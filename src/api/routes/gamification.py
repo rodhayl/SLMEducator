@@ -372,6 +372,36 @@ async def set_daily_goal(
     )
 
 
+def award_activity_xp(db: Session, user_id: int, amount: int) -> None:
+    """Record a server-verified reward inside the activity's transaction.
+
+    Call only after claiming a previously unfinished activity. The caller owns
+    commit/rollback, so activity completion and its reward cannot split.
+    """
+    db.query(User).filter(User.id == user_id).update(
+        {User.xp: func.coalesce(User.xp, 0) + amount}, synchronize_session=False
+    )
+    user = db.get(User, user_id)
+    db.refresh(user)
+    today = date.today()
+    if user.last_activity_date != today:
+        yesterday = user.last_activity_date and (today - user.last_activity_date).days == 1
+        user.current_streak = (user.current_streak or 0) + 1 if yesterday else 1
+        user.longest_streak = max(user.longest_streak or 0, user.current_streak)
+        user.last_activity_date = today
+    user.level = (user.xp // 1000) + 1
+    from src.core.services.progress_tracking_service import ProgressTrackingService
+
+    earned_ids = {row[0] for row in db.query(UserBadge.badge_id).filter_by(user_id=user_id)}
+    for badge in db.query(Badge).filter(Badge.is_active == True).all():
+        if badge.id in earned_ids:
+            continue
+        if ProgressTrackingService._check_badge_criteria(None, db, user, badge):
+            db.add(UserBadge(user_id=user_id, badge_id=badge.id))
+            user.xp += max(0, badge.xp_value or 0)
+    user.level = (user.xp // 1000) + 1
+
+
 @router.post("/award-xp")
 async def award_xp(
     amount: int,
@@ -379,37 +409,8 @@ async def award_xp(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Award XP to current user (internal use)"""
-    if amount <= 0:
-        raise HTTPException(status_code=400, detail="XP amount must be positive")
-
-    current_user.xp = (current_user.xp or 0) + amount
-
-    # Level up check (simple: 100 XP per level)
-    new_level = (current_user.xp // 100) + 1
-    if new_level > (current_user.level or 1):
-        current_user.level = new_level
-
-    # Update streak
-    today = date.today()
-    if current_user.last_activity_date:
-        days_diff = (today - current_user.last_activity_date).days
-        if days_diff == 1:
-            current_user.current_streak = (current_user.current_streak or 0) + 1
-            if current_user.current_streak > (current_user.longest_streak or 0):
-                current_user.longest_streak = current_user.current_streak
-        elif days_diff > 1:
-            current_user.current_streak = 1
-    else:
-        current_user.current_streak = 1
-
-    current_user.last_activity_date = today
-
-    db.commit()
-
-    return {
-        "xp_awarded": amount,
-        "total_xp": current_user.xp,
-        "level": current_user.level,
-        "streak": current_user.current_streak,
-    }
+    """Reject arbitrary client rewards; verified activity routes award XP."""
+    raise HTTPException(
+        status_code=403,
+        detail="XP is awarded only for verified server-side activity",
+    )
