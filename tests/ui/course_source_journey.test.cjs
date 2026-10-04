@@ -8,7 +8,7 @@ async function fixture(){
  const dom=new JSDOM(read('course_designer.html'),{url:'http://localhost/course_designer.html',runScripts:'outside-only',pretendToBeVisual:true,virtualConsole:new VirtualConsole()});await new Promise(r=>setImmediate(r));const w=dom.window;
  w.AuthService={getUser:()=>({id:7,role:'teacher'}),getRole:()=> 'teacher',getToken:()=> 'synthetic',isAuthenticated:()=>true};w.I18n={t:k=>k};w.showToast=()=>{};w.showConfirm=async()=>true;
  for(const p of ['static/vendor/dompurify@3.4.16/purify.min.js','static/vendor/marked@15.0.12/marked.min.js','static/js/safe-render.js','static/js/learning-client.js'])w.eval(read(p));
- w.syntheticManifest=manifest;w.eval(read('static/js/course_designer.js') + "\ncourseOwner=SLMClient.account();createdStudyPlanId=5;currentConfig={subject:'Synthetic',grade_level:'beginner'};generatedOutline={title:'Synthetic course',units:[{title:'One',lessons:[{title:'A'}]}]};sourceCoverage=syntheticManifest;sourceMaterialText=syntheticManifest.extracted_text;generationTasks=[{unit:0,lesson:0,status:'saved'}]; window.sourceState=()=>({sourceCoverage,sourceDocumentId,generationTasks});");
+ w.syntheticManifest=manifest;w.eval(read('static/js/course_designer.js') + "\ncourseOwner=SLMClient.account();createdStudyPlanId=5;currentConfig={subject:'Synthetic',grade_level:'beginner'};generatedOutline={title:'Synthetic course',units:[{title:'One',lessons:[{title:'A'}]}]};sourceCoverage=syntheticManifest;sourceMaterialText=syntheticManifest.extracted_text;generationTasks=[{unit:0,lesson:0,status:'saved'}]; window.sourceState=()=>({sourceCoverage,sourceDocumentId,generationTasks}); window.setSavedDocument=id=>{sourceDocumentId=id;};");
  return {dom,w};
 }
 test('full extracted manifest is saved before generation and document identity survives retry',async()=>{
@@ -31,4 +31,17 @@ for(const confirmed of [false,true])test('source replacement is explicit and nev
 });
 test('assigned source replacement stops before upload and keeps completed task identities',async()=>{
  const {dom,w}=await fixture();Object.defineProperty(w.document.getElementById('replace-source-file'),'files',{value:[new w.File(['Synthetic'],'new.md')]});const calls=[];w.fetch=async url=>{calls.push(url);return reply({read_only:true,status:'published'});};await w.replaceCourseSource();assert.equal(calls.length,1);assert.equal(w.sourceState().generationTasks[0].status,'saved');assert.match(w.document.getElementById('source-replacement-status').textContent,/Assigned courses are fixed/);dom.window.close();
+});
+
+test('identical server source identity keeps completed tasks despite a different uploaded file hash',async()=>{
+ const {dom,w}=await fixture();w.setSavedDocument('c'.repeat(64));Object.defineProperty(w.document.getElementById('replace-source-file'),'files',{value:[new w.File(['Synthetic'],'same-text.md')]});
+ w.fetch=async url=>reply(url.endsWith('/workflow')?{read_only:false}:url.includes('/upload/')?{...manifest,source_version:'b'.repeat(64)}:{document_id:'c'.repeat(64),source:manifest});
+ await w.replaceCourseSource();assert.equal(w.sourceState().generationTasks[0].status,'saved');assert.equal(w.sourceState().sourceCoverage.source_version,'a'.repeat(64));assert.match(w.document.getElementById('source-replacement-status').textContent,/generation tasks are kept/);dom.window.close();
+});
+
+test('same text adopts the server metadata revision without restarting completed work',async()=>{
+ const {dom,w}=await fixture();w.setSavedDocument('c'.repeat(64));Object.defineProperty(w.document.getElementById('replace-source-file'),'files',{value:[new w.File(['Synthetic'],'corrected.md')]});
+ const updated={...manifest,filename:'corrected.md',source_version:'a'.repeat(64),coverage:'complete',truncated:false,unreadable_pages:[]};
+ w.fetch=async url=>reply(url.endsWith('/workflow')?{read_only:false}:url.includes('/upload/')?updated:{document_id:'c'.repeat(64),source:{...updated,original_bytes_hash:'a'.repeat(64),extraction_coverage:'complete',metadata_revision:'metadata-v2'}});
+ await w.replaceCourseSource();assert.equal(w.sourceState().generationTasks[0].status,'saved');assert.equal(w.sourceState().sourceCoverage.source_version,'a'.repeat(64));assert.equal(w.sourceState().sourceCoverage.metadata_revision,'metadata-v2');assert.equal(w.sourceState().sourceCoverage.coverage,'complete');dom.window.close();
 });

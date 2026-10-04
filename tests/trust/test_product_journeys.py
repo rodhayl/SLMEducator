@@ -428,3 +428,37 @@ def test_unsupported_legacy_provider_is_actionable_and_never_exposes_credential(
     assert updated.status_code == 200 and not updated.json()["has_api_key"]
     db.refresh(config)
     assert "enable_preprocessing" not in config.model_parameters
+
+
+def test_teacher_help_retry_preserves_one_request_and_captured_context(scenario):
+    from uuid import uuid4
+    from src.core.models import HelpRequest
+
+    client, db, users, selected, plan, lessons, _ = scenario
+    selected[0] = users["learner_a"]
+    session = client.post(
+        "/api/learning/start",
+        json={"content_id": lessons[0].id, "study_plan_id": plan.id},
+    ).json()
+    request = {
+        "subject": "Fraction help",
+        "description": "Please explain numerator",
+        "urgency": 1,
+        "content_id": lessons[0].id,
+        "study_plan_id": plan.id,
+        "session_id": session["id"],
+        "client_request_id": str(uuid4()),
+    }
+    first = client.post("/api/classroom/help", json=request)
+    again = client.post("/api/classroom/help", json=request)
+    assert first.status_code == again.status_code == 200, first.text
+    assert first.json()["id"] == again.json()["id"]
+    assert first.json()["context_revision"] == session["context_revision"]
+    assert db.query(HelpRequest).count() == 1
+    assert (
+        client.post(
+            "/api/classroom/help", json={**request, "description": "Different"}
+        ).status_code
+        == 409
+    )
+    assert db.query(HelpRequest).count() == 1

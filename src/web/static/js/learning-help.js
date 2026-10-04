@@ -31,6 +31,7 @@
         teacher_send: 'Send help request', teacher_sending: 'Sending your help request…',
         teacher_required: 'Add a subject and describe the help you need.',
         teacher_receipt: 'Help request #{id} was received and is open for your teacher.',
+        teacher_receipt_resolved: 'Help request #{id} was already received and resolved by your teacher.',
         teacher_unconfirmed: 'The server did not confirm this help request. Your text is kept. Check your help requests before sending again.',
         teacher_interrupted: 'Delivery of the previous request is unconfirmed. Check your help requests before sending again.',
         teacher_student: 'Teacher help requests are available to learners.',
@@ -49,7 +50,9 @@
         cost_unknown: 'Provider cost is unknown; this app does not calculate charges.',
         provider_continue: 'Provider work may continue and may still incur charges.',
         receipt_unconfirmed: 'The server did not confirm this tutor request. Your question is kept; retry or cancel the pending request.',
-        receipt_missing: 'The server did not report a request receipt or token usage.'
+        receipt_missing: 'The server did not report a request receipt or token usage.',
+        new_tutor_request: 'Prepare a new request',
+        new_tutor_confirm: 'Start a new request for this question? The previous outcome is unknown and its provider work may still finish or incur charges. The new request uses a new request ID and counts separately.'
     };
     function t(key, values = {}) {
         const translated = root.I18n?.t?.(`help_panel.${key}`);
@@ -85,7 +88,7 @@
             this.host = host; this.options = options; this.context = context(options);
             this.owner = root.SLMClient.account(); this.id = `lesson-help-${++nextId}`;
             this.epoch = 0; this.mode = null; this.source = null; this.policy = null;
-            this.controllers = new Set(); this.history = []; this.receipt = null;
+            this.controllers = new Set(); this.history = []; this.receipt = null; this.pendingTeacher = null;
             this.build(); this.bind(); this.translate();
         }
         build() {
@@ -134,8 +137,9 @@
             this.question.rows = 3; this.question.maxLength = 4000; this.question.required = true;
             this.tutorSend = button('send', 'btn btn-primary'); this.tutorSend.type = 'submit';
             this.cancelButton = button('cancel'); this.cancelButton.hidden = true;
+            this.newTutorButton = button('new_tutor_request'); this.newTutorButton.hidden = true;
             this.tutorStatus = this.status(this.tutorForm); const actions = node('div', 'd-flex flex-wrap gap-2');
-            actions.append(this.tutorSend, this.cancelButton); this.tutorForm.append(actions);
+            actions.append(this.tutorSend, this.cancelButton, this.newTutorButton); this.tutorForm.append(actions);
             this.usageStatus = this.status(this.tutor); this.cancelStatus = this.status(this.tutor);
             this.receiptBox = node('div', 'border rounded p-3 mt-3'); this.receiptBox.hidden = true;
             this.receiptBox.setAttribute('aria-live', 'polite');
@@ -162,11 +166,12 @@
             this.closeButton.onclick = () => this.close();
             this.refreshButton.onclick = () => this.load();
             this.cancelButton.onclick = () => this.cancelTutor();
+            this.newTutorButton.onclick = () => this.prepareNewRequest();
             this.tutorForm.onsubmit = event => { event.preventDefault(); this.sendTutor(); };
             this.teacherForm.onsubmit = event => { event.preventDefault(); this.sendTeacher(); };
             this.sectionChoices.onchange = event => this.changeSections(event);
             this.newRequest.onclick = () => {
-                this.receipt = null; this.teacherError = null; this.subject.value = ''; this.description.value = '';
+                this.receipt = null; this.pendingTeacher = null; this.teacherError = null; this.subject.value = ''; this.description.value = '';
                 this.urgency.value = '1'; this.translate(); this.subject.focus();
             };
             this.onKey = event => { if (event.key === 'Escape' && this.mode) { event.preventDefault(); this.close(); } };
@@ -187,7 +192,7 @@
             if (!this.destroyed && this.owner && root.SLMClient.account() === this.owner) return true;
             this.invalidate(); this.owner = null; this.source = null; this.policy = null; this.history = [];
             this.receipt = null; this.question.value = ''; this.subject.value = ''; this.description.value = '';
-            this.pendingTutor = null; this.lastReceipt = null; this.receiptMissing = false; this.cancelState = null; this.usage = null;
+            this.pendingTutor = null; this.pendingTeacher = null; this.lastReceipt = null; this.receiptMissing = false; this.cancelState = null; this.usage = null;
             this.transcript.replaceChildren(); this.sectionChoices.replaceChildren();
             this.loadError = { key: 'owner_changed' }; this.teacherError = { key: 'owner_changed' };
             this.translate(); return false;
@@ -219,7 +224,7 @@
             if (JSON.stringify(next) === JSON.stringify(this.context)) return;
             this.invalidate(); this.options = { ...this.options, ...options }; this.context = next;
             this.source = null; this.policy = null; this.history = []; this.receipt = null; this.loadedVersion = null;
-            this.pendingTutor = null; this.lastReceipt = null; this.receiptMissing = false; this.cancelState = null; this.usage = null;
+            this.pendingTutor = null; this.pendingTeacher = null; this.lastReceipt = null; this.receiptMissing = false; this.cancelState = null; this.usage = null;
             this.loadError = null; this.tutorError = null; this.teacherError = null;
             this.question.value = ''; this.subject.value = ''; this.description.value = ''; this.urgency.value = '1';
             this.transcript.replaceChildren(); this.sectionChoices.replaceChildren(); this.translate();
@@ -294,6 +299,17 @@
                 pending.cancelling = false;
                 if (!this.destroyed && this.owner === owner && this.cancelState === state) this.translate();
             }
+        }
+        async prepareNewRequest() {
+            if (!this.checkOwner() || !this.pendingTutor || this.tutorBusy || this.pendingTutor.cancelling || !root.showConfirm) return;
+            const pending = this.pendingTutor, epoch = this.epoch;
+            this.newTutorButton.disabled = true;
+            try {
+                if (!await root.showConfirm(t('new_tutor_confirm'), t('new_tutor_request'))) return;
+                if (!this.current(epoch) || this.pendingTutor !== pending) return;
+                this.pendingTutor = null; this.cancelState = null; this.tutorError = null;
+                await this.load(); this.question.focus();
+            } finally { if (this.current(epoch)) this.translate(); }
         }
         validSource(source) {
             return source && source.id === this.context.contentId && typeof source.source_version === 'string' &&
@@ -424,13 +440,17 @@
             const payload = { subject, description, urgency: Number(this.urgency.value),
                 content_id: this.context.contentId, study_plan_id: this.context.studyPlanId };
             if (![1, 2, 3].includes(payload.urgency)) return;
+            if (this.context.sessionId) payload.session_id = this.context.sessionId;
+            const fingerprint = JSON.stringify(payload);
+            if (!this.pendingTeacher || this.pendingTeacher.fingerprint !== fingerprint) this.pendingTeacher = {id:requestId(),fingerprint};
+            payload.client_request_id = this.pendingTeacher.id;
             const epoch = this.epoch; this.teacherBusy = true; this.teacherError = null; this.translate();
             try {
                 const data = await this.request('/api/classroom/help', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
                 if (!this.current(epoch)) return;
-                if (!validId(data?.id) || String(data.student_id) !== this.owner || data.status !== 'open' ||
+                if (!validId(data?.id) || String(data.student_id) !== this.owner || !['open','resolved'].includes(data.status) || data.client_request_id !== payload.client_request_id ||
                     data.content_id !== payload.content_id || (data.study_plan_id ?? null) !== payload.study_plan_id ||
-                    data.request_text !== `${subject}: ${description}`) {
+                    data.request_text !== `${subject}: ${description}` || (this.context.contextRevision && context({contextRevision:data.context_revision}).contextRevision !== this.context.contextRevision)) {
                     this.teacherError = { key: 'teacher_unconfirmed' }; return;
                 }
                 this.receipt = data;
@@ -459,6 +479,8 @@
             this.tutorSend.disabled = !this.owner || !this.source || !this.policy || this.policy.mode === 'disabled' || this.tutorBusy || this.loading || this.pendingTutor?.cancelling || this.usageBlocksSend();
             this.cancelButton.hidden = (!this.pendingTutor || this.pendingTutor.terminal) && !this.usage?.active_request_id;
             this.cancelButton.disabled = !this.owner || Boolean(this.pendingTutor?.cancelling);
+            this.newTutorButton.hidden = !this.pendingTutor || this.pendingTutor.terminal || this.tutorBusy || !(this.tutorError || this.cancelState?.key === 'cancel_unconfirmed');
+            this.newTutorButton.disabled = !this.owner || Boolean(this.pendingTutor?.cancelling);
             this.cancelStatus.textContent = this.cancelState ? t(this.cancelState.key) : '';
             this.usageStatus.textContent = this.usage ? `${t('usage')}: ${this.usage.requests_used_today} / ${this.usage.requests_limit_daily}. ` +
                 (this.usage.requests_used_today >= this.usage.requests_limit_daily ? t('request_limit') :
@@ -467,7 +489,7 @@
             this.teacherSend.disabled = !this.owner || !this.context.contentId || this.teacherBusy || Boolean(this.receipt);
             [this.subject, this.description, this.urgency].forEach(input => { input.disabled = !this.owner || this.teacherBusy || Boolean(this.receipt); });
             this.teacherForm.hidden = Boolean(this.receipt); this.newRequest.hidden = !this.receipt;
-            this.teacherStatus.textContent = this.teacherBusy ? t('teacher_sending') : this.receipt ? t('teacher_receipt', { id: this.receipt.id }) : this.errorText(this.teacherError);
+            this.teacherStatus.textContent = this.teacherBusy ? t('teacher_sending') : this.receipt ? t(this.receipt.status === 'resolved' ? 'teacher_receipt_resolved' : 'teacher_receipt', { id: this.receipt.id }) : this.errorText(this.teacherError);
             this.transcript.querySelectorAll('[data-source-version]').forEach(element => { element.textContent = `${t('source_version')}: ${element.dataset.sourceVersion}`; });
             this.transcript.querySelectorAll('[data-references]').forEach(element => { element.textContent = `${t('references')}: ${JSON.parse(element.dataset.references).join(', ')}`; });
             this.sectionChoices.querySelectorAll('[data-section-title]').forEach(element => {

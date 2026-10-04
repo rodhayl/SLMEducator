@@ -986,6 +986,9 @@ class HelpRequest(Base):
         Integer, ForeignKey("study_plans.id"), nullable=True, index=True
     )
     request_text = Column(Text, nullable=False)
+    client_request_id = Column(String(80), nullable=True)
+    context_revision = Column(JSON, nullable=True)
+    __table_args__ = (Index("idx_help_owner_request", "student_id", "client_request_id", unique=True),)
     priority = Column(Integer, default=1, nullable=False)  # 1-5
     status = Column(
         String(20), default="pending", nullable=False, index=True

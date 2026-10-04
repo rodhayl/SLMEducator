@@ -163,3 +163,33 @@ def test_lesson_prompt_includes_relevant_late_text_and_explicit_usage():
     usage = result["_source_usage"]
     assert usage["fragment"] in captured[0] and usage["use_coverage"] == "partial"
     assert usage["included_characters"] <= 6000
+
+
+def test_same_text_metadata_correction_preserves_prior_provenance(scenario):
+    client, db, users, selected, plan = prepare(scenario)
+    original = document()
+    first = client.put(f"/api/study-plans/{plan.id}/source", json=original).json()[
+        "source"
+    ]
+    corrected = {
+        **original,
+        "filename": "renamed.txt",
+        "parser": "utf8-text-v2",
+        "coverage": "partial",
+    }
+    second = client.put(f"/api/study-plans/{plan.id}/source", json=corrected).json()[
+        "source"
+    ]
+    assert second["document_id"] == first["document_id"]
+    assert second["metadata_revision"] != first["metadata_revision"]
+    assert (
+        second["filename"] == "renamed.txt"
+        and second["extraction_coverage"] == "partial"
+    )
+    assert plan.decrypted_metadata["source_history"][-1] == first
+    assert (
+        client.put(f"/api/study-plans/{plan.id}/source", json=corrected).json()[
+            "source"
+        ]
+        == second
+    )

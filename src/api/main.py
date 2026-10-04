@@ -155,6 +155,8 @@ async def read_page(page_name: str):
     page_path = WEB_DIR / f"{page_name}.html"
     if page_path.exists():
         return FileResponse(page_path)
+    if (WEB_DIR / "404.html").is_file():
+        return FileResponse(WEB_DIR / "404.html", status_code=404)
     return Response(status_code=404)
 
 

@@ -116,8 +116,10 @@ def test_teacher_package_roundtrip_preserves_order_keys_rubrics_and_remaps_ids(c
     contents = course.db.query(Content).filter_by(study_plan_id=imported.id).order_by(Content.id).all()
     lesson, exercise = contents
     assert lesson.decrypted_content_data["content"] == "Synthetic instructional text"
-    assert imported.phases[0]["lessons"][0]["id"] == lesson.id
-    assert imported.phases[0]["lessons"][1]["content_id"] == exercise.id
+    assert imported.phases[0]["content_ids"] == [lesson.id]
+    assert imported.phases[1]["content_ids"] == [exercise.id]
+    assert imported.decrypted_metadata["author_outline"][0]["lessons"][0]["id"] == lesson.id
+    assert imported.decrypted_metadata["author_outline"][0]["lessons"][1]["content_id"] == exercise.id
     assert imported.decrypted_metadata["generation"]["items"][0]["content_id"] == lesson.id
     assert course.db.query(Book).filter_by(study_plan_id=imported.id).one().chapters == [lesson.id, exercise.id]
     assert exercise.difficulty_prerequisites == [lesson.id] and exercise.remedial_for_content_id == lesson.id

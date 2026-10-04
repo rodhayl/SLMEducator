@@ -199,6 +199,11 @@ def _save_item(
         "source_version": sha256((request.source_material or "").encode()).hexdigest(),
         "review_status": "draft",
         "source_document_id": request.source_document_id,
+        "source_origin": {
+            key: value
+            for key, value in metadata(plan).get("source_document", {}).items()
+            if key not in {"sections", "extracted_text"}
+        },
         "source_usage": data.pop("_source_usage", {}),
         "extraction_coverage": metadata(plan)
         .get("source_document", {})

@@ -73,9 +73,12 @@ def save_document(db, plan, value: dict) -> dict:
     """Store source with the same owner/review boundaries as its course draft."""
     assert_plan_editable(db, plan)
     document = make_document(value)
+    document["metadata_revision"] = sha256(
+        json.dumps(document, sort_keys=True, ensure_ascii=False).encode()
+    ).hexdigest()
     data = metadata(plan)
     previous = data.get("source_document")
-    if previous and previous["document_id"] == document["document_id"]:
+    if previous and previous.get("metadata_revision") == document["metadata_revision"]:
         return previous
     history = list(data.get("source_history", []))
     if previous:

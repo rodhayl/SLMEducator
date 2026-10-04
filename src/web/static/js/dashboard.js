@@ -955,50 +955,34 @@ async function loadStats() {
 
 
 
-// Help Request Logic
+// Help requests keep one identity across transport retries.
+let dashboardHelpBusy = false;
+let dashboardHelpPending = null;
 window.submitHelpRequest = async function submitHelpRequest() {
-    const subject = document.getElementById('help-subject').value;
-    const desc = document.getElementById('help-desc').value;
-    const urgency = document.getElementById('help-urgency').value;
-
-    // Get current learning context
-    const context = window.getLearningContext();
-
+    if (dashboardHelpBusy) return;
+    const owner = SLMClient.account();
+    const learning = window.getLearningContext();
+    const payload = {subject:document.getElementById('help-subject').value.trim(), description:document.getElementById('help-desc').value.trim(),
+        urgency:Number(document.getElementById('help-urgency').value), content_id:Number(learning.contentId) || null,
+        study_plan_id:Number(learning.studyPlanId) || null, question_id:Number(learning.questionId) || null};
+    if (!payload.subject || !payload.description) return;
+    const fingerprint = JSON.stringify(payload);
+    if (!dashboardHelpPending || dashboardHelpPending.owner !== owner || dashboardHelpPending.fingerprint !== fingerprint) dashboardHelpPending = {owner,fingerprint,id:crypto.randomUUID()};
+    payload.client_request_id = dashboardHelpPending.id;
+    dashboardHelpBusy = true;
+    const controls = [...document.querySelectorAll('#help-form input, #help-form textarea, #help-form select, #helpModal button[onclick="submitHelpRequest()"]')];
+    controls.forEach(control => {control.disabled=true;});
     try {
-        const token = AuthService.getToken();
-        const response = await fetch('/api/classroom/help', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({
-                subject: subject,
-                description: desc,
-                urgency: parseInt(urgency),
-                // Include learning context
-                content_id: context.contentId,
-                study_plan_id: context.studyPlanId,
-                question_id: context.questionId
-            })
-        });
-
-        if (response.ok) {
-            showToast(I18n.t('help_request.success_submit'), "success");
-            const modal = bootstrap.Modal.getInstance(document.getElementById('helpModal'));
-            modal.hide();
-            // Clear form
-            document.getElementById('help-form').reset();
-            // Clear context display
-            const contextDisplay = document.getElementById('help-context-display');
-            if (contextDisplay) contextDisplay.innerHTML = '';
-        } else {
-            showToast(I18n.t('help_request.error_submit'), "danger");
-        }
-    } catch (e) {
-        showToast(I18n.t('help_request.error_network'), "danger");
-    }
-}
+        const result = await SLMClient.request('/api/classroom/help', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+        if (owner !== SLMClient.account()) return;
+        if (!Number.isInteger(result?.id) || result.client_request_id !== payload.client_request_id || String(result.student_id) !== owner || !['open','resolved'].includes(result.status) || (result.content_id ?? null) !== payload.content_id || (result.study_plan_id ?? null) !== payload.study_plan_id || result.request_text !== `${payload.subject}: ${payload.description}`) throw new Error(SLMClient.message('help_delivery_unconfirmed', 'Help delivery is unconfirmed. Your text is kept; retrying the same text checks the same request.'));
+        showToast(I18n.t('help_request.success_submit'), 'success');
+        bootstrap.Modal.getInstance(document.getElementById('helpModal'))?.hide();
+        document.getElementById('help-form').reset(); dashboardHelpPending=null;
+        document.getElementById('help-context-display')?.replaceChildren();
+    } catch (error) { if (owner === SLMClient.account()) showToast(error.message, 'danger'); }
+    finally { dashboardHelpBusy=false;controls.forEach(control=>{control.disabled=false;}); }
+};
 
 // Initialize Help Modal - populate context display when opened
 document.addEventListener('DOMContentLoaded', function () {
@@ -2215,6 +2199,15 @@ window.refreshTutorUsage = async () => {
         if (Number.isFinite(usage.requests_used_today) && Number.isFinite(usage.requests_limit_daily)) target.textContent = `${SLMClient.message('ai_request_usage', 'Requests today')}: ${usage.requests_used_today}/${usage.requests_limit_daily}.`;
     } catch { document.getElementById('tutor-usage-status').textContent = SLMClient.message('ai_usage_unavailable', 'Usage could not be loaded.'); }
 };
+window.prepareNewTutorRequest = async () => {
+    const pending = tutorPending;
+    if (!pending || tutorBusy || pending.cancelling || tutorOwner !== SLMClient.account()) return;
+    if (!await showConfirm(SLMClient.message('new_tutor_confirm', 'Start a new request for this question? The previous outcome is unknown and provider work may still finish or incur charges. The new request counts separately.'))) return;
+    if (pending !== tutorPending || tutorOwner !== SLMClient.account()) return;
+    tutorPending = null;
+    document.getElementById('tutor-new-request-btn').classList.add('d-none');
+    document.getElementById('chat-input').focus();
+};
 window.cancelTutorRequest = async (contextChanged = false) => {
     const pending = tutorPending;
     if (!pending || pending.terminal || pending.cancelling) return;
@@ -2279,6 +2272,7 @@ if (chatForm) {
         const fingerprint = JSON.stringify(payload);
         if (!tutorPending || tutorPending.terminal || tutorPending.fingerprint !== fingerprint) tutorPending = {id: crypto.randomUUID(), fingerprint, message};
         const pending = tutorPending; pending.controller = new AbortController();
+        document.getElementById('tutor-new-request-btn').classList.add('d-none');
         payload.client_request_id = pending.id;
         const epoch = tutorEpoch; tutorBusy = true; input.disabled = true;
         const send = chatForm.querySelector('button[type=submit]'); send.disabled = true;
@@ -2291,15 +2285,18 @@ if (chatForm) {
             if (receipt && (receipt.request_id !== pending.id || !['completed','failed','cancelled','timed_out'].includes(receipt.status))) throw new Error(SLMClient.message('ai_receipt_unconfirmed', 'The server did not confirm this request. Your question is kept; retry.'));
             pending.terminal = true; status.textContent = receipt ? tutorReceiptText(receipt) : SLMClient.message('ai_usage_unreported', 'Request usage was not reported. Cost is unknown.');
             if ((receipt && receipt.status !== 'completed') || result.status !== 'suggestion') return;
+            if (payload.source_version && result.source?.source_version !== payload.source_version) { tutorSourceReady = false; document.getElementById('tutor-source-status').textContent = SLMClient.message('source_changed', 'Source changed. Reload the source, review your sections, and retry.'); return; }
             if (result.assistance_policy) applyTutorPolicy(result.assistance_policy);
             appendTutorMessage(message, false); appendTutorMessage(result.response, true, result);
             tutorConversation.push({role:'user',content:message},{role:'assistant',content:result.response}); tutorConversation = tutorConversation.slice(-10);
             input.value = ''; chatHistory.scrollTop = chatHistory.scrollHeight;
         } catch (error) {
             if (epoch !== tutorEpoch || tutorOwner !== SLMClient.account()) return;
+            if ([401,403,429].includes(error.status)) pending.terminal = true;
             if (error.status === 403) await refreshTutorPolicy();
             if (error.status === 409 && /source|revision/i.test(error.message)) { tutorSourceReady = false; document.getElementById('tutor-source-status').textContent = SLMClient.message('source_changed', 'Source changed. Reload the source, review your sections, and retry.'); }
             status.textContent = error.message || I18n.t('ai.chat.error_send');
+            document.getElementById('tutor-new-request-btn').classList.toggle('d-none', pending.terminal === true);
         } finally {
             if (epoch === tutorEpoch) { tutorBusy = false; input.disabled = false; cancel.disabled = true; send.disabled = !tutorSourceReady || !tutorPolicy || tutorPolicy.mode === 'disabled'; }
         }
@@ -2459,6 +2456,7 @@ function renderUserList(role, users) {
                         <span class="badge bg-success">${u.xp || 0} XP</span>
                     </p>
                     ${role === 'student' ? `<button class="btn btn-sm btn-outline-primary" onclick="viewStudentDetail(${u.id})">${SLMClient.message('view_details', 'View details')}</button>` : ''}
+                    ${AuthService.getRole() === 'admin' ? `<button class="btn btn-sm btn-outline-secondary" onclick="manageAccount(${u.id}, '${role}')">${SLMClient.message('manage_account', 'Manage account')}</button><span class="badge bg-secondary ms-2">${SLMClient.message(u.active === false ? 'account_inactive' : 'account_active', u.active === false ? 'Inactive' : 'Active')}</span>` : ''}
                 </div>
             </div>
         </div>
@@ -2475,7 +2473,7 @@ async function loadUsersByRole(role) {
 
     try {
         const token = AuthService.getToken();
-        const res = await fetch(`/api/auth/users?role=${role}`, {
+        const res = await fetch(`/api/auth/users?role=${role}${AuthService.getRole() === 'admin' && window.includeInactiveAccounts ? '&include_inactive=true' : ''}`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
 
@@ -2829,7 +2827,7 @@ window.viewStudentDetail = async function viewStudentDetail(id) {
         const token = AuthService.getToken();
 
         // Try to get student info from the users endpoint
-        const res = await fetch(`/api/auth/users?role=student`, {
+        const res = await fetch(`/api/auth/users?role=student${AuthService.getRole() === 'admin' ? '&include_inactive=true' : ''}`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
 

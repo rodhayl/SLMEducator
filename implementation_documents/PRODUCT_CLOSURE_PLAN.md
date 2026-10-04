@@ -124,3 +124,24 @@ defers only context and has a five-second timeout. The corrected panel and all
 remaining role/receipt modules pass **66 tests** in 3.45 seconds. Earlier modules
 had passed before the fixture stalled; this record does not invent a completed
 aggregate result. Secret scan and critical lint/type checks pass.
+
+## Checkpoint 4: bounded requests, account recovery and portable reading
+
+Tutor/Q&A now share server concurrency, persistent daily claims, idempotent
+short-lived receipts, explicit cancellation and deadline handling. Cached output
+cannot cross a stricter policy or changed source. Six deterministic lifecycle
+regressions cover slow work, cancellation privacy, retained busy slots, lost
+receipt recovery and quota. No test calls a real provider or claims cancelled
+remote compute or known monetary cost.
+
+Confirmed admin account actions, inactive listings and password recovery revoke
+old sessions while preserving audit rows and unknown historical timestamp bytes.
+New teacher packages use a validated v2 graph/manifest and retain v1 input support.
+Readable learner HTML/Markdown/JSON preserves vocabulary and excludes keys/rubrics;
+the wizard checks preview, target, format and actual MIME before a download. Source
+metadata corrections now have a revision separate from text identity and retain
+earlier provenance. Help queue retries gain durable owner-scoped identities.
+
+The remaining closure work is the requirement audit, demonstrated dead-code and
+packaging cleanup, minimal deterministic CI, and one stable final aggregate.
+Native Windows, real-browser/accessibility and human/model gates remain external.

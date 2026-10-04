@@ -2,7 +2,7 @@
   "name": "slmeducator-ui-regressions",
   "private": true,
   "scripts": {
-    "test": "node --test *.test.cjs"
+    "test": "node --test --test-concurrency=1 *.test.cjs"
   },
   "devDependencies": {
     "jsdom": "26.1.0"

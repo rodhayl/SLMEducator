@@ -136,13 +136,16 @@ test('late context fetch cannot restore a closed panel or a different lesson', {
     assert.equal(w.get('question').closest('form').querySelector('[type=submit]').disabled, true);
 });
 const receipt = (payload, overrides = {}) => ({ id: 55, student_id: 7, status: 'open', content_id: payload.content_id,
-    study_plan_id: payload.study_plan_id, request_text: `${payload.subject}: ${payload.description}`, ...overrides });
+    study_plan_id: payload.study_plan_id, client_request_id: payload.client_request_id, context_revision:null, request_text: `${payload.subject}: ${payload.description}`, ...overrides });
 test('teacher request captures context, suppresses repeated submits and shows only a matching receipt', async t => {
     const w = await fixture(t); await w.api.open('teacher'); let finish;
     w.respond = async () => new Promise(resolve => { finish = resolve; });
     await w.sendTeacher(); await w.submit('subject'); assert.equal(w.post('/api/classroom/help').length, 1);
     const payload = JSON.parse(w.post('/api/classroom/help')[0].options.body);
-    assert.deepEqual(payload, { subject: 'A lesson question', description: 'I tried the first step.', urgency: 1, content_id: 8, study_plan_id: 4 });
+    assert.match(payload.client_request_id, /^[0-9a-f-]{36}$/);
+    assert.equal(payload.session_id,30);
+    const {client_request_id,session_id,...message}=payload;
+    assert.deepEqual(message, { subject: 'A lesson question', description: 'I tried the first step.', urgency: 1, content_id: 8, study_plan_id: 4 });
     assert.doesNotMatch(w.host.textContent, /was received/);
     finish(reply(200, receipt(payload))); await settle();
     assert.match(w.host.textContent, /Help request #55 was received/);
@@ -309,4 +312,29 @@ test('cancellation after completion reuses the UUID to recover its cached answer
     assert.equal(w.host.querySelectorAll('[role=log] article').length, 1);
     finish(reply(200, answer({ receipt: tutorReceipt(original) }))); await settle();
     assert.equal(w.host.querySelectorAll('[role=log] article').length, 1);
+});
+test('unknown outcome after restart requires explicit confirmation before a fresh request UUID', async t => {
+    const w = await fixture(t); await w.api.open('tutor'); let fresh = false;
+    w.respond = async (url, options) => {
+        if (url === '/api/ai/chat') return fresh ? reply(200, answer({receipt:tutorReceipt(JSON.parse(options.body).client_request_id)})) : reply(409,{detail:'After restart its outcome is unknown. Start a new request explicitly if needed'});
+        return reply(200,url.endsWith('/usage')?usage():url.endsWith('assistance-policy')?policy('explanations'):{source:source()});
+    };
+    w.get('question').value = 'Keep the original question'; await w.submit('question');
+    const original = JSON.parse(w.post('/api/ai/chat')[0].options.body).client_request_id;
+    const button = w.host.querySelector('[data-i18n="help_panel.new_tutor_request"]');assert.equal(button.hidden,false);
+    w.showConfirm = async () => false;button.click();await settle();await w.submit('question');
+    assert.equal(JSON.parse(w.post('/api/ai/chat')[1].options.body).client_request_id,original);
+    let confirmation;w.showConfirm=async message=>{confirmation=message;return true;};button.click();await settle();await settle();fresh=true;
+    assert.match(confirmation,/outcome is unknown/);assert.equal(w.get('question').value,'Keep the original question');
+    await w.submit('question');assert.notEqual(JSON.parse(w.post('/api/ai/chat')[2].options.body).client_request_id,original);
+});
+
+test('teacher transport retry reuses the durable request UUID and pinned session context',async t=>{
+ const revision={content_digest:'snapshot-digest',study_plan_id:4};const w=await fixture(t,{contextRevision:revision});await w.api.open('teacher');let first=true;
+ w.respond=async(url,options)=>{if(first){first=false;throw new TypeError('Lost response');}return reply(200,receipt(JSON.parse(options.body),{context_revision:revision,status:'resolved'}));};
+ await w.sendTeacher();await w.submit('subject');const requests=w.post('/api/classroom/help').map(item=>JSON.parse(item.options.body));assert.equal(requests.length,2);assert.equal(requests[0].client_request_id,requests[1].client_request_id);assert.equal(requests[1].session_id,30);assert.match(w.host.textContent,/already received and resolved/);
+});
+test('edited teacher request receives a new UUID and mismatched snapshot acknowledgement stays unconfirmed',async t=>{
+ const revision={content_digest:'snapshot-digest',study_plan_id:4};const w=await fixture(t,{contextRevision:revision});await w.api.open('teacher');w.respond=async()=>reply(500,{detail:'Unavailable'});await w.sendTeacher();
+ w.get('description').value='An explicitly changed question';w.respond=async(url,options)=>reply(200,receipt(JSON.parse(options.body),{context_revision:{...revision,content_digest:'wrong'}}));await w.submit('subject');const requests=w.post('/api/classroom/help').map(item=>JSON.parse(item.options.body));assert.notEqual(requests[0].client_request_id,requests[1].client_request_id);assert.match(w.host.textContent,/did not confirm/);assert.equal(w.get('description').value,'An explicitly changed question');
 });

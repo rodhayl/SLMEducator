@@ -1108,6 +1108,7 @@
             <p id="tutor-usage-status" class="small px-3" role="status"></p>
             <p id="tutor-request-status" class="small px-3" role="status" aria-live="polite"></p>
             <button type="button" id="tutor-cancel-btn" class="btn btn-sm btn-outline-danger mx-3" onclick="cancelTutorRequest()" disabled data-i18n="recovery.cancel_request">Cancel request</button>
+            <button type="button" id="tutor-new-request-btn" class="btn btn-sm btn-outline-warning d-none mx-3" onclick="prepareNewTutorRequest()" data-i18n="recovery.new_tutor_request">Prepare a new request</button>
             <form id="chat-form" class="chat-input-form">
                 <input type="text" id="chat-input" class="form-control" placeholder="Ask something..."
                     data-i18n-placeholder="ai_tutor.input_placeholder" required aria-label="Tutor message">
@@ -1449,6 +1450,7 @@
 
     <!-- STUDENTS VIEW (Teacher Only) -->
     <div id="view-students" class="view-section hidden">
+                <label class="form-check mb-2" data-role="admin"><input id="students-include-inactive" type="checkbox" class="form-check-input" data-inactive-accounts onchange="toggleInactiveAccounts(this)"><span data-i18n="recovery.include_inactive">Include inactive accounts</span></label>
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h2><span class="me-2">👥</span><span data-i18n="students.title">My Students</span></h2>
             <button class="btn btn-outline-primary" onclick="loadStudents()"
@@ -1472,6 +1474,7 @@
 
     <!-- TEACHERS VIEW (Admin Only) -->
     <div id="view-teachers" class="view-section hidden">
+                <label class="form-check mb-2" data-role="admin"><input id="teachers-include-inactive" type="checkbox" class="form-check-input" data-inactive-accounts onchange="toggleInactiveAccounts(this)"><span data-i18n="recovery.include_inactive">Include inactive accounts</span></label>
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h2><span class="me-2">👩‍🏫</span><span data-i18n="common.roles.teachers">Teachers</span></h2>
             <div class="d-flex gap-2">
@@ -1497,6 +1500,7 @@
 
     <!-- ADMINS VIEW (Admin Only) -->
     <div id="view-admins" class="view-section hidden">
+                <label class="form-check mb-2" data-role="admin"><input id="admins-include-inactive" type="checkbox" class="form-check-input" data-inactive-accounts onchange="toggleInactiveAccounts(this)"><span data-i18n="recovery.include_inactive">Include inactive accounts</span></label>
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h2><span class="me-2">🛡️</span>Administradores</h2>
             <div class="d-flex gap-2">
@@ -1686,6 +1690,24 @@
                 </div>
             </div>
         </div>
+    </div>
+
+    <div class="modal fade" id="accountManagerModal" tabindex="-1" aria-labelledby="account-manager-title" aria-hidden="true">
+        <div class="modal-dialog"><div class="modal-content">
+            <div class="modal-header"><h2 id="account-manager-title" class="modal-title h5" data-i18n="recovery.manage_account">Manage account</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+            <div class="modal-body">
+                <p id="account-identity" class="fw-bold"></p><p id="account-current-status"></p>
+                <p class="small" data-i18n="recovery.account_revoke_notice">Existing sessions will be revoked. Previous learning work is preserved.</p>
+                <button id="account-status-btn" type="button" class="btn btn-outline-warning mb-3" onclick="changeManagedAccountStatus()" disabled data-i18n="recovery.deactivate_account">Deactivate account</button>
+                <label for="account-new-password" class="form-label" data-i18n="recovery.new_password">New password</label>
+                <input id="account-new-password" type="password" class="form-control mb-2" autocomplete="new-password" minlength="12" aria-describedby="admin-password-help" disabled>
+                <label for="account-confirm-password" class="form-label" data-i18n="recovery.confirm_password">Confirm new password</label>
+                <input id="account-confirm-password" type="password" class="form-control mb-2" autocomplete="new-password" minlength="12" aria-describedby="admin-password-help" disabled>
+                <p id="admin-password-help" class="small" data-i18n="recovery.admin_password_length">Use at least 12 characters and no more than 72 UTF-8 bytes.</p>
+                <button id="account-reset-btn" type="button" class="btn btn-outline-danger" onclick="resetManagedAccountPassword()" disabled data-i18n="recovery.reset_password">Reset password</button>
+                <p id="account-operation-status" role="status" aria-live="polite"></p>
+            </div>
+        </div></div>
     </div>
 
     <!-- Student Detail Modal -->
@@ -1950,6 +1972,7 @@
     <!-- Scripts -->
     <script src="/static/vendor/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script type="module" src="/static/js/auth.js?v=20260204"></script>
+    <script src="/static/js/admin-accounts.js"></script>
     <script type="module" src="/static/js/dashboard.js"></script>
     <script type="module" src="/static/js/modules/inbox.js"></script>
     <script type="module" src="/static/js/assessment.js"></script> <!-- Added Assessment Logic -->

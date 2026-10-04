@@ -7,6 +7,8 @@ Private installation backups use the separate encrypted recovery service.
 from copy import deepcopy
 from datetime import datetime, timezone
 import json
+from hashlib import sha256
+from uuid import uuid4
 from typing import Any, Literal
 
 from cryptography.fernet import Fernet, InvalidToken
@@ -43,13 +45,14 @@ from src.core.services.assistance_policy import (
 )
 from src.core.services.content_schema import normalize_content, learner_content
 
-PACKAGE_VERSION = 1
+PACKAGE_VERSION: Literal[2] = 2
 MAX_PACKAGE_BYTES = 10 * 1024 * 1024
 COURSE_EXCLUSIONS = [
     "accounts and credentials",
     "student assignments and submissions",
     "learning notes, annotations and messages",
     "provider configuration",
+    "original source binaries, external media and linked files",
 ]
 
 
@@ -132,7 +135,8 @@ class BookData(PackageModel):
 
 class CoursePackage(PackageModel):
     format: Literal["slmeducator-course"] = "slmeducator-course"
-    version: Literal[1] = PACKAGE_VERSION
+    version: Literal[1, 2] = PACKAGE_VERSION
+    manifest: dict = Field(default_factory=dict)
     audience: Literal["learner", "teacher"]
     exported_at: str
     study_plan: PlanData
@@ -310,14 +314,24 @@ def export_course(db: Session, user: User, plan: StudyPlan, audience: str) -> di
         .all()
     )
     linked = {link.content_id: link.content for link in links}
-    linked.update(
-        {
-            content.id: content
-            for content in db.query(Content).filter_by(study_plan_id=plan.id)
-        }
-    )
+    # Ordered links are authoritative. Direct associations are a legacy fallback
+    # only when the course has no link graph at all.
+    if not links:
+        linked.update(
+            {
+                content.id: content
+                for content in db.query(Content).filter_by(study_plan_id=plan.id)
+            }
+        )
     contents = []
     for content in linked.values():
+        references = list(content.difficulty_prerequisites or []) + (
+            [content.remedial_for_content_id] if content.remedial_for_content_id else []
+        )
+        if teacher and not set(references).issubset(linked):
+            raise ValueError(
+                "Include prerequisite/remedial content in the course graph before exporting a teacher package"
+            )
         allowed = (
             can_reuse_content(db, user, content)
             if teacher
@@ -360,10 +374,19 @@ def export_course(db: Session, user: User, plan: StudyPlan, audience: str) -> di
                 ],
             }
         )
+    if not links:
+        for index, item in enumerate(contents):
+            item["links"] = [
+                {"phase_index": 0, "order_index": index, "is_required": True}
+            ]
     assessments = []
     for item in (
         db.query(Assessment).filter_by(study_plan_id=plan.id).order_by(Assessment.id)
     ):
+        if teacher and item.topic_id and item.topic_id not in linked:
+            raise ValueError(
+                "Include the assessment topic in the course graph before exporting"
+            )
         allowed = (
             can_manage_assessment(db, user, item)
             if teacher
@@ -392,6 +415,17 @@ def export_course(db: Session, user: User, plan: StudyPlan, audience: str) -> di
             if item["topic_source_id"] not in visible_contents:
                 item["topic_source_id"] = None
     metadata = _clean_metadata(_json_field(plan.content_metadata)) if teacher else {}
+    author_metadata = _json_field(plan.content_metadata)
+    course_reference = (
+        author_metadata.get("course_identity")
+        or sha256(
+            f"legacy:{plan.id}:{plan.creator_id}:{plan.created_at}".encode()
+        ).hexdigest()
+    )
+    ordered = [item["source_id"] for item in contents]
+    phases = _canonical_package_phases(plan.phases or [], contents)
+    if teacher and phases != (plan.phases or []):
+        metadata["author_outline"] = _clean_metadata(plan.phases or [])
     if "workflow" in metadata:
         metadata["workflow"] = {
             key: metadata["workflow"].get(key) for key in ("status", "version")
@@ -399,16 +433,30 @@ def export_course(db: Session, user: User, plan: StudyPlan, audience: str) -> di
     data = {
         "format": "slmeducator-course",
         "version": PACKAGE_VERSION,
+        "manifest": {
+            "course_reference": course_reference,
+            "identity_provenance": (
+                "persisted"
+                if author_metadata.get("course_identity")
+                else "derived_legacy_reference"
+            ),
+            "ordered_content_ids": ordered,
+            "source_document_id": (
+                author_metadata.get("source_document", {}).get("document_id")
+                if teacher
+                else None
+            ),
+            "review_version": author_metadata.get("workflow", {}).get("version", 0),
+            "graph_provenance": (
+                "ordered_links" if links else "legacy_direct_associations_id_order"
+            ),
+        },
         "audience": audience,
         "exported_at": datetime.now(timezone.utc).isoformat(),
         "study_plan": {
             "title": plan.title,
             "description": plan.description,
-            "phases": (
-                _clean_metadata(plan.phases or [])
-                if teacher
-                else _learner_phases(plan.phases or [])
-            ),
+            "phases": phases if teacher else _learner_phases(phases),
             "metadata": metadata,
         },
         "contents": contents,
@@ -440,6 +488,33 @@ def export_course(db: Session, user: User, plan: StudyPlan, audience: str) -> di
     return validate_package(data).model_dump(mode="json")
 
 
+def _canonical_package_phases(phases: list, contents: list[dict]) -> list[dict]:
+    """Use the same phase/order graph as rendering; preserve author outline separately."""
+    indexes = {link["phase_index"] for item in contents for link in item["links"]}
+    result = []
+    for index in range(max(indexes | {len(phases) - 1}, default=-1) + 1):
+        original = (
+            phases[index]
+            if index < len(phases) and isinstance(phases[index], dict)
+            else {}
+        )
+        phase = {
+            key: deepcopy(original[key])
+            for key in ("name", "title", "description", "objectives")
+            if key in original
+        }
+        phase.setdefault("name", f"Phase {index + 1}")
+        ordered = sorted(
+            (link["order_index"], item["source_id"])
+            for item in contents
+            for link in item["links"]
+            if link["phase_index"] == index
+        )
+        phase["content_ids"] = [content_id for _, content_id in ordered]
+        result.append(phase)
+    return result
+
+
 def _learner_phases(phases: list) -> list:
     """Only phase headings/objectives belong in a learner handout."""
     return [
@@ -458,6 +533,14 @@ def preview_package(package: dict) -> dict:
     parsed = validate_package(package)
     return {
         "audience": parsed.audience,
+        "package_version": parsed.version,
+        "compatible_versions": [1, 2],
+        "validation": {
+            "valid": True,
+            "content_graph": "checked",
+            "source": "reported provenance; original binary excluded",
+        },
+        "import_effect": "Creates an independent private draft; no existing course or assignment is overwritten",
         "counts": {
             "contents": len(parsed.contents),
             "assessments": len(parsed.assessments),
@@ -485,6 +568,8 @@ def validate_package(data: dict) -> CoursePackage:
     if len(json.dumps(data, ensure_ascii=False).encode()) > MAX_PACKAGE_BYTES:
         raise ValueError("Course package exceeds the 10 MB limit")
     package = CoursePackage.model_validate(data)
+    if type(data.get("version")) is not int or data["version"] not in {1, 2}:
+        raise ValueError("Unsupported course package version")
     if len(package.study_plan.phases) > 101 or any(
         not isinstance(phase, dict) for phase in package.study_plan.phases
     ):
@@ -503,6 +588,10 @@ def validate_package(data: dict) -> CoursePackage:
     for item in package.contents:
         # Every ingress shares creation/editing semantics; validate before writes.
         item.content_data = normalize_content(item.kind.value, item.content_data)
+        if len(item.links) > 1:
+            raise ValueError(
+                "A course item may appear only once in the canonical graph"
+            )
         for link in item.links:
             position = (link.phase_index, link.order_index)
             if position in positions:
@@ -529,6 +618,43 @@ def validate_package(data: dict) -> CoursePackage:
             raise ValueError("Rubric question is outside this assessment")
     content_map = {source_id: source_id for source_id in content_ids}
     assessment_map = {source_id: source_id for source_id in assessment_ids}
+    if package.version == 2:
+        order = package.manifest.get("ordered_content_ids")
+        if (
+            not isinstance(order, list)
+            or any(type(value) is not int for value in order)
+            or len(order) != len(content_ids)
+            or set(order) != set(content_ids)
+        ):
+            raise ValueError(
+                "Version 2 manifest must include each content ID exactly once"
+            )
+        if (
+            not isinstance(package.manifest.get("course_reference"), str)
+            or not package.manifest["course_reference"]
+        ):
+            raise ValueError("Version 2 requires an explicit course reference")
+        canonical_order = [
+            content_id
+            for _, _, content_id in sorted(
+                (link.phase_index, link.order_index, item.source_id)
+                for item in package.contents
+                for link in item.links
+            )
+        ]
+        if order != canonical_order:
+            raise ValueError("Manifest order must match the canonical course graph")
+        if package.audience == "teacher":
+            expected = _canonical_package_phases(
+                package.study_plan.phases,
+                [item.model_dump(mode="json") for item in package.contents],
+            )
+            if [
+                phase.get("content_ids", []) for phase in package.study_plan.phases
+            ] != [phase["content_ids"] for phase in expected]:
+                raise ValueError(
+                    "Phase content references must match the canonical course graph"
+                )
     _remap(package.study_plan.phases, content_map, assessment_map)
     _remap(package.study_plan.metadata, content_map, assessment_map)
     for item in package.contents:
@@ -569,19 +695,19 @@ def _remap(
         return result
     if isinstance(value, list):
         if parent_key in {"content_ids", "lessons", "content"}:
-            result = []
+            mapped_list = []
             for item in value:
                 if type(item) is int:
                     if item not in content_ids:
                         raise ValueError(
                             "Phase content reference is outside this package"
                         )
-                    result.append(content_ids[item])
+                    mapped_list.append(content_ids[item])
                 elif parent_key == "content_ids":
                     raise ValueError("Content references must be positive integers")
                 else:
-                    result.append(_remap(item, content_ids, assessment_ids, parent_key))
-            return result
+                    mapped_list.append(_remap(item, content_ids, assessment_ids, parent_key))
+            return mapped_list
         return [_remap(item, content_ids, assessment_ids, parent_key) for item in value]
     return value
 
@@ -629,7 +755,7 @@ def import_course(db: Session, user: User, data: dict) -> StudyPlan:
                     StudyPlanContent(
                         study_plan_id=plan.id,
                         content_id=content.id,
-                        **link.model_dump()
+                        **link.model_dump(),
                     )
                 )
         for item in package.assessments:
@@ -645,7 +771,7 @@ def import_course(db: Session, user: User, data: dict) -> StudyPlan:
                 is_published=False,
                 created_by_id=user.id,
                 study_plan_id=plan.id,
-                topic_id=content_ids.get(item.topic_source_id),
+                topic_id=content_ids.get(item.topic_source_id) if item.topic_source_id is not None else None,
             )
             db.add(assessment)
             db.flush()
@@ -661,7 +787,7 @@ def import_course(db: Session, user: User, data: dict) -> StudyPlan:
             content.set_encrypted_content_data(
                 _remap(_clean_metadata(item.content_data), content_ids, assessment_ids)
             )
-            content.remedial_for_content_id = content_ids.get(item.remedial_source_id)
+            content.remedial_for_content_id = content_ids.get(item.remedial_source_id) if item.remedial_source_id is not None else None
             content.difficulty_prerequisites = [
                 content_ids[source_id] for source_id in item.prerequisite_source_ids
             ]
@@ -679,6 +805,14 @@ def import_course(db: Session, user: User, data: dict) -> StudyPlan:
             _clean_metadata(package.study_plan.metadata), content_ids, assessment_ids
         )
         metadata["workflow"] = {"status": "draft", "version": 0}
+        metadata["course_identity"] = str(uuid4())
+        metadata["import_lineage"] = {
+            "source_course_reference": package.manifest.get("course_reference"),
+            "package_version": package.version,
+            "package_digest": sha256(
+                json.dumps(data, sort_keys=True, ensure_ascii=False).encode()
+            ).hexdigest(),
+        }
         plan.set_encrypted_metadata(metadata)
         plan.phases = _remap(package.study_plan.phases, content_ids, assessment_ids)
         db.flush()
@@ -717,10 +851,75 @@ def _import_questions(
             description=source.description,
             created_by_id=owner_id,
             assessment_id=assessment.id,
-            question_id=questions.get(source.question_source_id),
+            question_id=questions.get(source.question_source_id) if source.question_source_id is not None else None,
             total_points=sum(criterion.max_points for criterion in source.criteria),
         )
         db.add(rubric)
         db.flush()
         for criterion in source.criteria:
             db.add(RubricCriterion(rubric_id=rubric.id, **criterion.model_dump()))
+
+
+def render_handout(package: dict, format_name: str) -> str:
+    """Render the validated learner graph as inert, readable text with no external assets."""
+    from html import escape
+
+    parsed = validate_package(package)
+    if parsed.audience != "learner" or format_name not in {"html", "markdown"}:
+        raise ValueError("Readable formats require a learner handout")
+    lines = [
+        parsed.study_plan.title,
+        parsed.study_plan.description or "",
+        "Learner handout: not a restorable teacher package. External media and original files are excluded.",
+    ]
+    for item in parsed.contents:
+        data = item.content_data
+        lines.extend(["", item.title])
+        sections = data.get("sections")
+        if sections:
+            for section in sections:
+                lines.extend([section.get("title", ""), section.get("content", "")])
+        else:
+            for key in (
+                "content",
+                "text",
+                "body",
+                "question",
+                "question_text",
+                "instructions",
+                "answer",
+            ):
+                if isinstance(data.get(key), str):
+                    lines.append(data[key])
+        for key in ("objectives", "key_concepts", "summary", "options"):
+            value = data.get(key)
+            if value:
+                lines.append(
+                    value
+                    if isinstance(value, str)
+                    else json.dumps(value, ensure_ascii=False)
+                )
+        for term in data.get("vocabulary", []):
+            lines.append(f"{term.get('term', '')}: {term.get('definition', '')}")
+    for assessment in parsed.assessments:
+        lines.extend(["", assessment.title, assessment.instructions or ""])
+        for question in sorted(
+            assessment.questions, key=lambda question: question.order_index
+        ):
+            lines.append(f"{question.question_text} ({question.points} points)")
+            if question.options:
+                lines.append(
+                    json.dumps(_learner_options(question.options), ensure_ascii=False)
+                )
+    text = "\n\n".join(str(line) for line in lines if line is not None)
+    if format_name == "markdown":
+        return escape(text)
+    return (
+        '<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>'
+        + escape(parsed.study_plan.title)
+        + "</title><body><main><h1>"
+        + escape(parsed.study_plan.title)
+        + "</h1><pre>"
+        + escape(text)
+        + "</pre></main></body></html>"
+    )

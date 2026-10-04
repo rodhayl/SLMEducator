@@ -2,6 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional, List
 from fastapi.security import OAuth2PasswordRequestForm
+from sqlalchemy.orm import Session
+from src.api.dependencies import get_db
+from src.core.services.temporal_service import utc_now
 
 from src.core.services.auth import get_auth_service, AuthService, AuthenticationError
 from src.core.models import UserRole, User
@@ -101,7 +104,10 @@ async def register(
                     status_code=403, detail="Teachers can only create student accounts"
                 )
             if user_data.teacher_id not in (None, current_user.id):
-                raise HTTPException(status_code=403, detail="Teachers can only enroll their own learners")
+                raise HTTPException(
+                    status_code=403,
+                    detail="Teachers can only enroll their own learners",
+                )
         else:
             raise HTTPException(
                 status_code=403, detail="Students cannot create user accounts"
@@ -115,7 +121,9 @@ async def register(
             last_name=user_data.last_name,
             role=role_enum,
             teacher_id=(
-                current_user.id if current_user.role == UserRole.TEACHER else user_data.teacher_id
+                current_user.id
+                if current_user.role == UserRole.TEACHER
+                else user_data.teacher_id
             ),
         )
         return user
@@ -191,14 +199,19 @@ async def list_users(
         None, description="Filter by role: student, teacher, admin"
     ),
     limit: int = Query(200, ge=1, le=500),
+    include_inactive: bool = False,
     current_user: User = Depends(require_roles(UserRole.TEACHER, UserRole.ADMIN)),
     auth_service: AuthService = Depends(get_auth_service),
 ):
     """List users for admin/teacher management views."""
     with auth_service.db_service.get_session() as session:
-        query = session.query(User).filter(
-            User.active.is_(True), User.id != current_user.id
-        )
+        if include_inactive and current_user.role != UserRole.ADMIN:
+            raise HTTPException(
+                status_code=403, detail="Only administrators can view inactive accounts"
+            )
+        query = session.query(User).filter(User.id != current_user.id)
+        if not include_inactive:
+            query = query.filter(User.active.is_(True))
 
         if current_user.role == UserRole.TEACHER:
             query = query.filter(
@@ -236,6 +249,100 @@ async def list_users(
 class PasswordChange(BaseModel):
     current_password: str = Field(min_length=1, max_length=128)
     new_password: str = Field(min_length=12, max_length=128)
+
+
+class AccountStatusChange(BaseModel):
+    active: bool
+    confirm: bool = False
+
+
+class AccountPasswordReset(BaseModel):
+    new_password: str = Field(min_length=12, max_length=128)
+    confirm: bool = False
+
+
+@router.patch("/users/{user_id}/status")
+def change_account_status(
+    user_id: int,
+    request: AccountStatusChange,
+    current_user: User = Depends(require_roles(UserRole.ADMIN)),
+    db: Session = Depends(get_db),
+):
+    """Apply a confirmed administrator action while preserving account history."""
+    if not request.confirm:
+        raise HTTPException(
+            status_code=409, detail="Confirm the selected account status change"
+        )
+    db.query(User).filter(User.role == UserRole.ADMIN).update(
+        {User.xp: User.xp}, synchronize_session=False
+    )
+    actor = db.get(User, current_user.id)
+    db.refresh(actor)
+    if not actor.active or actor.role != UserRole.ADMIN:
+        db.rollback()
+        raise HTTPException(status_code=403, detail="Active administrator required")
+    target = db.get(User, user_id)
+    if not target:
+        db.rollback()
+        raise HTTPException(status_code=404, detail="Account not found")
+    if not request.active and (
+        target.id == actor.id
+        or (
+            target.role == UserRole.ADMIN
+            and db.query(User).filter_by(role=UserRole.ADMIN, active=True).count() <= 1
+        )
+    ):
+        db.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail="Cannot deactivate yourself or the last active administrator",
+        )
+    settings = dict(target.settings or {})
+    settings["auth_version"] = int(settings.get("auth_version", 0)) + 1
+    history = list(settings.get("account_admin_history", []))
+    history.append(
+        {
+            "action": "activate" if request.active else "deactivate",
+            "actor_id": actor.id,
+            "at": utc_now().isoformat(),
+        }
+    )
+    settings["account_admin_history"] = history
+    target.settings = settings
+    target.active = request.active
+    db.commit()
+    return {"id": target.id, "active": target.active, "sessions_revoked": True}
+
+
+@router.post("/users/{user_id}/reset-password")
+def reset_account_password(
+    user_id: int,
+    request: AccountPasswordReset,
+    current_user: User = Depends(require_roles(UserRole.ADMIN)),
+    auth_service: AuthService = Depends(get_auth_service),
+):
+    """Accept an explicitly entered credential; never generate, send or return it."""
+    if not request.confirm:
+        raise HTTPException(
+            status_code=409, detail="Confirm password recovery for the selected account"
+        )
+    if user_id == current_user.id:
+        raise HTTPException(
+            status_code=409,
+            detail="Use the current-password change flow for your own account",
+        )
+    if len(request.new_password.encode("utf-8")) > 72:
+        raise HTTPException(
+            status_code=422, detail="Password must be at most 72 UTF-8 bytes"
+        )
+    try:
+        if not auth_service.reset_password(
+            user_id, request.new_password, actor_id=current_user.id
+        ):
+            raise HTTPException(status_code=404, detail="Account not found")
+        return {"id": user_id, "reset": True, "sessions_revoked": True}
+    except AuthenticationError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
 
 
 @router.post("/change-password")

@@ -205,11 +205,11 @@ window.replaceCourseSource = async () => {
         if (!await showConfirm(SLMClient.message('source_replace_confirm', 'Keep all previous content and generate a new version from this source? This resets review and marks previous generation jobs obsolete. New generation starts only when you choose Generate new version.'))) return;
         if (courseOwner !== SLMClient.account()) return;
         const manifest = await uploadSourceManifest(file);
-        if (manifest.source_version === sourceCoverage?.source_version) { document.getElementById('source-replacement-status').textContent = SLMClient.message('source_unchanged', 'This source is already saved. No generation tasks were changed.'); return; }
         const saved = await SLMClient.request(`/api/study-plans/${createdStudyPlanId}/source`, {method:'PUT', headers:getAuthHeaders(), body:JSON.stringify(manifest)});
         if (!saved?.document_id) throw new Error(SLMClient.message('source_save_unconfirmed', 'The server did not confirm the source was saved. Retry before generating.'));
-        sourceCoverage = manifest; sourceMaterialText = manifest.extracted_text;
-        sourceDocumentId = saved.document_id; sourceSavedVersion = manifest.source_version;
+        const sameText = sourceDocumentId && saved.document_id === sourceDocumentId;
+        adoptSavedCourseSource(saved, manifest);
+        if (sameText) { renderSourceCoverage(); persistCourse(); document.getElementById('source-replacement-status').textContent = SLMClient.message('source_metadata_updated', 'Source provenance updated. The extracted text is unchanged, so generation tasks are kept.'); input.value = ''; return; }
         generationTasks = generationTasks.map(task => ({ ...task, status: 'pending' }));
         completedTasks = 0; failedTasks = generationTasks.length;
         renderSourceCoverage(); persistCourse();
@@ -498,6 +498,17 @@ async function createStudyPlanShell() {
     log(`Study plan draft saved (${createdStudyPlanId}).`);
 }
 
+function adoptSavedCourseSource(saved, fallback) {
+    const source = saved.source;
+    if (source && typeof source.extracted_text === 'string' && Array.isArray(source.sections)) {
+        sourceCoverage = { ...source, extracted_text: source.extracted_text, sections: source.sections,
+            source_version: Object.hasOwn(source, 'original_bytes_hash') ? source.original_bytes_hash : source.source_version,
+            coverage: source.extraction_coverage || source.coverage || 'unknown', char_count: source.extracted_text.length };
+    } else sourceCoverage = fallback;
+    sourceMaterialText = sourceCoverage.extracted_text;
+    sourceDocumentId = saved.document_id; sourceSavedVersion = sourceCoverage.source_version;
+}
+
 async function ensureCourseSource() {
     if (!sourceCoverage || !sourceMaterialText || !createdStudyPlanId) return;
     if (sourceDocumentId && sourceSavedVersion === sourceCoverage.source_version) return;
@@ -508,7 +519,7 @@ async function ensureCourseSource() {
         method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify(sourceCoverage)
     });
     if (!saved?.document_id) throw new Error(SLMClient.message('source_save_unconfirmed', 'The server did not confirm the source was saved. Retry before generating.'));
-    sourceDocumentId = saved.document_id; sourceSavedVersion = sourceCoverage.source_version;
+    adoptSavedCourseSource(saved, sourceCoverage);
     persistCourse();
 }
 

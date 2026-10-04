@@ -2,7 +2,6 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from typing import Optional, List, Literal
 from sqlalchemy.orm import Session
-from starlette.concurrency import run_in_threadpool
 
 from src.api.security import get_current_user
 from src.api.dependencies import get_db, get_ai_service_dependency
@@ -10,6 +9,7 @@ from src.api.policies import require_content, require_plan
 from src.core.models import User, StudyPlanContent, LearningSession, ContentType
 from types import SimpleNamespace
 from src.core.services.assistance_policy import effective_policy
+from src.core.services import ai_request_lifecycle as lifecycle
 from src.core.exceptions import AIResponseParseError, AIContentValidationError
 from src.core.services.learning_context import (
     source_context,
@@ -28,6 +28,9 @@ class ChatMessage(BaseModel):
 
 
 class ChatRequest(BaseModel):
+    client_request_id: Optional[str] = Field(
+        default=None, min_length=1, max_length=80, pattern="^[A-Za-z0-9_-]+$"
+    )
     message: str = Field(min_length=1, max_length=4000)
     context_id: Optional[int] = None
     study_plan_id: Optional[int] = None
@@ -42,6 +45,7 @@ class ChatRequest(BaseModel):
 
 
 class ChatResponse(BaseModel):
+    receipt: Optional[dict] = None
     response: str
     suggestions: Optional[List[str]] = None
     status: Literal["suggestion", "unavailable", "invalid_response"] = "suggestion"
@@ -177,8 +181,7 @@ def preview_tutor_context(
     return {"source": source, "source_verified": False}
 
 
-@router.post("/chat", response_model=ChatResponse)
-async def chat_with_tutor(
+async def _chat_impl(
     request: ChatRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -206,9 +209,10 @@ async def chat_with_tutor(
     try:
         # Authorization precedes service construction and every provider call.
         ai_service = get_ai_service_dependency(current_user, db)
-        result = await run_in_threadpool(
-            ai_service.provide_tutoring,
-            user=current_user,
+        result = await lifecycle.invoke_provider(
+            db,
+            current_user,
+            ai_service,
             question=request.message,
             context=f"Assistance mode: {assistance}. Teacher policy: {policy['mode']}. In hint mode give a hint only, without solving the current assessment. Invite an independent attempt. Never disclose hidden assessment answers.",
             study_plan_context=plan_context,
@@ -281,6 +285,9 @@ async def chat_with_tutor(
 
 
 class AnswerQuestionRequest(BaseModel):
+    client_request_id: Optional[str] = Field(
+        default=None, min_length=1, max_length=80, pattern="^[A-Za-z0-9_-]+$"
+    )
     """Request to get AI-powered answer for a Q&A question."""
 
     question: str = Field(min_length=1, max_length=4000)
@@ -293,6 +300,7 @@ class AnswerQuestionRequest(BaseModel):
 
 
 class AnswerQuestionResponse(BaseModel):
+    receipt: Optional[dict] = None
     """AI-generated answer for Q&A."""
 
     answer: str
@@ -309,8 +317,7 @@ class AnswerQuestionResponse(BaseModel):
     effective_assistance: str = "explanation"
 
 
-@router.post("/answer-question", response_model=AnswerQuestionResponse)
-def answer_question(
+async def _answer_impl(
     request: AnswerQuestionRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -340,8 +347,10 @@ Keep answers concise but thorough enough to be helpful."""
             system_context += f"\n\nAdditional context: {request.context}"
 
         # Use the tutoring method to get an educational response
-        result = ai_service.provide_tutoring(
-            user=current_user,
+        result = await lifecycle.invoke_provider(
+            db,
+            current_user,
+            ai_service,
             question=request.question,
             context=system_context,
             study_plan_context=None,
@@ -389,3 +398,80 @@ Keep answers concise but thorough enough to be helpful."""
     finally:
         if ai_service is not None:
             ai_service.close()
+
+
+async def _with_request_lifecycle(request, user, db, implementation, response_type):
+    """Apply one concurrency/quota/cancellation contract to both tutoring routes."""
+    policy, applied_mode = _permitted_assistance(db, user, request.assistance)
+    payload = request.model_dump(exclude={"client_request_id"})
+    payload["applied_assistance_policy"] = policy
+    payload["applied_assistance_mode"] = applied_mode
+    if isinstance(request, ChatRequest):
+        source, _ = _authorized_source(
+            db,
+            user,
+            request.content_id or request.context_id,
+            request.study_plan_id,
+            request.section_ids,
+            request.message,
+            request.session_id,
+        )
+        if request.source_version and (
+            source is None or source.source_version != request.source_version
+        ):
+            raise HTTPException(
+                status_code=409, detail="Source revision changed; reload context"
+            )
+        payload["resolved_source_version"] = source.source_version if source else None
+    record = lifecycle.begin(user.id, request.client_request_id, payload)
+    if record.result is not None:
+        return response_type.model_validate(record.result)
+    token = lifecycle.CURRENT_REQUEST.set(record)
+    try:
+        result = await implementation(request, user, db)
+        return response_type.model_validate(
+            lifecycle.finish(record, result.model_dump())
+        )
+    except BaseException:
+        lifecycle.finish(record)
+        raise
+    finally:
+        lifecycle.CURRENT_REQUEST.reset(token)
+
+
+@router.post("/chat", response_model=ChatResponse)
+async def chat_with_tutor(
+    request: ChatRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return await _with_request_lifecycle(
+        request, current_user, db, _chat_impl, ChatResponse
+    )
+
+
+@router.post("/answer-question", response_model=AnswerQuestionResponse)
+async def answer_question(
+    request: AnswerQuestionRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return await _with_request_lifecycle(
+        request, current_user, db, _answer_impl, AnswerQuestionResponse
+    )
+
+
+@router.get("/usage")
+def ai_usage(
+    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
+):
+    """Show finite local request limits; never infer monetary cost from tokens."""
+    return lifecycle.usage(db, current_user.id)
+
+
+@router.post("/requests/{request_id}/cancel")
+async def cancel_ai_request(
+    request_id: str, current_user: User = Depends(get_current_user)
+):
+    """Confirm local suppression, not remote provider termination or zero charges."""
+    return lifecycle.cancel(current_user.id, request_id)

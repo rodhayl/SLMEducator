@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, ConfigDict, Field
 from datetime import datetime
+from uuid import uuid4
 from src.core.services.temporal_service import utc_now
 
 from src.api.dependencies import get_db
@@ -152,7 +153,12 @@ async def create_study_plan(
             phases=[p.model_dump() for p in plan.phases],  # Store structure as JSON
             created_at=utc_now(),
         )
-        new_plan.set_encrypted_metadata({"workflow": {"status": "draft", "version": 0}})
+        new_plan.set_encrypted_metadata(
+            {
+                "workflow": {"status": "draft", "version": 0},
+                "course_identity": str(uuid4()),
+            }
+        )
         db.add(new_plan)
         db.flush()  # Get ID
 
@@ -237,6 +243,9 @@ def edit_study_plan(
                 raise ValueError("Unknown course content")
             require_allowed(can_reuse_content(db, current_user, content))
         db.query(StudyPlanContent).filter_by(study_plan_id=plan_id).delete()
+        db.query(Content).filter(
+            Content.study_plan_id == plan_id, ~Content.id.in_(ids)
+        ).update({Content.study_plan_id: None}, synchronize_session=False)
         for phase_index, phase in enumerate(request.phases):
             for order_index, content_id in enumerate(phase.content_ids):
                 db.add(

@@ -213,3 +213,11 @@ test('admin teacher assignment shows current owner, permits explicit removal and
     const request=calls.find(call=>call.options.method==='PUT');assert.equal(request.url,'/api/students/8/teacher');assert.equal(JSON.parse(request.options.body).teacher_id,null);
     w.showConfirm=async()=>{w.currentStudentId=10;return true;};await w.saveStudentTeacher();assert.equal(calls.filter(call=>call.options.method==='PUT').length,1);dom.window.close();
 });
+
+test('dashboard teacher help blocks duplicate clicks and retries the same request identity',async()=>{
+ const {dom,w}=await fixture('dashboard.html');w.getLearningContext=()=>({contentId:8,studyPlanId:4});w.bootstrap={Modal:{getInstance:()=>({hide(){}})}};
+ const source=read('static/js/dashboard.js');w.eval(source.slice(source.indexOf('// Help requests keep one identity'),source.indexOf('// Initialize Help Modal')));
+ const calls=[];let failure=true;w.fetch=async(url,options)=>{const payload=JSON.parse(options.body);calls.push(payload);return failure?reply({detail:'Lost response'},500):reply({id:55,student_id:7,client_request_id:payload.client_request_id,status:'open',content_id:payload.content_id,study_plan_id:payload.study_plan_id,request_text:`${payload.subject}: ${payload.description}`});};
+ w.document.getElementById('help-subject').value='Synthetic subject';w.document.getElementById('help-desc').value='Keep my question';const first=w.submitHelpRequest();await w.submitHelpRequest();await first;
+ assert.equal(calls.length,1);assert.equal(w.document.getElementById('help-desc').value,'Keep my question');failure=false;await w.submitHelpRequest();assert.equal(calls.length,2);assert.equal(calls[0].client_request_id,calls[1].client_request_id);assert.equal(w.document.getElementById('help-desc').value,'');dom.window.close();
+});

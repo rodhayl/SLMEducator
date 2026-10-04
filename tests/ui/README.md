@@ -4,7 +4,7 @@ These checks are deliberately separate from real-browser and real-provider tests
 
 - Python source/asset/semantic contracts: `python -m pytest tests/ui/test_style_standardization.py tests/ui/test_frontend_safety.py -q --basetemp=/tmp/slm-ui-source-UNIQUE`
 - DOM behavior (Node 20+): from `tests/ui`, run `npm ci --ignore-scripts` then `npm test`.
-- To keep dependencies outside the checkout: `npm ci --prefix /tmp/slm-ui-test-deps` after copying this package.json and package-lock.json there, then run `NODE_PATH=/tmp/slm-ui-test-deps/node_modules node --test tests/ui/*.test.cjs` from the project root.
+- To keep dependencies outside the checkout: `npm ci --prefix /tmp/slm-ui-test-deps` after copying this package.json and package-lock.json there, then run `NODE_PATH=/tmp/slm-ui-test-deps/node_modules node --test --test-concurrency=1 tests/ui/*.test.cjs` from the project root.
 
 The jsdom suite executes the real bundled sanitizer, renderer and UI handlers with
 synthetic HTTP responses. It covers injected author/model/import strings, denied
@@ -22,3 +22,5 @@ Third-party browser assets are local, pinned, licensed and hashed in
 then run both suites. Do not silently restore unpinned CDN scripts.
 
 Role journey regressions cover selected registration roles and creator sessions, completed versus paused navigation, pending lesson IDs, teacher grading deep links, read-only learner feedback, editable drafts, assigned-plan immutability, teacher-only assessment preview, closed attempt persistence, context changes and bilingual page language. Synthetic DOM tests do not establish live browser acceptance.
+
+The default Node script runs files serially to keep jsdom resource use bounded. The additional suites exercise in-lesson source-bound help and request receipts, explicit provider repair, durable source manifests, portability formats, and confirmed administrator account operations with synthetic inputs only.
