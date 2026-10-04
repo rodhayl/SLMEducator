@@ -1,13 +1,16 @@
 """
 Spaced Repetition Service for SLMEducator - Phase 1: Adaptive AI Tutor
 
-Implements spaced repetition algorithm (SM-2) for optimal content review scheduling.
+Implements a small interval heuristic for content review scheduling. It is not a
+validated SM-2 implementation or evidence of learning efficacy.
 """
 
 import logging
+from src.core.services.temporal_service import utc_now, known_before, known_instant
+
 from datetime import datetime, timedelta
 from typing import List, Dict, Any
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.exc import SQLAlchemyError
 
 from ..models import MasteryNode, Content
@@ -58,7 +61,7 @@ class SpacedRepetitionService:
         final_interval = int(base_interval * multiplier)
 
         # Return next review date
-        return datetime.now() + timedelta(days=final_interval)
+        return utc_now() + timedelta(days=final_interval)
 
     def get_due_reviews(self, student_id: int, limit: int = 10) -> List[Dict[str, Any]]:
         """
@@ -77,9 +80,9 @@ class SpacedRepetitionService:
                 select(MasteryNode)
                 .where(
                     MasteryNode.student_id == student_id,
-                    MasteryNode.next_review_due <= datetime.now(),
+                    known_before(MasteryNode.next_review_due, utc_now(), inclusive=True),
                 )
-                .order_by(MasteryNode.next_review_due)
+                .order_by(func.julianday(MasteryNode.next_review_due))
                 .limit(limit)
             )
 
@@ -110,7 +113,7 @@ class SpacedRepetitionService:
                             "last_reviewed": node.last_reviewed,
                             "next_review_due": node.next_review_due,
                             "days_overdue": (
-                                (datetime.now() - node.next_review_due).days
+                                (utc_now() - node.next_review_due).days
                                 if node.next_review_due
                                 else 0
                             ),
@@ -151,14 +154,14 @@ class SpacedRepetitionService:
                     student_id=student_id,
                     content_id=content_id,
                     mastery_level=performance_score,
-                    last_reviewed=datetime.now(),
+                    last_reviewed=utc_now(),
                     review_count=1,
                 )
                 session.add(node)
             else:
                 old_mastery = node.mastery_level or 0
                 node.mastery_level = int(0.7 * performance_score + 0.3 * old_mastery)
-                node.last_reviewed = datetime.now()
+                node.last_reviewed = utc_now()
                 review_count = node.review_count or 0
                 node.review_count = review_count + 1
 
@@ -218,7 +221,7 @@ class SpacedRepetitionService:
             items_due = sum(
                 1
                 for node in nodes
-                if node.next_review_due and node.next_review_due <= datetime.now()
+                if known_instant(node.next_review_due) and node.next_review_due <= utc_now()
             )
 
             return {
@@ -227,6 +230,7 @@ class SpacedRepetitionService:
                 "items_mastered": items_mastered,
                 "items_in_progress": items_in_progress,
                 "items_due_review": items_due,
+                "items_unknown_review_time": sum(1 for node in nodes if node.next_review_due and not known_instant(node.next_review_due)),
             }
 
     def initialize_content_for_review(self, student_id: int, content_id: int) -> bool:
@@ -260,7 +264,7 @@ class SpacedRepetitionService:
                 student_id=student_id,
                 content_id=content_id,
                 mastery_level=0,
-                next_review_due=datetime.now() + timedelta(days=1),
+                next_review_due=utc_now() + timedelta(days=1),
                 review_count=0,
             )
             session.add(node)
@@ -306,8 +310,12 @@ _spaced_repetition_service = None
 def get_spaced_repetition_service() -> SpacedRepetitionService:
     """Get or create singleton spaced repetition service instance"""
     global _spaced_repetition_service
-    if _spaced_repetition_service is None:
-        from .database import get_db_service
+    from .database import get_db_service
 
-        _spaced_repetition_service = SpacedRepetitionService(get_db_service())
+    database = get_db_service()
+    if (
+        _spaced_repetition_service is None
+        or _spaced_repetition_service.db is not database
+    ):
+        _spaced_repetition_service = SpacedRepetitionService(database)
     return _spaced_repetition_service

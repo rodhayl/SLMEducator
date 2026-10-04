@@ -1,0 +1,16 @@
+{
+  "evidence_mode": "not_run",
+  "teacher_reviewed": false,
+  "run_id": "choose-a-nonidentifying-code",
+  "provider": "not_run",
+  "model_version": "not_run",
+  "prompt_version": "teacher-reviewed-v1",
+  "source_version": "synthetic-adult-fractions-v1",
+  "hardware": "not_recorded",
+  "case_ratings": [],
+  "tasks": [],
+  "incidents": {"lost_work": 0, "false_save": 0, "unauthorized_exposure": 0, "invalid_final_grade": 0},
+  "accessibility_observations": [],
+  "abandonment_reasons": [],
+  "limitations": ["No participant or provider evaluation has been performed"]
+}

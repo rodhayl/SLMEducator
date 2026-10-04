@@ -1,195 +1,128 @@
-/**
- * Assessment listing and management
- */
+/** Assessment listing and read-only author preview. */
 import { AuthService } from './auth.js';
+
+const assessmentText = (key, fallback) => SLMClient.message(key, fallback);
+const assessmentEscape = value => SLMRender.escape(value);
+const assessmentManager = () => ['teacher', 'admin'].includes(AuthService.getRole());
+let assessmentListing = null;
 
 export async function loadAssessments() {
     const list = document.getElementById('assessment-list');
     if (!list) return;
-
     try {
-        const token = AuthService.getToken();
-        const response = await fetch('/api/assessments/', {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
-
-        if (!response.ok) throw new Error('Failed to load assessments');
-
-        const assessments = await response.json();
-        const role = AuthService.getRole();
-        const isTeacher = role === 'teacher' || role === 'admin';
-
-        if (assessments.length === 0) {
-            list.innerHTML = `
-                <div class="text-center text-muted p-4">
-                    <p>No assessments available.</p>
-                    ${isTeacher ? '<a href="assessment_builder.html" class="btn btn-primary">Create Assessment</a>' : ''}
-                </div>
-            `;
-            return;
-        }
-
-        list.innerHTML = assessments.map(a => `
-            <div class="card mb-3" data-assessment-id="${a.id}">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div>
-                            <h5 class="card-title">${escapeHtml(a.title)}</h5>
-                            <p class="card-text">${escapeHtml(a.description) || 'No description'}</p>
-                            <p class="text-muted"><small>${a.question_count || 0} Questions</small></p>
-                        </div>
-                        ${isTeacher ? `
-                        <div class="dropdown">
-                            <button class="btn btn-link text-muted" type="button" data-bs-toggle="dropdown">
-                                ⋮
-                            </button>
-                            <ul class="dropdown-menu dropdown-menu-end">
-                                <li><a class="dropdown-item" href="assessment_builder.html?id=${a.id}">✏️ Edit</a></li>
-                                <li><a class="dropdown-item" href="#" onclick="viewAssessmentStats(${a.id}); return false;">📊 View Stats</a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item text-danger" href="#" onclick="deleteAssessment(${a.id}); return false;">🗑️ Delete</a></li>
-                            </ul>
-                        </div>
-                        ` : ''}
-                    </div>
-                    <div class="mt-2">
-                        <button onclick="startAssessment(${a.id})" class="btn btn-primary btn-sm">▶️ Start Quiz</button>
-                        ${isTeacher ? `
-                        <button onclick="viewAssessmentStats(${a.id})" class="btn btn-outline-info btn-sm ms-2">📊 Stats</button>
-                        <a href="assessment_builder.html?id=${a.id}" class="btn btn-outline-secondary btn-sm ms-2">✏️ Edit</a>
-                        ` : ''}
-                    </div>
-                </div>
-            </div>
-        `).join('');
-
-    } catch (e) {
-        console.error(e);
-        list.innerHTML = '<div class="alert alert-danger">Error loading assessments</div>';
+        const assessments = await SLMClient.request('/api/assessments/');
+        if (!Array.isArray(assessments)) throw new Error(assessmentText('assessment_load_failed', 'Could not load assessments. Please retry.'));
+        assessmentListing = assessments;
+        renderAssessmentListing();
+    } catch (error) {
+        list.textContent = error.message || assessmentText('assessment_load_failed', 'Could not load assessments. Please retry.');
+        list.classList.add('text-danger');
     }
 }
 
-/**
- * Helper to escape HTML
- */
-function escapeHtml(text) {
-    if (!text) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+function renderAssessmentListing() {
+    const list = document.getElementById('assessment-list');
+    if (!list || !assessmentListing) return;
+    const manager = assessmentManager();
+    list.classList.remove('text-danger');
+    list.innerHTML = assessmentListing.length ? assessmentListing.map(a => assessmentCard(a, manager)).join('') :
+        `<p class="text-muted">${assessmentEscape(assessmentText('assessment_empty', 'No assessments available.'))}</p>`;
+    const navigation = document.createElement('a');
+    navigation.className = 'btn btn-outline-primary mb-3';
+    navigation.href = manager ? 'assessment_builder.html' : 'assessment_history.html';
+    navigation.textContent = manager ? assessmentText('assessment_create', 'Create assessment') : assessmentText('submission_history', 'My submissions and feedback');
+    list.prepend(navigation);
+    list.querySelectorAll('[data-assessment-action]').forEach(button => {
+        button.onclick = () => {
+            const id = Number(button.dataset.assessmentId);
+            const actions = { preview: window.previewAssessment, stats: window.loadAssessmentStats, delete: window.deleteAssessment };
+            actions[button.dataset.assessmentAction]?.(id);
+        };
+    });
 }
 
-/**
- * Start an assessment
- */
-window.startAssessment = async (id) => {
-    window.location.href = `assessment_taker.html?id=${id}`;
-};
-
-/**
- * View assessment statistics
- */
-// I18n helper wrapper with fallback
-function t(key, defaultMsg) {
-    if (typeof I18n !== 'undefined' && I18n.t) {
-        return I18n.t(key) || defaultMsg;
-    }
-    return defaultMsg;
+function assessmentCard(assessment, manager) {
+    const id = Number(assessment.id);
+    if (!Number.isSafeInteger(id) || id <= 0) return '';
+    const button = (action, label, style) => `<button type="button" data-assessment-action="${action}" data-assessment-id="${id}" class="btn ${style} btn-sm">${assessmentEscape(label)}</button>`;
+    const authorActions = button('preview', assessmentText('assessment_preview', 'Preview'), 'btn-primary') +
+        button('stats', assessmentText('assessment_stats', 'Statistics'), 'btn-outline-info') +
+        `<a href="assessment_builder.html?id=${id}" class="btn btn-outline-secondary btn-sm">${assessmentEscape(assessmentText('assessment_edit', 'Edit'))}</a>` +
+        button('delete', assessmentText('assessment_delete', 'Delete'), 'btn-outline-danger');
+    const learnerActions = (assessment.is_published ? `<a href="assessment_taker.html?id=${id}" class="btn btn-primary btn-sm">${assessmentEscape(assessmentText('assessment_start', 'Start or resume quiz'))}</a>` : '') +
+        `<a href="assessment_history.html?assessment_id=${id}" class="btn btn-outline-secondary btn-sm">${assessmentEscape(assessmentText('assessment_feedback', 'View submissions and feedback'))}</a>`;
+    return `<article class="card mb-3" data-assessment-id="${id}"><div class="card-body">
+        <h3 class="h5 card-title">${assessmentEscape(assessment.title)}</h3>
+        <p class="card-text">${assessmentEscape(assessment.description || '')}</p>
+        <p class="text-muted">${assessmentEscape(assessment.question_count ?? 0)} ${assessmentEscape(assessmentText('assessment_questions', 'questions'))} · ${assessmentEscape(assessmentText(assessment.is_published ? 'published_label' : 'draft_label', assessment.is_published ? 'Published' : 'Draft: review required'))}</p>
+        <div class="d-flex flex-wrap gap-2">${manager ? authorActions : learnerActions}</div>
+        </div></article>`;
 }
 
-window.loadAssessmentStats = async (id) => {
-    try {
-        const token = AuthService.getToken();
-        const response = await fetch(`/api/assessments/${id}/stats`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            if (typeof showToast === 'function') {
-                showToast(errorData.detail || 'Failed to load stats', 'danger');
-            } else {
-                console.error("Failed to load stats: " + errorData.detail);
-            }
-            return;
-        }
-
-        const stats = await response.json();
-
-        // Show stats in a modal or alert
-        const statsHtml = `
-            <strong>Assessment Statistics</strong><br><br>
-            Total Submissions: ${stats.total_submissions || 0}<br>
-            Average Score: ${stats.average_score ? stats.average_score.toFixed(1) + '%' : 'N/A'}<br>
-            Highest Score: ${stats.highest_score ? stats.highest_score + '%' : 'N/A'}<br>
-            Lowest Score: ${stats.lowest_score ? stats.lowest_score + '%' : 'N/A'}<br>
-            Pass Rate: ${stats.pass_rate ? stats.pass_rate.toFixed(1) + '%' : 'N/A'}
-        `;
-
-        // Try to use a modal if available, otherwise use alert
-        const modalBody = document.getElementById('assessment-stats-body');
-        const modal = document.getElementById('assessmentStatsModal');
-
-        if (modal && modalBody) {
-            modalBody.innerHTML = statsHtml;
-            new bootstrap.Modal(modal).show();
-        } else {
-            // Fallback to simple modal
-            if (typeof showInfoModal === 'function') {
-                showInfoModal('Assessment Statistics', statsHtml);
-            }
-        }
-    } catch (e) {
-        console.error('Error loading stats:', e);
-        if (typeof showToast === 'function') {
-            showToast('Error loading assessment statistics', 'danger');
-        }
+window.startAssessment = id => {
+    if (assessmentManager()) return window.previewAssessment(id);
+    if (AuthService.getRole() === 'student' && Number.isSafeInteger(Number(id)) && Number(id) > 0) {
+        window.location.href = `assessment_taker.html?id=${Number(id)}`;
     }
 };
 
-/**
- * Delete an assessment
- */
-window.deleteAssessment = async (id) => {
+window.previewAssessment = async id => {
+    if (!assessmentManager() || !Number.isSafeInteger(Number(id)) || Number(id) <= 0) return;
+    try {
+        const assessment = await SLMClient.request(`/api/assessments/${Number(id)}`);
+        const questions = (assessment.questions || []).map((question, index) => {
+            let choices = question.options?.choices || question.options?.options || question.options || [];
+            if (!Array.isArray(choices)) choices = Object.values(choices);
+            if (!choices.length && question.question_type === 'true_false') choices = ['True', 'False'];
+            return `<h3>${index + 1}. ${assessmentEscape(question.question_text)}</h3>
+                <p>${assessmentEscape(question.points)} ${assessmentEscape(assessmentText('assessment_points', 'points'))}</p>
+                ${Array.isArray(choices) && choices.length ? `<ul>${choices.map(choice => `<li>${assessmentEscape(choice)}</li>`).join('')}</ul>` : ''}`;
+        }).join('');
+        showInfoModal(assessment.title, `<p>${assessmentEscape(assessmentText('assessment_preview_notice', 'Teacher preview. Viewing this assessment does not start or use an attempt.'))}</p>
+            <p>${assessmentEscape(assessment.description || '')}</p>${questions}`, assessmentText('close', 'Close'));
+    } catch (error) {
+        showToast(error.message || assessmentText('assessment_load_failed', 'Could not load assessments. Please retry.'), 'danger');
+    }
+};
+
+window.loadAssessmentStats = async id => {
+    if (!assessmentManager()) return;
+    try {
+        const stats = await SLMClient.request(`/api/assessments/${Number(id)}/stats`);
+        const percent = value => Number.isFinite(value) ? `${value.toFixed(1)}%` : '—';
+        const rows = [
+            [assessmentText('assessment_final_submissions', 'Final graded submissions'), stats.total_submissions ?? 0],
+            [assessmentText('assessment_average', 'Average score'), percent(stats.average_score)],
+            [assessmentText('assessment_highest', 'Highest score'), percent(stats.highest_score)],
+            [assessmentText('assessment_lowest', 'Lowest score'), percent(stats.lowest_score)],
+            [assessmentText('assessment_pass_rate', 'Pass rate'), percent(stats.pass_rate)]
+        ];
+        showInfoModal(assessmentText('assessment_stats', 'Statistics'), rows.map(([label, value]) =>
+            `<p><strong>${assessmentEscape(label)}:</strong> ${assessmentEscape(value)}</p>`).join(''), assessmentText('close', 'Close'));
+    } catch (error) {
+        showToast(error.message || assessmentText('assessment_stats_failed', 'Could not load assessment statistics. Please retry.'), 'danger');
+    }
+};
+// Keep older callers working while all rendered controls use the implemented callback.
+window.viewAssessmentStats = window.loadAssessmentStats;
+
+window.deleteAssessment = async id => {
+    if (!assessmentManager()) return;
     const confirmed = await showConfirm(
-        'Are you sure you want to delete this assessment? This cannot be undone.',
-        'Confirm Delete',
-        'Delete',
-        'Cancel',
-        true
-    );
+        assessmentText('assessment_delete_confirm', 'Delete this assessment? This cannot be undone.'),
+        assessmentText('assessment_delete', 'Delete assessment'),
+        assessmentText('delete', 'Delete'), assessmentText('cancel', 'Cancel'), true);
     if (!confirmed) return;
-
     try {
-        const token = AuthService.getToken();
-        const response = await fetch(`/api/assessments/${id}`, {
-            method: 'DELETE',
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            if (typeof showToast === 'function') {
-                showToast(errorData.detail || 'Failed to delete assessment', 'danger');
-            }
-            return;
-        }
-
-        // Reload the list
-        loadAssessments();
-
-        if (typeof showToast === 'function') {
-            showToast('Assessment deleted successfully', 'success');
-        }
-    } catch (e) {
-        console.error('Error deleting assessment:', e);
-        if (typeof showToast === 'function') {
-            showToast('Error deleting assessment', 'danger');
-        }
+        await SLMClient.request(`/api/assessments/${Number(id)}`, { method: 'DELETE' });
+        await loadAssessments();
+        showToast(assessmentText('assessment_deleted', 'Assessment deleted.'), 'success');
+    } catch (error) {
+        showToast(error.message || assessmentText('assessment_delete_failed', 'Could not delete assessment. Please retry.'), 'danger');
     }
 };
 
-// Initial Load
 document.addEventListener('DOMContentLoaded', loadAssessments);
+
+document.addEventListener('i18n-loaded', renderAssessmentListing);
+document.addEventListener('i18n-language-changed', renderAssessmentListing);

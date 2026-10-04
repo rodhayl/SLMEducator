@@ -7,8 +7,8 @@ import pytest
 import time
 import concurrent.futures
 from unittest.mock import Mock, patch
-from core.services.ai_service import AIService
-from core.models import AIModelConfiguration, User, StudyPlan
+from src.core.services.ai_service import AIService
+from src.core.models import AIModelConfiguration, User, StudyPlan
 
 
 class TestAIPerformanceScenarios:

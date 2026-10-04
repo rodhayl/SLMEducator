@@ -123,18 +123,13 @@ Example: `implementation_documents/gui_audit_20251216_findings.md`
 - Pin versions for production stability (e.g., `package==1.2.3`)
 - Periodically run `pip check` and review security advisories
 
-### UI Styling (PySide6/Qt)
+### UI Styling (web)
 
-**NO INLINE STYLES**: Never use `setStyleSheet()` on individual widgets. Use the ThemeManager instead.
-
-```python
-# ❌ BAD
-widget.setStyleSheet("background: #1E293B; color: #F1F5F9;")
-
-# ✅ GOOD
-from ui.styles.theme import ThemeManager
-widget.setStyleSheet(f"background: {ThemeManager.SURFACE}; color: {ThemeManager.TEXT_PRIMARY};")
-```
+The maintained learning UI is FastAPI-served HTML, vanilla JavaScript and
+Bootstrap with shared tokens in `src/web/static/css/main.css`. Reuse those
+components, `safe-render.js`, `learning-client.js`, localization, theme and toast
+helpers. Keep accessible labels, focus/status feedback and keyboard alternatives.
+The packaged launcher uses Tkinter; there is no maintained Qt educational UI.
 
 ---
 
@@ -145,7 +140,7 @@ widget.setStyleSheet(f"background: {ThemeManager.SURFACE}; color: {ThemeManager.
 Always run tests that might be affected:
 
 ```bash
-pytest tests/ -v --tb=short
+pytest tests/ -v --tb=short --basetemp=/tmp/slm-tests-UNIQUE-RUN-ID
 ```
 
 **Coverage Requirement**: Maintain minimum 80% code coverage:

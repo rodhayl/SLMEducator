@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import Mock
-from core.services.ai_service import AIService
+from src.core.services.ai_service import AIService
 
 
 class TestAIGradingLogic:

@@ -3,7 +3,7 @@ Comprehensive Tests for Help Queue API
 
 Tests all help queue enhancement features:
 - Creating help requests with learning context
-- Getting help requests (teacher sees all, student sees own)
+- Getting help requests (teacher sees enrolled learners, student sees own)
 - Resolving help requests (teacher only)
 - Context capture (content, study plan, question)
 - Response schema with full context information
@@ -15,7 +15,16 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 
-from core.models import User, HelpRequest, Content, ContentType, StudyPlan
+from src.core.models import (
+    User,
+    UserRole,
+    HelpRequest,
+    Content,
+    ContentType,
+    StudyPlan,
+    StudyPlanContent,
+    StudentStudyPlan,
+)
 
 
 class TestHelpQueueAPI:
@@ -49,6 +58,19 @@ class TestHelpQueueAPI:
         self.db.add(self.test_study_plan)
         self.db.commit()
         self.db.refresh(self.test_study_plan)
+        self.test_content.study_plan_id = self.test_study_plan.id
+        self.db.add_all(
+            [
+                StudyPlanContent(
+                    study_plan_id=self.test_study_plan.id,
+                    content_id=self.test_content.id,
+                ),
+                StudentStudyPlan(
+                    study_plan_id=self.test_study_plan.id, student_id=self.student.id
+                ),
+            ]
+        )
+        self.db.commit()
 
         # Create a basic help request
         self.basic_request = HelpRequest(
@@ -178,15 +200,64 @@ class TestHelpQueueAPI:
                 "content_id": 99999,  # Non-existent
             },
         )
-        # Should still succeed but content_title will be None
+        assert response.status_code == 404
+        assert self.db.query(HelpRequest).count() == 2
+
+    def test_unassigned_content_cannot_be_help_context(
+        self, client: TestClient, student_token: str
+    ):
+        """Enrollment alone never exposes every private lesson by the teacher."""
+        private = Content(
+            title="Unassigned private lesson",
+            content_type=ContentType.LESSON,
+            creator_id=self.teacher.id,
+        )
+        self.db.add(private)
+        self.db.commit()
+        before = self.db.query(HelpRequest).count()
+        response = client.post(
+            "/api/classroom/help",
+            headers={"Authorization": f"Bearer {student_token}"},
+            json={
+                "subject": "Help",
+                "description": "Private",
+                "content_id": private.id,
+            },
+        )
+        assert response.status_code == 403
+        assert self.db.query(HelpRequest).count() == before
+
+    def test_teacher_cannot_read_unenrolled_requests(
+        self, client: TestClient, teacher_token: str
+    ):
+        """A help request does not grant unrelated staff access to its author."""
+        outsider = User(
+            username="unassigned_help_student",
+            email="outsider@example.invalid",
+            first_name="Unassigned",
+            last_name="Learner",
+            role=UserRole.STUDENT,
+            password_hash="synthetic-unusable-hash",
+        )
+        self.db.add(outsider)
+        self.db.flush()
+        hidden = HelpRequest(
+            student_id=outsider.id, request_text="Private help", status="open"
+        )
+        self.db.add(hidden)
+        self.db.commit()
+        response = client.get(
+            "/api/classroom/help", headers={"Authorization": f"Bearer {teacher_token}"}
+        )
         assert response.status_code == 200
-        data = response.json()
-        assert data["content_title"] is None
+        assert hidden.id not in {item["id"] for item in response.json()}
 
     # --- GET HELP REQUESTS TESTS ---
 
-    def test_teacher_sees_all_requests(self, client: TestClient, teacher_token: str):
-        """Test that teacher sees all help requests."""
+    def test_teacher_sees_enrolled_student_requests(
+        self, client: TestClient, teacher_token: str
+    ):
+        """The enrolled teacher sees both authorized synthetic help requests."""
         response = client.get(
             "/api/classroom/help", headers={"Authorization": f"Bearer {teacher_token}"}
         )
@@ -357,6 +428,14 @@ class TestHelpQueueContextCapture:
         self.db.refresh(self.lesson)
         self.db.refresh(self.exercise)
         self.db.refresh(self.assessment)
+        plan = StudyPlan(title="Assigned context examples", creator_id=self.teacher.id)
+        self.db.add(plan)
+        self.db.flush()
+        for content in (self.lesson, self.exercise, self.assessment):
+            content.study_plan_id = plan.id
+            self.db.add(StudyPlanContent(study_plan_id=plan.id, content_id=content.id))
+        self.db.add(StudentStudyPlan(study_plan_id=plan.id, student_id=self.student.id))
+        self.db.commit()
 
     def test_context_captures_lesson_type(self, client: TestClient, student_token: str):
         """Test that lesson content type is captured correctly."""

@@ -1,12 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List, Dict, Any, Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from src.api.dependencies import get_db
 from src.core.models import User
 from src.core.services.ai_service import AIService
 from src.api.security import require_teacher_or_admin
+from src.api.policies import can_manage_plan, require_allowed
 from src.api.dependencies import get_ai_service_dependency
 
 router = APIRouter(prefix="/api/generate", tags=["generation"])
@@ -249,17 +250,20 @@ class FullTopicPackageRequest(BaseModel):
     include_assessment: bool = True
 
     # Exercise options
-    num_exercises: int = 4
+    num_exercises: int = Field(default=4, ge=0, le=12)
     exercise_difficulty: str = "medium"  # easy, medium, hard
 
     # Assessment options
-    num_assessment_questions: int = 5
+    num_assessment_questions: int = Field(default=5, ge=1, le=20)
     assessment_difficulty: str = "medium"
+
+    source_material: Optional[str] = Field(default=None, max_length=100000)
+    source_document_id: Optional[str] = Field(default=None, pattern="^[a-f0-9]{64}$")
 
     # Auto-save options
     auto_save: bool = False
     study_plan_id: Optional[int] = None
-    phase_index: int = 0
+    phase_index: int = Field(default=0, ge=0, le=100)
 
 
 class GeneratedPackageResponse(BaseModel):
@@ -271,6 +275,8 @@ class GeneratedPackageResponse(BaseModel):
     exercises: Optional[List[Dict[str, Any]]] = None
     assessment: Optional[Dict[str, Any]] = None
     saved_content_ids: Optional[List[int]] = None
+    items: List[Dict[str, Any]] = Field(default_factory=list)
+    job_key: Optional[str] = None
 
 
 @router.post("/full-topic-package", response_model=GeneratedPackageResponse)
@@ -280,229 +286,67 @@ def generate_full_topic_package(
     ai_service: AIService = Depends(get_ai_service_dependency),
     db: Session = Depends(get_db),
 ):
-    """
-    Generate a complete topic package with AI assistance.
+    """Persist each generated item independently; retries reuse completed item IDs."""
+    from src.core.models import StudyPlan
+    from src.core.services.generation_workflow import generate_package
 
-    This unified endpoint generates:
-    - A structured lesson (if include_lesson=True)
-    - Multiple exercises (if include_exercises=True)
-    - An assessment with questions (if include_assessment=True)
-
-    Optionally auto-saves to the database and links to a study plan.
-
-    Returns all generated content for review before final save.
-    """
-    import logging
-    from src.core.models import Content, ContentType, StudyPlan, StudyPlanContent
-    from datetime import datetime
-
-    logger = logging.getLogger(__name__)
-
-    result = {
-        "success": True,
-        "topic_name": request.topic_name,
-        "lesson": None,
-        "exercises": None,
-        "assessment": None,
-        "saved_content_ids": None,
-    }
-
+    plan = None
+    if request.auto_save:
+        if not request.study_plan_id:
+            raise HTTPException(
+                status_code=422,
+                detail="Choose a course draft before saving a generation package",
+            )
+        plan = db.get(StudyPlan, request.study_plan_id)
+        require_allowed(can_manage_plan(db, current_user, plan))
     try:
-        # 1. Generate Lesson
-        if request.include_lesson:
-            try:
-                lesson = ai_service.generate_lesson(
-                    topic=request.topic_name,
-                    grade_level=request.grade_level,
-                    learning_objectives=request.learning_objectives,
-                    duration_minutes=30,
-                    source_material=None,
-                )
-                result["lesson"] = lesson
-            except Exception as e:
-                logger.warning(f"Lesson generation failed: {e}")
-                result["lesson"] = {
-                    "error": str(e),
-                    "title": f"Lesson: {request.topic_name}",
-                    "content": "AI generation failed. Please try again or write manually.",
-                }
+        return generate_package(db, current_user, plan, ai_service, request)
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+    except Exception:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail="Generation could not be saved. Previously confirmed items remain available; retry safely.",
+        )
+    finally:
+        ai_service.close()
 
-        # 2. Generate Exercises
-        if request.include_exercises:
-            exercises = []
-            exercise_types = ["multiple_choice", "true_false", "short_answer"]
 
-            for i in range(request.num_exercises):
-                try:
-                    exercise_type = exercise_types[i % len(exercise_types)]
-                    exercise = ai_service.generate_exercise(
-                        topic=request.topic_name,
-                        difficulty=request.exercise_difficulty,
-                        exercise_type=exercise_type,
-                    )
-                    exercises.append(exercise)
-                except Exception as e:
-                    logger.warning(f"Exercise {i+1} generation failed: {e}")
-                    exercises.append(
-                        {
-                            "error": str(e),
-                            "title": f"Exercise {i+1}: {request.topic_name}",
-                            "type": exercise_type,
-                        }
-                    )
+@router.get("/courses/{plan_id}/jobs")
+def list_course_generation_jobs(
+    plan_id: int,
+    current_user: User = Depends(require_teacher_or_admin),
+    db: Session = Depends(get_db),
+):
+    """Reload durable generation state after refresh or an interrupted request."""
+    from src.core.models import StudyPlan
+    from src.core.services.course_workflow import metadata
 
-            result["exercises"] = exercises
+    plan = db.get(StudyPlan, plan_id)
+    require_allowed(can_manage_plan(db, current_user, plan))
+    return {"jobs": metadata(plan).get("generation_jobs", {})}
 
-        # 3. Generate Assessment
-        if request.include_assessment:
-            try:
-                questions = ai_service.generate_assessment_questions(
-                    topic=request.topic_name,
-                    learning_objectives=request.learning_objectives,
-                    question_types=None,  # Mixed types
-                    num_questions=request.num_assessment_questions,
-                    difficulty=request.assessment_difficulty,
-                )
-                result["assessment"] = {
-                    "title": f"Assessment: {request.topic_name}",
-                    "topic": request.topic_name,
-                    "questions": questions,
-                    "total_questions": len(questions),
-                    "passing_score": 70,
-                }
-            except Exception as e:
-                logger.warning(f"Assessment generation failed: {e}")
-                result["assessment"] = {
-                    "error": str(e),
-                    "title": f"Assessment: {request.topic_name}",
-                    "questions": [],
-                }
 
-        # 4. Auto-save if requested (using injected db session)
-        if request.auto_save:
-            try:
-                saved_ids = []
-                order_idx = 0
+@router.post("/courses/{plan_id}/jobs/{job_key}/cancel")
+def cancel_course_generation(
+    plan_id: int,
+    job_key: str,
+    current_user: User = Depends(require_teacher_or_admin),
+    db: Session = Depends(get_db),
+):
+    """Stop at the next item boundary; an in-flight provider call may finish."""
+    from src.core.models import StudyPlan
+    from src.core.services.course_workflow import metadata
 
-                # Verify study plan if provided
-                if request.study_plan_id:
-                    plan = (
-                        db.query(StudyPlan)
-                        .filter(StudyPlan.id == request.study_plan_id)
-                        .first()
-                    )
-                    if not plan or plan.creator_id != current_user.id:
-                        request.study_plan_id = None  # Reset if invalid
-                    else:
-                        order_idx = (
-                            db.query(StudyPlanContent)
-                            .filter(
-                                StudyPlanContent.study_plan_id == request.study_plan_id,
-                                StudyPlanContent.phase_index == request.phase_index,
-                            )
-                            .count()
-                        )
-
-                # Save lesson
-                if result["lesson"] and "error" not in result["lesson"]:
-                    lesson_content = Content(
-                        title=result["lesson"].get(
-                            "title", f"Lesson: {request.topic_name}"
-                        ),
-                        content_type=ContentType.LESSON,
-                        difficulty=2,
-                        creator_id=current_user.id,
-                        study_plan_id=request.study_plan_id,
-                        created_at=datetime.now(),
-                    )
-                    lesson_content.set_encrypted_content_data(result["lesson"])
-                    db.add(lesson_content)
-                    db.flush()
-                    saved_ids.append(lesson_content.id)
-
-                    if request.study_plan_id:
-                        db.add(
-                            StudyPlanContent(
-                                study_plan_id=request.study_plan_id,
-                                content_id=lesson_content.id,
-                                phase_index=request.phase_index,
-                                order_index=order_idx,
-                            )
-                        )
-                        order_idx += 1
-
-                # Save exercises
-                if result["exercises"]:
-                    for i, ex in enumerate(result["exercises"]):
-                        if "error" not in ex:
-                            ex_content = Content(
-                                title=ex.get(
-                                    "title", f"Exercise {i+1}: {request.topic_name}"
-                                ),
-                                content_type=ContentType.EXERCISE,
-                                difficulty={"easy": 1, "medium": 2, "hard": 3}.get(
-                                    request.exercise_difficulty, 2
-                                ),
-                                creator_id=current_user.id,
-                                study_plan_id=request.study_plan_id,
-                                created_at=datetime.now(),
-                            )
-                            ex_content.set_encrypted_content_data(ex)
-                            db.add(ex_content)
-                            db.flush()
-                            saved_ids.append(ex_content.id)
-
-                            if request.study_plan_id:
-                                db.add(
-                                    StudyPlanContent(
-                                        study_plan_id=request.study_plan_id,
-                                        content_id=ex_content.id,
-                                        phase_index=request.phase_index,
-                                        order_index=order_idx,
-                                    )
-                                )
-                                order_idx += 1
-
-                # Save assessment (NEW - was missing before)
-                if result["assessment"] and "error" not in result["assessment"]:
-                    assessment_content = Content(
-                        title=result["assessment"].get(
-                            "title", f"Assessment: {request.topic_name}"
-                        ),
-                        content_type=ContentType.ASSESSMENT,
-                        difficulty={"easy": 1, "medium": 2, "hard": 3}.get(
-                            request.assessment_difficulty, 2
-                        ),
-                        creator_id=current_user.id,
-                        study_plan_id=request.study_plan_id,
-                        created_at=datetime.now(),
-                    )
-                    assessment_content.set_encrypted_content_data(result["assessment"])
-                    db.add(assessment_content)
-                    db.flush()
-                    saved_ids.append(assessment_content.id)
-
-                    if request.study_plan_id:
-                        db.add(
-                            StudyPlanContent(
-                                study_plan_id=request.study_plan_id,
-                                content_id=assessment_content.id,
-                                phase_index=request.phase_index,
-                                order_index=order_idx,
-                            )
-                        )
-
-                db.commit()
-                result["saved_content_ids"] = saved_ids
-
-            except Exception as e:
-                db.rollback()
-                logger.error(f"Auto-save failed: {e}")
-
-        return GeneratedPackageResponse(**result)
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Full topic package generation failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Generation failed: {str(e)}")
+    plan = db.get(StudyPlan, plan_id)
+    require_allowed(can_manage_plan(db, current_user, plan))
+    data = metadata(plan)
+    jobs = data.get("generation_jobs", {})
+    if job_key not in jobs:
+        raise HTTPException(status_code=404, detail="Generation request not found")
+    jobs[job_key]["cancel_requested"] = True
+    data["generation_jobs"] = jobs
+    plan.set_encrypted_metadata(data)
+    db.commit()
+    return {"status": "cancellation_requested", "in_flight_call_may_finish": True}

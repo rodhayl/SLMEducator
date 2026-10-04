@@ -1,5 +1,6 @@
 @echo off
 setlocal EnableExtensions
+cd /d "%~dp0"
 
 echo ========================================
 echo SLMEducator - Dependency Installation
@@ -39,18 +40,9 @@ if errorlevel 1 (
 echo Virtual environment activated!
 echo.
 
-echo Upgrading pip...
-python -m pip install --upgrade pip >nul 2>&1
-if errorlevel 1 (
-    echo WARNING: Failed to upgrade pip (continuing anyway)
-) else (
-    echo pip upgraded successfully.
-)
-echo.
-
 if exist "requirements.txt" (
     echo Installing dependencies from requirements.txt...
-    pip install -r requirements.txt
+    python -m pip install -r requirements.txt
     if errorlevel 1 (
         echo ERROR: Failed to install dependencies
         echo Please check requirements.txt for any issues
@@ -62,19 +54,12 @@ if exist "requirements.txt" (
 )
 echo.
 
-python -c "import uvicorn" >nul 2>&1
-if errorlevel 1 (
-    echo Installing uvicorn...
-    pip install uvicorn
-    if errorlevel 1 (
-        echo ERROR: Failed to install uvicorn
-        exit /b 1
-    )
-    echo uvicorn installed successfully.
-) else (
-    echo uvicorn is already available.
+if /I "%1"=="--dev" (
+    python -m pip install -r requirements-dev.txt
+    if errorlevel 1 exit /b 1
 )
-echo.
+python -m pip check
+if errorlevel 1 exit /b 1
 
 echo Dependency setup complete.
 exit /b 0

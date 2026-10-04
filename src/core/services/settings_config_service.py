@@ -79,6 +79,7 @@ class SettingsConfigService:
 
     def _load_config(self):
         """Load configuration from properties file."""
+        self._load_error = False
         try:
             # Check if config file exists
             if not os.path.exists(self.config_file):
@@ -93,10 +94,15 @@ class SettingsConfigService:
             self.logger.info(f"Configuration loaded from {self.config_file}")
 
         except Exception as e:
-            self.logger.error(f"Failed to load configuration: {e}")
-            self._create_default_config()
+            self.logger.error(
+                "Failed to load configuration (%s); original file preserved. Repair it before saving.",
+                type(e).__name__,
+            )
+            self._load_error = True
+            self.config = configparser.ConfigParser()
+            self._create_default_config(persist=False)
 
-    def _create_default_config(self):
+    def _create_default_config(self, *, persist: bool = True):
         """Create default configuration if file doesn't exist."""
         # Create default configuration
         self.config.add_section("ai")
@@ -118,8 +124,7 @@ class SettingsConfigService:
         # Other AI providers
         self.config.set("ai", "lm_studio.url", "http://localhost:1234")
         self.config.set("ai", "openai.url", "https://api.openai.com")
-        self.config.set("ai", "anthropic.url", "https://api.anthropic.com")
-        self.config.set("ai", "openai.endpoint", "https://api.openai.com/v1")
+        self.config.set("ai", "openai.endpoint", "https://api.openai.com/v1/chat/completions")
         self.config.set("ai", "default_temperature", "0.7")
         self.config.set("ai", "default_max_tokens", "1000")
         self.config.set("ai", "temperature.min", "0.0")
@@ -177,10 +182,14 @@ class SettingsConfigService:
         self.config.set("performance", "cache_ttl_seconds", "3600")
 
         # Save the default configuration
-        self.save_config()
+        if persist:
+            self.save_config()
 
     def save_config(self):
         """Save current configuration to file."""
+        if self._load_error:
+            self.logger.error("Configuration was not saved: repair and reload the original file first")
+            return
         try:
             with open(self.config_file, "w", encoding="utf-8") as f:
                 self.config.write(f)
@@ -255,7 +264,6 @@ class SettingsConfigService:
             "ollama_url": self.get("ai", "ollama.url"),
             "lm_studio_url": self.get("ai", "lm_studio.url"),
             "openai_url": self.get("ai", "openai.url"),
-            "anthropic_url": self.get("ai", "anthropic.url"),
             "openrouter_url": self.get("ai", "openrouter.url"),
             "openrouter_api_key": self.get("ai", "openrouter.api_key"),
             "openrouter_model": self.get("ai", "openrouter.model"),
@@ -268,10 +276,6 @@ class SettingsConfigService:
             "temperature_max": self.getfloat("ai", "temperature.max"),
             "max_tokens_min": self.getint("ai", "max_tokens.min"),
             "max_tokens_max": self.getint("ai", "max_tokens.max"),
-            "preprocessing_model": self.get("ai", "preprocessing_model"),
-            "enable_preprocessing": self.getboolean(
-                "ai", "enable_preprocessing", False
-            ),
         }
 
         # Override model based on provider if using environment variable

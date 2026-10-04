@@ -3,6 +3,11 @@ Authentication service for SLMEducator
 """
 
 import secrets
+from src.core.services.temporal_service import (
+    known_instant,
+    known_after,
+    known_timestamp_clause,
+)
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any
 import jwt
@@ -57,6 +62,17 @@ class AuthService:
             )
 
         with self.db_service.get_session() as session:
+            if teacher_id is not None:
+                teacher = session.get(User, teacher_id)
+                if (
+                    role != UserRole.STUDENT
+                    or not teacher
+                    or teacher.role != UserRole.TEACHER
+                    or not teacher.active
+                ):
+                    raise AuthenticationError(
+                        "Choose an active teacher for a student account"
+                    )
             # Check if username already exists
             existing_user = session.query(User).filter_by(username=username).first()
             if existing_user:
@@ -134,6 +150,11 @@ class AuthService:
                 )
                 session.commit()
                 raise AuthenticationError("Invalid username or password")
+
+            if user.locked_until and not known_instant(user.locked_until):
+                raise AuthenticationError(
+                    "Account lock timestamp has an unknown timezone. Ask the administrator to review its provenance."
+                )
 
             # Check rate limiting early (before expensive bcrypt work).
             if not self._check_rate_limit(
@@ -221,6 +242,10 @@ class AuthService:
 
             with self.db_service.get_session() as session:
                 user = session.query(User).filter_by(id=user_id, active=True).first()
+                if user and payload.get("auth_version", 0) != (user.settings or {}).get(
+                    "auth_version", 0
+                ):
+                    return None
                 return user
 
         except jwt.ExpiredSignatureError:
@@ -247,6 +272,7 @@ class AuthService:
             "user_id": user.id,
             "username": user.username,
             "role": role_value,
+            "auth_version": (user.settings or {}).get("auth_version", 0),
             "exp": datetime.now(timezone.utc)
             + timedelta(minutes=self.token_expiry_minutes),
             "iat": datetime.now(timezone.utc),
@@ -260,7 +286,10 @@ class AuthService:
             return False
 
         # Check if account is explicitly locked
-        if user.locked_until and user.locked_until > datetime.now(timezone.utc):
+        if user.locked_until and (
+            not known_instant(user.locked_until)
+            or user.locked_until > datetime.now(timezone.utc)
+        ):
             return True
 
         # Check recent failed attempts within lockout window
@@ -271,8 +300,11 @@ class AuthService:
             session.query(AuthAttempt)
             .filter(
                 AuthAttempt.user_id == user_id,
+                AuthAttempt.id
+                > int((user.settings or {}).get("auth_attempt_recovery_after_id", 0)),
                 AuthAttempt.success.is_(False),
-                AuthAttempt.timestamp > cutoff_time,
+                (~known_timestamp_clause(AuthAttempt.timestamp))
+                | known_after(AuthAttempt.timestamp, cutoff_time),
             )
             .count()
         )
@@ -304,10 +336,17 @@ class AuthService:
                 session.query(AuthAttempt)
                 .filter(
                     AuthAttempt.user_id == user_id,
+                    AuthAttempt.id
+                    > int(
+                        (user.settings or {}).get("auth_attempt_recovery_after_id", 0)
+                    ),
                     AuthAttempt.success.is_(False),
-                    AuthAttempt.timestamp
-                    > datetime.now(timezone.utc)
-                    - timedelta(minutes=self.lockout_duration_minutes),
+                    (~known_timestamp_clause(AuthAttempt.timestamp))
+                    | known_after(
+                        AuthAttempt.timestamp,
+                        datetime.now(timezone.utc)
+                        - timedelta(minutes=self.lockout_duration_minutes),
+                    ),
                 )
                 .count()
             )
@@ -340,9 +379,20 @@ class AuthService:
             minutes=self.rate_limit_window_minutes
         )
 
-        query = session.query(AuthAttempt).filter(AuthAttempt.timestamp > cutoff_time)
+        query = session.query(AuthAttempt).filter(
+            (~known_timestamp_clause(AuthAttempt.timestamp))
+            | known_after(AuthAttempt.timestamp, cutoff_time)
+        )
         if user_id is not None:
             query = query.filter(AuthAttempt.user_id == user_id)
+            user = session.get(User, user_id)
+            if user:
+                query = query.filter(
+                    AuthAttempt.id
+                    > int(
+                        (user.settings or {}).get("auth_attempt_recovery_after_id", 0)
+                    )
+                )
         else:
             query = query.filter(AuthAttempt.username == username)
 
@@ -351,12 +401,19 @@ class AuthService:
             query = query.filter(AuthAttempt.ip_address == ip_address)
 
         recent_attempts = query.count()
+        if (
+            recent_attempts >= self.rate_limit_max_attempts
+            and query.filter(~known_timestamp_clause(AuthAttempt.timestamp)).count()
+        ):
+            raise AuthenticationError(
+                "Authentication history has timestamps with unknown timezone. Ask the administrator to review their provenance."
+            )
         return recent_attempts < self.rate_limit_max_attempts
 
     def validate_password(self, password: str) -> bool:
         """Validate password strength"""
         # Check minimum length
-        if len(password) < 8:
+        if len(password) < 8 or len(password.encode("utf-8")) > 72:
             return False
 
         # Check for uppercase letters
@@ -377,21 +434,73 @@ class AuthService:
 
         return True
 
-    def reset_password(self, user_id: int, new_password: str) -> bool:
+    def change_password(
+        self, user_id: int, current_password: str, new_password: str
+    ) -> bool:
+        """Verify the current credential and atomically rotate/revoke old tokens."""
+        if (
+            len(new_password) < 12
+            or len(new_password.encode("utf-8")) > 72
+            or not self.validate_password(new_password)
+        ):
+            raise AuthenticationError(
+                "Use 12 or more characters, uppercase, lowercase, number and symbol (maximum 72 UTF-8 bytes)"
+            )
+        with self.db_service.get_session() as session:
+            user = session.query(User).filter_by(id=user_id, active=True).first()
+            if not user or not self._verify_password(
+                current_password, user.password_hash
+            ):
+                raise AuthenticationError("Current password is incorrect")
+            if self._verify_password(new_password, user.password_hash):
+                raise AuthenticationError("Choose a different password")
+            user.password_hash = self._hash_password(new_password)
+            settings = dict(user.settings or {})
+            settings["auth_version"] = int(settings.get("auth_version", 0)) + 1
+            user.settings = settings
+            session.commit()
+            self._log_event(session, user_id, "auth.password_reset", {})
+            return True
+
+    def reset_password(
+        self, user_id: int, new_password: str, actor_id: Optional[int] = None
+    ) -> bool:
         """Reset user password"""
         if not self.validate_password(new_password):
             raise AuthenticationError("Password does not meet requirements")
 
         with self.db_service.get_session() as session:
+            if actor_id is not None:
+                actor = session.get(User, actor_id)
+                if not actor or not actor.active or actor.role != UserRole.ADMIN:
+                    raise AuthenticationError("Active administrator required")
             user = session.query(User).filter_by(id=user_id).first()
             if not user:
                 return False
 
             user.password_hash = self._hash_password(new_password)
+            settings = dict(user.settings or {})
+            settings["auth_version"] = int(settings.get("auth_version", 0)) + 1
+            attempts = (
+                session.query(AuthAttempt.id)
+                .filter_by(user_id=user.id)
+                .order_by(AuthAttempt.id.desc())
+                .first()
+            )
+            settings["auth_attempt_recovery_after_id"] = attempts[0] if attempts else 0
+            settings["last_account_recovery"] = {
+                "actor_id": actor_id,
+                "at": datetime.now(timezone.utc).isoformat(),
+            }
+            user.settings = settings
+            user.failed_login_count = 0
+            user.locked_until = None
             session.commit()
 
             # Log password reset
-            self._log_event(session, user_id, "auth.password_reset", {})
+            self._log_event(
+                session, user_id, "auth.password_reset", {"actor_id": actor_id}
+            )
             return True
 
     def authorize_user(self, user_id: int, required_role: UserRole) -> bool:

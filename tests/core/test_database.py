@@ -4,9 +4,9 @@ Test cases for database operations
 
 import json
 import pytest
-from core.services.database import DatabaseService
-from core.models import User, StudyPlan, Content, UserRole, ContentType
-from core.exceptions import DatabaseError
+from src.core.services.database import DatabaseService
+from src.core.models import User, StudyPlan, Content, UserRole, ContentType
+from src.core.exceptions import DatabaseError
 
 
 class TestDatabaseService:
@@ -162,7 +162,7 @@ class TestDatabaseService:
 
         # Create learning session
         from datetime import datetime
-        from core.models import SessionStatus
+        from src.core.models import SessionStatus
 
         session_data = {
             "student_id": student.id,
@@ -215,7 +215,7 @@ class TestDatabaseService:
         user = db_service.create_user(user)
 
         # Create audit log entry
-        from core.models import EventType
+        from src.core.models import EventType
 
         audit_data = {
             "user_id": user.id,

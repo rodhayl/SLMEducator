@@ -31,7 +31,7 @@ Clone this repository and open PowerShell in its root. Before launching, review 
 Application URL: `http://127.0.0.1:8080`
 
 `start.bat` does the following:
-- Installs/updates dependencies through `install_dependencies.bat`
+- Uses the environment prepared explicitly by `install_dependencies.bat`; launch never installs or upgrades packages
 - Activates `venv`
 - Creates runtime folders (`logs`, `data`, `exports`, `temp`)
 - Sets local runtime environment variables
@@ -67,6 +67,9 @@ Packaging uses the same create-only seeder in disposable staging. It does not de
 
 ## Testing
 
+Install development tools explicitly with `install_dependencies.bat --dev` or `python -m pip install -r requirements-dev.txt`. Runtime dependencies stay in `requirements.txt`.
+
+
 Unified test runner:
 
 ```powershell
@@ -92,6 +95,31 @@ Notes:
 - Running `.\run_tests.bat` with no arguments prints usage/help.
 - `--real-ai` performs real network API calls and may incur provider cost.
 - Test files and commands describe the available checks; record the commit, environment, provider and executed scope when reporting results. Browser scenarios and real-provider calls require their own validation.
+
+## Deterministic offline checks
+
+The GitHub workflow `.github/workflows/offline-tests.yml` installs pinned test
+dependencies, then runs synthetic API/service/packaging tests and serial DOM
+regressions. CI also checks the audited domain types and enforces the existing
+80% whole-source line-coverage target. The test phase disables provider discovery
+and real HTTP transports.
+It excludes manual tests, existing-server browser tests and real-provider suites;
+installation still requires access to package registries.
+
+From a prepared PowerShell environment, the equivalent Python gate is:
+
+```powershell
+$env:SLM_OFFLINE_TESTS = "1"
+$env:USE_REAL_AI = "0"
+python -m pytest tests -q -ra --strict-markers --ignore=tests/manual --ignore=tests/e2e --ignore=tests/real_ai -m "not real_ai" --basetemp="$env:TEMP/slm-check-$([guid]::NewGuid())"
+Remove-Item Env:SLM_OFFLINE_TESTS
+```
+
+For DOM checks, run `npm ci --ignore-scripts --prefix tests/ui`, then
+`npm test --prefix tests/ui` with Node 20+. See [the UI test boundary](tests/ui/README.md).
+These checks do not certify a Windows executable, a live browser or model quality.
+See [maintained functional contracts](docs/FUNCTIONAL_REQUIREMENTS.md) for current
+capabilities instead of historical desktop-module inventories.
 
 ## Browser E2E Testing (Chrome DevTools)
 
@@ -166,6 +194,16 @@ The `--prod` label is a build mode, not a production-readiness certification.
 Automated packaging tests exercise real SQLite and the real seeder with a
 simulated freezer. A native Windows build and packaged startup/login smoke test
 are still required before distributing an executable.
+
+## Teacher-reviewed local evaluation
+
+New accounts require an authenticated administrator or teacher. Bootstrap remains create-only. Teachers create their own learners; resource access follows enrollment and authorship. The password-change screen uses `/api/auth/change-password` and revokes previous sessions after rotation.
+
+New courses and assessments are drafts. Review and publish a course before assigning it. Assigned material is immutable; create a separate draft for revisions. AI-generated subjective grading remains provisional until the assessment author reviews it. Provider failure never becomes a final failing grade.
+
+Assessment authors can configure assistance during open attempts: hints only, explanations, or disabled. See [assistance policy](docs/ASSISTANCE_POLICY.md). Timezone settings use an explicit UTC default or your chosen IANA zone; old offset-free history stays labelled unknown until a field-scoped, backed-up conversion with a known source zone. See [portability and recovery](docs/PORTABILITY_RECOVERY.md).
+
+See [the implementation boundary](implementation_documents/LEARNING_LOOP_PLAN.md) for the two-teacher/two-learner synthetic scenario and the separate browser, native Windows and human-pilot acceptance gates.
 
 ## Repository Layout
 

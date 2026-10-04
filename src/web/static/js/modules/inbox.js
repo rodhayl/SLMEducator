@@ -11,9 +11,7 @@ const t = (key, params = {}) => {
 // HTML escape helper
 function escapeHtml(text) {
     if (!text) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+    return SLMRender.escape(text);
 }
 
 // Global UI Helper (assuming showToast and showConfirm are global or on window)
@@ -247,7 +245,7 @@ window.loadInbox = async function loadInbox() {
             let actions = '';
             if (currentInboxFolder === 'inbox') {
                 // Reply button for inbox messages
-                actions += `<button class="btn btn-sm btn-outline-success me-1" onclick="event.stopPropagation(); replyToMessage(${msg.id}, '${escapeHtml(msg.sender_name)}', '${escapeHtml(msg.subject)}')" title="${t('inbox.message.reply') || 'Reply'}">↩️</button>`;
+                actions += `<button class="btn btn-sm btn-outline-success me-1 reply-message" title="${t('inbox.message.reply') || 'Reply'}">↩️</button>`;
                 if (msg.read_at) {
                     actions += `<button class="btn btn-sm btn-outline-secondary me-1" onclick="event.stopPropagation(); markMessageUnread(${msg.id})" title="${t('inbox.message.mark_unread')}">📩</button>`;
                 } else {
@@ -285,7 +283,7 @@ window.loadInbox = async function loadInbox() {
                             <h6 class="mb-0">${escapeHtml(msg.subject)}${statusBadge}</h6>
                         </div>
                         <p class="mb-1 text-truncate message-preview" style="max-width: 500px;">${escapeHtml(msg.content)}</p>
-                        <small class="text-muted">${displayName} • ${new Date(msg.sent_at).toLocaleString()}</small>
+                        <small class="text-muted">${escapeHtml(displayName)} • ${escapeHtml(SLMTime.format(msg.sent_at))}</small>
                         <div class="message-full-content d-none mt-2 p-2 bg-light rounded">
                             <p class="mb-0">${escapeHtml(msg.content)}</p>
                         </div>
@@ -296,6 +294,9 @@ window.loadInbox = async function loadInbox() {
                 </div>
             `;
 
+            item.querySelector('.reply-message')?.addEventListener('click', event => {
+                event.stopPropagation(); window.replyToMessage(msg.id, msg.sender_name, msg.subject);
+            });
             // Add click handler to expand/collapse message
             item.addEventListener('click', function (e) {
                 // Don't expand if clicking on buttons

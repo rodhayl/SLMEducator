@@ -3,7 +3,8 @@ Progress Tracking Service - Phase 1
 Tracks student progress on study plans and content mastery
 """
 
-from datetime import datetime, date
+from src.core.services.temporal_service import utc_now, local_date, last_activity_day, record_activity_day, known_timestamp_clause
+
 from typing import Dict, Any, List
 from sqlalchemy import select, and_, func
 
@@ -15,7 +16,6 @@ from ..models import (
     User,
     Badge,
     UserBadge,
-    extract_phases,
 )
 
 
@@ -94,7 +94,7 @@ class ProgressTrackingService:
 
                     if self._check_badge_criteria(session, user, badge):
                         new_user_badge = UserBadge(
-                            user_id=user_id, badge_id=badge.id, earned_at=datetime.now()
+                            user_id=user_id, badge_id=badge.id, earned_at=utc_now()
                         )
                         session.add(new_user_badge)
 
@@ -136,7 +136,7 @@ class ProgressTrackingService:
         """Get progress on a study plan"""
         try:
             with self.db.get_session() as session:
-                from ..models import StudyPlan, StudyPlanContent
+                from ..models import StudyPlanContent
 
                 assignment = (
                     session.execute(
@@ -161,58 +161,29 @@ class ProgressTrackingService:
                         "status": "not_started",
                     }
 
-                # Get study plan to count total items
-                plan = session.get(StudyPlan, study_plan_id)
-                total_items = 0
-                if plan and plan.phases:
-                    # Use extract_phases to handle nested structure
-                    phases = extract_phases(plan.phases)
-                    for phase in phases:
-                        if isinstance(phase, dict):
-                            # Count items in each phase
-                            items = phase.get("lessons", []) + phase.get("content", [])
-                            total_items += len(items)
-
-                # Also count content from StudyPlanContent table
-                content_count = (
-                    session.execute(
-                        select(func.count(StudyPlanContent.id)).where(
-                            StudyPlanContent.study_plan_id == study_plan_id
-                        )
-                    ).scalar()
-                    or 0
-                )
-                total_items = max(total_items, content_count)
-
-                # Count completed items
-                lessons_completed = (
-                    session.execute(
-                        select(func.count(MasteryNode.id)).where(
-                            and_(
-                                MasteryNode.student_id == student_id,
-                                MasteryNode.mastery_level >= 80,
-                            )
-                        )
-                    ).scalar()
-                    or 0
-                )
-
-                # Calculate completion percentage
-                progress_pct = assignment.progress_percentage or 0
-                if total_items > 0:
-                    completion_pct = min(
-                        100, int((lessons_completed / total_items) * 100)
+                # The persisted graph and explicit completion IDs are canonical.
+                # Mastery/self-rating and stale outline items are separate evidence.
+                content_ids = set(session.scalars(
+                    select(StudyPlanContent.content_id).where(
+                        StudyPlanContent.study_plan_id == study_plan_id
                     )
-                else:
-                    completion_pct = int(progress_pct)
-
+                ))
+                stored = assignment.progress if isinstance(assignment.progress, dict) else {}
+                raw_completed = stored.get("completed_content_ids", [])
+                completed = {
+                    item for item in raw_completed
+                    if type(item) is int and item in content_ids
+                } if isinstance(raw_completed, list) else set()
+                total_items = len(content_ids)
+                completion_pct = int(len(completed) / total_items * 100) if total_items else 0
+                phase = stored.get("last_phase_index", 0)
                 return {
-                    "progress": progress_pct,
+                    "progress": completion_pct,
                     "completion_pct": completion_pct,
-                    "current_phase": assignment.current_phase or 0,
-                    "lessons_completed": lessons_completed,
+                    "current_phase": max(0, min(100, phase)) if type(phase) is int else 0,
+                    "lessons_completed": len(completed),
                     "total_items": total_items,
-                    "status": assignment.status or "in_progress",
+                    "status": "completed" if total_items and len(completed) == total_items else "in_progress",
                 }
 
         except Exception:
@@ -247,7 +218,7 @@ class ProgressTrackingService:
 
                 if node:
                     node.mastery_level = level_int
-                    node.last_reviewed = datetime.now()
+                    node.last_reviewed = utc_now()
                 else:
                     node = MasteryNode(
                         student_id=student_id,
@@ -352,29 +323,7 @@ class ProgressTrackingService:
                 if not user:
                     return {"current_streak": 0, "longest_streak": 0}
 
-                today = date.today()
-                last_activity = user.last_activity_date
-
-                # If this is the first activity ever
-                if not last_activity:
-                    user.current_streak = 1
-                    user.longest_streak = max(user.longest_streak, 1)
-                    user.last_activity_date = today
-
-                # If already active today, no change needed
-                elif last_activity == today:
-                    pass  # Streak unchanged
-
-                # If last activity was yesterday, increment streak
-                elif (today - last_activity).days == 1:
-                    user.current_streak += 1
-                    user.longest_streak = max(user.longest_streak, user.current_streak)
-                    user.last_activity_date = today
-
-                # If more than 1 day gap, reset streak to 1
-                else:
-                    user.current_streak = 1
-                    user.last_activity_date = today
+                record_activity_day(user)
 
                 session.commit()
 
@@ -402,7 +351,9 @@ class ProgressTrackingService:
                 total_minutes = (
                     session.execute(
                         select(func.sum(LearningSession.duration_minutes)).where(
-                            LearningSession.student_id == user_id
+                            LearningSession.student_id == user_id,
+                            known_timestamp_clause(LearningSession.start_time),
+                            known_timestamp_clause(LearningSession.end_time),
                         )
                     ).scalar()
                     or 0
@@ -469,15 +420,12 @@ class ProgressTrackingService:
                     return {"current_streak": 0, "longest_streak": 0}
 
                 # Check if streak is still valid (last activity was today or yesterday)
-                if user.last_activity_date:
-                    days_since_activity = (date.today() - user.last_activity_date).days
-
-                    # Streak is broken if more than 1 day has passed
-                    if days_since_activity > 1:
-                        return {
-                            "current_streak": 0,
-                            "longest_streak": user.longest_streak,
-                        }
+                activity_day = last_activity_day(user)
+                if activity_day is None or not 0 <= (local_date(user) - activity_day).days <= 1:
+                    return {
+                        "current_streak": 0,
+                        "longest_streak": user.longest_streak or 0,
+                    }
 
                 return {
                     "current_streak": user.current_streak or 0,

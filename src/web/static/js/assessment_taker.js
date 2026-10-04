@@ -1,403 +1,308 @@
 let currentAssessment = null;
-
-/**
- * Award XP to the current user for completing an activity
- */
-async function awardXP(amount, reason = 'activity') {
-    try {
-        const token = AuthService.getToken();
-        if (!token) return;
-
-        // API expects query parameters, not JSON body
-        const response = await fetch(`/api/gamification/award-xp?amount=${amount}&reason=${encodeURIComponent(reason)}`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
-
-        if (response.ok) {
-            const result = await response.json();
-            console.log(`🎮 XP awarded: +${amount} (${reason}). Total: ${result.total_xp}`);
-        }
-    } catch (e) {
-        console.warn('Failed to award XP:', e);
-    }
-}
-
-async function loadAssessment() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const id = urlParams.get('id');
-
-    if (!id) {
-        showErrorState("No Assessment ID Provided", "Please look for this assessment in your Library or ask your instructor for the correct link.");
-        return;
-    }
-
-    try {
-        const response = await fetch(`/api/assessments/${id}`, {
-            headers: {
-                'Authorization': `Bearer ${AuthService.getToken()}`
-            }
-        });
-
-        if (!response.ok) {
-            if (response.status === 404) {
-                showErrorState("Assessment Not Found", "This assessment ID is invalid or has been deleted.");
-            } else if (response.status === 403) {
-                showErrorState("Access Denied", "You do not have permission to view this assessment.");
-            } else {
-                loadingError();
-            }
-            return;
-        }
-
-        currentAssessment = await response.json();
-        renderAssessment(currentAssessment);
-
-    } catch (e) {
-        console.error(e);
-        loadingError();
-    }
-}
+let currentAttempt = null;
+let assessmentOwner = null;
+let timerInterval = null;
+let isReviewMode = false;
+let submitting = false;
+let submitted = false;
+const assessmentMessage = (key, fallback) => SLMClient.message(key, fallback);
 
 function showErrorState(title, message) {
     const overlay = document.getElementById('error-overlay');
-    const container = document.getElementById('question-container');
-
-    if (overlay) {
-        overlay.querySelector('.error-title').textContent = title;
-        overlay.querySelector('.error-text').textContent = message;
-        overlay.classList.remove('d-none');
-    }
-
-    if (container) {
-        container.classList.add('d-none');
-    }
+    overlay.querySelector('.error-title').textContent = title;
+    overlay.querySelector('.error-text').textContent = message;
+    overlay.classList.remove('d-none');
+    document.getElementById('question-container').classList.add('d-none');
 }
 
-function loadingError() {
-    showErrorState("Error Loading Assessment", "There was a problem communicating with the server. Please try again later.");
+async function loadAssessment() {
+    const id = new URLSearchParams(window.location.search).get('id');
+    if (!id || !/^\d+$/.test(id)) {
+        showErrorState('Assessment unavailable', 'Open this assessment from your library.');
+        return;
+    }
+    assessmentOwner = SLMClient.account();
+    if (!assessmentOwner || !AuthService.isAuthenticated()) {
+        window.location.href = '/login.html?redirect=' + encodeURIComponent(window.location.pathname + window.location.search);
+        return;
+    }
+    try {
+        currentAssessment = await SLMClient.request(`/api/assessments/${id}`);
+        currentAttempt = await SLMClient.request(`/api/assessments/${id}/start`, { method: 'POST' });
+        if (!currentAttempt?.submission_id) throw new Error('The server did not provide an assessment attempt. Please retry.');
+        renderAssessment(currentAssessment);
+        if (!await loadProgress()) return;
+        setupAutosave();
+        startTimer();
+    } catch (error) {
+        showErrorState('Assessment unavailable', error.message);
+    }
 }
-
-
-let timerInterval = null;
-let timeRemaining = 0;
 
 function renderAssessment(assessment) {
     document.getElementById('assessment-title').textContent = assessment.title;
     document.getElementById('assessment-desc').textContent = assessment.description || '';
-
-    // Initialize Timer if time_limit exists (in minutes)
-    if (assessment.time_limit) {
-        startTimer(assessment.time_limit);
-    } else {
-        document.getElementById('assessment-timer').textContent = "No Limit";
-    }
-
     const container = document.getElementById('questions-container');
-    container.innerHTML = assessment.questions.map((q, index) => `
-        <div class="question-card mb-4 p-3 border rounded">
-            <h5>Question ${index + 1} <small class="text-muted">(${q.points} pts)</small></h5>
-            <p class="lead">${q.question_text}</p>
-            
-            <div class="answer-input">
-                ${renderInput(q)}
-            </div>
-        </div>
-    `).join('');
+    container.replaceChildren();
+    assessment.questions.forEach((question, index) => {
+        const card = document.createElement('fieldset');
+        card.className = 'question-card mb-4 p-3 border rounded';
+        const legend = document.createElement('legend');
+        legend.className = 'h5';
+        legend.textContent = `${assessmentMessage('question', 'Question')} ${index + 1} (${question.points} pts)`;
+        const text = document.createElement('p');
+        text.className = 'lead';
+        text.id = `question-text-${question.id}`;
+        text.textContent = question.question_text;
+        card.append(legend, text, renderInput(question));
+        container.append(card);
+    });
 }
 
-function startTimer(minutes) {
-    timeRemaining = minutes * 60;
-    updateTimerDisplay();
-
-    if (timerInterval) clearInterval(timerInterval);
-
-    timerInterval = setInterval(() => {
-        timeRemaining--;
-        updateTimerDisplay();
-
-        if (timeRemaining <= 300) { // 5 minutes warning
-            document.getElementById('assessment-timer').classList.add('text-danger', 'fw-bold');
-        }
-
-        if (timeRemaining <= 0) {
-            clearInterval(timerInterval);
-            if (typeof showToast === 'function') {
-                showToast("Time is up! Submitting your assessment.", "warning");
-            }
-            submitAssessment();
-        }
-    }, 1000);
-}
-
-function updateTimerDisplay() {
-    const minutes = Math.floor(timeRemaining / 60);
-    const seconds = timeRemaining % 60;
-    document.getElementById('assessment-timer').textContent =
-        `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-}
-
-function renderInput(q) {
-    if (q.question_type === 'multiple_choice' || q.question_type === 'true_false') {
-        let choices = [];
-
-        // Handle various option formats
-        if (q.options) {
-            if (q.options.choices && Array.isArray(q.options.choices)) {
-                choices = q.options.choices;
-            } else if (Array.isArray(q.options)) {
-                choices = q.options;
-            } else if (typeof q.options === 'object') {
-                // Handle {A: "...", B: "..."} format
-                choices = Object.values(q.options);
-            }
-        }
-
-        // Default choices for true_false if none provided
-        if (choices.length === 0 && q.question_type === 'true_false') {
-            choices = ['True', 'False'];
-        }
-
-        // If still no choices, show warning
-        if (choices.length === 0) {
-            console.warn(`Question ${q.id} has no options:`, q.options);
-            return `<div class="alert alert-warning">No answer options available for this question.</div>`;
-        }
-
-        return choices.map(opt => `
-            <div class="form-check">
-                <input class="form-check-input" type="radio" name="q_${q.id}" value="${opt}" id="q_${q.id}_${opt}">
-                <label class="form-check-label" for="q_${q.id}_${opt}">
-                    ${opt}
-                </label>
-            </div>
-        `).join('');
+function renderInput(question) {
+    const container = document.createElement('div');
+    container.className = 'answer-input';
+    if (['multiple_choice', 'true_false'].includes(question.question_type)) {
+        let choices = question.options?.choices || question.options || [];
+        if (!Array.isArray(choices)) choices = Object.values(choices);
+        if (!choices.length && question.question_type === 'true_false') choices = ['True', 'False'];
+        choices.forEach((choice, index) => {
+            const row = document.createElement('div');
+            row.className = 'form-check';
+            const input = document.createElement('input');
+            input.className = 'form-check-input';
+            input.type = 'radio';
+            input.name = `q_${question.id}`;
+            input.id = `q_${question.id}_${index}`;
+            input.value = String(choice);
+            const label = document.createElement('label');
+            label.className = 'form-check-label';
+            label.htmlFor = input.id;
+            label.textContent = String(choice);
+            row.append(input, label);
+            container.append(row);
+        });
     } else {
-        return `<textarea class="form-control" name="q_${q.id}" rows="3"></textarea>`;
+        const input = document.createElement('textarea');
+        input.className = 'form-control';
+        input.name = `q_${question.id}`;
+        input.rows = 3;
+        input.setAttribute('aria-labelledby', `question-text-${question.id}`);
+        container.append(input);
     }
+    return container;
 }
 
-window.submitAssessment = async () => {
-    const answers = [];
-    currentAssessment.questions.forEach(q => {
-        let response = '';
-        if (q.question_type === 'multiple_choice' || q.question_type === 'true_false') {
-            const selected = document.querySelector(`input[name="q_${q.id}"]:checked`);
-            response = selected ? selected.value : '';
-        } else {
-            response = document.querySelector(`textarea[name="q_${q.id}"]`).value;
-        }
-
-        answers.push({
-            question_id: q.id,
-            response_text: response
-        });
-    });
-
-    try {
-        const response = await fetch(`/api/assessments/${currentAssessment.id}/submit`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${AuthService.getToken()}`
-            },
-            body: JSON.stringify({ answers })
-        });
-
-        const result = await response.json();
-
-        // Award XP for completing the assessment
-        await awardXP(25, 'assessment_complete');
-
-        // Clear saved progress on successful submission
-        clearProgress();
-
-        const resultsDiv = document.getElementById('results');
-        resultsDiv.classList.remove('d-none');
-        resultsDiv.innerHTML = `
-            <div class="alert alert-success">
-                <h4>Submission Complete!</h4>
-                <p>Score: ${result.score} points</p>
-                <button class="btn btn-primary" onclick="window.location.href='dashboard.html'">Back to Dashboard</button>
-            </div>
-        `;
-
-        // Hide all buttons
-        document.getElementById('answer-buttons').classList.add('d-none');
-        document.getElementById('review-buttons').classList.add('d-none');
-        document.getElementById('autosave-indicator').classList.add('d-none');
-
-    } catch (e) {
-        if (typeof showToast === 'function') {
-            showToast("Error submitting assessment", "danger");
-        }
+function startTimer() {
+    if (timerInterval) clearInterval(timerInterval);
+    const timer = document.getElementById('assessment-timer');
+    // The server owns the deadline; refresh never grants another time limit.
+    if (currentAssessment.time_limit_minutes && currentAttempt.timing_provenance === 'legacy_unknown') {
+        timer.textContent = assessmentMessage('timer_unknown', 'Timer timezone unknown; teacher review required.');
+        return;
     }
-}
-
-// ============================================================================
-// REVIEW MODE (25.2)
-// ============================================================================
-let isReviewMode = false;
-
-window.showReviewMode = () => {
-    isReviewMode = true;
-
-    // Disable all inputs
-    document.querySelectorAll('#questions-container input, #questions-container textarea').forEach(el => {
-        el.disabled = true;
-    });
-
-    // Highlight answered vs unanswered questions
-    currentAssessment.questions.forEach((q, index) => {
-        const card = document.querySelectorAll('.question-card')[index];
-        let hasAnswer = false;
-
-        if (q.question_type === 'multiple_choice' || q.question_type === 'true_false') {
-            hasAnswer = !!document.querySelector(`input[name="q_${q.id}"]:checked`);
-        } else {
-            const textarea = document.querySelector(`textarea[name="q_${q.id}"]`);
-            hasAnswer = textarea && textarea.value.trim() !== '';
+    if (!currentAssessment.time_limit_minutes || !currentAttempt.expires_at) {
+        timer.textContent = assessmentMessage('no_limit', 'No time limit');
+        return;
+    }
+    const rawDeadline = currentAttempt.expires_at;
+    const deadline = SLMTime.epoch(rawDeadline, currentAttempt.timing_provenance);
+    if (deadline === null) {
+        timer.textContent = assessmentMessage('timer_unknown', 'Timer timezone unknown; teacher review required.');
+        return;
+    }
+    const tick = () => {
+        const remaining = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+        timer.textContent = `${Math.floor(remaining / 60).toString().padStart(2, '0')}:${(remaining % 60).toString().padStart(2, '0')}`;
+        timer.classList.toggle('text-danger', remaining <= 300);
+        if (remaining === 0) {
+            clearInterval(timerInterval);
+            window.submitAssessment();
         }
-
-        if (hasAnswer) {
-            card.classList.add('border-success');
-            card.classList.remove('border-warning');
-        } else {
-            card.classList.add('border-warning');
-            card.classList.remove('border-success');
-        }
-    });
-
-    // Toggle button visibility
-    document.getElementById('answer-buttons').classList.add('d-none');
-    document.getElementById('review-buttons').classList.remove('d-none');
+    };
+    timerInterval = setInterval(tick, 1000);
+    tick();
 }
 
-window.exitReviewMode = () => {
-    isReviewMode = false;
-
-    // Re-enable all inputs
-    document.querySelectorAll('#questions-container input, #questions-container textarea').forEach(el => {
-        el.disabled = false;
+function collectAnswers() {
+    return currentAssessment.questions.map(question => {
+        const inputs = document.getElementsByName(`q_${question.id}`);
+        const selected = Array.from(inputs).find(input => input.type !== 'radio' || input.checked);
+        return { question_id: question.id, response_text: selected?.value || '' };
     });
-
-    // Remove highlights
-    document.querySelectorAll('.question-card').forEach(card => {
-        card.classList.remove('border-success', 'border-warning');
-    });
-
-    // Toggle button visibility
-    document.getElementById('answer-buttons').classList.remove('d-none');
-    document.getElementById('review-buttons').classList.add('d-none');
 }
 
-// ============================================================================
-// AUTOSAVE / PARTIAL SAVE (25.3)
-// ============================================================================
-let autosaveTimer = null;
-
-function getStorageKey() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const id = urlParams.get('id');
-    return `assessment_progress_${id}`;
+function showDraftStatus(message, failed = false) {
+    const indicator = document.getElementById('autosave-indicator');
+    indicator.classList.remove('d-none');
+    indicator.classList.toggle('text-danger', failed);
+    document.getElementById('autosave-status').textContent = message;
 }
 
 function saveProgress() {
-    if (!currentAssessment) return;
-
-    const answers = {};
-    currentAssessment.questions.forEach(q => {
-        if (q.question_type === 'multiple_choice' || q.question_type === 'true_false') {
-            const selected = document.querySelector(`input[name="q_${q.id}"]:checked`);
-            answers[q.id] = selected ? selected.value : '';
-        } else {
-            const textarea = document.querySelector(`textarea[name="q_${q.id}"]`);
-            answers[q.id] = textarea ? textarea.value : '';
-        }
-    });
-
-    localStorage.setItem(getStorageKey(), JSON.stringify({
-        assessmentId: currentAssessment.id,
-        answers: answers,
-        savedAt: new Date().toISOString()
-    }));
-
-    // Show save indicator
-    const indicator = document.getElementById('autosave-indicator');
-    const status = document.getElementById('autosave-status');
-    if (indicator && status) {
-        indicator.classList.remove('d-none');
-        status.textContent = '💾 Progress saved';
-
-        // Fade out after 2 seconds
-        setTimeout(() => {
-            indicator.classList.add('d-none');
-        }, 2000);
-    }
+    if (!currentAssessment || !currentAttempt || submitted || assessmentOwner !== SLMClient.account()) return false;
+    const saved = SLMClient.drafts.write('assessment', currentAssessment.id, currentAttempt.submission_id,
+        { answers: collectAnswers(), savedAt: new Date().toISOString() });
+    showDraftStatus(saved ? assessmentMessage('local_draft', 'Draft saved on this device; not submitted.') :
+        assessmentMessage('storage_failed', 'Could not save a local draft. Keep this page open and retry.'), !saved);
+    return saved;
 }
 
-function loadProgress() {
-    const saved = localStorage.getItem(getStorageKey());
-    if (!saved) return;
-
-    try {
-        const data = JSON.parse(saved);
-        if (data.assessmentId !== currentAssessment.id) return;
-
-        // Restore answers
-        Object.entries(data.answers).forEach(([questionId, value]) => {
-            if (!value) return;
-
-            // Try radio buttons first
-            const radio = document.querySelector(`input[name="q_${questionId}"][value="${value}"]`);
-            if (radio) {
-                radio.checked = true;
-                return;
-            }
-
-            // Try textarea
-            const textarea = document.querySelector(`textarea[name="q_${questionId}"]`);
-            if (textarea) {
-                textarea.value = value;
-            }
+async function loadProgress() {
+    const draft = SLMClient.drafts.read('assessment', currentAssessment.id, currentAttempt.submission_id);
+    if (!draft?.answers?.length) return true;
+    const choice = await SLMClient.chooseDraft();
+    if (choice === 'discard') { clearProgress(); return true; }
+    if (choice !== 'restore') { window.location.href = '/dashboard.html'; return false; }
+    draft.answers.forEach(answer => {
+        Array.from(document.getElementsByName(`q_${answer.question_id}`)).forEach(input => {
+            if (input.type === 'radio') input.checked = input.value === answer.response_text;
+            else input.value = answer.response_text;
         });
-
-        console.log('📥 Restored progress from', data.savedAt);
-    } catch (e) {
-        console.warn('Failed to restore progress:', e);
-    }
+    });
+    showDraftStatus(assessmentMessage('restored', 'Draft restored on this device.'));
+    return true;
 }
 
 function clearProgress() {
-    localStorage.removeItem(getStorageKey());
+    if (assessmentOwner === SLMClient.account()) SLMClient.drafts.remove('assessment', currentAssessment.id, currentAttempt.submission_id);
 }
 
 function setupAutosave() {
-    // Debounced save on any input change
-    document.getElementById('questions-container').addEventListener('input', () => {
-        clearTimeout(autosaveTimer);
-        autosaveTimer = setTimeout(saveProgress, 3000); // Save 3s after last input
-    });
-
-    // Also save on radio button change
-    document.getElementById('questions-container').addEventListener('change', () => {
-        clearTimeout(autosaveTimer);
-        autosaveTimer = setTimeout(saveProgress, 1000); // Save 1s after selection
-    });
+    const container = document.getElementById('questions-container');
+    container.addEventListener('input', saveProgress);
+    container.addEventListener('change', saveProgress);
+    window.addEventListener('pagehide', saveProgress);
 }
 
-// ============================================================================
-// INITIALIZATION
-// ============================================================================
-document.addEventListener('DOMContentLoaded', async () => {
-    await loadAssessment();
-
-    // After assessment loads, restore progress and setup autosave
-    if (currentAssessment) {
-        loadProgress();
-        setupAutosave();
+window.submitAssessment = async () => {
+    if (!currentAssessment || !currentAttempt || submitting || submitted) return;
+    if (assessmentOwner !== SLMClient.account()) {
+        showDraftStatus(assessmentMessage('account_changed', 'The signed-in account changed. Reload before continuing.'), true);
+        return;
     }
-});
+    saveProgress();
+    submitting = true;
+    const buttons = document.querySelectorAll('#answer-buttons button, #review-buttons button, #attempt-actions button');
+    buttons.forEach(button => { button.disabled = true; });
+    document.querySelectorAll('#questions-container input, #questions-container textarea').forEach(input => { input.disabled = true; });
+    try {
+        const result = await SLMClient.request(`/api/assessments/${currentAssessment.id}/submit`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ submission_id: currentAttempt.submission_id, answers: collectAnswers() })
+        });
+        if (!result || Number(result.submission_id) !== Number(currentAttempt.submission_id) ||
+            !['submitted', 'ai_graded', 'graded'].includes(result.status)) {
+            throw new Error(assessmentMessage('failed', 'The server could not confirm your submission. Your draft is kept. Please retry.'));
+        }
+        submitted = true;
+        clearInterval(timerInterval);
+        clearProgress();
+        document.querySelectorAll('#questions-container input, #questions-container textarea').forEach(input => { input.disabled = true; });
+        const results = document.getElementById('results');
+        results.replaceChildren();
+        const heading = document.createElement('h3');
+        heading.textContent = assessmentMessage('submitted', 'Submission received');
+        const feedback = document.createElement('p');
+        feedback.textContent = result.status === 'graded' && result.score !== null ?
+            `${assessmentMessage('final_score', 'Final score')}: ${result.score} / ${result.total_points ?? currentAssessment.questions.reduce((sum, q) => sum + q.points, 0)}` :
+            assessmentMessage('pending_review', 'Pending teacher review. No final grade yet.');
+        const link = document.createElement('a');
+        link.className = 'btn btn-primary'; link.href = `/assessment_history.html?submission_id=${currentAttempt.submission_id}`;
+        link.textContent = assessmentMessage('assessment_feedback', 'View submissions and feedback');
+        results.append(heading, feedback, link);
+        results.classList.remove('d-none');
+        results.tabIndex = -1;
+        results.focus();
+        ['answer-buttons', 'review-buttons', 'autosave-indicator', 'attempt-actions'].forEach(id => document.getElementById(id).classList.add('d-none'));
+    } catch (error) {
+        showDraftStatus(error.message, true);
+        showToast(error.message, 'danger');
+    } finally {
+        submitting = false;
+        if (!submitted) {
+            buttons.forEach(button => { button.disabled = false; });
+            document.querySelectorAll('#questions-container input, #questions-container textarea').forEach(input => { input.disabled = isReviewMode; });
+        }
+    }
+};
 
+window.closeAssessmentAttempt = async () => {
+    if (!currentAssessment || !currentAttempt || submitting || submitted) return;
+    if (assessmentOwner !== SLMClient.account()) {
+        showDraftStatus(assessmentMessage('account_changed', 'The signed-in account changed. Reload before continuing.'), true);
+        return;
+    }
+    saveProgress();
+    submitting = true;
+    const buttons = document.querySelectorAll('#answer-buttons button, #review-buttons button, #attempt-actions button');
+    buttons.forEach(button => { button.disabled = true; });
+    try {
+        const confirmed = await showConfirm(
+            assessmentMessage('attempt_close_confirm', 'Close this attempt without submitting? It will still count toward your attempt limit and cannot be resumed. Your current answers will be saved with the closed attempt, without a grade.'),
+            assessmentMessage('attempt_close', 'Close attempt'),
+            assessmentMessage('attempt_close', 'Close attempt'),
+            assessmentMessage('cancel', 'Cancel'), true);
+        if (!confirmed) return;
+        if (assessmentOwner !== SLMClient.account()) throw new Error(assessmentMessage('account_changed', 'The signed-in account changed. Reload before continuing.'));
+        const answers = collectAnswers();
+        saveProgress();
+        document.querySelectorAll('#questions-container input, #questions-container textarea').forEach(input => { input.disabled = true; });
+        const result = await SLMClient.request(`/api/assessments/submissions/${currentAttempt.submission_id}/close`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reason: 'abandoned', answers })
+        });
+        if (assessmentOwner !== SLMClient.account()) throw new Error(assessmentMessage('account_changed', 'The signed-in account changed. Reload before continuing.'));
+        if (Number(result?.submission_id) !== Number(currentAttempt.submission_id) || result.status !== 'abandoned') {
+            throw new Error(assessmentMessage('attempt_close_failed', 'The server could not confirm this attempt was closed. Your draft is kept. Please retry.'));
+        }
+        submitted = true;
+        clearInterval(timerInterval);
+        document.querySelectorAll('#questions-container input, #questions-container textarea').forEach(input => { input.disabled = true; });
+        const results = document.getElementById('results');
+        results.replaceChildren();
+        const heading = document.createElement('h3');
+        heading.textContent = assessmentMessage('attempt_closed', 'Attempt closed');
+        const message = document.createElement('p');
+        message.textContent = assessmentMessage('attempt_closed_detail', 'This attempt still counts toward your limit. Your unsubmitted answers are saved with this closed attempt and can be read in your history.');
+        const link = document.createElement('a');
+        link.href = `/assessment_history.html?submission_id=${currentAttempt.submission_id}`;
+        link.className = 'btn btn-primary';
+        link.textContent = assessmentMessage('submission_history', 'My submissions and feedback');
+        results.append(heading, message, link);
+        results.classList.remove('d-none'); results.tabIndex = -1; results.focus();
+        ['answer-buttons', 'review-buttons', 'autosave-indicator', 'attempt-actions'].forEach(id => document.getElementById(id).classList.add('d-none'));
+    } catch (error) {
+        showDraftStatus(error.message, true);
+        showToast(error.message, 'danger');
+    } finally {
+        submitting = false;
+        if (!submitted) {
+            buttons.forEach(button => { button.disabled = false; });
+            document.querySelectorAll('#questions-container input, #questions-container textarea').forEach(input => { input.disabled = isReviewMode; });
+        }
+    }
+};
+
+window.showReviewMode = () => {
+    if (!currentAssessment || submitted) return;
+    isReviewMode = true;
+    document.querySelectorAll('#questions-container input, #questions-container textarea').forEach(input => { input.disabled = true; });
+    const answers = collectAnswers();
+    document.querySelectorAll('.question-card').forEach((card, index) => {
+        let status = card.querySelector('.answer-status');
+        if (!status) { status = document.createElement('p'); status.className = 'answer-status small'; card.append(status); }
+        status.textContent = answers[index].response_text.trim() ? assessmentMessage('answered', 'Answered') : assessmentMessage('unanswered', 'Not answered');
+    });
+    document.getElementById('answer-buttons').classList.add('d-none');
+    document.getElementById('review-buttons').classList.remove('d-none');
+    document.querySelector('#review-buttons button').focus();
+};
+window.exitReviewMode = () => {
+    isReviewMode = false;
+    document.querySelectorAll('#questions-container input, #questions-container textarea').forEach(input => { input.disabled = false; });
+    document.querySelectorAll('.answer-status').forEach(status => status.remove());
+    document.getElementById('answer-buttons').classList.remove('d-none');
+    document.getElementById('review-buttons').classList.add('d-none');
+    document.getElementById('review-btn').focus();
+};
+document.addEventListener('DOMContentLoaded', loadAssessment);

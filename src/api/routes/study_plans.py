@@ -1,11 +1,20 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List, Optional, Dict, Any
-from pydantic import BaseModel, ConfigDict
-from datetime import datetime, date
+from pydantic import BaseModel, ConfigDict, Field
+from datetime import datetime
+from uuid import uuid4
+from src.core.services.temporal_service import utc_now
 
 from src.api.dependencies import get_db
 from src.api.security import get_current_user
+from src.api.policies import (
+    can_view_plan as _can_view_plan,
+    can_reuse_content,
+    can_manage_student,
+    can_manage_plan,
+    require_allowed,
+)
 from src.core.models import (
     User,
     StudyPlan,
@@ -16,6 +25,9 @@ from src.core.models import (
     DailyGoal,
 )
 from src.core.roles import is_admin, is_student, is_teacher_or_admin
+from src.core.services import course_workflow
+from src.core.services.content_schema import normalize_content
+from src.core.services.source_documents import SourceDocumentInput, save_document
 
 router = APIRouter(prefix="/api/study-plans", tags=["study-plans"])
 
@@ -32,19 +44,6 @@ def _is_assigned_student(db: Session, student_id: int, plan_id: int) -> bool:
         .first()
         is not None
     )
-
-
-def _can_view_plan(db: Session, user: User, plan: StudyPlan) -> bool:
-    if is_admin(user):
-        return True
-    if is_teacher_or_admin(user) and plan.creator_id == user.id:
-        return True
-    if plan.is_public:
-        return True
-    # Students can view plans assigned to them
-    if is_student(user):
-        return _is_assigned_student(db, user.id, plan.id)
-    return False
 
 
 def _can_access_progress(db: Session, user: User, plan: StudyPlan) -> bool:
@@ -87,14 +86,14 @@ class ProgressResponse(BaseModel):
 
 class PhaseModel(BaseModel):
     name: str
-    content_ids: List[int]
+    content_ids: List[int] = Field(max_length=1001)
 
 
 class StudyPlanCreate(BaseModel):
-    title: str
+    title: str = Field(min_length=1, max_length=200)
     description: Optional[str] = None
     is_public: bool = False
-    phases: List[PhaseModel] = []
+    phases: List[PhaseModel] = Field(default_factory=list, max_length=101)
     # We could also accept 'contents' list if not using phases, but explicit phases is better.
 
 
@@ -137,14 +136,28 @@ async def create_study_plan(
                 status_code=403, detail="Only teachers/admins can create study plans"
             )
 
+        requested_ids = [
+            content_id for phase in plan.phases for content_id in phase.content_ids
+        ]
+        if len(requested_ids) != len(set(requested_ids)):
+            raise HTTPException(
+                status_code=422, detail="A course item may appear only once"
+            )
+
         # 1. Create Study Plan
         new_plan = StudyPlan(
             title=plan.title,
             description=plan.description,
             creator_id=current_user.id,
-            is_public=plan.is_public,
+            is_public=False,
             phases=[p.model_dump() for p in plan.phases],  # Store structure as JSON
-            created_at=datetime.now(),
+            created_at=utc_now(),
+        )
+        new_plan.set_encrypted_metadata(
+            {
+                "workflow": {"status": "draft", "version": 0},
+                "course_identity": str(uuid4()),
+            }
         )
         db.add(new_plan)
         db.flush()  # Get ID
@@ -153,13 +166,13 @@ async def create_study_plan(
         # Flatten phases to linear contents if needed, or just store associations for query purposes.
         # We need StudyPlanContent to link Content to Plan for foreign key constraints and simple queries.
 
-        association_order = 0
         for phase_idx, phase in enumerate(plan.phases):
-            for content_id in phase.content_ids:
+            for association_order, content_id in enumerate(phase.content_ids):
                 # Verify content exists using proper SQLAlchemy 2.0 pattern
                 content = db.query(Content).filter(Content.id == content_id).first()
                 if not content:
-                    continue  # Skip invalid IDs or raise? Skip for now.
+                    raise HTTPException(status_code=422, detail="Unknown content ID")
+                require_allowed(can_reuse_content(db, current_user, content))
 
                 assoc = StudyPlanContent(
                     study_plan_id=new_plan.id,
@@ -168,7 +181,6 @@ async def create_study_plan(
                     order_index=association_order,
                 )
                 db.add(assoc)
-                association_order += 1
 
         db.commit()
         db.refresh(new_plan)
@@ -192,6 +204,8 @@ async def list_study_plans(
     current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     # Teachers see plans they created; students see plans assigned to them.
+    if is_admin(current_user):
+        return db.query(StudyPlan).all()
     if is_teacher_or_admin(current_user):
         return db.query(StudyPlan).filter(StudyPlan.creator_id == current_user.id).all()
 
@@ -204,6 +218,136 @@ async def list_study_plans(
     if not plan_ids:
         return []
     return db.query(StudyPlan).filter(StudyPlan.id.in_(plan_ids)).all()
+
+
+@router.put("/{plan_id}", response_model=StudyPlanResponse)
+def edit_study_plan(
+    plan_id: int,
+    request: StudyPlanCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Edit a saved unassigned draft, invalidating its prior review."""
+    plan = db.get(StudyPlan, plan_id)
+    require_allowed(can_manage_plan(db, current_user, plan))
+    try:
+        course_workflow.assert_plan_editable(db, plan)
+        ids = [item for phase in request.phases for item in phase.content_ids]
+        if len(ids) != len(set(ids)):
+            raise ValueError("A course item may appear only once")
+        for content_id in ids:
+            content = db.get(Content, content_id)
+            if not content:
+                raise ValueError("Unknown course content")
+            require_allowed(can_reuse_content(db, current_user, content))
+        db.query(StudyPlanContent).filter_by(study_plan_id=plan_id).delete()
+        db.query(Content).filter(
+            Content.study_plan_id == plan_id, ~Content.id.in_(ids)
+        ).update({Content.study_plan_id: None}, synchronize_session=False)
+        for phase_index, phase in enumerate(request.phases):
+            for order_index, content_id in enumerate(phase.content_ids):
+                db.add(
+                    StudyPlanContent(
+                        study_plan_id=plan_id,
+                        content_id=content_id,
+                        phase_index=phase_index,
+                        order_index=order_index,
+                    )
+                )
+        plan.title, plan.description = request.title, request.description
+        plan.phases = [phase.model_dump() for phase in request.phases]
+        metadata = course_workflow.metadata(plan)
+        metadata["workflow"] = {
+            "status": "draft",
+            "version": course_workflow.workflow(plan)["version"],
+        }
+        plan.set_encrypted_metadata(metadata)
+        plan.is_public = False
+        db.commit()
+        return plan
+    except (ValueError, HTTPException) as error:
+        db.rollback()
+        if isinstance(error, HTTPException):
+            raise
+        raise HTTPException(status_code=409, detail=str(error)) from error
+
+
+class CourseCopyRequest(BaseModel):
+    title: Optional[str] = Field(default=None, min_length=1, max_length=200)
+    reason: str = "copy"
+
+
+@router.get("/{plan_id}/source")
+def get_course_source(
+    plan_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Raw author source is separate from learner-approved instructional content."""
+    plan = db.get(StudyPlan, plan_id)
+    require_allowed(can_manage_plan(db, current_user, plan))
+    return {"source": course_workflow.metadata(plan).get("source_document")}
+
+
+@router.put("/{plan_id}/source")
+def set_course_source(
+    plan_id: int,
+    request: SourceDocumentInput,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    plan = db.get(StudyPlan, plan_id)
+    require_allowed(can_manage_plan(db, current_user, plan))
+    try:
+        source = save_document(db, plan, request.model_dump())
+        db.commit()
+        return {
+            "document_id": source["document_id"],
+            "source": source,
+            "review_required": True,
+        }
+    except ValueError as error:
+        db.rollback()
+        raise HTTPException(status_code=409, detail=str(error)) from error
+
+
+@router.post("/{plan_id}/copy")
+def copy_study_plan(
+    plan_id: int,
+    request: CourseCopyRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Create an independent reviewed-later copy, preserving explicit lineage."""
+    from src.core.services.portability_service import export_course, import_course
+
+    plan = db.get(StudyPlan, plan_id)
+    require_allowed(can_manage_plan(db, current_user, plan))
+    if request.reason not in {"copy", "revision"}:
+        raise HTTPException(status_code=422, detail="Choose copy or revision")
+    try:
+        package = export_course(db, current_user, plan, "teacher")
+        package["study_plan"]["title"] = (
+            request.title or f"{plan.title} ({request.reason})"
+        )
+        copied = import_course(db, current_user, package)
+        metadata = course_workflow.metadata(copied)
+        metadata["derived_from"] = {
+            "plan_id": plan.id,
+            "version": course_workflow.workflow(plan)["version"],
+            "reason": request.reason,
+            "copied_at": utc_now().isoformat(),
+        }
+        copied.set_encrypted_metadata(metadata)
+        db.commit()
+        return {
+            "id": copied.id,
+            "status": "draft",
+            "derived_from": metadata["derived_from"],
+        }
+    except ValueError as error:
+        db.rollback()
+        raise HTTPException(status_code=422, detail=str(error)) from error
 
 
 @router.post("/{plan_id}/assign", response_model=AssignStudentsResponse)
@@ -224,6 +368,11 @@ async def assign_students_to_plan(
 
     if not is_admin(current_user) and plan.creator_id != current_user.id:
         raise HTTPException(status_code=403, detail="Access denied")
+
+    try:
+        publication = course_workflow.require_published(db, plan)
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
 
     student_ids = sorted({int(sid) for sid in (req.student_ids or [])})
     if not student_ids:
@@ -248,6 +397,9 @@ async def assign_students_to_plan(
             status_code=400, detail=f"Not student role: {non_student_ids}"
         )
 
+    for student in students:
+        require_allowed(can_manage_student(db, current_user, student))
+
     existing = (
         db.query(StudentStudyPlan.student_id)
         .filter(
@@ -260,7 +412,16 @@ async def assign_students_to_plan(
     to_assign = [sid for sid in student_ids if sid not in set(already_assigned)]
 
     for sid in to_assign:
-        db.add(StudentStudyPlan(student_id=sid, study_plan_id=plan_id, progress={}))
+        db.add(
+            StudentStudyPlan(
+                student_id=sid,
+                study_plan_id=plan_id,
+                progress={
+                    "course_version": publication["version"],
+                    "assigned_snapshot": publication["snapshot"],
+                },
+            )
+        )
 
     db.commit()
 
@@ -306,12 +467,12 @@ class StudyPlanTree(BaseModel):
 class TopicCreate(BaseModel):
     """Create a topic (Content) linked to a study plan."""
 
-    title: str
+    title: str = Field(min_length=1, max_length=200)
     content_type: str = "lesson"  # Default to lesson
     description: Optional[str] = None
-    difficulty: int = 1
+    difficulty: int = Field(default=1, ge=1, le=10)
     content_data: Optional[Dict[str, Any]] = None
-    phase_index: int = 0
+    phase_index: int = Field(default=0, ge=0, le=100)
 
 
 class GradeSummary(BaseModel):
@@ -372,7 +533,9 @@ async def get_study_plan_tree(
     contents = []
     for assoc in associations:
         content = assoc.content
-        if content:
+        from src.api.policies import can_view_content
+
+        if content and can_view_content(db, current_user, content):
             contents.append(
                 ContentItemTree(
                     id=content.id,
@@ -430,6 +593,7 @@ async def add_topic_to_study_plan(
         raise HTTPException(status_code=403, detail="Only the creator can add topics")
 
     try:
+        course_workflow.assert_plan_editable(db, plan)
         # Create the content
         content_type_enum = ContentType(topic.content_type)
 
@@ -439,24 +603,17 @@ async def add_topic_to_study_plan(
             difficulty=topic.difficulty,
             creator_id=current_user.id,
             study_plan_id=plan_id,
-            created_at=datetime.now(),
+            created_at=utc_now(),
         )
 
-        if topic.content_data:
-            new_content.set_encrypted_content_data(topic.content_data)
+        new_content.set_encrypted_content_data(
+            normalize_content(topic.content_type, topic.content_data or {})
+        )
 
         db.add(new_content)
         db.flush()
 
-        # Get max order index for this phase
-        max_order = (
-            db.query(StudyPlanContent)
-            .filter(
-                StudyPlanContent.study_plan_id == plan_id,
-                StudyPlanContent.phase_index == topic.phase_index,
-            )
-            .count()
-        )
+        max_order = course_workflow.next_course_position(db, plan, topic.phase_index)
 
         # Create association
         assoc = StudyPlanContent(
@@ -466,6 +623,7 @@ async def add_topic_to_study_plan(
             order_index=max_order,
         )
         db.add(assoc)
+        course_workflow.invalidate_reviews(db, new_content)
 
         db.commit()
         db.refresh(new_content)
@@ -478,6 +636,11 @@ async def add_topic_to_study_plan(
             "phase_index": topic.phase_index,
         }
 
+    except (ValueError, HTTPException) as error:
+        db.rollback()
+        if isinstance(error, HTTPException):
+            raise
+        raise HTTPException(status_code=422, detail=str(error)) from error
     except Exception as e:
         db.rollback()
         logger.error(f"Error adding topic to study plan: {e}")
@@ -501,8 +664,7 @@ async def get_study_plan_grades(
     if not plan:
         raise HTTPException(status_code=404, detail="Study plan not found")
 
-    if plan.creator_id != current_user.id and not plan.is_public:
-        raise HTTPException(status_code=403, detail="Access denied")
+    require_allowed(can_manage_plan(db, current_user, plan))
 
     # Get all assessments linked to this study plan
     assessments = db.query(Assessment).filter(Assessment.study_plan_id == plan_id).all()
@@ -538,7 +700,11 @@ async def get_study_plan_grades(
     ]
 
     # Calculate average score
-    scores = [s.score for s in graded if s.score is not None]
+    scores = [
+        100.0 * s.score / s.total_points
+        for s in graded
+        if s.score is not None and s.total_points
+    ]
     avg_score = sum(scores) / len(scores) if scores else None
 
     # Calculate passing rate
@@ -546,7 +712,10 @@ async def get_study_plan_grades(
         passing = sum(
             1
             for s in graded
-            if s.score and s.assessment and s.score >= s.assessment.passing_score
+            if s.score is not None
+            and s.total_points
+            and s.assessment
+            and 100.0 * s.score / s.total_points >= s.assessment.passing_score
         )
         passing_rate = (passing / len(graded)) * 100
     else:
@@ -578,8 +747,7 @@ async def get_topic_grades(
     if not plan:
         raise HTTPException(status_code=404, detail="Study plan not found")
 
-    if plan.creator_id != current_user.id and not plan.is_public:
-        raise HTTPException(status_code=403, detail="Access denied")
+    require_allowed(can_manage_plan(db, current_user, plan))
 
     # Verify topic exists in this plan
     content = db.query(Content).filter(Content.id == topic_id).first()
@@ -619,14 +787,21 @@ async def get_topic_grades(
         or (hasattr(s.status, "value") and s.status.value == "submitted")
     ]
 
-    scores = [s.score for s in graded if s.score is not None]
+    scores = [
+        100.0 * s.score / s.total_points
+        for s in graded
+        if s.score is not None and s.total_points
+    ]
     avg_score = sum(scores) / len(scores) if scores else None
 
     if graded:
         passing = sum(
             1
             for s in graded
-            if s.score and s.assessment and s.score >= s.assessment.passing_score
+            if s.score is not None
+            and s.total_points
+            and s.assessment
+            and 100.0 * s.score / s.total_points >= s.assessment.passing_score
         )
         passing_rate = (passing / len(graded)) * 100
     else:
@@ -801,29 +976,13 @@ async def update_progress(
         student_plan.progress = progress_data
 
         # Mark as completed if all content done
-        if len(completed_ids) >= total_contents:
-            # from datetime import datetime
-            student_plan.completed_at = datetime.now()
+        if len(completed_ids) >= total_contents and student_plan.completed_at is None:
+            student_plan.completed_at = utc_now()
 
         db.commit()
 
-        # Update Daily Goal
-        today = date.today()
-        daily_goal = (
-            db.query(DailyGoal)
-            .filter(DailyGoal.user_id == current_user.id, DailyGoal.goal_date == today)
-            .first()
-        )
-
-        if daily_goal and not daily_goal.completed:
-            # Basic logic: always increment.
-            # Ideally we check goal_type, but let's assume 'lessons' or count any content for now.
-            daily_goal.current_value += 1
-            if daily_goal.current_value >= daily_goal.target_value:
-                daily_goal.completed = True
-                # Optional: Award bonus XP for goal completion? (Handled by awardXP separately?)
-
-        db.commit()
+        # Session completion owns participation goals/rewards. Course position
+        # updates (including retries) must not count the same activity twice.
 
         completion_pct = (
             (len(completed_ids) / total_contents * 100) if total_contents > 0 else 0.0
@@ -843,3 +1002,101 @@ async def update_progress(
         db.rollback()
         logger.error(f"Error updating progress: {e}")
         raise HTTPException(status_code=500, detail="Failed to update progress")
+
+
+class CourseAction(BaseModel):
+    action: str
+    is_public: bool = False
+
+
+@router.get("/{plan_id}/workflow")
+async def get_course_workflow(
+    plan_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Show current review state and assigned version to authorized readers."""
+    from src.api.policies import require_plan
+
+    plan = require_plan(db, current_user, plan_id)
+    try:
+        state = course_workflow.workflow(plan)
+        return {
+            "status": state["status"],
+            "version": state["version"],
+            "read_only": bool(
+                db.query(StudentStudyPlan.student_id)
+                .filter_by(study_plan_id=plan.id)
+                .first()
+            ),
+        }
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+
+
+@router.post("/{plan_id}/workflow")
+async def change_course_workflow(
+    plan_id: int,
+    request: CourseAction,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Keep teacher review explicit; generation can never publish itself."""
+    plan = db.get(StudyPlan, plan_id)
+    require_allowed(can_manage_plan(db, current_user, plan))
+    try:
+        for link in course_workflow.course_items(db, plan_id):
+            require_allowed(can_reuse_content(db, current_user, link.content))
+        state = course_workflow.transition(
+            db, plan, request.action, current_user.id, request.is_public
+        )
+        db.commit()
+        return state
+    except ValueError as exc:
+        db.rollback()
+        raise HTTPException(status_code=409, detail=str(exc))
+
+
+class CourseOrderItem(BaseModel):
+    content_id: int
+    phase_index: int = Field(ge=0, le=100)
+    order_index: int = Field(ge=0, le=1000)
+
+
+@router.put("/{plan_id}/order")
+async def reorder_course(
+    plan_id: int,
+    items: List[CourseOrderItem],
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Persist keyboard/button or drag ordering with the same validated contract."""
+    plan = db.get(StudyPlan, plan_id)
+    require_allowed(can_manage_plan(db, current_user, plan))
+    try:
+        course_workflow.assert_plan_editable(db, plan)
+        links = {
+            link.content_id: link for link in course_workflow.course_items(db, plan_id)
+        }
+        if len(items) != len(links) or {item.content_id for item in items} != set(
+            links
+        ):
+            raise ValueError("Order must include every course item exactly once")
+        positions = {(item.phase_index, item.order_index) for item in items}
+        if len(positions) != len(items):
+            raise ValueError("Course positions must be unique")
+        for item in items:
+            link = links[item.content_id]
+            link.phase_index, link.order_index = item.phase_index, item.order_index
+        data = course_workflow.metadata(plan)
+        data["workflow"] = {
+            "status": "draft",
+            "version": course_workflow.workflow(plan)["version"],
+        }
+        plan.set_encrypted_metadata(data)
+        plan.is_public = False
+        db.commit()
+        return {"success": True}
+    except ValueError as exc:
+        db.rollback()
+        raise HTTPException(status_code=409, detail=str(exc))

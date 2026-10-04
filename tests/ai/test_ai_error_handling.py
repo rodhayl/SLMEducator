@@ -6,8 +6,8 @@ import pytest
 import httpx
 from unittest.mock import Mock, patch
 
-from core.services.ai_service import AIService, AIServiceError
-from core.models import AIModelConfiguration
+from src.core.services.ai_service import AIService, AIServiceError
+from src.core.models import AIModelConfiguration
 
 
 class TestAIErrorHandling:

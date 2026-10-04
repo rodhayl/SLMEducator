@@ -8,9 +8,10 @@ Implements TTL-based expiration and database-backed persistence.
 import hashlib
 import json
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 from typing import Optional, Dict, Any
-from sqlalchemy import Column, Integer, String, Text, DateTime, create_engine
+from sqlalchemy import Column, Integer, String, Text, create_engine
+from src.core.temporal import UTCDateTime, utc_now, known_instant, known_before, known_timestamp_clause
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import sessionmaker
 import weakref
@@ -29,11 +30,11 @@ class CachedResponse(Base):
     response_text = Column(Text, nullable=False)
     model = Column(String(100), nullable=False)
     created_at = Column(
-        DateTime,
-        default=lambda: datetime.now(timezone.utc).replace(tzinfo=None),
+        UTCDateTime,
+        default=utc_now,
         nullable=False,
     )
-    expires_at = Column(DateTime(timezone=True), nullable=False)
+    expires_at = Column(UTCDateTime, nullable=False)
     hit_count = Column(Integer, default=0, nullable=False)
 
 
@@ -112,21 +113,11 @@ class AICacheService:
                 self.logger.debug(f"Cache miss for key: {cache_key[:16]}...")
                 return None
 
-            now_naive = datetime.now(timezone.utc).replace(tzinfo=None)
-            cached_expires_opt: Optional[datetime] = cached.expires_at
-            if cached_expires_opt is None:
-                session.delete(cached)
-                session.commit()
+            if not known_instant(cached.expires_at):
+                # An old cache deadline has no persisted timezone provenance.
+                # Treat it as a miss and preserve it until explicit replacement.
                 return None
-
-            cached_expires = cached_expires_opt
-            if cached_expires.tzinfo is not None:
-                cached_expires = cached_expires.astimezone(timezone.utc).replace(
-                    tzinfo=None
-                )
-
-            if now_naive > cached_expires:
-                self.logger.debug(f"Cache expired for key: {cache_key[:16]}...")
+            if utc_now() > cached.expires_at:
                 session.delete(cached)
                 session.commit()
                 return None
@@ -160,9 +151,7 @@ class AICacheService:
         """
         cache_key = self._generate_cache_key(prompt, model, **kwargs)
         ttl = ttl_seconds if ttl_seconds is not None else self.default_ttl
-        expires_at = (datetime.now(timezone.utc) + timedelta(seconds=ttl)).replace(
-            tzinfo=None
-        )
+        expires_at = utc_now() + timedelta(seconds=ttl)
 
         with self.SessionLocal() as session:
             # Check if already exists
@@ -174,7 +163,7 @@ class AICacheService:
                 # Update existing entry
                 existing.response_text = response
                 existing.expires_at = expires_at
-                existing.created_at = datetime.now(timezone.utc).replace(tzinfo=None)
+                existing.created_at = utc_now()
                 self.logger.debug(f"Updated cache for key: {cache_key[:16]}...")
             else:
                 # Create new entry
@@ -198,10 +187,10 @@ class AICacheService:
             Number of entries removed
         """
         with self.SessionLocal() as session:
-            now_naive = datetime.now(timezone.utc).replace(tzinfo=None)
+            now = utc_now()
             count = (
                 session.query(CachedResponse)
-                .filter(CachedResponse.expires_at < now_naive)
+                .filter(known_before(CachedResponse.expires_at, now))
                 .delete()
             )
             session.commit()
@@ -254,12 +243,14 @@ class AICacheService:
         """
         with self.SessionLocal() as session:
             total = session.query(CachedResponse).count()
-            now_naive = datetime.now(timezone.utc).replace(tzinfo=None)
+            now = utc_now()
             expired = (
                 session.query(CachedResponse)
-                .filter(CachedResponse.expires_at < now_naive)
+                .filter(known_before(CachedResponse.expires_at, now))
                 .count()
             )
+
+            unknown = session.query(CachedResponse).filter(~known_timestamp_clause(CachedResponse.expires_at)).count()
 
             # Calculate total hits
             total_hits = (
@@ -272,7 +263,8 @@ class AICacheService:
 
             return {
                 "total_entries": total,
-                "active_entries": total - expired,
+                "active_entries": total - expired - unknown,
+                "unknown_expiry_entries": unknown,
                 "expired_entries": expired,
                 "total_hits": hit_sum,
                 "hit_rate": f"{(hit_sum / max(total, 1) * 100):.1f}%",

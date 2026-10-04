@@ -1,7 +1,7 @@
 import { AuthService } from './auth.js';
 
 if (!AuthService.isAuthenticated()) {
-    window.location.href = '/login.html';
+    window.location.href = AuthService.loginUrl();
 }
 
 const user = AuthService.getUser();
@@ -26,21 +26,22 @@ const t = (key, params = {}) => {
 };
 
 let availableContent = [];
+let phaseSortable = null;
 
 // Init
 document.addEventListener('DOMContentLoaded', async () => {
     await loadContent();
-    addPhase(); // Add initial phase
+    if (!await loadSavedPlan()) addPhase(); // Add initial phase only for a new plan.
 
     // Initialize Sortable for phase reordering (33.1)
     const phasesContainer = document.getElementById('phases-container');
-    if (phasesContainer && typeof Sortable !== 'undefined') {
-        new Sortable(phasesContainer, {
+    if (!planReadOnly && phasesContainer && typeof Sortable !== 'undefined') {
+        phaseSortable = new Sortable(phasesContainer, {
             animation: 150,
             handle: '.drag-handle',
             ghostClass: 'bg-warning-subtle',
             onEnd: function () {
-                console.log('Phases reordered');
+                planDirty = true;
             }
         });
     }
@@ -52,6 +53,7 @@ async function loadContent() {
     try {
         const token = AuthService.getToken();
         const res = await fetch('/api/content/', { headers: { 'Authorization': `Bearer ${token}` } });
+        if (!res.ok) throw new Error('Unable to load content');
         availableContent = await res.json();
         renderContentList(availableContent);
     } catch (e) {
@@ -72,97 +74,106 @@ function renderContentList(items) {
         `;
         return;
     }
-    container.innerHTML = items.map(item => {
-        const estimate = Number.isFinite(item.estimated_time_min)
-            ? `${item.estimated_time_min}m`
-            : 'N/A';
-        return `
-        <div class="content-item-draggable" draggable="true" ondragstart="drag(event)" 
-             data-id="${item.id}" data-title="${item.title}" data-type="${item.content_type}">
-            <div class="d-flex justify-content-between">
-                <strong>${item.title}</strong>
-                <span class="badge bg-info text-dark">${item.content_type}</span>
-            </div>
-            <small class="text-muted">Est: ${estimate}</small>
-        </div>
-    `;
-    }).join('');
+    container.replaceChildren();
+    items.forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'content-item-draggable'; row.draggable = true;
+        row.dataset.id = item.id; row.dataset.title = item.title; row.dataset.type = item.content_type;
+        row.ondragstart = window.drag;
+        const title = document.createElement('strong'); title.textContent = item.title;
+        const detail = document.createElement('small'); detail.className = 'd-block text-secondary';
+        detail.textContent = item.content_type;
+        row.append(title, detail); container.append(row);
+    });
 }
 
-// DRAG AND DROP HANDLING
-window.allowDrop = (ev) => {
-    ev.preventDefault();
+window.allowDrop = event => event.preventDefault();
+window.drag = event => event.dataTransfer.setData('id', event.currentTarget.dataset.id);
+window.drop = event => {
+    event.preventDefault();
+    if (planReadOnly) return;
+    const area = event.target.closest('.phase-content-area');
+    const item = availableContent.find(item => String(item.id) === event.dataTransfer.getData('id'));
+    if (area && item) appendContent(area, item);
+};
+const builderMessage = (key, fallback) => SLMClient.message(key, fallback);
+function moveElement(element, direction) {
+    if (planReadOnly) return;
+    planDirty = true;
+    const sibling = direction < 0 ? element.previousElementSibling : element.nextElementSibling;
+    if (!sibling) return;
+    if (direction < 0) element.parentNode.insertBefore(element, sibling);
+    else element.parentNode.insertBefore(sibling, element);
 }
-
-window.drag = (ev) => {
-    // Store data: ID, Title, Type
-    ev.dataTransfer.setData("id", ev.target.dataset.id);
-    ev.dataTransfer.setData("title", ev.target.dataset.title);
-    ev.dataTransfer.setData("type", ev.target.dataset.type);
+function moveButton(element, direction, label) {
+    const button = document.createElement('button'); button.type = 'button';
+    button.className = 'btn btn-sm btn-outline-secondary';
+    button.textContent = direction < 0 ? '↑' : '↓';
+    button.setAttribute('aria-label', label);
+    button.onclick = () => { moveElement(element, direction); button.focus(); };
+    return button;
 }
-
-window.drop = (ev) => {
-    ev.preventDefault();
-    const id = ev.dataTransfer.getData("id");
-    const title = ev.dataTransfer.getData("title");
-    const type = ev.dataTransfer.getData("type");
-
-    // Find closest phase-content-area
-    let area = ev.target;
-    if (!area.classList.contains('phase-content-area')) {
-        area = area.closest('.phase-content-area');
-    }
-
-    if (area) {
-        // Clear placeholder if present
-        const placeholder = area.querySelector('small');
-        if (placeholder) placeholder.remove();
-
-        // Check if already exists in this phase to prevent dupes? 
-        // Allowing dupes might be valid (review), but let's allow it.
-
-        const div = document.createElement('div');
-        div.className = 'content-item-draggable bg-light';
-        div.dataset.contentId = id;
-        div.innerHTML = `
-            <div class="d-flex justify-content-between align-items-center">
-                <span>[${type}] ${title}</span>
-                <button class="btn btn-sm text-danger" onclick="this.parentElement.parentElement.remove()">×</button>
-            </div>
-        `;
-        area.appendChild(div);
-    }
+function appendContent(area, item) {
+    planDirty = true;
+    area.querySelector('small')?.remove();
+    const row = document.createElement('div');
+    row.className = 'content-item-draggable bg-light'; row.dataset.contentId = item.id;
+    const title = document.createElement('span'); title.textContent = `[${item.content_type}] ${item.title}`;
+    const controls = document.createElement('div'); controls.className = 'btn-group ms-2';
+    controls.append(moveButton(row, -1, builderMessage('move_up', 'Move up')),
+        moveButton(row, 1, builderMessage('move_down', 'Move down')));
+    const remove = document.createElement('button'); remove.type = 'button';
+    remove.className = 'btn btn-sm btn-outline-danger'; remove.textContent = builderMessage('remove', 'Remove');
+    remove.onclick = () => { if (planReadOnly) return; planDirty = true; const card = row.closest('.phase-card'); row.remove(); card.querySelector('select')?.focus(); };
+    controls.append(remove); row.append(title, controls); area.append(row);
 }
 
 // PHASE MANAGEMENT
 window.addPhase = () => {
-    const template = document.getElementById('phase-template');
-    const clone = template.content.cloneNode(true);
-    document.getElementById('phases-container').appendChild(clone);
-}
-
-window.removePhase = (btn) => {
-    btn.closest('.phase-card').remove();
-}
+    if (planReadOnly) return;
+    planDirty = true;
+    const clone = document.getElementById('phase-template').content.cloneNode(true);
+    const card = clone.querySelector('.phase-card');
+    card.querySelector('.phase-name-input').setAttribute('aria-label', builderMessage('phase_name', 'Phase name'));
+    const moves = document.createElement('div'); moves.className = 'btn-group mb-2';
+    moves.append(moveButton(card, -1, builderMessage('move_phase_up', 'Move phase up')),
+        moveButton(card, 1, builderMessage('move_phase_down', 'Move phase down')));
+    const picker = document.createElement('select'); picker.className = 'form-select mb-2';
+    picker.setAttribute('aria-label', builderMessage('choose_content', 'Choose content for this phase'));
+    availableContent.forEach(item => { const option = new Option(item.title, item.id); picker.append(option); });
+    const add = document.createElement('button'); add.type = 'button';
+    add.className = 'btn btn-sm btn-outline-primary mb-2';
+    add.textContent = builderMessage('add_content', 'Add selected content');
+    add.onclick = () => {
+        const item = availableContent.find(item => String(item.id) === picker.value);
+        if (item) appendContent(card.querySelector('.phase-content-area'), item);
+    };
+    card.append(moves, picker, add);
+    document.getElementById('phases-container').append(clone);
+};
+window.removePhase = button => {
+    if (planReadOnly) return;
+    planDirty = true;
+    button.closest('.phase-card').remove();
+    document.getElementById('add-phase-btn')?.focus();
+};
+document.getElementById('content-search').addEventListener('input', event => {
+    renderContentList(availableContent.filter(item => item.title.toLocaleLowerCase().includes(event.target.value.toLocaleLowerCase())));
+});
 
 // SAVE
+let savingPlan = false;
+let savedPlanId = null;
+let planReadOnly = false;
+let planDirty = false;
+document.querySelectorAll('#plan-title, #plan-description, #plan-public, #phases-container').forEach(node => node.addEventListener('input', () => { planDirty = true; }));
 window.saveStudyPlan = async () => {
+    if (savingPlan || planReadOnly) return false;
     const title = document.getElementById('plan-title').value;
     const description = document.getElementById('plan-description').value;
     const isPublic = document.getElementById('plan-public').checked;
 
-    if (!title) { showToast(t('study_plan.title_required'), 'warning'); return; }
-
-    // Build Phases JSON
-    // The backend expects `phases` list + `plan_contents` association.
-    // Actually, StudyPlan model has `phases` (JSON) AND `plan_contents` (ManyToMany).
-    // The `StudyPlanContent` association table has `phase_index`.
-    // So we should structure the payload so the backend can create the associations.
-    // If usage of `/api/study-plans` (POST) assumes just metadata, we might need a custom endpoint
-    // or the endpoint handles the complexity.
-    // Let's assume standard POST endpoint expects:
-    // { title, description, is_public, phases: [ {name: "Week 1", items: [id1, id2]} ] }
-    // AND the backend handles creating associations.
+    if (!title) { showToast(t('study_plan.title_required'), 'warning'); return false; }
 
     const phases = [];
     const phaseCards = document.querySelectorAll('.phase-card');
@@ -184,24 +195,109 @@ window.saveStudyPlan = async () => {
         phases: phases // Helper JSON
     };
 
+    savingPlan = true;
     try {
         const token = AuthService.getToken();
-        const res = await fetch('/api/study-plans', {
-            method: 'POST',
+        const res = await fetch(savedPlanId ? `/api/study-plans/${savedPlanId}` : '/api/study-plans', {
+            method: savedPlanId ? 'PUT' : 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
             body: JSON.stringify(payload)
         });
 
         if (res.ok) {
-            showToast(t('study_plan.created'), 'success', 2000);
-            setTimeout(() => {
-                window.location.href = 'dashboard.html';
-            }, 1500);
+            const plan = await res.json();
+            savedPlanId = plan.id;
+            history.replaceState(null, '', `study_plan_builder.html?id=${plan.id}`);
+            document.getElementById('plan-workflow').classList.remove('d-none');
+            planDirty = false;
+            await refreshPlanWorkflow();
+            showToast(builderMessage('draft_saved', 'Draft saved. Changes need a new review before publishing.'), 'success', 2000);
+            return true;
         } else {
             const err = await res.json();
             showToast(t('study_plan.error_save', { error: JSON.stringify(err) }), 'danger');
         }
     } catch (e) {
         showToast(t('study_plan.error_network'), 'danger');
-    }
+    } finally { savingPlan = false; }
+    return false;
 }
+
+window.planWorkflow = async action => {
+    if (!savedPlanId) return;
+    try {
+        if (planDirty && !await window.saveStudyPlan()) return;
+        if (action === 'publish' && !await showConfirm(builderMessage('publish_course_confirm', 'Publish this reviewed course for authorized learners?'))) return;
+        await SLMClient.request(`/api/study-plans/${savedPlanId}/workflow`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action, is_public: document.getElementById('plan-public').checked })
+        });
+        await refreshPlanWorkflow();
+        showToast(builderMessage(action === 'publish' ? 'published' : 'reviewed', action === 'publish' ? 'Published successfully.' : 'Review recorded. You can publish when ready.'), 'success');
+    } catch (error) { showToast(error.message, 'danger'); }
+};
+
+async function loadSavedPlan() {
+    const id = new URLSearchParams(window.location.search).get('id');
+    if (!id || !/^\d+$/.test(id)) return false;
+    try {
+        const plan = await SLMClient.request(`/api/study-plans/${id}/tree`);
+        savedPlanId = plan.id;
+        document.getElementById('plan-title').value = plan.title;
+        document.getElementById('plan-description').value = plan.description || '';
+        document.getElementById('plan-public').checked = plan.is_public;
+        (plan.phases?.length ? plan.phases : [{ name: 'Course' }]).forEach((phase, index) => {
+            addPhase();
+            const card = document.getElementById('phases-container').lastElementChild;
+            card.querySelector('.phase-name-input').value = phase.name || phase.title || `Phase ${index + 1}`;
+            (plan.contents || []).filter(item => item.phase_index === index).sort((a,b) => a.order_index - b.order_index).forEach(item => appendContent(card.querySelector('.phase-content-area'), item));
+        });
+        document.getElementById('plan-workflow').classList.remove('d-none');
+        planDirty = false;
+        await refreshPlanWorkflow();
+        return true;
+    } catch (error) { showToast(error.message, 'danger'); return true; }
+}
+
+async function refreshPlanWorkflow() {
+    if (!savedPlanId) return;
+    const workflow = await SLMClient.request(`/api/study-plans/${savedPlanId}/workflow`);
+    planReadOnly = workflow.read_only === true;
+    document.getElementById('plan-workflow-status').textContent = builderMessage('workflow_' + workflow.status, workflow.status);
+    document.getElementById('plan-copy-note').classList.toggle('d-none', !planReadOnly);
+    document.querySelectorAll('#phases-container input, #phases-container select, #phases-container button, #plan-title, #plan-description, #plan-public, #save-plan-btn, #add-phase-btn').forEach(control => { control.disabled = planReadOnly; });
+    phaseSortable?.option('disabled', planReadOnly);
+    document.querySelectorAll('[draggable]').forEach(item => { item.draggable = !planReadOnly; });
+    document.querySelectorAll('.drag-handle').forEach(handle => { handle.hidden = planReadOnly; });
+    document.querySelectorAll('[data-workflow-action]').forEach(button => { button.disabled = planReadOnly; });
+}
+window.copyStudyPlan = async () => {
+    if (!savedPlanId || savingPlan) return;
+    savingPlan = true;
+    try {
+        const copy = await SLMClient.request(`/api/study-plans/${savedPlanId}/copy`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ reason: 'revision' })
+        });
+        const id = copy.id ?? copy.plan_id;
+        if (!Number.isInteger(id)) throw new Error(builderMessage('copy_failed', 'The copy could not be opened. Please retry.'));
+        window.location.href = `/study_plan_builder.html?id=${id}`;
+    } catch (error) { showToast(error.message, 'danger'); }
+    finally { savingPlan = false; }
+};
+
+window.loadSavedPlanSource = async () => {
+    if (!savedPlanId) return;
+    const status = document.getElementById('saved-plan-source-status');
+    const text = document.getElementById('saved-plan-source-text');
+    status.textContent = builderMessage('loading', 'Loading…'); text.textContent = '';
+    try {
+        const result = await SLMClient.request(`/api/study-plans/${savedPlanId}/source`);
+        const source = result?.source;
+        if (!source) { status.textContent = builderMessage('source_not_saved', 'No source document is saved with this course.'); return; }
+        const partial = source.extraction_coverage === 'partial' || source.truncated || source.unreadable_pages?.length;
+        const coverage = partial ? builderMessage('source_partial', 'Partial source: some material was not included.') : source.extraction_coverage === 'complete' ? builderMessage('source_extracted', 'Source text extracted; review it before generation.') : builderMessage('source_coverage_unknown', 'Original extraction coverage is unknown.');
+        status.textContent = `${source.filename || ''}. ${coverage} ` + builderMessage('source_binary_excluded', 'Original file bytes are not stored with this text.') + (source.unreadable_pages?.length ? ` ${builderMessage('unreadable_pages', 'Unreadable pages')}: ${source.unreadable_pages.join(', ')}.` : '');
+        text.textContent = source.extracted_text || '';
+    } catch (error) { status.textContent = error.message; }
+};

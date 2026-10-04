@@ -4,7 +4,7 @@
  * Version: 1.0.2
  */
 
-const CACHE_NAME = 'slm-educator-v5';
+const CACHE_NAME = 'slm-educator-v9-product-closure';
 const OFFLINE_URL = '/404.html';
 
 // Static assets to cache on install
@@ -19,6 +19,14 @@ const STATIC_ASSETS = [
     '/static/js/i18n.js',
     '/static/js/dashboard.js',
     '/static/js/toast.js',
+    '/static/js/safe-render.js',
+    '/static/js/learning-client.js',
+    '/static/js/time-display.js',
+    '/static/vendor/dompurify@3.4.16/purify.min.js',
+    '/static/vendor/marked@15.0.12/marked.min.js',
+    '/static/vendor/bootstrap@5.3.0/dist/css/bootstrap.min.css',
+    '/static/vendor/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js',
+    '/static/vendor/sortablejs@1.15.0/Sortable.min.js',
     '/static/js/modules/inbox.js'
 ];
 

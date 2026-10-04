@@ -5,11 +5,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - SLM Educator</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/vendor/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/main.css">
     <script src="/static/js/theme.js"></script>
     <script src="/static/js/i18n.js"></script>
     <script src="/static/js/toast.js"></script>
+    <script src="/static/vendor/dompurify@3.4.16/purify.min.js"></script>
+    <script src="/static/vendor/marked@15.0.12/marked.min.js"></script>
+    <script src="/static/js/safe-render.js"></script>
+    <script src="/static/js/learning-client.js"></script>
+    <script src="/static/js/time-display.js"></script>
 </head>
 
 <body>
@@ -114,13 +119,13 @@
                         <div class="col-md-3">
                             <div class="card text-center p-2">
                                 <h4 id="stat-total-study-time">0</h4>
-                                <small data-i18n="dashboard.stats.total_study_time">Total Study Time</small>
+                                <small data-i18n="recovery.elapsed_time">Total Study Time</small>
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="card text-center p-2">
                                 <h4 id="stat-completed-lessons">0</h4>
-                                <small data-i18n="dashboard.stats.completed_lessons">Completed Lessons</small>
+                                <small data-i18n="recovery.completed_sessions">Completed Lessons</small>
                             </div>
                         </div>
                     </div>
@@ -162,7 +167,7 @@
                     <div class="card mt-4" id="mastery-container">
                         <div
                             class="card-header bg-primary text-light d-flex justify-content-between align-items-center">
-                            <h5 class="mb-0" data-i18n="dashboard.mastery_title">🧠 Mastery & Spaced Repetition</h5>
+                            <h5 class="mb-0" data-i18n="dashboard.mastery_title">Review evidence</h5>
                             <button class="btn btn-sm btn-light" onclick="startReviewSession()"
                                 data-i18n="dashboard.buttons.start_review">Start Review
                                 Session</button>
@@ -175,15 +180,15 @@
                                 </div>
                                 <div class="col-md-3">
                                     <h3 id="mastery-avg">0%</h3>
-                                    <small data-i18n="dashboard.mastery.avg_mastery">Avg Mastery</small>
+                                    <small data-i18n="dashboard.mastery.avg_mastery">Average final assessment score</small>
                                 </div>
                                 <div class="col-md-3">
                                     <h3 id="mastery-mastered">0</h3>
-                                    <small data-i18n="dashboard.mastery.mastered_items">Mastered Items</small>
+                                    <small data-i18n="dashboard.mastery.mastered_items">Final assessment records</small>
                                 </div>
                                 <div class="col-md-3">
                                     <h3 id="mastery-progress">0</h3>
-                                    <small data-i18n="dashboard.mastery.in_progress">In Progress</small>
+                                    <small data-i18n="dashboard.mastery.in_progress">Legacy activity</small>
                                 </div>
                             </div>
                         </div>
@@ -545,12 +550,12 @@
 
                 <!-- Filter Tabs -->
                 <div class="tabs mb-3" id="grading-filter-tabs">
-                    <div class="tab active" data-grading-filter="all" onclick="filterGradingQueue('all', this)"
-                        data-i18n="grading.filters.all">📋 All</div>
-                    <div class="tab" data-grading-filter="pending" onclick="filterGradingQueue('pending', this)"
-                        data-i18n="grading.filters.pending">⏳ Pending</div>
-                    <div class="tab" data-grading-filter="graded" onclick="filterGradingQueue('graded', this)"
-                        data-i18n="grading.filters.graded">✅ Graded</div>
+                    <button type="button" class="tab active" data-grading-filter="all" onclick="filterGradingQueue('all', this)"
+                        data-i18n="grading.filters.all">📋 All</button>
+                    <button type="button" class="tab" data-grading-filter="pending" onclick="filterGradingQueue('pending', this)"
+                        data-i18n="grading.filters.pending">⏳ Pending</button>
+                    <button type="button" class="tab" data-grading-filter="graded" onclick="filterGradingQueue('graded', this)"
+                        data-i18n="grading.filters.graded">✅ Graded</button>
                 </div>
 
                 <div id="grading-list" class="card-grid">
@@ -561,6 +566,7 @@
 
             <!-- ASSESSMENTS VIEW -->
             <div id="view-assessments" class="view-section hidden">
+                <a class="btn btn-outline-primary mb-3" href="/assessment_history.html" data-role="student" data-i18n="recovery.submission_history">My submissions and feedback</a>
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h2 class="page-header mb-0" data-i18n="assessments.title">📝 Assessments</h2>
                     <a href="assessment_builder.html" class="btn btn-success"
@@ -1038,6 +1044,7 @@
     </div>
 
     <!-- AI TUTOR VIEW -->
+    <a id="session-context-return" class="btn btn-outline-primary d-none m-3" data-i18n="recovery.return_lesson">Return to lesson</a>
     <div id="view-tutor" class="view-section hidden">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h2 class="page-header mb-0" data-i18n="ai_tutor.title">🤖 AI Tutor</h2>
@@ -1056,18 +1063,25 @@
                 <div class="row g-2">
                     <div class="col-md-6">
                         <select id="tutor-study-plan" class="form-select form-select-sm"
-                            onchange="loadTutorContentItems()">
+                            aria-label="Tutor study plan" onchange="loadTutorContentItems()">
                             <option value="" data-i18n="tutor.all_plans">📋 All Study Plans</option>
                             <!-- Populated via JS -->
                         </select>
                     </div>
                     <div class="col-md-6">
-                        <select id="tutor-content" class="form-select form-select-sm" aria-label="Tutor content">
+                        <select id="tutor-content" onchange="resetTutorContext()" class="form-select form-select-sm" aria-label="Tutor content">
                             <option value="" data-i18n="tutor.all_content">📄 All Content</option>
                             <!-- Populated via JS when study plan selected -->
                         </select>
                     </div>
                 </div>
+                <fieldset class="mt-3">
+                    <legend class="fs-6" data-i18n="recovery.source_sections">Source sections</legend>
+                    <p class="small text-muted" data-i18n="recovery.source_section_help">Choose up to 12 sections. With no selection, relevant sections are included within the available space.</p>
+                    <div id="tutor-source-sections" class="overflow-auto" style="max-height: 14rem;"></div>
+                </fieldset>
+                <p id="tutor-source-status" class="small" role="status" aria-live="polite"></p>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="resetTutorContext()" data-i18n="recovery.source_reload">Reload source</button>
                 <small class="text-muted mt-1 d-block" data-i18n="tutor.context_help">Select content to give
                     the AI context about what
                     you're
@@ -1080,11 +1094,26 @@
                 <div class="text-muted text-center" data-i18n="ai_tutor.start_conversation">Start a conversation with
                     your AI Tutor</div>
             </div>
+            <div class="px-3 py-2">
+                <p id="tutor-policy-status" class="small mb-1" role="status" aria-live="polite" data-i18n="recovery.policy_checking">Checking teacher assistance policy…</p>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="refreshTutorPolicy()" data-i18n="recovery.refresh_policy">Refresh policy</button>
+            </div>
+            <label for="tutor-assistance" class="visually-hidden" data-i18n="recovery.assistance_mode">Assistance mode</label>
+            <select id="tutor-assistance" class="form-select" aria-describedby="tutor-policy-status" disabled>
+                <option value="hint" data-i18n="recovery.hint">Hint</option>
+                <option value="explanation" data-i18n="recovery.explanation">Explanation</option>
+                <option value="example" data-i18n="recovery.example">Example</option>
+                <option value="check_understanding" data-i18n="recovery.check_understanding">Check my understanding</option>
+            </select>
+            <p id="tutor-usage-status" class="small px-3" role="status"></p>
+            <p id="tutor-request-status" class="small px-3" role="status" aria-live="polite"></p>
+            <button type="button" id="tutor-cancel-btn" class="btn btn-sm btn-outline-danger mx-3" onclick="cancelTutorRequest()" disabled data-i18n="recovery.cancel_request">Cancel request</button>
+            <button type="button" id="tutor-new-request-btn" class="btn btn-sm btn-outline-warning d-none mx-3" onclick="prepareNewTutorRequest()" data-i18n="recovery.new_tutor_request">Prepare a new request</button>
             <form id="chat-form" class="chat-input-form">
                 <input type="text" id="chat-input" class="form-control" placeholder="Ask something..."
                     data-i18n-placeholder="ai_tutor.input_placeholder" required aria-label="Tutor message">
                 <button type="submit" class="btn btn-primary" data-i18n="common.buttons.send"
-                    aria-label="Send tutor message">Send</button>
+                    aria-label="Send tutor message" disabled>Send</button>
             </form>
         </div>
     </div>
@@ -1094,10 +1123,11 @@
     <!-- SETTINGS VIEW -->
     <div id="view-settings" class="view-section hidden">
         <h2 class="page-header" data-i18n="settings.title">⚙️ Settings</h2>
+        <a href="/portability.html" class="btn btn-outline-primary mb-3" data-i18n="recovery.portability">Export and backup</a>
         <div class="tabs mb-3" id="settings-tabs">
-            <div class="tab active" data-settings-tab="profile" data-i18n="settings.tabs.profile">Profile</div>
-            <div class="tab" data-settings-tab="ai" data-i18n="settings.tabs.ai_config">AI Configuration</div>
-            <div class="tab" data-settings-tab="appearance" data-i18n="settings.tabs.appearance">Appearance</div>
+            <button type="button" class="tab active" data-settings-tab="profile" data-i18n="settings.tabs.profile">Profile</button>
+            <button type="button" class="tab" data-settings-tab="ai" data-i18n="settings.tabs.ai_config">AI Configuration</button>
+            <button type="button" class="tab" data-settings-tab="appearance" data-i18n="settings.tabs.appearance">Appearance</button>
         </div>
 
         <div id="settings-tab-profile" class="settings-tab-section">
@@ -1223,6 +1253,16 @@
 
                 <!-- Security / Password Change Card -->
                 <div class="col-md-8 mt-4">
+                    <div class="card"><div class="card-body">
+                        <label for="settings-timezone" class="form-label" data-i18n="recovery.timezone_label">Timezone for dates and daily goals</label>
+                        <input id="settings-timezone" class="form-control mb-2" value="UTC" placeholder="Europe/Madrid" aria-describedby="timezone-help timezone-status">
+                        <p id="timezone-help" class="small text-muted" data-i18n="recovery.timezone_help">Use an IANA timezone, for example Europe/Madrid or America/New_York. UTC is the default. Older dates with no recorded timezone keep their original text.</p>
+                        <button id="save-timezone" type="button" class="btn btn-primary" onclick="saveTimezoneSettings()" data-i18n="recovery.save_timezone">Save timezone</button>
+                        <button type="button" class="btn btn-outline-secondary" onclick="loadTimezoneSettings()" data-i18n="recovery.reload_timezone">Reload saved timezone</button>
+                        <p id="timezone-status" class="small mt-2 mb-0" role="status" aria-live="polite"></p>
+                    </div></div>
+                </div>
+                <div class="col-md-8 mt-4">
                     <div class="card">
                         <div class="card-header">
                             <strong data-i18n="settings.security.title">🔐 Security</strong>
@@ -1241,7 +1281,7 @@
                                         <label class="form-label" for="new-password"
                                             data-i18n="settings.security.new_password">New
                                             Password</label>
-                                        <input type="password" class="form-control" id="new-password" required
+                                        <input type="password" class="form-control" id="new-password" required minlength="12" maxlength="128"
                                             autocomplete="new-password">
                                     </div>
                                     <div class="col-md-6">
@@ -1270,6 +1310,8 @@
                     <h5 class="mb-0 text-primary" data-i18n="settings.ai.title">AI Configuration</h5>
                 </div>
                 <div class="card-body pt-0">
+                    <p id="ai-config-status" role="status" aria-live="polite" class="text-warning"></p>
+                    <button type="button" class="btn btn-sm btn-outline-secondary mb-3" onclick="reloadAIConfiguration()" data-i18n="recovery.reload_config">Reload saved configuration</button>
                     <form id="settings-ai-form">
                         <div class="mb-3">
                             <label class="form-label small text-uppercase fw-bold text-muted"
@@ -1279,10 +1321,10 @@
                                 <div class="col-md-4">
                                     <select class="form-select" name="provider" id="ai-provider"
                                         onchange="onProviderChange()" aria-label="AI provider">
+                                        <option value="" disabled data-i18n="recovery.choose_ai_provider">Choose a supported provider</option>
                                         <option value="ollama">Ollama (Local)</option>
                                         <option value="lm_studio">LM Studio (Local)</option>
                                         <option value="openai">OpenAI</option>
-                                        <option value="anthropic">Anthropic</option>
                                         <option value="openrouter">OpenRouter</option>
                                     </select>
                                 </div>
@@ -1349,34 +1391,20 @@
                                         <small class="text-muted">Response length limit</small>
                                     </div>
                                 </div>
-                                <div class="form-check mb-2">
-                                    <input type="checkbox" class="form-check-input" id="ai-preprocessing">
-                                    <label class="form-check-label" for="ai-preprocessing"
-                                        data-i18n="settings.ai.preprocessing">Enable
-                                        Context Preprocessing
-                                        (Two-LLM
-                                        Pipeline)</label>
-                                </div>
-                                <div id="preprocessing-model-group" class="d-none ms-4">
-                                    <input type="text" class="form-control form-control-sm" id="ai-preprocessing-model"
-                                        placeholder="Small model name (e.g. llama3:3b)"
-                                        data-i18n-placeholder="settings.ai.preprocessing_placeholder"
-                                        aria-label="Preprocessing model" autocomplete="off">
-                                </div>
                             </div>
                         </details>
 
                         <div class="d-flex gap-2 justify-content-end">
-                            <button type="button" class="btn btn-outline-info" onclick="testAIConnection()"
+                            <button type="button" class="btn btn-outline-info" id="test-ai-config" onclick="testAIConnection()"
                                 data-i18n="settings.ai.test_btn">
                                 🧪 Test Connection
                             </button>
-                            <button type="button" class="btn btn-primary" onclick="saveAISettings()"
+                            <button type="button" class="btn btn-primary" id="save-ai-config" onclick="saveAISettings()"
                                 data-i18n="common.buttons.save_config">
                                 💾 Save AI Config
                             </button>
                         </div>
-                        <div id="ai-test-result" class="mt-3 d-none"></div>
+                        <div id="ai-test-result" role="status" aria-live="polite" class="mt-3 d-none"></div>
                     </form>
                 </div>
             </div>
@@ -1422,6 +1450,7 @@
 
     <!-- STUDENTS VIEW (Teacher Only) -->
     <div id="view-students" class="view-section hidden">
+                <label class="form-check mb-2" data-role="admin"><input id="students-include-inactive" type="checkbox" class="form-check-input" data-inactive-accounts onchange="toggleInactiveAccounts(this)"><span data-i18n="recovery.include_inactive">Include inactive accounts</span></label>
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h2><span class="me-2">👥</span><span data-i18n="students.title">My Students</span></h2>
             <button class="btn btn-outline-primary" onclick="loadStudents()"
@@ -1445,6 +1474,7 @@
 
     <!-- TEACHERS VIEW (Admin Only) -->
     <div id="view-teachers" class="view-section hidden">
+                <label class="form-check mb-2" data-role="admin"><input id="teachers-include-inactive" type="checkbox" class="form-check-input" data-inactive-accounts onchange="toggleInactiveAccounts(this)"><span data-i18n="recovery.include_inactive">Include inactive accounts</span></label>
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h2><span class="me-2">👩‍🏫</span><span data-i18n="common.roles.teachers">Teachers</span></h2>
             <div class="d-flex gap-2">
@@ -1470,6 +1500,7 @@
 
     <!-- ADMINS VIEW (Admin Only) -->
     <div id="view-admins" class="view-section hidden">
+                <label class="form-check mb-2" data-role="admin"><input id="admins-include-inactive" type="checkbox" class="form-check-input" data-inactive-accounts onchange="toggleInactiveAccounts(this)"><span data-i18n="recovery.include_inactive">Include inactive accounts</span></label>
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h2><span class="me-2">🛡️</span>Administradores</h2>
             <div class="d-flex gap-2">
@@ -1494,6 +1525,7 @@
 
     <!-- LEADERBOARD VIEW -->
     <div id="view-leaderboard" class="view-section hidden">
+        <p class="alert alert-info" data-i18n="recovery.participation_scope">Participation XP. Students see their own row; teachers see their enrolled learners; administrators see active accounts. Rank is within the visible group.</p>
         <h2><span class="me-2">🏆</span><span data-i18n="leaderboard.title">Leaderboard</span></h2>
         <div class="mb-3">
             <select id="leaderboard-period" class="form-select w-auto" onchange="loadLeaderboard()"
@@ -1660,6 +1692,24 @@
         </div>
     </div>
 
+    <div class="modal fade" id="accountManagerModal" tabindex="-1" aria-labelledby="account-manager-title" aria-hidden="true">
+        <div class="modal-dialog"><div class="modal-content">
+            <div class="modal-header"><h2 id="account-manager-title" class="modal-title h5" data-i18n="recovery.manage_account">Manage account</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+            <div class="modal-body">
+                <p id="account-identity" class="fw-bold"></p><p id="account-current-status"></p>
+                <p class="small" data-i18n="recovery.account_revoke_notice">Existing sessions will be revoked. Previous learning work is preserved.</p>
+                <button id="account-status-btn" type="button" class="btn btn-outline-warning mb-3" onclick="changeManagedAccountStatus()" disabled data-i18n="recovery.deactivate_account">Deactivate account</button>
+                <label for="account-new-password" class="form-label" data-i18n="recovery.new_password">New password</label>
+                <input id="account-new-password" type="password" class="form-control mb-2" autocomplete="new-password" minlength="12" aria-describedby="admin-password-help" disabled>
+                <label for="account-confirm-password" class="form-label" data-i18n="recovery.confirm_password">Confirm new password</label>
+                <input id="account-confirm-password" type="password" class="form-control mb-2" autocomplete="new-password" minlength="12" aria-describedby="admin-password-help" disabled>
+                <p id="admin-password-help" class="small" data-i18n="recovery.admin_password_length">Use at least 12 characters and no more than 72 UTF-8 bytes.</p>
+                <button id="account-reset-btn" type="button" class="btn btn-outline-danger" onclick="resetManagedAccountPassword()" disabled data-i18n="recovery.reset_password">Reset password</button>
+                <p id="account-operation-status" role="status" aria-live="polite"></p>
+            </div>
+        </div></div>
+    </div>
+
     <!-- Student Detail Modal -->
     <div class="modal fade" id="studentDetailModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg">
@@ -1707,7 +1757,14 @@
                             </div>
                             <div class="mt-4">
                                 <h6 data-i18n="modals.student_detail.assign_plan_title">Assign Study Plan</h6>
+                                <div id="student-teacher-container" class="d-none mb-3">
+                                    <label for="student-teacher-select" data-i18n="recovery.responsible_teacher">Responsible teacher</label>
+                                    <select id="student-teacher-select" class="form-select"></select>
+                                    <button type="button" id="student-teacher-save" class="btn btn-outline-primary mt-2" onclick="saveStudentTeacher()" data-i18n="recovery.save_teacher">Save responsible teacher</button>
+                                    <p id="student-teacher-status" role="status"></p>
+                                </div>
                                 <div id="student-assign-plan-container" class="d-flex gap-2 flex-wrap">
+                                    <label class="visually-hidden" for="student-assign-plan-select" data-i18n="recovery.published_course">Published course</label>
                                     <select class="form-select" id="student-assign-plan-select"></select>
                                     <button type="button" class="btn btn-primary" id="student-assign-plan-btn"
                                         onclick="assignStudyPlanToStudent()"
@@ -1740,7 +1797,7 @@
                                     </div>
                                     <div class="col-6">
                                         <div class="card card-body p-2 text-center">
-                                            <small class="text-muted">Study Time</small>
+                                            <small class="text-muted" data-i18n="recovery.elapsed_time">Elapsed session time</small>
                                             <h5 id="student-study-time" class="mb-0">0h</h5>
                                         </div>
                                     </div>
@@ -1913,9 +1970,9 @@
     </div>
 
     <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="/static/vendor/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script type="module" src="/static/js/auth.js?v=20260204"></script>
+    <script src="/static/js/admin-accounts.js"></script>
     <script type="module" src="/static/js/dashboard.js"></script>
     <script type="module" src="/static/js/modules/inbox.js"></script>
     <script type="module" src="/static/js/assessment.js"></script> <!-- Added Assessment Logic -->

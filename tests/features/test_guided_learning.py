@@ -8,7 +8,7 @@ from datetime import datetime
 from fastapi.testclient import TestClient
 
 # Import models
-from core.models import (
+from src.core.models import (
     User,
     StudyPlan,
     Content,
@@ -16,7 +16,7 @@ from core.models import (
     ContentType,
     UserRole,
 )
-from core.security import hash_password
+from src.core.security import hash_password
 
 
 class TestProgressAPIIntegration:

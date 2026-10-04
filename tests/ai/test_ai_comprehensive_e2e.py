@@ -24,9 +24,9 @@ from datetime import datetime
 # Add src to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from core.services.database import DatabaseService
-from core.services.ai_service import AIService
-from core.models import (
+from src.core.services.database import DatabaseService
+from src.core.services.ai_service import AIService
+from src.core.models import (
     User,
     StudyPlan,
     Content,
@@ -36,7 +36,7 @@ from core.models import (
     StudentStudyPlan,
     extract_phases,
 )
-from core.security import hash_password
+from src.core.security import hash_password
 
 # Import AI configuration utilities from the test package conftest.
 # NOTE: Explicit import avoids accidentally resolving to tests/e2e/conftest.py.
@@ -665,7 +665,7 @@ class TestComprehensiveAITutorE2E:
 
         # Step 4: Verify progress tracking works
         print("\n[BOOK] Step 4: Checking progress tracking...")
-        from core.services.progress_tracking_service import (
+        from src.core.services.progress_tracking_service import (
             get_progress_tracking_service,
         )
 

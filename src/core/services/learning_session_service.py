@@ -3,6 +3,8 @@ Learning Session Service - Phase 1
 Tracks student learning sessions and study time
 """
 
+from src.core.services.temporal_service import utc_now
+
 from datetime import datetime
 from typing import List, Optional
 from sqlalchemy import select, and_
@@ -35,7 +37,7 @@ class LearningSessionService:
             learning_session = LearningSession(
                 student_id=student_id,
                 content_id=content_id,
-                start_time=datetime.now(),
+                start_time=utc_now(),
                 notes=notes,
             )
 
@@ -59,7 +61,7 @@ class LearningSessionService:
                 if not learning_session:
                     return False
 
-                learning_session.end_time = datetime.now()
+                learning_session.end_time = utc_now()
                 learning_session.notes = notes or learning_session.notes
                 learning_session.completion_status = completion_status
                 learning_session.duration_minutes = (
@@ -84,7 +86,7 @@ class LearningSessionService:
                             LearningSession.end_time.is_(None),
                         )
                     )
-                    .order_by(LearningSession.start_time.desc())
+                    .order_by(LearningSession.id.desc())
                 )
 
                 return session.execute(stmt).scalars().first()
@@ -101,7 +103,7 @@ class LearningSessionService:
                 stmt = (
                     select(LearningSession)
                     .where(LearningSession.student_id == student_id)
-                    .order_by(LearningSession.start_time.desc())
+                    .order_by(LearningSession.id.desc())
                     .limit(limit)
                 )
 

@@ -7,7 +7,7 @@
    -------------------------------------------------------------------------- */
 :root {
     /* Primary Colors */
-    --primary-color: #1a73e8;
+    --primary-color: #1761c3;
     --primary-dark: #1557b0;
     --primary-light: #4285f4;
 
@@ -39,7 +39,7 @@
     /* Text Colors */
     --text-primary: #1f2937;
     --text-secondary: #6b7280;
-    --text-muted: #9ca3af;
+    --text-muted: #596273;
     --text-light: #ffffff;
 
     /* Border Colors */
@@ -110,7 +110,7 @@ body.theme-dark {
     --bg-sidebar: #111827;
     --text-primary: #f9fafb;
     --text-secondary: #e5e7eb;
-    --text-muted: #9ca3af;
+    --text-muted: #b5beca;
     --border-color: #374151;
     --border-light: #4b5563;
     color-scheme: dark;
@@ -913,11 +913,15 @@ body.theme-dark .bg-muted {
    -------------------------------------------------------------------------- */
 .tabs {
     display: flex;
+    flex-wrap: wrap;
     border-bottom: 1px solid var(--border-color);
     margin-bottom: var(--spacing-lg);
 }
 
 .tab {
+    background: transparent;
+    border: 0;
+    font: inherit;
     padding: 0.75rem 1.5rem;
     cursor: pointer;
     border-bottom: 2px solid transparent;
@@ -1848,6 +1852,9 @@ body.theme-dark select:autofill {
 }
 
 .timeline-node {
+    background: transparent;
+    border: 0;
+    font: inherit;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -2029,4 +2036,16 @@ body.theme-dark .shadow-lg {
 .error-icon {
     font-size: 4rem;
     margin-bottom: 1rem;
+}
+
+/* Keyboard access and readable feedback use the existing design tokens. */
+:focus-visible { outline: 3px solid var(--primary-color); outline-offset: 3px; }
+.theme-dark :focus-visible { outline-color: #93c5fd; }
+.question-card legend { float: none; width: auto; }
+.plan-content-item { min-height: 44px; }
+#notes-save-status, #autosave-status { overflow-wrap: anywhere; }
+#session-content-body, .chat-bubble, #content-view-body { overflow-wrap: anywhere; }
+#session-content-body pre, #content-view-body pre { white-space: pre-wrap; }
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }

@@ -1,0 +1,37 @@
+{
+  "scenario": "synthetic-adult-fractions-v1",
+  "title": "Fractions: compare equal parts / Fracciones: comparar partes iguales",
+  "audience": "Synthetic adult evaluation only",
+  "lessons": [
+    {
+      "title": "1. Equal parts / Partes iguales",
+      "objective": "Explain what the numerator and denominator count.",
+      "prerequisite_check": "Can you split a rectangle into four equal areas?",
+      "content": "A fraction describes equal parts of one whole. In 3/8, the denominator 8 counts all equal parts and the numerator 3 counts the selected parts. / Una fracción describe partes iguales de una unidad. En 3/8, el denominador 8 indica todas las partes iguales y el numerador 3 las partes elegidas.",
+      "worked_example": "Shade 3 of 8 equal strips: the shaded fraction is 3/8.",
+      "independent_attempt": "Draw 2/5. Explain what 2 and 5 mean.",
+      "feedback": "Check that all five parts have equal area and exactly two are selected.",
+      "delayed_review": "Tomorrow, explain 4/7 without looking at the lesson."
+    },
+    {
+      "title": "2. Compare common denominators / Comparar denominadores iguales",
+      "objective": "Compare fractions of the same whole with a common denominator.",
+      "prerequisite_check": "Explain why equal-sized parts matter.",
+      "content": "For fractions of the same whole with equal denominators, each part has the same size. More selected parts means a larger fraction. Thus 5/8 is larger than 3/8. / En fracciones de la misma unidad y con denominadores iguales, cada parte tiene el mismo tamaño. Más partes elegidas dan una fracción mayor: 5/8 es mayor que 3/8.",
+      "worked_example": "7/10 > 4/10 because seven equal tenths exceed four equal tenths.",
+      "independent_attempt": "Which is larger, 2/9 or 6/9? Explain without using decimals.",
+      "feedback": "Compare numerators only after checking that the whole and denominator match.",
+      "delayed_review": "After two days, compare 3/11 and 8/11 and give a reason."
+    },
+    {
+      "title": "3. Independent retrieval / Recuperación independiente",
+      "objective": "Choose and justify a comparison, including the limits of the rule.",
+      "prerequisite_check": "State the conditions for comparing numerators directly.",
+      "content": "Try before asking for a hint. Compare 4/7 and 6/7. Then explain why the same rule alone cannot compare 3/5 and 4/9. / Intenta resolverlo antes de pedir una pista. Compara 4/7 y 6/7. Después explica por qué esta regla por sí sola no permite comparar 3/5 y 4/9.",
+      "worked_example": "1/6 < 5/6: same whole, same denominator, fewer selected sixths.",
+      "independent_attempt": "Write one valid comparison and one pair where this rule does not apply.",
+      "feedback": "A sound explanation names equal parts of the same whole; a larger denominator alone does not imply a larger fraction.",
+      "delayed_review": "One week later, solve a new common-denominator comparison without hints."
+    }
+  ]
+}

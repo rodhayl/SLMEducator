@@ -24,13 +24,14 @@ HIDDEN_IMPORTS = (
     "tkinter",
     "tkinter.ttk",
     "tkinter.messagebox",
-    "tkinter.scrolledtext",
+    # Uvicorn selects the default loop, protocols and lifespan by string name.
     "uvicorn.logging",
     "uvicorn.loops",
     "uvicorn.loops.auto",
     "uvicorn.protocols",
     "uvicorn.protocols.http",
     "uvicorn.protocols.http.auto",
+    "uvicorn.protocols.websockets.auto",
     "uvicorn.lifespan",
     "uvicorn.lifespan.on",
     "sqlalchemy.sql.default_comparator",
@@ -53,12 +54,8 @@ HIDDEN_IMPORTS = (
     "cryptography",
     "cryptography.fernet",
     "jwt",
-    "passlib",
-    "passlib.hash",
+    "bcrypt",
     "httpx",
-    "langsmith",
-    "langchain_core",
-    "langchain_openai",
     "typing_extensions",
     "anyio",
     "starlette",
@@ -82,13 +79,16 @@ HIDDEN_IMPORTS = (
     "src.api.routes.study_plans",
     "src.api.routes.gamification",
     "src.api.routes.annotations",
+    "src.api.routes.portability",
+    "src.api.routes.timezone",
+    "src.api.routes.assistance",
     "src.api.routes.upload",
     "src.api.routes.students",
     "src.core.services.auth",
     "src.core.services.database",
     "src.core.services.ai_service",
 )
-COLLECT_ALL = ("fastapi", "pydantic", "sqlalchemy", "cryptography")
+COLLECT_ALL = ("fastapi", "pydantic", "sqlalchemy", "cryptography", "tzdata")
 
 
 def snapshot_database(source: Path, destination: Path) -> None:
@@ -326,6 +326,19 @@ def main(argv: list[str] | None = None) -> int:
         parser.error(
             "Windows packages must be built on Windows with PyInstaller installed"
         )
+    # PyInstaller 6.16 cannot collect Tcl/Tk from Python's embedded zipfs layout.
+    # Such a build appears successful but its windowed launcher never starts.
+    import tkinter
+
+    tcl_library = tkinter.Tcl().eval("info library")
+    if tcl_library.startswith("//zipfs:"):
+        print(
+            "[ERROR] This Python installation stores Tcl/Tk in zipfs, which "
+            "PyInstaller cannot bundle. Build with a Python installation "
+            "that provides Tcl/Tk directories (verified with Python 3.13).",
+            file=sys.stderr,
+        )
+        return 1
     project_root = Path(__file__).resolve().parent.parent
     name = "SLMEducator_Test" if args.test else "SLMEducator"
     output = args.output_dir or project_root / "dist" / name

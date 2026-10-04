@@ -19,6 +19,9 @@ from src.core.models import (
     SessionStatus,
     ContentType,
     UserRole,
+    StudyPlan,
+    StudyPlanContent,
+    StudentStudyPlan,
 )
 from src.core.security import hash_password
 
@@ -47,7 +50,7 @@ class TestLearningSessionNewEndpoints:
         return TestClient(app)
 
     @pytest.fixture
-    def test_student(self, db_service):
+    def test_student(self, db_service, test_teacher):
         """Create a test student user."""
         existing = (
             db_service.session.query(User)
@@ -59,6 +62,7 @@ class TestLearningSessionNewEndpoints:
 
         user = User(
             username="session_api_test_student",
+            teacher_id=test_teacher.id,
             email="session_api_student@test.com",
             first_name="Session",
             last_name="TestStudent",
@@ -106,7 +110,7 @@ class TestLearningSessionNewEndpoints:
         return {"Authorization": f"Bearer {token}"}
 
     @pytest.fixture
-    def test_content(self, db_service, test_teacher):
+    def test_content(self, db_service, test_teacher, test_student):
         """Create test content for sessions."""
         existing = (
             db_service.session.query(Content)
@@ -123,9 +127,21 @@ class TestLearningSessionNewEndpoints:
             creator_id=test_teacher.id,
             created_at=datetime.now(timezone.utc),
         )
+        content.set_encrypted_content_data({"content": "Synthetic session lesson"})
         db_service.session.add(content)
         db_service.session.commit()
         db_service.session.refresh(content)
+        plan = StudyPlan(title="Assigned session course", creator_id=test_teacher.id)
+        db_service.session.add(plan)
+        db_service.session.flush()
+        content.study_plan_id = plan.id
+        db_service.session.add_all(
+            [
+                StudyPlanContent(study_plan_id=plan.id, content_id=content.id),
+                StudentStudyPlan(study_plan_id=plan.id, student_id=test_student.id),
+            ]
+        )
+        db_service.session.commit()
         return content
 
     @pytest.fixture
@@ -155,6 +171,29 @@ class TestLearningSessionNewEndpoints:
         assert response.status_code == 200
         data = response.json()
         assert data["notes"] == "Test notes content for the session."
+
+    def test_notes_reject_revoked_assignment(
+        self,
+        api_client,
+        auth_headers,
+        active_session,
+        db_service,
+        test_content,
+        test_student,
+    ):
+        """An existing session does not bypass revoked content access."""
+        db_service.session.query(StudentStudyPlan).filter_by(
+            student_id=test_student.id, study_plan_id=test_content.study_plan_id
+        ).delete()
+        db_service.session.commit()
+        response = api_client.patch(
+            f"/api/learning/{active_session.id}/notes",
+            headers=auth_headers,
+            json={"notes": "Should not save"},
+        )
+        assert response.status_code == 403
+        db_service.session.refresh(active_session)
+        assert active_session.notes is None
 
     def test_update_notes_nonexistent_session(self, api_client, auth_headers):
         """Test updating notes on a non-existent session returns 404."""

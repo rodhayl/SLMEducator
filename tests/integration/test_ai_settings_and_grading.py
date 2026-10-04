@@ -18,17 +18,16 @@ def _unique_username(prefix: str) -> str:
 
 
 def _register_user(username: str, role: str):
-    payload = {
-        "username": username,
-        "email": f"{username}@example.com",
-        "password": "Password123!",
-        "first_name": "Test",
-        "last_name": "User",
-        "role": role,
-    }
-    resp = client.post("/api/auth/register", json=payload)
-    assert resp.status_code == 200, resp.text
-    return resp.json()
+    """Provision synthetic approved fixtures; registration policy has dedicated tests."""
+    from src.core.models import User, UserRole
+    from src.core.services.auth import AuthService
+    from src.core.services.database import get_db_service
+    teacher_id = None
+    if role == "student":
+        with get_db_service().get_session() as db:
+            teacher = db.query(User).filter(User.role == UserRole.TEACHER).one_or_none()
+            teacher_id = teacher.id if teacher else None
+    return AuthService().register_user(username, f"{username}@example.com", "Password123!", "Test", "User", UserRole(role), teacher_id=teacher_id)
 
 
 def _login_user(username: str, password: str = "Password123!") -> str:
@@ -60,7 +59,8 @@ def test_ai_config_preserves_api_key_when_omitted():
         headers=_auth_headers(token),
     )
     assert initial.status_code == 200, initial.text
-    assert initial.json()["api_key"] == "sk-test-key"
+    assert initial.json()["api_key"] is None
+    assert initial.json()["has_api_key"] is True
 
     update = client.post(
         "/api/settings/ai",
@@ -73,7 +73,8 @@ def test_ai_config_preserves_api_key_when_omitted():
         headers=_auth_headers(token),
     )
     assert update.status_code == 200, update.text
-    assert update.json()["api_key"] == "sk-test-key"
+    assert update.json()["api_key"] is None
+    assert update.json()["has_api_key"] is True
 
 
 def test_ai_assisted_submission_creates_ai_graded(monkeypatch):
@@ -104,6 +105,9 @@ def test_ai_assisted_submission_creates_ai_graded(monkeypatch):
     )
     assert assessment_resp.status_code == 200, assessment_resp.text
     assessment_id = assessment_resp.json()["id"]
+
+    published = client.post(f"/api/assessments/{assessment_id}/publish", headers=_auth_headers(teacher_token))
+    assert published.status_code == 200, published.text
 
     assessment_detail = client.get(
         f"/api/assessments/{assessment_id}",

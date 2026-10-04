@@ -46,6 +46,19 @@ export class AuthService {
         return user;
     }
 
+    static loginUrl() {
+        return '/login.html?redirect=' + encodeURIComponent(window.location.pathname + window.location.search + window.location.hash);
+    }
+
+    static loginDestination(value) {
+        try {
+            const target = new URL(value || '/dashboard.html', window.location.origin);
+            const allowed = ['/dashboard.html', '/session_player.html', '/assessment_taker.html', '/assessment_history.html', '/grading.html', '/study_plan_builder.html', '/course_designer.html', '/assessment_builder.html', '/portability.html', '/register.html'];
+            return target.origin === window.location.origin && allowed.includes(target.pathname)
+                ? target.pathname + target.search + target.hash : '/dashboard.html';
+        } catch { return '/dashboard.html'; }
+    }
+
     static logout() {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
@@ -185,7 +198,8 @@ if (loginForm) {
             errorDiv.classList.add('d-none');
             errorDiv.style.display = 'none';
             await AuthService.login(username, password);
-            window.location.href = '/dashboard.html';
+            const redirect = new URLSearchParams(window.location.search).get('redirect');
+            window.location.href = AuthService.loginDestination(redirect);
         } catch (err) {
             errorDiv.textContent = err.message;
             errorDiv.classList.remove('d-none');
@@ -198,6 +212,11 @@ if (loginForm) {
 const registerForm = document.getElementById('register-form');
 if (registerForm) {
     const errorDiv = document.getElementById('error-msg');
+    const message = (key, fallback) => SLMClient.message(key, fallback);
+    const control = name => registerForm.elements.namedItem(name);
+    const allowedRoles = () => AuthService.getRole() === 'admin' ? ['student', 'teacher', 'admin'] : AuthService.getRole() === 'teacher' ? ['student'] : [];
+    let creatingAccount = false;
+    let accountCreated = false;
 
     const showRegisterError = (message) => {
         if (!errorDiv) return;
@@ -213,43 +232,39 @@ if (registerForm) {
         allowedRoles.forEach(r => {
             const opt = document.createElement('option');
             opt.value = r;
-            opt.textContent = r.charAt(0).toUpperCase() + r.slice(1);
+            opt.dataset.i18n = 'recovery.role_' + r;
+            opt.textContent = message('role_' + r, r.charAt(0).toUpperCase() + r.slice(1));
             roleSelect.appendChild(opt);
         });
     };
 
     const configureRegisterForm = () => {
         if (!AuthService.isAuthenticated()) {
-            window.location.href = '/login.html';
+            window.location.href = AuthService.loginUrl();
             return false;
         }
 
         const currentRole = AuthService.getRole();
-        const roleSelect = registerForm.role;
+        const roleSelect = control('role');
         if (!roleSelect) return true;
 
-        let allowedRoles = [];
-        if (currentRole === 'admin') {
-            allowedRoles = ['admin', 'teacher', 'student'];
-        } else if (currentRole === 'teacher') {
-            allowedRoles = ['student'];
-        }
+        const permittedRoles = allowedRoles();
 
-        if (allowedRoles.length === 0) {
-            showRegisterError('You are not authorized to create users.');
+        if (permittedRoles.length === 0) {
+            showRegisterError(message('create_user_denied', 'Only teachers and administrators can create accounts.'));
             registerForm.querySelectorAll('input, select, button').forEach(el => { el.disabled = true; });
             setTimeout(() => { window.location.href = '/dashboard.html'; }, 800);
             return false;
         }
 
-        buildRoleOptions(roleSelect, allowedRoles);
+        buildRoleOptions(roleSelect, permittedRoles);
 
         const params = new URLSearchParams(window.location.search);
         const requestedRole = AuthService._normalizeRole(params.get('role'));
-        if (requestedRole && allowedRoles.includes(requestedRole)) {
+        if (requestedRole && permittedRoles.includes(requestedRole)) {
             roleSelect.value = requestedRole;
         } else {
-            roleSelect.value = allowedRoles[0];
+            roleSelect.value = permittedRoles[0];
         }
 
         if (currentRole === 'teacher') {
@@ -260,38 +275,76 @@ if (registerForm) {
     };
 
     configureRegisterForm();
+    const updateRoleSummary = () => {
+        const selected = control('role');
+        document.getElementById('register-teacher-field').classList.toggle('d-none', AuthService.getRole() !== 'admin' || selected.value !== 'student');
+        document.getElementById('register-role-summary').textContent = message('selected_role', 'Account role:') + ' ' + (selected.selectedOptions[0]?.textContent || '');
+    };
+    control('role').addEventListener('change', updateRoleSummary);
+    document.addEventListener('i18n-loaded', updateRoleSummary);
+    updateRoleSummary();
+    if (AuthService.getRole() === 'admin') {
+        SLMClient.request('/api/auth/users?role=teacher').then(teachers => {
+            teachers.forEach(teacher => control('teacher_id').append(new Option(`${teacher.first_name} ${teacher.last_name} (${teacher.username})`, teacher.id)));
+        }).catch(() => { document.getElementById('register-teacher-status').textContent = message('teachers_load_failed', 'Teachers could not be loaded. Return to the dashboard and retry.'); });
+    }
+    document.getElementById('create-another-account').onclick = () => {
+        accountCreated = false;
+        const selectedRole = control('role').value;
+        registerForm.reset();
+        control('role').value = selectedRole;
+        errorDiv.classList.add('d-none');
+        document.getElementById('register-success-actions').classList.add('d-none');
+        registerForm.querySelector('[type=submit]').disabled = false;
+        control('first_name').focus();
+    };
 
     registerForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        if (!configureRegisterForm()) return;
+        if (creatingAccount || accountCreated) return;
+        if (!AuthService.isAuthenticated()) { window.location.href = AuthService.loginUrl(); return; }
+        if (!allowedRoles().includes(control('role').value)) {
+            showRegisterError(message('create_user_denied', 'Only teachers and administrators can create accounts.'));
+            return;
+        }
         const data = {
-            role: registerForm.role.value,
-            first_name: registerForm.first_name.value,
-            last_name: registerForm.last_name.value,
-            email: registerForm.email.value,
-            username: registerForm.username.value,
-            password: registerForm.password.value
+            role: control('role').value,
+            first_name: control('first_name').value,
+            last_name: control('last_name').value,
+            email: control('email').value,
+            username: control('username').value,
+            password: control('password').value
         };
+        if (AuthService.getRole() === 'admin' && data.role === 'student' && control('teacher_id').value) data.teacher_id = Number(control('teacher_id').value);
 
+        creatingAccount = true;
+        const submitButton = registerForm.querySelector('[type=submit]');
+        submitButton.disabled = true;
         try {
             errorDiv.classList.add('d-none');
             errorDiv.style.display = 'none';
             await AuthService.register(data);
-            errorDiv.textContent = 'Registration successful. Redirecting to login…';
+            accountCreated = true;
+            errorDiv.textContent = message('account_created', 'Account created. You are still signed in to your own account.');
             errorDiv.classList.remove('d-none');
             errorDiv.style.display = 'block';
             errorDiv.classList.remove('error-message');
             errorDiv.classList.add('alert', 'alert-success');
 
-            setTimeout(() => {
-                window.location.href = '/login.html';
-            }, 800);
+            control('password').value = '';
+            const destination = data.role === 'student' ? 'students' : data.role === 'teacher' ? 'teachers' : 'admins';
+            document.getElementById('register-return').href = '/dashboard.html?tab=' + destination;
+            document.getElementById('register-success-actions').classList.remove('d-none');
+            document.getElementById('register-return').focus();
         } catch (err) {
             errorDiv.classList.remove('alert', 'alert-success');
             errorDiv.classList.add('error-message');
             errorDiv.textContent = err.message;
             errorDiv.classList.remove('d-none');
             errorDiv.style.display = 'block';
+        } finally {
+            creatingAccount = false;
+            submitButton.disabled = accountCreated;
         }
     });
 }

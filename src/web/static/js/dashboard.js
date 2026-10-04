@@ -23,6 +23,7 @@ function applyRoleUI() {
 
     const teacherNavItems = document.querySelectorAll('[data-role="teacher"]');
     const adminNavItems = document.querySelectorAll('[data-role="admin"]');
+    document.querySelectorAll('[data-role="student"]').forEach(item => item.classList.toggle('hidden', role !== 'student'));
     const libraryCreateBtn = document.getElementById('library-create-btn');
     const sharedQaOpt = document.getElementById('library-filter-qa-shared');
     const studentQaBtn = document.getElementById('student-qa-btn');
@@ -79,7 +80,7 @@ function applyRoleUI() {
 
 async function initAuthAndRoleUI() {
     if (!AuthService.isAuthenticated()) {
-        window.location.href = '/login.html';
+        window.location.href = AuthService.loginUrl();
         return;
     }
 
@@ -95,6 +96,7 @@ async function initAuthAndRoleUI() {
 
 // Initial auth + role UI
 await initAuthAndRoleUI();
+await SLMTime.load().catch(() => {});
 
 // Update on language load (and re-apply role UI)
 document.addEventListener('i18n-loaded', () => {
@@ -193,7 +195,12 @@ window.loadProfileSettings = function () {
     }
 };
 
+window.reloadAIConfiguration = () => loadSettings();
+const supportedAIProviders = ['ollama', 'lm_studio', 'openai', 'openrouter'];
+let savingAISettings = false;
+let aiConfigLoadState = 'loading';
 async function loadSettings() {
+    aiConfigLoadState = 'loading'; onProviderChange();
     const token = AuthService.getToken();
     try {
         // Load AI Config
@@ -201,11 +208,15 @@ async function loadSettings() {
         if (aiRes.ok) {
             const aiData = await aiRes.json();
             // Populate Form
-            document.getElementById('ai-provider').value = aiData.provider || 'ollama';
+            if (!supportedAIProviders.includes(aiData.provider)) throw new Error(SLMClient.message('ai_config_repair', 'Choose a supported provider and save a replacement configuration. Your existing configuration has not changed.'));
+            aiConfigLoadState = 'ready';
+            document.getElementById('ai-config-status').textContent = '';
+            document.getElementById('ai-provider').value = aiData.provider;
             document.getElementById('ai-model').value = aiData.model || '';
             document.getElementById('ai-endpoint').value = aiData.endpoint || '';
             // Key is likely masked or null if hidden
-            if (aiData.api_key) document.getElementById('ai-key').placeholder = I18n.t('settings.ai.api_key_set_placeholder');
+            document.getElementById('ai-key').value = '';
+            document.getElementById('ai-key').dataset.hasKey = String(Boolean(aiData.has_api_key));
 
             // Advanced settings
             if (aiData.temperature !== undefined) {
@@ -215,15 +226,16 @@ async function loadSettings() {
             if (aiData.max_tokens !== undefined) {
                 document.getElementById('ai-max-tokens').value = aiData.max_tokens;
             }
-            if (aiData.enable_preprocessing) {
-                document.getElementById('ai-preprocessing').checked = true;
-                document.getElementById('preprocessing-model-group').classList.remove('d-none');
-            }
-            if (aiData.preprocessing_model) {
-                document.getElementById('ai-preprocessing-model').value = aiData.preprocessing_model;
-            }
-
             // Update UI hints based on provider
+            onProviderChange();
+        } else {
+            aiConfigLoadState = aiRes.status === 409 ? 'repair' : 'failed';
+            document.getElementById('ai-provider').value = '';
+            document.getElementById('ai-model').value = '';
+            document.getElementById('ai-endpoint').value = '';
+            document.getElementById('ai-key').value = '';
+            document.getElementById('ai-key').dataset.hasKey = 'false';
+            document.getElementById('ai-config-status').textContent = SLMClient.message(aiRes.status === 409 ? 'ai_config_repair' : 'ai_config_load_failed', aiRes.status === 409 ? 'Choose a supported provider and save a replacement configuration. Your existing configuration has not changed.' : 'AI configuration could not be loaded. Retry before changing it.');
             onProviderChange();
         }
 
@@ -236,7 +248,7 @@ async function loadSettings() {
             applyTheme(appData.theme || 'auto');
         }
 
-    } catch (err) { console.error("Settings load error", err); }
+    } catch (err) { aiConfigLoadState = 'failed'; onProviderChange(); document.getElementById('ai-config-status').textContent = SLMClient.message('ai_config_load_failed', 'AI configuration could not be loaded. Retry before changing it.'); }
 }
 
 function setSettingsTab(tabName) {
@@ -246,6 +258,7 @@ function setSettingsTab(tabName) {
 
     tabs.forEach(tab => {
         tab.classList.toggle('active', tab.dataset.settingsTab === tabName);
+        tab.setAttribute('aria-pressed', String(tab.dataset.settingsTab === tabName));
     });
 
     sections.forEach(section => {
@@ -314,50 +327,34 @@ function buildAIConfigPayload() {
         endpoint: endpointValue || null,
         // Advanced settings
         temperature: parseFloat(document.getElementById('ai-temperature').value),
-        max_tokens: parseInt(document.getElementById('ai-max-tokens').value),
-        enable_preprocessing: document.getElementById('ai-preprocessing').checked,
-        preprocessing_model: document.getElementById('ai-preprocessing-model').value || null
+        max_tokens: parseInt(document.getElementById('ai-max-tokens').value)
     };
 }
 
 window.saveAISettings = async () => {
-    const token = AuthService.getToken();
+    if (savingAISettings || !['ready', 'repair'].includes(aiConfigLoadState)) return;
     const resultDiv = document.getElementById('ai-test-result');
     const data = buildAIConfigPayload();
+    if (!supportedAIProviders.includes(data.provider)) {
+        document.getElementById('ai-config-status').textContent = SLMClient.message('ai_config_repair', 'Choose a supported provider and save a replacement configuration. Your existing configuration has not changed.'); return;
+    }
     const apiKeyValue = document.getElementById('ai-key').value;
-    if (apiKeyValue) {
-        data.api_key = apiKeyValue;
-    }
-
-    // Show saving state
-    resultDiv.classList.remove('d-none');
-    resultDiv.className = 'mt-3 alert alert-info';
-    resultDiv.innerHTML = I18n.t('settings.save.saving');
-
+    if (apiKeyValue) data.api_key = apiKeyValue;
+    savingAISettings = true;
+    const controls = [...document.querySelectorAll('#settings-ai-form input, #settings-ai-form select, #settings-ai-form button')];
+    controls.forEach(control => { control.disabled = true; });
+    resultDiv.className = 'mt-3 alert alert-info'; resultDiv.textContent = I18n.t('settings.save.saving');
     try {
-        const res = await fetch('/api/settings/ai', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-            body: JSON.stringify(data)
-        });
-        if (res.ok) {
-            resultDiv.className = 'mt-3 alert alert-success';
-            resultDiv.innerHTML = `
-                <strong>${I18n.t('settings.save.success')}</strong><br>
-                Provider: ${data.provider}<br>
-                Model: ${data.model || '(default)'}
-            `;
-            // Auto-hide after 5 seconds
-            setTimeout(() => { resultDiv.classList.add('d-none'); }, 5000);
-        } else {
-            const err = await res.json();
-            resultDiv.className = 'mt-3 alert alert-danger';
-            resultDiv.innerHTML = `<strong>${I18n.t('settings.save.failed')}</strong><br>${err.detail || 'Unknown error'}`;
-        }
-    } catch (e) {
-        resultDiv.className = 'mt-3 alert alert-danger';
-        resultDiv.innerHTML = `<strong>${I18n.t('settings.save.network_error')}</strong><br>${I18n.t('settings.save.failed_msg')}`;
-    }
+        const saved = await SLMClient.request('/api/settings/ai', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
+        if (saved?.provider !== data.provider || typeof saved.model !== 'string') throw new Error(SLMClient.message('ai_save_unconfirmed', 'The server did not confirm this configuration. Your entries are kept; retry.'));
+        aiConfigLoadState = 'ready';
+        document.getElementById('ai-key').value = '';
+        document.getElementById('ai-key').dataset.hasKey = String(Boolean(saved.has_api_key));
+        document.getElementById('ai-config-status').textContent = '';
+        resultDiv.className = 'mt-3 alert alert-success'; resultDiv.textContent = I18n.t('settings.save.success');
+    } catch (error) {
+        resultDiv.className = 'mt-3 alert alert-danger'; resultDiv.textContent = error.message;
+    } finally { savingAISettings = false; controls.forEach(control => { control.disabled = false; }); onProviderChange(); }
 };
 // --- AI SETTINGS HELPER FUNCTIONS ---
 
@@ -365,6 +362,7 @@ window.saveAISettings = async () => {
  * Fetch available models from the current provider
  */
 window.fetchModels = async function () {
+    if (!['ready', 'repair'].includes(aiConfigLoadState) || !supportedAIProviders.includes(document.getElementById('ai-provider').value)) return;
     const token = AuthService.getToken();
     const provider = document.getElementById('ai-provider').value;
     const btn = document.getElementById('fetch-models-btn');
@@ -383,7 +381,7 @@ window.fetchModels = async function () {
 
             if (data.models && data.models.length > 0) {
                 select.innerHTML = `<option value="">${I18n.t('settings.ai.select_model_placeholder')}</option>` +
-                    data.models.map(m => `<option value="${m}">${m}</option>`).join('');
+                    data.models.map(m => `<option value="${escapeHtml(m)}">${escapeHtml(m)}</option>`).join('');
                 select.classList.remove('d-none');
                 document.getElementById('model-hint').textContent =
                     I18n.t('settings.ai.info.loaded', { count: data.models.length });
@@ -426,12 +424,13 @@ window.onProviderChange = function () {
     modelSelect.classList.add('d-none');
 
     // Cloud providers need API key
-    const cloudProviders = ['openai', 'anthropic', 'openrouter'];
-    const localProviders = ['ollama', 'lm_studio'];
+    const cloudProviders = ['openai', 'openrouter'];
+    const valid = supportedAIProviders.includes(provider);
+    ['fetch-models-btn', 'save-ai-config', 'test-ai-config'].forEach(id => { const control = document.getElementById(id); if (control) control.disabled = !valid || savingAISettings || !['ready', 'repair'].includes(aiConfigLoadState); });
 
     if (cloudProviders.includes(provider)) {
         apiKeyGroup.classList.remove('d-none');
-        document.getElementById('ai-key').placeholder = I18n.t('settings.ai.api_key_required_for', { provider: provider });
+        document.getElementById('ai-key').placeholder = document.getElementById('ai-key').dataset.hasKey === 'true' ? I18n.t('settings.ai.api_key_set_placeholder') : I18n.t('settings.ai.api_key_required_for', { provider: provider });
     } else {
         // API key optional for local providers 
         document.getElementById('ai-key').placeholder = I18n.t('settings.ai.api_key_optional');
@@ -442,7 +441,6 @@ window.onProviderChange = function () {
         'ollama': 'http://localhost:11434',
         'lm_studio': 'http://localhost:1234',
         'openai': 'https://api.openai.com/v1',
-        'anthropic': 'https://api.anthropic.com',
         'openrouter': 'https://openrouter.ai/api/v1'
     };
     endpointInput.placeholder = `${I18n.t('settings.ai.endpoint_placeholder_default')} ${defaultEndpoints[provider] || I18n.t('settings.ai.endpoint_required')}`;
@@ -459,6 +457,7 @@ window.onProviderChange = function () {
  * Test AI connection
  */
 window.testAIConnection = async function () {
+    if (!['ready', 'repair'].includes(aiConfigLoadState) || !supportedAIProviders.includes(document.getElementById('ai-provider').value)) return;
     const token = AuthService.getToken();
     const resultDiv = document.getElementById('ai-test-result');
     const data = buildAIConfigPayload();
@@ -480,19 +479,20 @@ window.testAIConnection = async function () {
 
         const result = await res.json();
 
+        if (!res.ok) throw new Error(result.detail || I18n.t('settings.ai.error_connection_failed'));
         if (result.status === 'connected') {
             resultDiv.className = 'mt-3 alert alert-success';
             resultDiv.innerHTML = `
                 <strong>${I18n.t('settings.ai.success_connected')}</strong><br>
-                Provider: ${result.provider}<br>
-                Model: ${result.model}<br>
+                Provider: ${escapeHtml(result.provider)}<br>
+                Model: ${escapeHtml(result.model)}<br>
                 Response time: ${result.response_time_ms}ms
             `;
         } else {
             resultDiv.className = 'mt-3 alert alert-danger';
             resultDiv.innerHTML = `
                 <strong>${I18n.t('settings.ai.error_connection_failed')}</strong><br>
-                ${I18n.t('common.labels.error')}: ${result.error}
+                ${I18n.t('common.labels.error')}: ${escapeHtml(result.error)}
             `;
         }
     } catch (e) {
@@ -508,23 +508,6 @@ window.updateTempDisplay = function () {
     const temp = document.getElementById('ai-temperature').value;
     document.getElementById('temp-value').textContent = temp;
 };
-
-/**
- * Toggle preprocessing model input visibility
- */
-document.addEventListener('DOMContentLoaded', () => {
-    const preprocessingCheckbox = document.getElementById('ai-preprocessing');
-    if (preprocessingCheckbox) {
-        preprocessingCheckbox.addEventListener('change', function () {
-            const group = document.getElementById('preprocessing-model-group');
-            if (this.checked) {
-                group.classList.remove('d-none');
-            } else {
-                group.classList.add('d-none');
-            }
-        });
-    }
-});
 
 /**
  * Show toast notification (helper function if not exists)
@@ -553,7 +536,7 @@ function showToast(message, type = 'info') {
     toastEl.setAttribute('aria-atomic', 'true');
     toastEl.innerHTML = `
         <div class="d-flex">
-            <div class="toast-body">${message}</div>
+            <div class="toast-body">${escapeHtml(message)}</div>
             <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
         </div>
     `;
@@ -595,17 +578,17 @@ window.changePassword = async function () {
     }
 
     // Password must meet minimum requirements
-    if (newPassword.length < 8) {
+    if (newPassword.length < 12) {
         if (feedbackEl) {
             feedbackEl.className = 'mt-3 alert alert-danger';
-            feedbackEl.innerHTML = 'Password must be at least 8 characters';
+            feedbackEl.textContent = SLMClient.message('password_minimum', 'Password must be at least 12 characters');
         }
         return;
     }
 
     try {
         const token = AuthService.getToken();
-        const response = await fetch('/api/users/change-password', {
+        const response = await fetch('/api/auth/change-password', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -632,7 +615,7 @@ window.changePassword = async function () {
         } else {
             if (feedbackEl) {
                 feedbackEl.className = 'mt-3 alert alert-danger';
-                feedbackEl.innerHTML = data.detail || 'Error changing password';
+                feedbackEl.textContent = data.detail || 'Error changing password';
             }
         }
     } catch (error) {
@@ -719,9 +702,9 @@ window.loadProfile = async function () {
 
         // Update account info
         document.getElementById('profile-created-at').textContent =
-            profile.created_at ? new Date(profile.created_at).toLocaleDateString() : 'N/A';
+            profile.created_at ? SLMTime.format(profile.created_at, { dateOnly: true }) : 'N/A';
         document.getElementById('profile-last-login').textContent =
-            profile.last_login ? new Date(profile.last_login).toLocaleString() : 'N/A';
+            profile.last_login ? SLMTime.format(profile.last_login) : 'N/A';
 
         // Populate form fields
         document.getElementById('profile-first-name').value = profile.first_name || '';
@@ -889,12 +872,12 @@ window.loadProfileBadges = async function () {
         badgesList.innerHTML = badges.map(badge => `
             <div class="d-flex align-items-center mb-2 p-2 bg-elevated rounded">
                 <div class="badge-icon me-2" style="font-size: 1.5rem;">
-                    ${badge.icon_path || '🎖️'}
+                    ${escapeHtml(badge.icon_path || '🎖️')}
                 </div>
                 <div class="flex-grow-1">
-                    <div class="fw-bold small">${badge.name}</div>
+                    <div class="fw-bold small">${escapeHtml(badge.name)}</div>
                     <div class="text-muted" style="font-size: 0.75rem;">
-                        ${badge.earned_at ? new Date(badge.earned_at).toLocaleDateString() : ''}
+                        ${badge.earned_at ? escapeHtml(SLMTime.format(badge.earned_at, { dateOnly: true })) : ''}
                     </div>
                 </div>
             </div>
@@ -954,9 +937,12 @@ async function loadStats() {
         if (masteryResp.ok) {
             const m = await masteryResp.json();
             document.getElementById('mastery-due-count').textContent = m.items_due_review;
-            document.getElementById('mastery-avg').textContent = m.average_mastery + '%';
-            document.getElementById('mastery-mastered').textContent = m.items_mastered;
-            document.getElementById('mastery-progress').textContent = m.items_in_progress;
+            const evidenceResponse = await fetch('/api/mastery/evidence', { headers: { Authorization: `Bearer ${token}` } });
+            const evidence = evidenceResponse.ok ? await evidenceResponse.json() : { items: [] };
+            const finalItems = (evidence.items || []).filter(item => item.evidence_type === 'final_assessment' && Number.isFinite(item.assessment_percent));
+            document.getElementById('mastery-avg').textContent = finalItems.length ? `${Math.round(finalItems.reduce((sum,item) => sum + item.assessment_percent,0) / finalItems.length)}%` : '—';
+            document.getElementById('mastery-mastered').textContent = finalItems.length;
+            document.getElementById('mastery-progress').textContent = (evidence.items || []).filter(item => item.evidence_type !== 'final_assessment').length;
         }
 
     } catch (err) {
@@ -969,50 +955,34 @@ async function loadStats() {
 
 
 
-// Help Request Logic
+// Help requests keep one identity across transport retries.
+let dashboardHelpBusy = false;
+let dashboardHelpPending = null;
 window.submitHelpRequest = async function submitHelpRequest() {
-    const subject = document.getElementById('help-subject').value;
-    const desc = document.getElementById('help-desc').value;
-    const urgency = document.getElementById('help-urgency').value;
-
-    // Get current learning context
-    const context = window.getLearningContext();
-
+    if (dashboardHelpBusy) return;
+    const owner = SLMClient.account();
+    const learning = window.getLearningContext();
+    const payload = {subject:document.getElementById('help-subject').value.trim(), description:document.getElementById('help-desc').value.trim(),
+        urgency:Number(document.getElementById('help-urgency').value), content_id:Number(learning.contentId) || null,
+        study_plan_id:Number(learning.studyPlanId) || null, question_id:Number(learning.questionId) || null};
+    if (!payload.subject || !payload.description) return;
+    const fingerprint = JSON.stringify(payload);
+    if (!dashboardHelpPending || dashboardHelpPending.owner !== owner || dashboardHelpPending.fingerprint !== fingerprint) dashboardHelpPending = {owner,fingerprint,id:crypto.randomUUID()};
+    payload.client_request_id = dashboardHelpPending.id;
+    dashboardHelpBusy = true;
+    const controls = [...document.querySelectorAll('#help-form input, #help-form textarea, #help-form select, #helpModal button[onclick="submitHelpRequest()"]')];
+    controls.forEach(control => {control.disabled=true;});
     try {
-        const token = AuthService.getToken();
-        const response = await fetch('/api/classroom/help', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({
-                subject: subject,
-                description: desc,
-                urgency: parseInt(urgency),
-                // Include learning context
-                content_id: context.contentId,
-                study_plan_id: context.studyPlanId,
-                question_id: context.questionId
-            })
-        });
-
-        if (response.ok) {
-            showToast(I18n.t('help_request.success_submit'), "success");
-            const modal = bootstrap.Modal.getInstance(document.getElementById('helpModal'));
-            modal.hide();
-            // Clear form
-            document.getElementById('help-form').reset();
-            // Clear context display
-            const contextDisplay = document.getElementById('help-context-display');
-            if (contextDisplay) contextDisplay.innerHTML = '';
-        } else {
-            showToast(I18n.t('help_request.error_submit'), "danger");
-        }
-    } catch (e) {
-        showToast(I18n.t('help_request.error_network'), "danger");
-    }
-}
+        const result = await SLMClient.request('/api/classroom/help', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+        if (owner !== SLMClient.account()) return;
+        if (!Number.isInteger(result?.id) || result.client_request_id !== payload.client_request_id || String(result.student_id) !== owner || !['open','resolved'].includes(result.status) || (result.content_id ?? null) !== payload.content_id || (result.study_plan_id ?? null) !== payload.study_plan_id || result.request_text !== `${payload.subject}: ${payload.description}`) throw new Error(SLMClient.message('help_delivery_unconfirmed', 'Help delivery is unconfirmed. Your text is kept; retrying the same text checks the same request.'));
+        showToast(I18n.t('help_request.success_submit'), 'success');
+        bootstrap.Modal.getInstance(document.getElementById('helpModal'))?.hide();
+        document.getElementById('help-form').reset(); dashboardHelpPending=null;
+        document.getElementById('help-context-display')?.replaceChildren();
+    } catch (error) { if (owner === SLMClient.account()) showToast(error.message, 'danger'); }
+    finally { dashboardHelpBusy=false;controls.forEach(control=>{control.disabled=false;}); }
+};
 
 // Initialize Help Modal - populate context display when opened
 document.addEventListener('DOMContentLoaded', function () {
@@ -1030,11 +1000,11 @@ document.addEventListener('DOMContentLoaded', function () {
                     const icon = context.contentType === 'lesson' ? '📖' :
                         context.contentType === 'exercise' ? '🏋️' :
                             context.contentType === 'assessment' ? '📝' : '📄';
-                    contextParts.push(`<span class="badge bg-primary me-2">${icon} ${context.contentTitle}</span>`);
+                    contextParts.push(`<span class="badge bg-primary me-2">${icon} ${escapeHtml(context.contentTitle)}</span>`);
                 }
 
                 if (context.studyPlanTitle) {
-                    contextParts.push(`<span class="badge bg-secondary me-2">📋 ${context.studyPlanTitle}</span>`);
+                    contextParts.push(`<span class="badge bg-secondary me-2">📋 ${escapeHtml(context.studyPlanTitle)}</span>`);
                 }
 
                 if (contextParts.length > 0) {
@@ -1089,8 +1059,8 @@ async function loadActivity() {
         const list = document.getElementById('activity-list');
         list.innerHTML = activities.map(a => `
             <div class="activity-item">
-                <div>${a.text}</div>
-                <div class="activity-time">${a.time}</div>
+                <div>${escapeHtml(a.text)}</div>
+                <div class="activity-time">${escapeHtml(a.time)}</div>
             </div>
         `).join('');
     } catch (err) {
@@ -1099,6 +1069,7 @@ async function loadActivity() {
 }
 
 // Navigation Handler
+let restoringDashboardView = false;
 document.querySelectorAll('.nav-item').forEach(item => {
     item.addEventListener('click', (e) => {
         e.preventDefault();
@@ -1128,7 +1099,8 @@ document.querySelectorAll('.nav-item').forEach(item => {
 
         // Show selected view
         const viewEl = document.getElementById(`view-${viewName}`);
-        if (viewEl) viewEl.classList.remove('hidden');
+        if (viewEl) { viewEl.classList.remove('hidden'); viewEl.tabIndex = -1; viewEl.focus({ preventScroll: true }); }
+        if (!restoringDashboardView && window.location.hash !== `#${viewName}`) history.pushState(null, '', `#${viewName}`);
 
         document.body.classList.remove('sidebar-open');
 
@@ -1139,6 +1111,7 @@ document.querySelectorAll('.nav-item').forEach(item => {
             initSettingsUI();
             loadSettings();
             loadProfile();
+            loadTimezoneSettings();
             setSettingsTab(item.dataset.settingsTab || 'profile');
         }
         if (viewName === 'inbox') loadInbox();
@@ -1169,6 +1142,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+function restoreDashboardView() {
+    const params = new URLSearchParams(window.location.search);
+    const requested = window.location.hash.slice(1) || params.get('view') || params.get('tab');
+    const alias = requested === 'study-plans' ? 'library' : requested;
+    const navigation = Array.from(document.querySelectorAll('.nav-item[data-view]')).find(item => item.dataset.view === alias);
+    if (!navigation) return;
+    restoringDashboardView = true;
+    try { navigation.click(); } finally { restoringDashboardView = false; }
+}
+window.addEventListener('popstate', restoreDashboardView);
+window.addEventListener('hashchange', restoreDashboardView);
+document.addEventListener('DOMContentLoaded', restoreDashboardView);
+
 // --- LIBRARY & CONTENT ---
 let libraryCache = [];
 
@@ -1197,13 +1183,15 @@ window.loadLibrary = async function loadLibrary() {
         // Fetch content and mastery levels in parallel
         const [contentResponse, masteryResponse] = await Promise.all([
             fetch(url, { headers: { 'Authorization': `Bearer ${token}` } }),
-            fetch('/api/mastery/levels', { headers: { 'Authorization': `Bearer ${token}` } }).catch(() => null)
+            fetch('/api/mastery/evidence', { headers: { 'Authorization': `Bearer ${token}` } }).catch(() => null)
         ]);
 
         let items = await contentResponse.json();
-        let masteryLevels = {};
+        if (!contentResponse.ok) throw new Error('Content could not be loaded');
+        let evidenceByContent = {};
         if (masteryResponse && masteryResponse.ok) {
-            masteryLevels = await masteryResponse.json();
+            const evidence = await masteryResponse.json();
+            evidenceByContent = Object.fromEntries((evidence.items || []).map(item => [item.content_id, item]));
         }
 
         // Teacher-only: show only student-shared Q&A
@@ -1257,40 +1245,34 @@ window.loadLibrary = async function loadLibrary() {
                 qa: '❓'
             };
 
-            // Get mastery level for this content (0-100)
-            const masteryLevel = masteryLevels[item.id] || 0;
-            const masteryColor = masteryLevel >= 80 ? 'bg-success' : masteryLevel >= 40 ? 'bg-warning' : 'bg-secondary';
-            const masteryLabel = masteryLevel >= 80 ? I18n.t('content.mastery.mastered') : masteryLevel >= 40 ? I18n.t('content.mastery.learning') : I18n.t('content.mastery.new');
+            const evidence = evidenceByContent[item.id];
+            const finalEvidence = evidence?.evidence_type === 'final_assessment' && Number.isFinite(evidence.assessment_percent);
+            const evidenceLabel = finalEvidence ? `${SLMClient.message('final_assessment_score', 'Final assessment score')}: ${evidence.assessment_percent}%` :
+                SLMClient.message('legacy_evidence', 'Legacy activity, not assessed mastery');
+            const confidenceLabel = evidence?.self_confidence ? `${SLMClient.message('self_confidence', 'Self-rated confidence')}: ${evidence.self_confidence}/5` : '';
 
             return `
                 <div class="col-md-4 col-lg-3">
-                    <div class="card h-100" data-creator-id="${item.creator_id || ''}">
+                    <div class="card h-100" data-creator-id="${item.creator_id || ''}" data-can-edit="${item.can_edit === true}">
                         <div class="card-body">
                             <span class="badge ${typeColors[type] || 'bg-secondary'} mb-2">
-                                ${typeIcons[type] || '📄'} ${type.toUpperCase()}
+                                ${typeIcons[type] || '📄'} ${escapeHtml(type.toUpperCase())}
                             </span>
-                            <h5 class="card-title">${item.title}</h5>
+                            <h5 class="card-title">${escapeHtml(item.title)}</h5>
                             ${(item.creator_id && currentUserId && item.creator_id !== currentUserId && (item.creator_name || item.creator_username)) ? `
                             <p class="text-muted small mb-2">
-                                ${I18n.t('content.library.from', { name: item.creator_name || 'Student' })}${item.creator_username ? ` (@${item.creator_username})` : ''}
+                                ${escapeHtml(I18n.t('content.library.from', { name: item.creator_name || 'Student' }))}${item.creator_username ? ` (@${escapeHtml(item.creator_username)})` : ''}
                             </p>` : ''}
                             <p class="text-muted small mb-2">
                                 ${I18n.t('content.editor.errors.difficulty')} ${'⭐'.repeat(item.difficulty || 1)}
                             </p>
                             ${!isTeacherOrAdmin ? `
                             <div class="mb-2">
-                                <small class="text-muted d-flex justify-content-between">
-                                    <span>${I18n.t('content.mastery.label')}</span>
-                                    <span class="badge ${masteryColor} badge-sm">${masteryLabel}</span>
-                                </small>
-                                <div class="progress" style="height: 6px;">
-                                    <div class="progress-bar ${masteryColor}" role="progressbar" 
-                                         style="width: ${masteryLevel}%;" 
-                                         aria-valuenow="${masteryLevel}" aria-valuemin="0" aria-valuemax="100"></div>
-                                </div>
+                                <small class="text-muted d-block">${escapeHtml(evidenceLabel)}</small>
+                                <small class="text-muted d-block">${escapeHtml(confidenceLabel)}</small>
                             </div>` : ''}
                             <p class="text-muted small">
-                                ${I18n.t('content.editor.errors.created_at')} ${new Date(item.created_at).toLocaleDateString()}
+                                ${I18n.t('content.editor.errors.created_at')} ${escapeHtml(SLMTime.format(item.created_at, { dateOnly: true }))}
                             </p>
                         </div>
                         <div class="card-footer bg-transparent border-0">
@@ -1322,24 +1304,9 @@ window.loadLibrary = async function loadLibrary() {
 
 function applyLibraryPermissionUI(container) {
     if (!container) return;
-    const buttons = container.querySelectorAll('button[onclick^="editContent("],button[onclick^="deleteContent("]');
-
-    // Students should not see manage actions on assigned content.
-    if (!isTeacherOrAdmin) {
-        buttons.forEach(b => b.classList.add('hidden'));
-    }
-
-    if (!currentUserId) return;
-
-    // Allow managing own content (cards only).
-    container.querySelectorAll('.card[data-creator-id]').forEach(card => {
-        const creatorId = Number(card.getAttribute('data-creator-id') || 0);
-        const canManage = creatorId === Number(currentUserId);
-        if (canManage) {
-            card.querySelectorAll('button[onclick^="editContent("],button[onclick^="deleteContent("]').forEach(b => b.classList.remove('hidden'));
-        } else {
-            card.querySelectorAll('button[onclick^="editContent("],button[onclick^="deleteContent("]').forEach(b => b.classList.add('hidden'));
-        }
+    container.querySelectorAll('[data-can-edit]').forEach(card => {
+        const canEdit = card.dataset.canEdit === 'true';
+        card.querySelectorAll('button[onclick^="editContent("], button[onclick^="deleteContent("]').forEach(button => button.classList.toggle('hidden', !canEdit));
     });
 }
 
@@ -1437,12 +1404,7 @@ window.askAIForAnswer = async function askAIForAnswer() {
         if (res.ok && data.success) {
             // Show the answer
             if (answerContent) {
-                // Use marked.parse if available for markdown support
-                if (typeof marked !== 'undefined') {
-                    answerContent.innerHTML = marked.parse(data.answer);
-                } else {
-                    answerContent.textContent = data.answer;
-                }
+                SLMRender.setMarkdown(answerContent, data.answer);
             }
             if (answerSection) answerSection.classList.remove('hidden');
             showToast(I18n.t('content.qa_section.success_answer'), 'success');
@@ -1489,7 +1451,7 @@ window.viewContent = async function viewContent(id) {
         document.getElementById('content-view-title').textContent = content.title;
         document.getElementById('content-view-type').textContent = type.toUpperCase();
         document.getElementById('content-view-difficulty').textContent = `Difficulty: ${content.difficulty || 1}`;
-        document.getElementById('content-view-date').textContent = `Created: ${new Date(content.created_at).toLocaleDateString()}`;
+        document.getElementById('content-view-date').textContent = `Created: ${SLMTime.format(content.created_at, { dateOnly: true })}`;
 
         // Parse content body
         let bodyText = I18n.t('content.viewer.empty_content');
@@ -1497,18 +1459,17 @@ window.viewContent = async function viewContent(id) {
             try {
                 if (typeof content.content_data === 'string') {
                     const parsed = JSON.parse(content.content_data);
-                    bodyText = parsed.body || parsed.content || parsed.text || JSON.stringify(parsed, null, 2);
+                    bodyText = Array.isArray(parsed.sections) && parsed.sections.length ? parsed.sections.map(section => `## ${section.title || ''}\n\n${section.content || section.text || ''}`).join('\n\n') : parsed.content || parsed.body || parsed.text || JSON.stringify(parsed, null, 2);
                 } else {
-                    bodyText = content.content_data.body || content.content_data.content || JSON.stringify(content.content_data, null, 2);
+                    const parsed = content.content_data;
+                    bodyText = Array.isArray(parsed.sections) && parsed.sections.length ? parsed.sections.map(section => `## ${section.title || ''}\n\n${section.content || section.text || ''}`).join('\n\n') : parsed.content || parsed.body || JSON.stringify(parsed, null, 2);
                 }
             } catch {
                 bodyText = content.content_data;
             }
         }
 
-        document.getElementById('content-view-body').innerHTML = typeof marked !== 'undefined'
-            ? marked.parse(bodyText)
-            : `<pre>${bodyText}</pre>`;
+        SLMRender.setMarkdown(document.getElementById('content-view-body'), bodyText);
 
         // Show modal
         new bootstrap.Modal(document.getElementById('contentViewModal')).show();
@@ -1532,6 +1493,7 @@ window.editContent = async function editContent(id) {
         if (!res.ok) throw new Error(I18n.t('content.viewer.error_load'));
 
         const content = await res.json();
+        if (content.can_edit !== true) { showToast(SLMClient.message('content_read_only', 'This content cannot be edited. Open its course to create a draft copy.'), 'warning'); return; }
 
         // Populate edit form
         document.getElementById('edit-content-id').value = content.id;
@@ -1546,9 +1508,10 @@ window.editContent = async function editContent(id) {
             try {
                 if (typeof content.content_data === 'string') {
                     const parsed = JSON.parse(content.content_data);
-                    bodyText = parsed.body || parsed.content || parsed.text || JSON.stringify(parsed, null, 2);
+                    bodyText = Array.isArray(parsed.sections) && parsed.sections.length ? parsed.sections.map(section => `## ${section.title || ''}\n\n${section.content || section.text || ''}`).join('\n\n') : parsed.content || parsed.body || parsed.text || JSON.stringify(parsed, null, 2);
                 } else {
-                    bodyText = content.content_data.body || content.content_data.content || JSON.stringify(content.content_data, null, 2);
+                    const parsed = content.content_data;
+                    bodyText = Array.isArray(parsed.sections) && parsed.sections.length ? parsed.sections.map(section => `## ${section.title || ''}\n\n${section.content || section.text || ''}`).join('\n\n') : parsed.content || parsed.body || JSON.stringify(parsed, null, 2);
                 }
             } catch {
                 bodyText = content.content_data;
@@ -1882,6 +1845,7 @@ async function generateAIContent(endpoint, payload, mode) {
         }
 
         const json = await res.json();
+        if (payload.auto_save) json._serverSaved = true;
         generatedAIContent = json;
         generatedAIContent._mode = mode; // Store mode for saving
 
@@ -1943,7 +1907,8 @@ async function generateAIContent(endpoint, payload, mode) {
             }
         }
 
-        if (itemsList) itemsList.innerHTML = html || '<p>Content generated!</p>';
+        if (json.success === false) html += `<p>${escapeHtml(SLMClient.message('generation_partial', 'Some items failed. Saved items were kept; retry the same request to finish.'))}</p>`;
+        if (itemsList) itemsList.innerHTML = SLMRender.html(html || '<p>Content generated!</p>');
         resultDiv?.classList.remove('hidden');
     } catch (err) {
         showToast('Generation failed: ' + err.message, 'danger');
@@ -1958,68 +1923,50 @@ async function generateAIContent(endpoint, payload, mode) {
     }
 }
 
+let savingGeneratedContent = false;
 window.saveAllGeneratedContent = async function () {
-    if (!generatedAIContent) { showToast(I18n.t('content.generator.error_no_content'), 'warning'); return; }
-    const token = AuthService.getToken();
-    let saved = 0;
-    const mode = generatedAIContent._mode || currentGenerationMode;
-
-    if (mode === 'study_plan') {
-        // Save study plan via /api/study-plans
-        const r = await fetch('/api/study-plans/', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-            body: JSON.stringify(generatedAIContent)
-        });
-        if (r.ok) {
-            saved++;
-            showToast(I18n.t('content.generator.success_save_plan'), 'success');
-        } else {
-            showToast(I18n.t('content.generator.error_save_plan'), 'danger');
-        }
-    } else if (mode === 'exercise') {
-        // Save single exercise
-        const r = await fetch('/api/content', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-            body: JSON.stringify({
-                title: generatedAIContent.title || generatedAIContent.question || 'Generated Exercise',
-                content_type: 'exercise',
-                content_data: generatedAIContent
-            })
-        });
-        if (r.ok) saved++;
-        showToast(I18n.t('content.generator.success_save_exercise'), 'success');
-    } else {
-        // Topic Package mode - save each item
-        if (generatedAIContent.lesson) {
-            const r = await fetch('/api/content', {
-                method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({ title: generatedAIContent.lesson.title || 'Generated Lesson', content_type: 'lesson', content_data: generatedAIContent.lesson })
-            });
-            if (r.ok) saved++;
-        }
-        for (const ex of (generatedAIContent.exercises || [])) {
-            const r = await fetch('/api/content', {
-                method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({ title: ex.title || 'Generated Exercise', content_type: 'exercise', content_data: ex })
-            });
-            if (r.ok) saved++;
-        }
-        for (const q of (generatedAIContent.assessment_questions || [])) {
-            const r = await fetch('/api/content', {
-                method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({ title: q.question || q.question_text || 'Generated Assessment', content_type: 'assessment', content_data: q })
-            });
-            if (r.ok) saved++;
-        }
-        showToast(I18n.t('content.generator.success_save_items', { count: saved }), 'success');
+    if (!generatedAIContent || savingGeneratedContent) return;
+    savingGeneratedContent = true;
+    const generated = generatedAIContent;
+    const mode = generated._mode || currentGenerationMode;
+    if (generated._serverSaved) { savingGeneratedContent = false; showToast(SLMClient.message('saved_on_server', 'These results were already saved by the server. Retry generation to finish any failed items.'), 'info'); return; }
+    const items = [];
+    if (mode === 'study_plan') items.push({ key: 'plan', url: '/api/study-plans/', data: generated });
+    else if (mode === 'exercise') items.push({ key: 'exercise', url: '/api/content', data: {
+        title: generated.title || generated.question || 'Generated Exercise', content_type: 'exercise', content_data: generated
+    }});
+    else {
+        if (generated.lesson) items.push({ key: 'lesson', url: '/api/content', data: {
+            title: generated.lesson.title || 'Generated Lesson', content_type: 'lesson', content_data: generated.lesson
+        }});
+        (generated.exercises || []).forEach((exercise, index) => items.push({ key: `exercise-${index}`, url: '/api/content', data: {
+            title: exercise.title || 'Generated Exercise', content_type: 'exercise', content_data: exercise
+        }}));
+        if (generated.assessment_questions?.length) items.push({ key: 'assessment', url: '/api/assessments/', data: {
+            title: generated.topic_name || 'Generated Assessment', is_published: false, grading_mode: 'manual',
+            questions: generated.assessment_questions.map(question => ({
+                question_text: question.question_text || question.question,
+                question_type: question.question_type || 'short_answer', points: question.points || 10,
+                correct_answer: question.correct_answer || null,
+                options: Array.isArray(question.options) ? { choices: question.options } : question.options
+            }))
+        }});
     }
-
-    document.getElementById('ai-content-generation-result')?.classList.add('hidden');
-    aiContentForm?.reset();
-    toggleGenerationMode(); // Reset form to show correct fields
-    generatedAIContent = null;
+    generated._savedKeys = generated._savedKeys || [];
+    let failed = 0;
+    try {
+        for (const item of items) {
+            if (generated._savedKeys.includes(item.key)) continue;
+            try {
+                await SLMClient.request(item.url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(item.data) });
+                generated._savedKeys.push(item.key);
+            } catch (error) { failed++; showToast(error.message, 'danger'); }
+        }
+        if (failed || !items.length) return; // Keep results and unsaved items available for retry.
+        showToast(I18n.t('content.generator.success_save_items', { count: generated._savedKeys.length }), 'success');
+        document.getElementById('ai-content-generation-result')?.classList.add('hidden');
+        aiContentForm?.reset(); toggleGenerationMode(); generatedAIContent = null;
+    } finally { savingGeneratedContent = false; }
 };
 
 window.regenerateContent = function () { aiContentForm?.dispatchEvent(new Event('submit')); };
@@ -2091,7 +2038,7 @@ window.loadTutorStudyPlans = async function loadTutorStudyPlans() {
         plans.forEach(plan => {
             const option = document.createElement('option');
             option.value = plan.id;
-            option.textContent = `📘 ${plan.title}`;
+            option.textContent = `📘 ${escapeHtml(plan.title)}`;
             select.appendChild(option);
         });
     } catch (err) {
@@ -2100,137 +2047,258 @@ window.loadTutorStudyPlans = async function loadTutorStudyPlans() {
 };
 
 // Load content items when study plan selected
-window.loadTutorContentItems = async function loadTutorContentItems() {
-    const planSelect = document.getElementById('tutor-study-plan');
-    const contentSelect = document.getElementById('tutor-content');
-    if (!contentSelect) return;
-
-    const planId = planSelect?.value;
-
-    if (!planId) {
-        // Load all user content when no plan selected
-        contentSelect.innerHTML = `<option value="">${I18n.t('ai.tutor.select_all_content')}</option>`;
-        try {
-            const token = AuthService.getToken();
-            const res = await fetch('/api/content/', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (res.ok) {
-                const contents = await res.json();
-                contents.slice(0, 50).forEach(c => {
-                    const icon = c.content_type === 'lesson' ? '📖' :
-                        c.content_type === 'exercise' ? '🏋️' :
-                            c.content_type === 'assessment' ? '📝' : '📄';
-                    const option = document.createElement('option');
-                    option.value = c.id;
-                    option.textContent = `${icon} ${c.title}`;
-                    contentSelect.appendChild(option);
-                });
-            }
-        } catch (e) { console.error('Failed to load content:', e); }
-        return;
-    }
-
-    // Load content for specific study plan
-    try {
-        const token = AuthService.getToken();
-        const res = await fetch(`/api/study-plans/${planId}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (!res.ok) {
-            contentSelect.innerHTML = `<option value="">${I18n.t('ai.tutor.select_all_content')}</option>`;
-            return;
-        }
-
-        const plan = await res.json();
-        contentSelect.innerHTML = `<option value="">${I18n.t('ai.tutor.select_all_plan_content')}</option>`;
-
-        // Add plan's content items
-        const contents = plan.contents || [];
-        contents.forEach(c => {
-            const icon = c.content_type === 'lesson' ? '📖' :
-                c.content_type === 'exercise' ? '🏋️' :
-                    c.content_type === 'assessment' ? '📝' : '📄';
-            const option = document.createElement('option');
-            option.value = c.content_id || c.id;
-            option.textContent = `${icon} ${c.title}`;
-            contentSelect.appendChild(option);
-        });
-    } catch (err) {
-        console.error('Failed to load plan content:', err);
-        contentSelect.innerHTML = `<option value="">${I18n.t('ai.tutor.select_all_content')}</option>`;
-    }
+let tutorContentRequest = 0;
+window.resetTutorContext = function resetTutorContext() {
+    cancelTutorRequest(true);
+    tutorEpoch++; tutorConversation = []; tutorBusy = false;
+    tutorOwner = SLMClient.account();
+    const history = document.getElementById('chat-history');
+    if (history) history.textContent = I18n.t('ai_tutor.start_conversation');
+    const send = document.querySelector('#chat-form button[type=submit]');
+    if (send) send.disabled = !tutorSourceReady || !tutorPolicy || tutorPolicy.mode === 'disabled';
+    const selected = document.getElementById('tutor-content');
+    window.setLearningContext({contentId: selected?.value || null, contentTitle: selected?.selectedOptions[0]?.textContent || null, studyPlanId: document.getElementById('tutor-study-plan')?.value || null, questionId: null});
+    refreshTutorSource();
 };
-
-// Initialize tutor selectors when tutor view is shown
-window.initTutorSelectors = function initTutorSelectors() {
-    loadTutorStudyPlans();
-    loadTutorContentItems();
+window.loadTutorContentItems = async function loadTutorContentItems() {
+    const planId = document.getElementById('tutor-study-plan')?.value;
+    const select = document.getElementById('tutor-content');
+    if (!select) return;
+    const version = ++tutorContentRequest;
+    select.replaceChildren(new Option(I18n.t('ai.tutor.select_all_content'), ''));
+    resetTutorContext(); select.disabled = true;
+    try {
+        const data = await SLMClient.request(planId ? `/api/study-plans/${planId}/tree` : '/api/content/');
+        if (version !== tutorContentRequest) return;
+        const contents = planId ? data.contents || [] : data;
+        contents.forEach(content => select.append(new Option(content.title, content.id)));
+    } catch (error) {
+        if (version === tutorContentRequest) showToast(error.message, 'warning');
+    } finally { if (version === tutorContentRequest) select.disabled = false; }
+};
+window.initTutorSelectors = async function initTutorSelectors() {
+    await loadTutorStudyPlans();
+    const params = new URLSearchParams(window.location.search);
+    const planSelect = document.getElementById('tutor-study-plan');
+    if (params.get('from_session') === '1') planSelect.value = params.get('plan_id') || '';
+    await loadTutorContentItems();
+    if (params.get('from_session') === '1') {
+        const contentSelect = document.getElementById('tutor-content');
+        contentSelect.value = params.get('content_id') || '';
+        resetTutorContext();
+    }
+    await refreshTutorPolicy();
+    await refreshTutorUsage();
 };
 
 // Clear AI Chat (30.3)
-window.clearAIChat = function clearAIChat() {
-    const chatHistory = document.getElementById('chat-history');
-    if (chatHistory) {
-        chatHistory.innerHTML = '<div class="text-muted text-center">Start a conversation with your AI Tutor</div>';
-    }
-
-    // Reset context selectors
+window.clearAIChat = async function clearAIChat() {
     const studyPlanSelect = document.getElementById('tutor-study-plan');
-    const contentSelect = document.getElementById('tutor-content');
     if (studyPlanSelect) studyPlanSelect.value = '';
-    if (contentSelect) contentSelect.value = '';
-
-    // Clear input
     const chatInput = document.getElementById('chat-input');
     if (chatInput) chatInput.value = '';
-
-    showToast('Chat cleared. Start a new conversation!', 'info');
+    await loadTutorContentItems();
+    showToast(SLMClient.message('chat_cleared', 'Chat cleared. Choose a lesson or start a new conversation.'), 'info');
 };
 
 
+let tutorBusy = false;
+let tutorEpoch = 0;
+let tutorConversation = [];
+let tutorPolicy = null;
+let tutorPolicyRequest = 0;
+let tutorSource = null;
+let tutorSourceReady = true;
+let tutorSourceRequest = 0;
+let tutorOwner = SLMClient.account();
+let tutorPending = null;
+
+function applyTutorPolicy(policy) {
+    if (!['hints_only', 'explanations', 'disabled'].includes(policy?.mode)) throw new Error('Invalid assistance policy');
+    tutorPolicy = policy;
+    const selector = document.getElementById('tutor-assistance');
+    const status = document.getElementById('tutor-policy-status');
+    const labels = {
+        hints_only: SLMClient.message('policy_hints_only', 'Hints only'),
+        explanations: SLMClient.message('policy_explanations', 'Hints and explanations'),
+        disabled: SLMClient.message('policy_disabled', 'AI help disabled')
+    };
+    status.textContent = `${SLMClient.message('assistance_mode', 'Assistance mode')}: ${labels[policy.mode]}. ` +
+        (policy.mode === 'disabled' ? SLMClient.message('policy_disabled_reason', 'Your teacher has disabled AI help while an assessment attempt is open. Complete the attempt, then refresh the policy.') :
+            (policy.active_assessment_ids?.length ? SLMClient.message('policy_active_attempt', 'Teacher policy applies while an assessment attempt is open.') : SLMClient.message('policy_study_default', 'Independent study starts with hints.')));
+    selector.querySelectorAll('option').forEach(option => {
+        option.disabled = policy.mode !== 'explanations' && option.value !== 'hint';
+    });
+    if (policy.mode !== 'explanations') selector.value = 'hint';
+    selector.disabled = policy.mode === 'disabled';
+    chatForm.querySelector('button[type=submit]').disabled = tutorBusy || !tutorSourceReady || policy.mode === 'disabled';
+}
+
+window.refreshTutorPolicy = async function refreshTutorPolicy() {
+    const version = ++tutorPolicyRequest;
+    tutorPolicy = null;
+    document.getElementById('tutor-assistance').disabled = true;
+    chatForm.querySelector('button[type=submit]').disabled = true;
+    document.getElementById('tutor-policy-status').textContent = SLMClient.message('policy_checking', 'Checking teacher assistance policy…');
+    try {
+        const policy = await SLMClient.request('/api/ai/assistance-policy');
+        if (version === tutorPolicyRequest) applyTutorPolicy(policy);
+    } catch (error) {
+        if (version === tutorPolicyRequest) document.getElementById('tutor-policy-status').textContent = SLMClient.message('policy_check_failed', 'Could not check assistance policy. Refresh the policy to retry. Your message is kept.');
+    }
+};
+window.refreshTutorSource = async function refreshTutorSource() {
+    const revision = ++tutorSourceRequest;
+    tutorSource = null;
+    const box = document.getElementById('tutor-source-sections');
+    const status = document.getElementById('tutor-source-status');
+    const contentId = document.getElementById('tutor-content')?.value;
+    const studyPlanId = document.getElementById('tutor-study-plan')?.value;
+    box?.replaceChildren();
+    const params = new URLSearchParams();
+    if (contentId) params.set('content_id', contentId);
+    if (studyPlanId) params.set('study_plan_id', studyPlanId);
+    tutorSourceReady = !params.size;
+    if (!params.size) { if (status) status.textContent = SLMClient.message('no_source', 'No source material selected.'); return; }
+    if (status) status.textContent = SLMClient.message('source_loading', 'Loading available source sections…');
+    chatForm.querySelector('button[type=submit]').disabled = true;
+    try {
+        const preview = await SLMClient.request('/api/ai/context?' + params);
+        if (revision !== tutorSourceRequest || tutorOwner !== SLMClient.account()) return;
+        const source = preview?.source;
+        if (!source?.source_version || !Array.isArray(source.available_sections)) throw new Error(SLMClient.message('source_load_failed', 'Source could not be loaded. Reload before asking.'));
+        tutorSource = source; tutorSourceReady = true;
+        if (status) status.textContent = `${source.title}: ${source.included_characters}/${source.total_characters} ${SLMClient.message('characters', 'characters')}. ` + (source.truncated ? SLMClient.message('source_partial', 'Partial source: some material was not included.') : '') + ' ' + SLMClient.message('answer_unverified', 'Response not verified against the source.');
+        source.available_sections.forEach(section => {
+            const label = document.createElement('label'); label.className = 'form-check d-block';
+            const input = document.createElement('input'); input.type = 'checkbox'; input.value = section.id; input.className = 'form-check-input';
+            const caption = document.createElement('span'); caption.textContent = `${section.title} (${section.characters})`; caption.className = 'form-check-label';
+            input.onchange = () => {
+                if (box.querySelectorAll('input:checked').length > 12) { input.checked = false; showToast(SLMClient.message('source_section_limit', 'Select at most 12 sections.'), 'warning'); return; }
+                cancelTutorRequest(true);
+                tutorEpoch++; tutorConversation = []; tutorBusy = false; chatHistory.textContent = I18n.t('ai_tutor.start_conversation');
+                chatForm.querySelector('button[type=submit]').disabled = !tutorPolicy || tutorPolicy.mode === 'disabled';
+            };
+            label.append(input, caption); box?.append(label);
+        });
+    } catch (error) { if (revision === tutorSourceRequest && status) status.textContent = error.message; }
+    finally { if (revision === tutorSourceRequest) chatForm.querySelector('button[type=submit]').disabled = !tutorSourceReady || tutorBusy || !tutorPolicy || tutorPolicy.mode === 'disabled'; }
+};
+
+function tutorReceiptText(receipt) {
+    const unknown = SLMClient.message('unknown', 'Unknown');
+    return `${receipt.provider || unknown} / ${receipt.model || unknown}. ${receipt.elapsed_seconds ?? unknown}s. ` +
+        `${SLMClient.message('ai_request_usage', 'Requests today')}: ${receipt.requests_used_today ?? unknown}/${receipt.requests_limit_daily ?? unknown}. ` +
+        `${SLMClient.message('ai_tokens', 'Tokens used')}: ${receipt.tokens_used ?? unknown}. ` + SLMClient.message('ai_cost_unknown', 'Cost is unknown.') + ' ' +
+        (receipt.provider_may_continue ? SLMClient.message('ai_provider_may_continue', 'The provider may continue working and may charge for this request.') : '');
+}
+window.refreshTutorUsage = async () => {
+    try {
+        const usage = await SLMClient.request('/api/ai/usage');
+        const target = document.getElementById('tutor-usage-status');
+        if (Number.isFinite(usage.requests_used_today) && Number.isFinite(usage.requests_limit_daily)) target.textContent = `${SLMClient.message('ai_request_usage', 'Requests today')}: ${usage.requests_used_today}/${usage.requests_limit_daily}.`;
+    } catch { document.getElementById('tutor-usage-status').textContent = SLMClient.message('ai_usage_unavailable', 'Usage could not be loaded.'); }
+};
+window.prepareNewTutorRequest = async () => {
+    const pending = tutorPending;
+    if (!pending || tutorBusy || pending.cancelling || tutorOwner !== SLMClient.account()) return;
+    if (!await showConfirm(SLMClient.message('new_tutor_confirm', 'Start a new request for this question? The previous outcome is unknown and provider work may still finish or incur charges. The new request counts separately.'))) return;
+    if (pending !== tutorPending || tutorOwner !== SLMClient.account()) return;
+    tutorPending = null;
+    document.getElementById('tutor-new-request-btn').classList.add('d-none');
+    document.getElementById('chat-input').focus();
+};
+window.cancelTutorRequest = async (contextChanged = false) => {
+    const pending = tutorPending;
+    if (!pending || pending.terminal || pending.cancelling) return;
+    pending.cancelling = true;
+    tutorEpoch++; tutorBusy = false; pending.controller?.abort();
+    const input = document.getElementById('chat-input'); input.disabled = false;
+    if (!input.value) input.value = pending.message;
+    document.getElementById('typing-indicator')?.remove();
+    document.getElementById('tutor-cancel-btn').disabled = true;
+    const status = document.getElementById('tutor-request-status');
+    status.textContent = SLMClient.message('ai_cancel_pending', 'Cancellation requested; waiting for the server.');
+    try {
+        const result = await SLMClient.request(`/api/ai/requests/${encodeURIComponent(pending.id)}/cancel`, {method:'POST'});
+        const receipt = result;
+        if (receipt?.request_id !== pending.id || !['cancelled', 'completed', 'failed', 'timed_out'].includes(receipt.status)) throw new Error('Unconfirmed cancellation');
+        pending.terminal = receipt.status !== 'completed';
+        if (tutorPending === pending) status.textContent = (receipt.status === 'cancelled' ? SLMClient.message('ai_cancel_confirmed', 'The server confirmed cancellation of delivery.') : SLMClient.message('ai_already_finished', 'This request had already finished. Retry the same question to retrieve its result.')) + ' ' + tutorReceiptText(receipt);
+    } catch {
+        if (tutorPending === pending) status.textContent = SLMClient.message('ai_cancel_unconfirmed', 'Server cancellation is unconfirmed. The provider may still run and charge. Your question is kept.');
+    } finally {
+        pending.cancelling = false;
+        if (tutorPending === pending && !contextChanged) chatForm.querySelector('button[type=submit]').disabled = !tutorSourceReady || !tutorPolicy || tutorPolicy.mode === 'disabled';
+    }
+};
+
+function appendTutorMessage(text, modelResponse, metadata = {}) {
+    const row = document.createElement('div');
+    row.className = 'chat-message ' + (modelResponse ? 'chat-message-ai' : 'chat-message-user');
+    const bubble = document.createElement('div');
+    bubble.className = 'chat-bubble';
+    if (modelResponse) SLMRender.setMarkdown(bubble, text);
+    else bubble.textContent = text;
+    row.append(bubble);
+    if (modelResponse) {
+        const details = document.createElement('small');
+        details.className = 'd-block text-secondary';
+        let label = SLMClient.message('answer_unverified', 'Response not verified against the source.') + ' ';
+        label += metadata.status && metadata.status !== 'suggestion' ?
+            SLMClient.message('ai_unavailable', 'AI response unavailable. Try again or ask your teacher.') :
+            SLMClient.message('ai_suggestion', 'AI suggestion; check it against your learning material.');
+        if (metadata.effective_assistance === 'hint') label += ' ' + SLMClient.message('effective_hint', 'Requested help: hint under the current policy.');
+        const source = metadata.source;
+        details.textContent = label + (source ? ` ${SLMClient.message('source_context', 'Context')}: ${source.title}; ${(source.references || []).join(', ')}. ${source.included_characters}/${source.total_characters} ${SLMClient.message('characters', 'characters')}. ${source.truncated ? SLMClient.message('source_partial', 'Partial source: some material was not included.') : ''}` :
+            ` ${SLMClient.message('no_source', 'No source material selected.')}`);
+        row.append(details);
+    }
+    chatHistory.append(row);
+}
+
 if (chatForm) {
-    chatForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
+    chatForm.addEventListener('submit', async event => {
+        event.preventDefault();
         const input = document.getElementById('chat-input');
-        const msg = input.value;
-        if (!msg) return;
-
-        // Get selected context
-        const studyPlanId = document.getElementById('tutor-study-plan')?.value || null;
-        const contentId = document.getElementById('tutor-content')?.value || null;
-
-        // Append User Message
-        chatHistory.innerHTML += `<div class="chat-message chat-message-user"><span class="chat-bubble">${msg}</span></div>`;
-        input.value = '';
-        chatHistory.scrollTop = chatHistory.scrollHeight;
-
-        // Show typing indicator
-        chatHistory.innerHTML += `<div class="chat-message chat-message-ai" id="typing-indicator"><span class="chat-bubble text-muted">${I18n.t('ai.chat.status.thinking')}</span></div>`;
-        chatHistory.scrollTop = chatHistory.scrollHeight;
-
+        if (tutorOwner !== SLMClient.account()) { resetTutorContext(); showToast(SLMClient.message('account_changed', 'The signed-in account changed. Reload before continuing.'), 'warning'); return; }
+        const message = input.value.trim();
+        if (!message || tutorBusy || !tutorSourceReady || !tutorPolicy || tutorPolicy.mode === 'disabled' || tutorPending?.cancelling) return;
+        const payload = {message, assistance: document.getElementById('tutor-assistance').value, conversation_history: tutorConversation.slice(-10)};
+        const plan = document.getElementById('tutor-study-plan').value, content = document.getElementById('tutor-content').value;
+        if (plan) payload.study_plan_id = Number(plan);
+        if (content) payload.content_id = Number(content);
+        if (tutorSource) { payload.source_version = tutorSource.source_version; payload.section_ids = [...document.querySelectorAll('#tutor-source-sections input:checked')].map(item => item.value); }
+        const fingerprint = JSON.stringify(payload);
+        if (!tutorPending || tutorPending.terminal || tutorPending.fingerprint !== fingerprint) tutorPending = {id: crypto.randomUUID(), fingerprint, message};
+        const pending = tutorPending; pending.controller = new AbortController();
+        document.getElementById('tutor-new-request-btn').classList.add('d-none');
+        payload.client_request_id = pending.id;
+        const epoch = tutorEpoch; tutorBusy = true; input.disabled = true;
+        const send = chatForm.querySelector('button[type=submit]'); send.disabled = true;
+        const cancel = document.getElementById('tutor-cancel-btn'); cancel.disabled = false;
+        const status = document.getElementById('tutor-request-status'); status.textContent = I18n.t('ai.chat.status.thinking');
         try {
-            const token = AuthService.getToken();
-            const payload = { message: msg };
-            if (studyPlanId) payload.study_plan_id = parseInt(studyPlanId);
-            if (contentId) payload.content_id = parseInt(contentId);
-
-            const res = await fetch('/api/ai/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify(payload)
-            });
-            const data = await res.json();
-
-            // Remove typing indicator
-            document.getElementById('typing-indicator')?.remove();
-
-            // Append AI Response
-            chatHistory.innerHTML += `<div class="chat-message chat-message-ai"><span class="chat-bubble">${data.response}</span></div>`;
-            chatHistory.scrollTop = chatHistory.scrollHeight;
-        } catch (err) {
-            document.getElementById('typing-indicator')?.remove();
-            chatHistory.innerHTML += `<div class="text-danger text-sm">${I18n.t('ai.chat.error_send')}</div>`;
+            const result = await SLMClient.request('/api/ai/chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload), signal:pending.controller.signal});
+            if (epoch !== tutorEpoch || tutorOwner !== SLMClient.account()) return;
+            const receipt = result?.receipt;
+            if (receipt && (receipt.request_id !== pending.id || !['completed','failed','cancelled','timed_out'].includes(receipt.status))) throw new Error(SLMClient.message('ai_receipt_unconfirmed', 'The server did not confirm this request. Your question is kept; retry.'));
+            pending.terminal = true; status.textContent = receipt ? tutorReceiptText(receipt) : SLMClient.message('ai_usage_unreported', 'Request usage was not reported. Cost is unknown.');
+            if ((receipt && receipt.status !== 'completed') || result.status !== 'suggestion') return;
+            if (payload.source_version && result.source?.source_version !== payload.source_version) { tutorSourceReady = false; document.getElementById('tutor-source-status').textContent = SLMClient.message('source_changed', 'Source changed. Reload the source, review your sections, and retry.'); return; }
+            if (result.assistance_policy) applyTutorPolicy(result.assistance_policy);
+            appendTutorMessage(message, false); appendTutorMessage(result.response, true, result);
+            tutorConversation.push({role:'user',content:message},{role:'assistant',content:result.response}); tutorConversation = tutorConversation.slice(-10);
+            input.value = ''; chatHistory.scrollTop = chatHistory.scrollHeight;
+        } catch (error) {
+            if (epoch !== tutorEpoch || tutorOwner !== SLMClient.account()) return;
+            if ([401,403,429].includes(error.status)) pending.terminal = true;
+            if (error.status === 403) await refreshTutorPolicy();
+            if (error.status === 409 && /source|revision/i.test(error.message)) { tutorSourceReady = false; document.getElementById('tutor-source-status').textContent = SLMClient.message('source_changed', 'Source changed. Reload the source, review your sections, and retry.'); }
+            status.textContent = error.message || I18n.t('ai.chat.error_send');
+            document.getElementById('tutor-new-request-btn').classList.toggle('d-none', pending.terminal === true);
+        } finally {
+            if (epoch === tutorEpoch) { tutorBusy = false; input.disabled = false; cancel.disabled = true; send.disabled = !tutorSourceReady || !tutorPolicy || tutorPolicy.mode === 'disabled'; }
         }
     });
 }
@@ -2378,7 +2446,7 @@ function renderUserList(role, users) {
     }
 
     container.innerHTML = users.map(u => `
-        <div class="col-md-4 ${role}-card" data-name="${(u.first_name + ' ' + u.last_name).toLowerCase()}" data-username="${u.username.toLowerCase()}">
+        <div class="col-md-4 ${role}-card" data-name="${escapeHtml((u.first_name + ' ' + u.last_name).toLowerCase())}" data-username="${escapeHtml(u.username.toLowerCase())}">
             <div class="card">
                 <div class="card-body">
                     <h5 class="card-title">${escapeHtml(u.first_name)} ${escapeHtml(u.last_name)}</h5>
@@ -2387,7 +2455,8 @@ function renderUserList(role, users) {
                         <span class="badge bg-primary">Level ${u.level || 1}</span>
                         <span class="badge bg-success">${u.xp || 0} XP</span>
                     </p>
-                    <button class="btn btn-sm btn-outline-primary" onclick="viewStudentDetail(${u.id})">View Details</button>
+                    ${role === 'student' ? `<button class="btn btn-sm btn-outline-primary" onclick="viewStudentDetail(${u.id})">${SLMClient.message('view_details', 'View details')}</button>` : ''}
+                    ${AuthService.getRole() === 'admin' ? `<button class="btn btn-sm btn-outline-secondary" onclick="manageAccount(${u.id}, '${role}')">${SLMClient.message('manage_account', 'Manage account')}</button><span class="badge bg-secondary ms-2">${SLMClient.message(u.active === false ? 'account_inactive' : 'account_active', u.active === false ? 'Inactive' : 'Active')}</span>` : ''}
                 </div>
             </div>
         </div>
@@ -2404,7 +2473,7 @@ async function loadUsersByRole(role) {
 
     try {
         const token = AuthService.getToken();
-        const res = await fetch(`/api/auth/users?role=${role}`, {
+        const res = await fetch(`/api/auth/users?role=${role}${AuthService.getRole() === 'admin' && window.includeInactiveAccounts ? '&include_inactive=true' : ''}`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
 
@@ -2506,7 +2575,7 @@ window.loadLeaderboard = async function loadLeaderboard() {
         tbody.innerHTML = entries.map(e => `
             <tr>
                 <td><span class="badge ${e.rank <= 3 ? 'bg-warning text-dark' : 'bg-secondary'}">#${e.rank}</span></td>
-                <td>${e.username}</td>
+                <td>${escapeHtml(e.username)}</td>
                 <td><strong>${e.xp}</strong> XP</td>
                 <td>Level ${e.level}</td>
             </tr>
@@ -2518,7 +2587,11 @@ window.loadLeaderboard = async function loadLeaderboard() {
 };
 
 let gradingQueueCache = [];
-let currentGradingStatusFilter = 'all';
+let currentGradingStatusFilter = new URLSearchParams(window.location.search).get('grading_filter') || 'all';
+document.querySelectorAll('#grading-filter-tabs .tab').forEach(tab => {
+    const active = tab.dataset.gradingFilter === currentGradingStatusFilter;
+    tab.classList.toggle('active', active); tab.setAttribute('aria-pressed', String(active));
+});
 
 function getGradingStatusLabel(status) {
     const keyByStatus = {
@@ -2566,7 +2639,7 @@ function renderGradingQueue(submissions) {
     container.innerHTML = submissions.map(sub => {
         const studentName = sub.student_name || `Student #${sub.student_id}`;
         const assessmentTitle = sub.assessment_title || `Assessment #${sub.assessment_id}`;
-        const submittedAt = sub.submitted_at ? new Date(sub.submitted_at).toLocaleDateString() : '';
+        const submittedAt = sub.submitted_at ? SLMTime.format(sub.submitted_at, { dateOnly: true }) : '';
         const statusLabel = getGradingStatusLabel(sub.status);
         const statusClass = getGradingStatusBadgeClass(sub.status);
 
@@ -2581,6 +2654,7 @@ function renderGradingQueue(submissions) {
                         <span class="badge ${statusClass}">${escapeHtml(statusLabel)}</span>
                     </div>
                     <div class="text-muted small">${escapeHtml(submittedAt)}</div>
+                    <a class="btn btn-primary btn-sm mt-2" href="/grading.html?submission_id=${Number(sub.id)}&filter=${encodeURIComponent(currentGradingStatusFilter)}">${SLMClient.message('open_submission', 'Open submission')}</a>
                 </div>
             </div>
         `;
@@ -2605,8 +2679,8 @@ window.filterGradingQueue = function filterGradingQueue(status, tab) {
     currentGradingStatusFilter = status;
 
     const tabs = document.querySelectorAll('#grading-filter-tabs .tab');
-    tabs.forEach(t => t.classList.remove('active'));
-    if (tab) tab.classList.add('active');
+    tabs.forEach(t => { t.classList.remove('active'); t.setAttribute('aria-pressed', 'false'); });
+    if (tab) { tab.classList.add('active'); tab.setAttribute('aria-pressed', 'true'); }
 
     applyGradingFilter();
 };
@@ -2713,21 +2787,21 @@ function renderHelpQueue(requests) {
             const icon = r.content_type === 'lesson' ? '📖' :
                 r.content_type === 'exercise' ? '🏋️' :
                     r.content_type === 'assessment' ? '📝' : '📄';
-            contextBadges += `<span class="badge bg-primary me-1" title="Content">${icon} ${r.content_title}</span>`;
+            contextBadges += `<span class="badge bg-primary me-1" title="Content">${icon} ${escapeHtml(r.content_title)}</span>`;
         }
         if (r.study_plan_title) {
-            contextBadges += `<span class="badge bg-secondary me-1" title="Study Plan">📋 ${r.study_plan_title}</span>`;
+            contextBadges += `<span class="badge bg-secondary me-1" title="Study Plan">📋 ${escapeHtml(r.study_plan_title)}</span>`;
         }
 
         return `
             <a href="javascript:void(0)" class="list-group-item list-group-item-action" onclick="viewHelpRequest(${r.id})">
                 <div class="d-flex w-100 justify-content-between">
-                    <h5 class="mb-1">${r.subject || 'Help Request'}</h5>
+                    <h5 class="mb-1">${escapeHtml(r.subject || 'Help Request')}</h5>
                     <span class="badge ${r.priority >= 3 ? 'bg-danger' : r.priority >= 2 ? 'bg-warning text-dark' : 'bg-secondary'}">${r.priority >= 3 ? 'Urgent' : r.priority >= 2 ? 'Important' : 'Normal'}</span>
                 </div>
-                <p class="mb-1">${r.request_text || r.description}</p>
+                <p class="mb-1">${escapeHtml(r.request_text || r.description)}</p>
                 ${contextBadges ? `<div class="mb-1">${contextBadges}</div>` : ''}
-                <small class="text-muted">From: ${r.student_name || 'Student #' + r.student_id} | ${r.status}</small>
+                <small class="text-muted">From: ${escapeHtml(r.student_name || 'Student #' + r.student_id)} | ${escapeHtml(r.status)}</small>
             </a>
         `}).join('');
 }
@@ -2753,7 +2827,7 @@ window.viewStudentDetail = async function viewStudentDetail(id) {
         const token = AuthService.getToken();
 
         // Try to get student info from the users endpoint
-        const res = await fetch(`/api/auth/users?role=student`, {
+        const res = await fetch(`/api/auth/users?role=student${AuthService.getRole() === 'admin' ? '&include_inactive=true' : ''}`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
 
@@ -2763,6 +2837,7 @@ window.viewStudentDetail = async function viewStudentDetail(id) {
         }
 
         const students = await res.json();
+        if (id !== currentStudentId) return;
         const student = students.find(s => s.id === id);
 
         if (!student) {
@@ -2770,6 +2845,8 @@ window.viewStudentDetail = async function viewStudentDetail(id) {
             return;
         }
 
+        await loadStudentTeacher(student);
+        if (id !== currentStudentId) return;
         // Populate modal
         document.getElementById('student-detail-name').textContent = `${student.first_name} ${student.last_name}`;
         document.getElementById('student-detail-username').textContent = `@${student.username}`;
@@ -2785,10 +2862,11 @@ window.viewStudentDetail = async function viewStudentDetail(id) {
             });
             if (badgeRes.ok) {
                 const badges = await badgeRes.json();
+                if (id !== currentStudentId) return;
                 const earned = badges.filter(b => b.earned);
                 if (earned.length > 0) {
                     badgesContainer.innerHTML = earned.slice(0, 5).map(b =>
-                        `<span class="badge bg-warning text-dark">${b.name}</span>`
+                        `<span class="badge bg-warning text-dark">${escapeHtml(b.name)}</span>`
                     ).join('');
                 } else {
                     badgesContainer.innerHTML = '<span class="text-muted">No badges earned yet</span>';
@@ -2805,13 +2883,14 @@ window.viewStudentDetail = async function viewStudentDetail(id) {
             });
             if (progressRes.ok) {
                 const progress = await progressRes.json();
+                if (id !== currentStudentId) return;
                 const lessonsEl = document.getElementById('student-lessons-completed');
                 const assessmentsEl = document.getElementById('student-assessments-taken');
                 const avgScoreEl = document.getElementById('student-avg-score');
                 const studyTimeEl = document.getElementById('student-study-time');
                 if (lessonsEl) lessonsEl.textContent = progress.lessons_completed || 0;
                 if (assessmentsEl) assessmentsEl.textContent = progress.assessments_taken || 0;
-                if (avgScoreEl) avgScoreEl.textContent = progress.avg_score ? `${Math.round(progress.avg_score)}%` : '-';
+                if (avgScoreEl) avgScoreEl.textContent = progress.avg_score !== null && progress.avg_score !== undefined ? `${Math.round(progress.avg_score)}%` : '-';
                 if (studyTimeEl) studyTimeEl.textContent = progress.study_time_hours ? `${Math.round(progress.study_time_hours)}h` : '0h';
             }
         } catch (e) {
@@ -2819,6 +2898,7 @@ window.viewStudentDetail = async function viewStudentDetail(id) {
         }
 
         // Load teacher notes
+        if (id !== currentStudentId) return;
         window.currentStudentId = id;
         try {
             const notesRes = await fetch(`/api/students/${id}/notes`, {
@@ -2826,6 +2906,7 @@ window.viewStudentDetail = async function viewStudentDetail(id) {
             });
             if (notesRes.ok) {
                 const notesData = await notesRes.json();
+                if (id !== currentStudentId) return;
                 const notesEl = document.getElementById('student-teacher-notes');
                 if (notesEl) notesEl.value = notesData.notes || '';
             }
@@ -2833,6 +2914,7 @@ window.viewStudentDetail = async function viewStudentDetail(id) {
             console.warn('Failed to load student notes:', e);
         }
 
+        if (id !== currentStudentId) return;
         // Show modal
         new bootstrap.Modal(document.getElementById('studentDetailModal')).show();
 
@@ -2852,16 +2934,25 @@ window.viewStudentDetail = async function viewStudentDetail(id) {
                     selectEl.innerHTML = '<option value="" disabled selected>Loading study plans...</option>';
 
                     const plans = await loadStudyPlans();
+                    if (id !== currentStudentId) return;
                     if (!plans || plans.length === 0) {
                         selectEl.innerHTML = '<option value="" disabled selected>No study plans available</option>';
                         selectEl.disabled = true;
                         btnEl.disabled = true;
                     } else {
-                        selectEl.innerHTML = plans
-                            .map(p => `<option value="${p.id}">${p.title}</option>`)
-                            .join('');
-                        selectEl.disabled = false;
-                        btnEl.disabled = false;
+                        const states = await Promise.all(plans.map(async plan => {
+                            try { return { ...plan, workflow: await SLMClient.request(`/api/study-plans/${plan.id}/workflow`) }; }
+                            catch { return { ...plan, workflow: { status: 'unavailable' } }; }
+                        }));
+                        if (id !== currentStudentId) return;
+                        selectEl.replaceChildren();
+                        states.forEach(plan => {
+                            const option = new Option(`${plan.title} (${SLMClient.message('workflow_' + plan.workflow.status, plan.workflow.status)})`, plan.id);
+                            option.disabled = plan.workflow.status !== 'published'; selectEl.append(option);
+                        });
+                        selectEl.value = states.find(plan => plan.workflow.status === 'published')?.id || '';
+                        selectEl.disabled = !selectEl.value;
+                        btnEl.disabled = !selectEl.value;
                     }
                 }
             }
@@ -2964,15 +3055,15 @@ window.viewHelpRequest = async function viewHelpRequest(id) {
                 const icon = request.content_type === 'lesson' ? '📖' :
                     request.content_type === 'exercise' ? '🏋️' :
                         request.content_type === 'assessment' ? '📝' : '📄';
-                contextParts.push(`<span class="badge bg-primary me-2">${icon} ${request.content_title}</span>`);
+                contextParts.push(`<span class="badge bg-primary me-2">${icon} ${escapeHtml(request.content_title)}</span>`);
             }
 
             if (request.study_plan_title) {
-                contextParts.push(`<span class="badge bg-secondary me-2">📋 ${request.study_plan_title}</span>`);
+                contextParts.push(`<span class="badge bg-secondary me-2">📋 ${escapeHtml(request.study_plan_title)}</span>`);
             }
 
             if (request.question_text) {
-                contextParts.push(`<span class="badge bg-info text-dark me-2" title="${request.question_text}">❓ Question</span>`);
+                contextParts.push(`<span class="badge bg-info text-dark me-2" title="${escapeHtml(request.question_text)}">❓ Question</span>`);
             }
 
             if (contextParts.length > 0) {
@@ -3309,10 +3400,14 @@ window.loadLibraryTree = async function loadLibraryTree() {
 
         // Render study plans with nested content
         const studyPlans = Object.values(tree.by_study_plan || {});
+        const manageable = isTeacherOrAdmin ? new Set((await SLMClient.request('/api/study-plans')).map(plan => plan.id)) : new Set();
         if (studyPlans.length > 0) {
             html += '<h5 class="mb-3">📚 Study Plans</h5>';
 
             for (const plan of studyPlans) {
+                const workflow = await SLMClient.request(`/api/study-plans/${plan.id}/workflow`).catch(() => ({read_only:true,status:'unavailable'}));
+                const canManage = manageable.has(plan.id);
+                const canEdit = canManage && !workflow.read_only;
                 html += `
                     <div class="card mb-3 study-plan-tree" data-plan-id="${plan.id}">
                         <div class="card-header bg-primary bg-opacity-10 d-flex justify-content-between align-items-center">
@@ -3320,17 +3415,19 @@ window.loadLibraryTree = async function loadLibraryTree() {
                                 <button class="btn btn-sm btn-link text-decoration-none me-2 toggle-plan-btn" onclick="togglePlanContents(${plan.id})">
                                     <span class="toggle-icon">▶</span>
                                 </button>
-                                <strong>📘 ${plan.title}</strong>
-                                <span class="badge bg-secondary ms-2">${plan.contents.length} items</span>
+                                <strong>📘 ${escapeHtml(plan.title)}</strong>
+                                <span class="badge bg-secondary ms-2">${plan.contents.length} ${SLMClient.message('items', 'items')}</span>
+                                <span class="badge bg-secondary ms-2">${SLMClient.message('workflow_' + workflow.status, workflow.status)}</span>
                             </div>
                             <div class="btn-group btn-group-sm">
-                                <button class="btn btn-outline-success" onclick="addTopicToPlan(${plan.id})" title="Add Topic">+ Topic</button>
-                                <button class="btn btn-outline-primary" onclick="generateForPlan(${plan.id})" title="Generate Content">🤖 Generate</button>
-                                <button class="btn btn-outline-info" onclick="viewPlanGrades(${plan.id})" title="View Grades">📊 Grades</button>
+                                ${canManage ? `<a class="btn btn-outline-primary" href="/study_plan_builder.html?id=${plan.id}">${SLMClient.message('edit_or_copy', 'Review, edit or copy')}</a>` : ''}
+                                ${canEdit ? `<button class="btn btn-outline-success" onclick="addTopicToPlan(${plan.id})" title="Add Topic">+ Topic</button>
+                                <button class="btn btn-outline-primary" onclick="generateForPlan(${plan.id})" title="Generate Content">🤖 Generate</button>` : ''}
+                                ${canManage ? `<button class="btn btn-outline-info" onclick="viewPlanGrades(${plan.id})" title="View Grades">📊 Grades</button>` : ''}
                             </div>
                         </div>
                         <div class="card-body plan-contents hidden" id="plan-contents-${plan.id}">
-                            ${renderPlanContents(plan.id, plan.contents)}
+                            ${renderPlanContents(plan.id, plan.contents, canEdit)}
                         </div>
                     </div>
                 `;
@@ -3376,7 +3473,7 @@ window.loadLibraryTree = async function loadLibraryTree() {
 /**
  * Render contents within a study plan
  */
-function renderPlanContents(planId, contents) {
+function renderPlanContents(planId, contents, canEdit = false) {
     if (!contents || contents.length === 0) {
         return '<p class="text-muted">No content in this plan yet.</p>';
     }
@@ -3394,16 +3491,16 @@ function renderPlanContents(planId, contents) {
                 <div class="list-group-item d-flex justify-content-between align-items-center">
                     <div>
                         <span class="badge bg-${typeColors[item.content_type] || 'secondary'} me-2">
-                            ${typeIcons[item.content_type] || '📄'} ${item.content_type.toUpperCase()}
+                            ${typeIcons[item.content_type] || '📄'} ${escapeHtml(item.content_type.toUpperCase())}
                         </span>
-                        ${item.title}
+                        ${escapeHtml(item.title)}
                         <small class="text-muted ms-2">Difficulty: ${'⭐'.repeat(item.difficulty || 1)}</small>
                     </div>
                     <div class="btn-group btn-group-sm">
                         <button class="btn btn-outline-primary" onclick="viewContent(${item.id})">👁️</button>
                         <button class="btn btn-outline-success" onclick="startSession(${item.id}, ${planId})" title="Start with guided navigation">▶️</button>
-                        <button class="btn btn-outline-warning" onclick="editContent(${item.id})">✏️</button>
-                        <button class="btn btn-outline-danger" onclick="deleteContent(${item.id})">🗑️</button>
+                        ${canEdit && item.can_edit === true ? `<button class="btn btn-outline-warning" onclick="editContent(${item.id})" aria-label="${SLMClient.message('edit', 'Edit')}">✏️</button>
+                        <button class="btn btn-outline-danger" onclick="deleteContent(${item.id})" aria-label="${SLMClient.message('delete', 'Delete')}">🗑️</button>` : ''}
                     </div>
                 </div>
             `).join('')}
@@ -3425,15 +3522,15 @@ function renderContentCard(item) {
 
     return `
         <div class="col-md-4 col-lg-3">
-            <div class="card h-100" data-creator-id="${item.creator_id || ''}">
+            <div class="card h-100" data-creator-id="${item.creator_id || ''}" data-can-edit="${item.can_edit === true}">
                 <div class="card-body">
                     <span class="badge ${typeColors[type] || 'bg-secondary'} mb-2">
-                        ${typeIcons[type] || '📄'} ${type.toUpperCase()}
+                        ${typeIcons[type] || '📄'} ${escapeHtml(type.toUpperCase())}
                     </span>
-                    <h5 class="card-title">${item.title}</h5>
+                    <h5 class="card-title">${escapeHtml(item.title)}</h5>
                     ${(item.creator_id && currentUserId && item.creator_id !== currentUserId && (item.creator_name || item.creator_username)) ? `
                     <p class="text-muted small mb-2">
-                        From: ${item.creator_name || 'Student'}${item.creator_username ? ` (@${item.creator_username})` : ''}
+                        From: ${escapeHtml(item.creator_name || 'Student')}${item.creator_username ? ` (@${escapeHtml(item.creator_username)})` : ''}
                     </p>` : ''}
                     <p class="text-muted small mb-2">
                         Difficulty: ${'⭐'.repeat(item.difficulty || 1)}
@@ -3513,6 +3610,7 @@ window.generateForPlan = async function (planId) {
         }
 
         const result = await res.json();
+        if (!result.success) throw new Error(SLMClient.message('generation_partial', 'Some items failed. Saved items were kept; retry the same request to finish.'));
         showToast(`Generated and saved: ${result.saved_content_ids?.length || 0} items!`, 'success');
 
         // Refresh library view
@@ -3578,7 +3676,7 @@ window.viewPlanGrades = async function (planId) {
         const grades = await res.json();
 
         // Show grades summary using toast (for quick info)
-        const summary = `📊 Total: ${grades.total_assessments} | Graded: ${grades.graded_submissions} | Avg: ${grades.average_score || 'N/A'}%`;
+        const summary = `📊 Total: ${grades.total_assessments} | Graded: ${grades.graded_submissions} | Avg: ${grades.average_score ?? 'N/A'}%`;
         showToast(summary, 'info', 5000);
 
     } catch (err) {
@@ -3769,87 +3867,44 @@ let activeNextContentId = null;
  */
 window.loadContinueLearning = async function loadContinueLearning() {
     if (isTeacherOrAdmin) return;
-
     const card = document.getElementById('continue-learning-card');
     if (!card) return;
-
+    activeContinuePlan = null; activeNextContentId = null;
     try {
-        const token = AuthService.getToken();
-        // Get user's study plans
-        const resp = await fetch('/api/study-plans', {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-
-        if (!resp.ok) {
-            card.style.display = 'none';
-            return;
+        const plans = await SLMClient.request('/api/study-plans');
+        const position = SLMClient.drafts.read('learning-location', 'current', 0);
+        const orderedPlans = [...plans].sort((a, b) => Number(b.id === position?.planId) - Number(a.id === position?.planId));
+        let completedCourse = null;
+        for (const plan of orderedPlans) {
+            const tree = await SLMClient.request(`/api/study-plans/${plan.id}/tree`);
+            if (!tree.contents?.length) continue;
+            const progress = await SLMClient.request(`/api/study-plans/${plan.id}/my-progress`);
+            const contents = tree.contents.sort((a, b) => (a.phase_index || 0) - (b.phase_index || 0) || (a.order_index || 0) - (b.order_index || 0));
+            const completed = new Set((progress.completed_content_ids || []).map(Number));
+            let next = contents.findIndex(item => !completed.has(Number(item.id)));
+            const resume = contents.findIndex(item => item.id === position?.contentId && !completed.has(Number(item.id)));
+            if (position?.planId === plan.id && resume >= 0) next = resume;
+            const data = { tree, contents, next, completedIds: contents.filter(item => completed.has(Number(item.id))).map(item => item.id) };
+            if (next < 0) { completedCourse ||= data; continue; }
+            showContinuePlan(data); return;
         }
-
-        const plans = await resp.json();
-        if (!plans || plans.length === 0) {
-            card.style.display = 'none';
-            return;
-        }
-
-        // Get the first plan with content (could enhance to track last active)
-        for (const plan of plans) {
-            const treeResp = await fetch(`/api/study-plans/${plan.id}/tree`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-
-            if (treeResp.ok) {
-                const tree = await treeResp.json();
-                if (tree.contents && tree.contents.length > 0) {
-                    activeContinuePlan = tree;
-                    activePlanContents = tree.contents;
-
-                    // Fetch actual progress from backend
-                    let completedIds = [];
-                    let currentIndex = 0;
-                    try {
-                        const progressResp = await fetch(`/api/study-plans/${plan.id}/my-progress`, {
-                            headers: { 'Authorization': `Bearer ${token}` }
-                        });
-                        if (progressResp.ok) {
-                            const progress = await progressResp.json();
-                            completedIds = progress.completed_content_ids || [];
-                            // Current index is first uncompleted item
-                            currentIndex = completedIds.length;
-                            if (currentIndex >= tree.contents.length) {
-                                currentIndex = tree.contents.length - 1; // All complete
-                            }
-                        }
-                    } catch (e) {
-                        console.warn('Could not load progress:', e);
-                    }
-
-                    // Set next content based on progress
-                    activeNextContentId = tree.contents[currentIndex]?.id || tree.contents[0].id;
-
-                    // Update UI with real progress
-                    document.getElementById('continue-plan-title').textContent = tree.title;
-                    document.getElementById('continue-next-title').textContent =
-                        tree.contents[currentIndex]?.title || tree.contents[0].title;
-                    document.getElementById('continue-progress-text').textContent =
-                        `${completedIds.length} of ${tree.contents.length} completed`;
-
-                    // Render timeline with real progress
-                    renderProgressTimeline(tree.contents, currentIndex, completedIds);
-
-                    card.style.display = 'block';
-                    return;
-                }
-            }
-        }
-
-        // No plans with content found
+        if (completedCourse) showContinuePlan(completedCourse);
+        else card.style.display = 'none';
+    } catch (error) {
         card.style.display = 'none';
-
-    } catch (e) {
-        console.error('Failed to load continue learning:', e);
-        card.style.display = 'none';
+        showToast(SLMClient.message('progress_unavailable', 'Progress could not be loaded. Retry when connected.'), 'warning');
     }
 };
+function showContinuePlan({tree, contents, next, completedIds}) {
+    activeContinuePlan = tree; activePlanContents = contents;
+    activeNextContentId = next >= 0 ? contents[next].id : null;
+    document.getElementById('continue-plan-title').textContent = tree.title;
+    document.getElementById('continue-next-title').textContent = next >= 0 ? contents[next].title : SLMClient.message('course_completed', 'Course completed');
+    document.getElementById('continue-progress-text').textContent = `${completedIds.length}/${contents.length} ` + SLMClient.message('completed_items', 'items completed');
+    document.getElementById('continue-btn').disabled = next < 0;
+    renderProgressTimeline(contents, next, completedIds);
+    document.getElementById('continue-learning-card').style.display = 'block';
+}
 
 /**
  * Render the progress timeline with nodes
@@ -3882,7 +3937,9 @@ function renderProgressTimeline(contents, currentIndex, completedIds = []) {
         }
 
         // Create node
-        const node = document.createElement('div');
+        const node = document.createElement('button');
+        node.type = 'button';
+        node.setAttribute('aria-label', item.title);
         node.className = `timeline-node ${state}`;
         node.onclick = () => goToTimelineContent(item.id);
 
@@ -3894,7 +3951,7 @@ function renderProgressTimeline(contents, currentIndex, completedIds = []) {
 
         node.innerHTML = `
             <div class="timeline-node-circle">${icon}</div>
-            <div class="timeline-node-label" title="${item.title}">${truncateText(item.title, 10)}</div>
+            <div class="timeline-node-label" title="${escapeHtml(item.title)}">${escapeHtml(truncateText(item.title, 10))}</div>
         `;
 
         timeline.appendChild(node);
@@ -4010,7 +4067,7 @@ function renderLeaderboard(entries) {
                 </td>
                 <td>
                     <div class="d-flex align-items-center gap-2">
-                        <span>${entry.display_name || entry.username || 'User'}</span>
+                        <span>${escapeHtml(entry.display_name || entry.username || 'User')}</span>
                         ${isCurrentUser ? '<span class="badge bg-primary">You</span>' : ''}
                     </div>
                 </td>
@@ -4102,3 +4159,54 @@ if (librarySearchInput) {
 
 // --- USER PROFILE ---
 
+async function restoreSessionContext() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('from_session') !== '1' || !/^\d+$/.test(params.get('content_id') || '')) return;
+    try {
+        const content = await SLMClient.request(`/api/content/${Number(params.get('content_id'))}`);
+        const planId = /^\d+$/.test(params.get('plan_id') || '') ? Number(params.get('plan_id')) : null;
+        const plan = planId ? await SLMClient.request(`/api/study-plans/${planId}/tree`) : null;
+        if (plan && !plan.contents.some(item => item.id === content.id)) return;
+        window.setLearningContext({contentId: content.id, contentTitle: content.title, contentType: content.content_type, studyPlanId: planId, studyPlanTitle: plan?.title, questionId: null});
+        const back = document.getElementById('session-context-return');
+        back.href = `/session_player.html?content_id=${content.id}` + (planId ? `&plan_id=${planId}` : '');
+        back.classList.remove('d-none');
+        if (params.get('ask_help') === '1') bootstrap.Modal.getOrCreateInstance(document.getElementById('helpModal')).show();
+    } catch (error) { showToast(error.message, 'warning'); }
+}
+document.addEventListener('DOMContentLoaded', restoreSessionContext);
+
+let savingStudentTeacher = false;
+async function loadStudentTeacher(student) {
+    const container = document.getElementById('student-teacher-container');
+    if (!container) return;
+    container.classList.toggle('d-none', AuthService.getRole() !== 'admin');
+    if (AuthService.getRole() !== 'admin') return;
+    const select = document.getElementById('student-teacher-select');
+    const button = document.getElementById('student-teacher-save');
+    select.disabled = true; button.disabled = true;
+    try {
+        const teachers = await SLMClient.request('/api/auth/users?role=teacher');
+        if (student.id !== currentStudentId) return;
+        select.replaceChildren(new Option(SLMClient.message('unassigned_teacher', 'Unassigned'), ''));
+        teachers.forEach(teacher => select.append(new Option(`${teacher.first_name} ${teacher.last_name} (${teacher.username})`, teacher.id)));
+        select.value = student.teacher_id ?? '';
+        select.disabled = false; button.disabled = false;
+        document.getElementById('student-teacher-status').textContent = '';
+    } catch (error) { document.getElementById('student-teacher-status').textContent = error.message; }
+}
+window.saveStudentTeacher = async () => {
+    if (savingStudentTeacher || !currentStudentId || AuthService.getRole() !== 'admin') return;
+    const studentId = currentStudentId;
+    const teacher = document.getElementById('student-teacher-select').value;
+    if (!await showConfirm(SLMClient.message('teacher_change_confirm', 'Change the responsible teacher? This changes who can manage this learner.'))) return;
+    if (studentId !== currentStudentId) return;
+    savingStudentTeacher = true;
+    try {
+        await SLMClient.request(`/api/students/${studentId}/teacher`, {method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify({teacher_id: teacher ? Number(teacher) : null})});
+        document.getElementById('student-teacher-status').textContent = SLMClient.message('teacher_saved', 'Responsible teacher saved.');
+    } catch (error) { document.getElementById('student-teacher-status').textContent = error.message; }
+    finally { savingStudentTeacher = false; }
+};
+
+if (document.readyState !== 'loading') { restoreDashboardView(); restoreSessionContext(); }

@@ -21,9 +21,9 @@ import logging
 # Add src to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from core.services.database import DatabaseService
-from core.services.ai_service import AIService
-from core.models import (
+from src.core.services.database import DatabaseService
+from src.core.services.ai_service import AIService
+from src.core.models import (
     User,
     StudyPlan,
     Content,
@@ -32,7 +32,7 @@ from core.models import (
     AIModelConfiguration,
     StudentStudyPlan,
 )
-from core.security import hash_password
+from src.core.security import hash_password
 
 # Import AI configuration utilities from the test package conftest.
 # NOTE: Explicit import avoids accidentally resolving to tests/e2e/conftest.py.
@@ -255,7 +255,7 @@ class TestAITutorE2EWithOllama:
         """Test loading study plans for a student - same as GUI's load_study_plans()"""
         # This simulates exactly what AITutor.load_study_plans() does
         from sqlalchemy import select
-        from core.models import StudentStudyPlan, StudyPlan
+        from src.core.models import StudentStudyPlan, StudyPlan
 
         with db_service.get_session() as session:
             # Students see assigned plans
@@ -276,7 +276,7 @@ class TestAITutorE2EWithOllama:
     ):
         """Test loading study plans for a teacher - same as GUI's load_study_plans()"""
         from sqlalchemy import select
-        from core.models import StudyPlan
+        from src.core.models import StudyPlan
 
         with db_service.get_session() as session:
             # Teachers see plans they created
@@ -293,7 +293,7 @@ class TestAITutorE2EWithOllama:
         plan = test_study_plan_with_content["plan"]
 
         with db_service.get_session() as session:
-            from core.models import StudyPlan
+            from src.core.models import StudyPlan
 
             loaded_plan = session.get(StudyPlan, plan.id)
 
@@ -317,7 +317,7 @@ class TestAITutorE2EWithOllama:
         plan = test_study_plan_with_content["plan"]
 
         with db_service.get_session() as session:
-            from core.models import StudyPlan
+            from src.core.models import StudyPlan
 
             loaded_plan = session.get(StudyPlan, plan.id)
             assert loaded_plan is not None
@@ -343,7 +343,7 @@ class TestAITutorE2EWithOllama:
         plan = test_study_plan_with_content["plan"]
 
         with db_service.get_session() as session:
-            from core.models import StudyPlan
+            from src.core.models import StudyPlan
 
             loaded_plan = session.get(StudyPlan, plan.id)
 
@@ -693,7 +693,7 @@ class TestAITutorE2EWithOllama:
         )
 
         with db_service.get_session() as session:
-            from core.models import StudyPlan as SP
+            from src.core.models import StudyPlan as SP
 
             loaded = session.get(SP, created_plan.id)
 
@@ -725,7 +725,7 @@ class TestAITutorE2EWithMockedAI:
     def mock_ai_service(self):
         """Create a mock AI service for deterministic testing"""
         from unittest.mock import MagicMock
-        from core.services.ai_service import AIResponse, AIProvider
+        from src.core.services.ai_service import AIResponse, AIProvider
 
         model = get_configured_ai_model()
         provider_str = get_configured_ai_provider()
@@ -863,7 +863,7 @@ class TestAITutorE2EWithMockedAI:
         8. Receive AI response
         """
         from sqlalchemy import select
-        from core.models import StudentStudyPlan, StudyPlan
+        from src.core.models import StudentStudyPlan, StudyPlan
 
         student = test_data["student"]
         plan = test_data["plan"]

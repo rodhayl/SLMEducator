@@ -1,175 +1,323 @@
-from fastapi import APIRouter, Depends
-from pydantic import BaseModel
-from typing import Optional, List, Dict
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, Field
+from typing import Optional, List, Literal
 from sqlalchemy.orm import Session
 
 from src.api.security import get_current_user
 from src.api.dependencies import get_db, get_ai_service_dependency
-from src.core.models import User, Content, StudyPlan
+from src.api.policies import require_content, require_plan
+from src.core.models import User, StudyPlanContent, LearningSession, ContentType
+from types import SimpleNamespace
+from src.core.services.assistance_policy import effective_policy
+from src.core.services import ai_request_lifecycle as lifecycle
+from src.core.exceptions import AIResponseParseError, AIContentValidationError
+from src.core.services.learning_context import (
+    source_context,
+    SourceContext,
+    PROMPT_VERSION,
+    combined_source_context,
+)
+from src.core.services.course_workflow import course_items
 
 router = APIRouter(prefix="/api/ai", tags=["ai"])
 
 
 class ChatMessage(BaseModel):
-    role: str  # 'user' or 'assistant'
-    content: str
+    role: Literal["user", "assistant"]
+    content: str = Field(max_length=4000)
 
 
 class ChatRequest(BaseModel):
-    message: str
-    context_id: Optional[int] = None  # Legacy field
-    study_plan_id: Optional[int] = None  # Selected study plan for context
-    content_id: Optional[int] = (
-        None  # Selected content item (lesson/exercise/assessment)
+    client_request_id: Optional[str] = Field(
+        default=None, min_length=1, max_length=80, pattern="^[A-Za-z0-9_-]+$"
     )
-    conversation_history: Optional[List[ChatMessage]] = None
+    message: str = Field(min_length=1, max_length=4000)
+    context_id: Optional[int] = None
+    study_plan_id: Optional[int] = None
+    content_id: Optional[int] = None
+    section_ids: List[str] = Field(default_factory=list, max_length=12)
+    source_version: Optional[str] = None
+    session_id: Optional[int] = Field(default=None, gt=0)
+    conversation_history: List[ChatMessage] = Field(default_factory=list, max_length=10)
+    assistance: Literal["hint", "explanation", "example", "check_understanding"] = (
+        "hint"
+    )
 
 
 class ChatResponse(BaseModel):
+    receipt: Optional[dict] = None
     response: str
     suggestions: Optional[List[str]] = None
+    status: Literal["suggestion", "unavailable", "invalid_response"] = "suggestion"
+    source: Optional[SourceContext] = None
+    source_verified: bool = False
+    prompt_version: str = PROMPT_VERSION
+    assistance_policy: dict = Field(
+        default_factory=lambda: {
+            "mode": "explanations",
+            "active_assessment_ids": [],
+            "scope": "active_attempt",
+            "reason": None,
+        }
+    )
+    effective_assistance: str = "hint"
 
 
-@router.post("/chat", response_model=ChatResponse)
-async def chat_with_tutor(
+def _permitted_assistance(db: Session, user: User, requested: str) -> tuple[dict, str]:
+    policy = effective_policy(db, user)
+    if policy["mode"] == "disabled":
+        raise HTTPException(status_code=403, detail=policy["reason"])
+    return policy, "hint" if policy["mode"] == "hints_only" else requested
+
+
+def _recheck_assistance(db: Session, user: User, used_mode: str) -> None:
+    # A teacher's stricter choice while a provider was working also governs delivery.
+    db.rollback()  # End any read snapshot before checking a concurrently saved policy.
+    db.expire_all()
+    current = effective_policy(db, user)
+    if current["mode"] == "disabled" or (
+        current["mode"] == "hints_only" and used_mode != "hint"
+    ):
+        raise HTTPException(status_code=403, detail=current["reason"])
+
+
+def _authorized_source(
+    db: Session,
+    user: User,
+    content_id: Optional[int],
+    plan_id: Optional[int],
+    section_ids: list[str],
+    query: str,
+    session_id: Optional[int] = None,
+):
+    session = db.get(LearningSession, session_id) if session_id else None
+    if session_id and (not session or session.student_id != user.id):
+        raise HTTPException(
+            status_code=403, detail="Session context is private to its learner"
+        )
+    if session:
+        if content_id and content_id != session.content_id:
+            raise HTTPException(
+                status_code=409, detail="Session and content do not match"
+            )
+        content_id = session.content_id
+        pinned_plan = (session.context_revision or {}).get("study_plan_id")
+        if pinned_plan and plan_id and pinned_plan != plan_id:
+            raise HTTPException(
+                status_code=409, detail="Session and course do not match"
+            )
+        plan_id = pinned_plan or plan_id
+    plan = require_plan(db, user, plan_id) if plan_id else None
+    content = require_content(db, user, content_id) if content_id else None
+    if (
+        plan
+        and content
+        and content.study_plan_id != plan.id
+        and not db.query(StudyPlanContent)
+        .filter_by(study_plan_id=plan.id, content_id=content.id)
+        .first()
+    ):
+        raise HTTPException(
+            status_code=409,
+            detail="The selected content does not belong to this course",
+        )
+    if session:
+        captured = session.decrypted_content_snapshot
+        if captured is None:
+            raise HTTPException(
+                status_code=409,
+                detail="This historical session has no readable captured source; select current content explicitly",
+            )
+        content = SimpleNamespace(
+            id=session.content_id,
+            title=captured["title"],
+            content_type=ContentType(captured["content_type"]),
+            content_data="captured",
+            decrypted_content_data=captured["content_data"],
+        )
+    try:
+        if content:
+            source = source_context(content, section_ids=section_ids, query=query)
+        elif plan:
+            contents = [
+                require_content(db, user, link.content_id)
+                for link in course_items(db, plan.id)
+            ]
+            source = combined_source_context(
+                contents, plan.id, plan.title, section_ids=section_ids, query=query
+            )
+        elif section_ids:
+            raise ValueError("Choose a source before selecting sections")
+        else:
+            source = None
+    except ValueError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+    context = (
+        {
+            "id": plan.id,
+            "title": plan.title,
+            "description": (plan.description or "")[:500],
+        }
+        if plan
+        else None
+    )
+    if session and (session.context_revision or {}).get("plan_context"):
+        context = session.context_revision["plan_context"]
+    return source, context
+
+
+@router.get("/context")
+def preview_tutor_context(
+    content_id: Optional[int] = None,
+    study_plan_id: Optional[int] = None,
+    session_id: Optional[int] = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """List actual authorized source sections before sending a model request."""
+    source, _ = _authorized_source(
+        db, current_user, content_id, study_plan_id, [], "", session_id
+    )
+    return {"source": source, "source_verified": False}
+
+
+async def _chat_impl(
     request: ChatRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """
-    Chat with AI Tutor using real AI service.
-
-    Supports conversation history and content context for context-aware responses.
-    """
-    import logging
-
-    logger = logging.getLogger(__name__)
-
+    """Use authorized, bounded source text; AI responses remain unverified suggestions."""
+    policy, assistance = _permitted_assistance(db, current_user, request.assistance)
+    content_id = request.content_id or request.context_id
+    source, plan_context = _authorized_source(
+        db,
+        current_user,
+        content_id,
+        request.study_plan_id,
+        request.section_ids,
+        request.message,
+        request.session_id,
+    )
+    if request.source_version and (
+        source is None or source.source_version != request.source_version
+    ):
+        raise HTTPException(
+            status_code=409,
+            detail="Source revision changed; reload the context before asking again",
+        )
+    ai_service = None
     try:
+        # Authorization precedes service construction and every provider call.
         ai_service = get_ai_service_dependency(current_user, db)
-
-        # Convert conversation history to expected format
-        history = None
-        if request.conversation_history:
-            history = [
-                {"role": msg.role, "content": msg.content}
-                for msg in request.conversation_history
-            ]
-
-        # Build content context from selected items
-        content_context = None
-        study_plan_context = None
-
-        # Fetch content context if content_id provided
-        if request.content_id:
-            content = db.query(Content).filter(Content.id == request.content_id).first()
-            if content:
-                content_data = content.decrypted_content_data or {}
-                content_context = {
-                    "id": content.id,
-                    "title": content.title,
-                    "type": (
-                        content.content_type.value
-                        if hasattr(content.content_type, "value")
-                        else str(content.content_type)
-                    ),
-                    "summary": _extract_content_summary(content_data),
-                }
-                logger.info(f"AI Tutor using content context: {content.title}")
-
-        # Fetch study plan context if study_plan_id provided
-        if request.study_plan_id:
-            plan = (
-                db.query(StudyPlan)
-                .filter(StudyPlan.id == request.study_plan_id)
-                .first()
-            )
-            if plan:
-                study_plan_context = {
-                    "id": plan.id,
-                    "title": plan.title,
-                    "description": plan.description[:500] if plan.description else "",
-                }
-                logger.info(f"AI Tutor using study plan context: {plan.title}")
-
-        # Get tutoring response with context
-        result = ai_service.provide_tutoring(
-            user=current_user,
+        result = await lifecycle.invoke_provider(
+            db,
+            current_user,
+            ai_service,
             question=request.message,
-            context=None,
-            study_plan_context=study_plan_context,
-            content_context=content_context,
-            conversation_history=history,
+            context=f"Assistance mode: {assistance}. Teacher policy: {policy['mode']}. In hint mode give a hint only, without solving the current assessment. Invite an independent attempt. Never disclose hidden assessment answers.",
+            study_plan_context=plan_context,
+            content_context=source.model_dump() if source else None,
+            conversation_history=[
+                msg.model_dump() for msg in request.conversation_history
+            ],
         )
-
-        # Extract response from result
-        response_text = result.get(
-            "explanation", result.get("response", "I'm here to help!")
+        _recheck_assistance(db, current_user, assistance)
+        refreshed, _ = _authorized_source(
+            db,
+            current_user,
+            content_id,
+            request.study_plan_id,
+            request.section_ids,
+            request.message,
+            request.session_id,
         )
-
-        # Extract any follow-up suggestions if available
-        suggestions = result.get("suggestions", result.get("follow_up_questions", None))
-
-        return ChatResponse(response=response_text, suggestions=suggestions)
-
-    except Exception as e:
-        logger.error(f"AI Chat error: {e}")
-
+        if source and (
+            refreshed is None or refreshed.source_version != source.source_version
+        ):
+            raise HTTPException(
+                status_code=409,
+                detail="Source revision changed while the provider responded; ask again with the reviewed context",
+            )
+        response = (
+            result.get("explanation") or result.get("answer") or result.get("response")
+        )
+        if not isinstance(response, str) or not response.strip():
+            return ChatResponse(
+                response="The provider returned no usable answer. Try again or ask your teacher.",
+                status="invalid_response",
+                source=source,
+                assistance_policy=policy,
+                effective_assistance=assistance,
+            )
+        suggestions = result.get("suggestions") or result.get("follow_up_questions")
+        if not isinstance(suggestions, list) or not all(
+            isinstance(item, str) for item in suggestions
+        ):
+            suggestions = None
         return ChatResponse(
-            response=(
-                "I apologize, but I encountered an issue processing your request. "
-                "Please try again or check your AI configuration in Settings. "
-                f"Error: {str(e)}"
-            ),
-            suggestions=["Check AI settings", "Try a simpler question"],
+            response=response,
+            suggestions=suggestions,
+            source=source,
+            assistance_policy=policy,
+            effective_assistance=assistance,
         )
-
-
-def _extract_content_summary(content_data: Dict) -> str:
-    """Extract a readable summary from content data for AI context."""
-    if not content_data:
-        return ""
-
-    # Direct text fields
-    if content_data.get("content"):
-        return content_data["content"][:1000]
-    if content_data.get("text"):
-        return content_data["text"][:1000]
-    if content_data.get("body"):
-        return content_data["body"][:1000]
-
-    # AI-generated format with sections
-    if content_data.get("sections"):
-        summary_parts = []
-        for section in content_data["sections"][:3]:  # First 3 sections
-            if section.get("title"):
-                summary_parts.append(
-                    f"**{section['title']}**: {section.get('content', '')[:200]}"
-                )
-        if content_data.get("summary"):
-            summary_parts.append(f"Summary: {content_data['summary']}")
-        return "\n".join(summary_parts)[:1000]
-
-    return str(content_data)[:500]
+    except HTTPException:
+        raise
+    except (AIResponseParseError, AIContentValidationError):
+        return ChatResponse(
+            response="The provider returned an invalid answer. Try again or ask your teacher.",
+            status="invalid_response",
+            source=source,
+            assistance_policy=policy,
+            effective_assistance=assistance,
+        )
+    except Exception:
+        return ChatResponse(
+            response="AI assistance is unavailable. Your lesson and notes are still available; try again or ask your teacher.",
+            status="unavailable",
+            source=source,
+            assistance_policy=policy,
+            effective_assistance=assistance,
+        )
+    finally:
+        if ai_service is not None:
+            ai_service.close()
 
 
 class AnswerQuestionRequest(BaseModel):
+    client_request_id: Optional[str] = Field(
+        default=None, min_length=1, max_length=80, pattern="^[A-Za-z0-9_-]+$"
+    )
     """Request to get AI-powered answer for a Q&A question."""
 
-    question: str
-    context: Optional[str] = None  # Optional additional context
+    question: str = Field(min_length=1, max_length=4000)
+    assistance: Literal["hint", "explanation", "example", "check_understanding"] = (
+        "explanation"
+    )
+    context: Optional[str] = Field(
+        default=None, max_length=6000
+    )  # Optional additional context
 
 
 class AnswerQuestionResponse(BaseModel):
+    receipt: Optional[dict] = None
     """AI-generated answer for Q&A."""
 
     answer: str
     suggestions: Optional[List[str]] = None
     success: bool = True
+    assistance_policy: dict = Field(
+        default_factory=lambda: {
+            "mode": "explanations",
+            "active_assessment_ids": [],
+            "scope": "active_attempt",
+            "reason": None,
+        }
+    )
+    effective_assistance: str = "explanation"
 
 
-@router.post("/answer-question", response_model=AnswerQuestionResponse)
-async def answer_question(
+async def _answer_impl(
     request: AnswerQuestionRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -183,6 +331,8 @@ async def answer_question(
 
     logger = logging.getLogger(__name__)
 
+    policy, assistance = _permitted_assistance(db, current_user, request.assistance)
+    ai_service = None
     try:
         ai_service = get_ai_service_dependency(current_user, db)
 
@@ -191,12 +341,16 @@ async def answer_question(
 Provide clear, accurate, and educational answers. If the question is unclear, ask for clarification.
 Keep answers concise but thorough enough to be helpful."""
 
+        system_context += f"\nTeacher policy: {policy['mode']}. Assistance mode: {assistance}. In hint mode give only a hint and do not solve the assessment or reveal hidden answers."
+
         if request.context:
             system_context += f"\n\nAdditional context: {request.context}"
 
         # Use the tutoring method to get an educational response
-        result = ai_service.provide_tutoring(
-            user=current_user,
+        result = await lifecycle.invoke_provider(
+            db,
+            current_user,
+            ai_service,
             question=request.question,
             context=system_context,
             study_plan_context=None,
@@ -204,29 +358,120 @@ Keep answers concise but thorough enough to be helpful."""
             conversation_history=None,
         )
 
-        # Extract the answer
-        answer_text = result.get(
-            "explanation",
-            result.get(
-                "response",
-                "I couldn't generate an answer. Please try rephrasing your question.",
-            ),
+        _recheck_assistance(db, current_user, assistance)
+        answer_text = (
+            result.get("explanation") or result.get("answer") or result.get("response")
         )
+        if not isinstance(answer_text, str) or not answer_text.strip():
+            return AnswerQuestionResponse(
+                answer="The provider returned no usable answer. Try again or ask your teacher.",
+                success=False,
+                assistance_policy=policy,
+                effective_assistance=assistance,
+            )
         suggestions = result.get("suggestions", result.get("follow_up_questions", None))
 
         return AnswerQuestionResponse(
-            answer=answer_text, suggestions=suggestions, success=True
+            answer=answer_text,
+            suggestions=suggestions,
+            success=True,
+            assistance_policy=policy,
+            effective_assistance=assistance,
         )
 
-    except Exception as e:
-        logger.error(f"AI Answer Question error: {e}")
+    except HTTPException:
+        raise
+    except Exception:
+        logger.warning("AI answer generation unavailable")
 
         return AnswerQuestionResponse(
             answer=(
                 "I apologize, but I couldn't generate an answer. "
                 "Please check your AI configuration or try again later. "
-                f"Error: {str(e)}"
             ),
             suggestions=["Check AI settings", "Try a simpler question"],
             success=False,
+            assistance_policy=policy,
+            effective_assistance=assistance,
         )
+
+    finally:
+        if ai_service is not None:
+            ai_service.close()
+
+
+async def _with_request_lifecycle(request, user, db, implementation, response_type):
+    """Apply one concurrency/quota/cancellation contract to both tutoring routes."""
+    policy, applied_mode = _permitted_assistance(db, user, request.assistance)
+    payload = request.model_dump(exclude={"client_request_id"})
+    payload["applied_assistance_policy"] = policy
+    payload["applied_assistance_mode"] = applied_mode
+    if isinstance(request, ChatRequest):
+        source, _ = _authorized_source(
+            db,
+            user,
+            request.content_id or request.context_id,
+            request.study_plan_id,
+            request.section_ids,
+            request.message,
+            request.session_id,
+        )
+        if request.source_version and (
+            source is None or source.source_version != request.source_version
+        ):
+            raise HTTPException(
+                status_code=409, detail="Source revision changed; reload context"
+            )
+        payload["resolved_source_version"] = source.source_version if source else None
+    record = lifecycle.begin(user.id, request.client_request_id, payload)
+    if record.result is not None:
+        return response_type.model_validate(record.result)
+    token = lifecycle.CURRENT_REQUEST.set(record)
+    try:
+        result = await implementation(request, user, db)
+        return response_type.model_validate(
+            lifecycle.finish(record, result.model_dump())
+        )
+    except BaseException:
+        lifecycle.finish(record)
+        raise
+    finally:
+        lifecycle.CURRENT_REQUEST.reset(token)
+
+
+@router.post("/chat", response_model=ChatResponse)
+async def chat_with_tutor(
+    request: ChatRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return await _with_request_lifecycle(
+        request, current_user, db, _chat_impl, ChatResponse
+    )
+
+
+@router.post("/answer-question", response_model=AnswerQuestionResponse)
+async def answer_question(
+    request: AnswerQuestionRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return await _with_request_lifecycle(
+        request, current_user, db, _answer_impl, AnswerQuestionResponse
+    )
+
+
+@router.get("/usage")
+def ai_usage(
+    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
+):
+    """Show finite local request limits; never infer monetary cost from tokens."""
+    return lifecycle.usage(db, current_user.id)
+
+
+@router.post("/requests/{request_id}/cancel")
+async def cancel_ai_request(
+    request_id: str, current_user: User = Depends(get_current_user)
+):
+    """Confirm local suppression, not remote provider termination or zero charges."""
+    return lifecycle.cancel(current_user.id, request_id)

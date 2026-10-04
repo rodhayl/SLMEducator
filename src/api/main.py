@@ -74,6 +74,7 @@ from src.api.routes import (
     study_plans,
     gamification,
     annotations,
+    portability,
 )
 
 app.include_router(auth.router)
@@ -89,6 +90,9 @@ app.include_router(classroom.router)
 app.include_router(study_plans.router)
 app.include_router(gamification.router)
 app.include_router(annotations.router)
+app.include_router(portability.router)
+from src.api.routes import timezone as timezone_settings
+app.include_router(timezone_settings.router)
 
 from src.api.routes import upload
 
@@ -151,9 +155,16 @@ async def read_page(page_name: str):
     page_path = WEB_DIR / f"{page_name}.html"
     if page_path.exists():
         return FileResponse(page_path)
+    if (WEB_DIR / "404.html").is_file():
+        return FileResponse(WEB_DIR / "404.html", status_code=404)
     return Response(status_code=404)
 
 
 # Mount other static directories
 if (WEB_DIR / "images").exists():
     app.mount("/images", StaticFiles(directory=str(WEB_DIR / "images")), name="images")
+
+
+from src.api.routes import assistance
+
+app.include_router(assistance.router)

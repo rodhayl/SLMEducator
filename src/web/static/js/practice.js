@@ -1,0 +1,77 @@
+/* Low-stakes independent practice. No client grades, progress or rewards. */
+(function (root) {
+    'use strict';
+    const text = (key, fallback) => SLMClient.message(key, fallback);
+    let current = null;
+    function optionsFor(question) {
+        let options = question.options?.choices || question.options;
+        if (Array.isArray(options)) return options.map((value, index) => ({ key: String.fromCharCode(65 + index), value: String(value) }));
+        if (options && typeof options === 'object') return Object.entries(options).map(([key, value]) => ({ key, value: String(value) }));
+        if (question.type === 'true_false' || question.question_type === 'true_false') return [{ key: 'true', value: 'True' }, { key: 'false', value: 'False' }];
+        return [];
+    }
+    function render(container, raw) {
+        const questions = Array.isArray(raw.questions) ? raw.questions : [raw];
+        if (!questions.length || questions.some(q => !q.question && !q.question_text)) {
+            container.textContent = text('practice_unavailable', 'This practice item needs teacher review before it can be answered.');
+            return;
+        }
+        container.replaceChildren();
+        const note = document.createElement('p'); note.className = 'alert alert-info';
+        note.textContent = text('practice_notice', 'Low-stakes practice. Try an independent answer first. Self-checks are not final grades.');
+        container.append(note);
+        const inputs = [];
+        questions.forEach((question, index) => {
+            const section = document.createElement('section'); section.className = 'card p-3 mb-3';
+            const label = document.createElement('label'); label.className = 'form-label fw-bold';
+            label.textContent = question.question || question.question_text;
+            label.htmlFor = `practice-answer-${index}`;
+            const options = optionsFor(question);
+            const input = document.createElement(options.length ? 'select' : 'textarea');
+            input.className = options.length ? 'form-select' : 'form-control';
+            input.id = label.htmlFor;
+            if (options.length) {
+                input.append(new Option(text('select_answer', 'Choose an answer'), ''));
+                options.forEach(option => input.append(new Option(option.value, option.value)));
+            } else { input.rows = 3; }
+            const feedback = document.createElement('div'); feedback.className = 'mt-2';
+            feedback.setAttribute('role', 'status'); feedback.setAttribute('aria-live', 'polite');
+            const buttons = document.createElement('div'); buttons.className = 'd-flex gap-2 mt-2';
+            const hint = document.createElement('button'); hint.type = 'button'; hint.className = 'btn btn-outline-secondary';
+            hint.textContent = text('show_hint', 'Show a hint');
+            hint.onclick = () => { feedback.textContent = question.hint || text('practice_hint', 'Find the key idea in the lesson and explain it in your own words.'); };
+            const check = document.createElement('button'); check.type = 'button'; check.className = 'btn btn-outline-primary';
+            check.textContent = text('self_check', 'Self-check');
+            check.onclick = () => selfCheck(question, options, input, feedback);
+            buttons.append(hint, check); section.append(label, input, buttons, feedback); container.append(section); inputs.push(input);
+        });
+        current = { inputs, owner: null, contentId: null, attemptId: null };
+    }
+    function selfCheck(question, options, input, feedback) {
+        if (!input.value.trim()) { feedback.textContent = text('attempt_first', 'Write or choose your own answer first.'); input.focus(); return; }
+        const answer = question.correct_answer ?? question.answer;
+        if (answer === undefined || answer === null) { feedback.textContent = text('ask_teacher', 'No answer key is available. Ask your teacher to review your response.'); return; }
+        const solution = options.find(option => option.key.toLowerCase() === String(answer).toLowerCase())?.value || String(answer);
+        const matched = options.length && input.value.trim().toLocaleLowerCase() === solution.trim().toLocaleLowerCase();
+        const prefix = options.length ? (matched ? text('practice_match', 'Your choice matches the answer key.') : text('practice_compare', 'Compare your choice with the answer key.')) : text('practice_compare', 'Compare your response with the answer key.');
+        feedback.textContent = `${prefix} ${text('suggested_answer', 'Suggested answer')}: ${solution}. ${question.explanation || ''} ${text('not_final_grade', 'This is a practice self-check, not a final grade.')}`;
+    }
+    async function bindAttempt(owner, contentId, attemptId) {
+        if (!current) return;
+        Object.assign(current, { owner, contentId, attemptId });
+        const saved = SLMClient.drafts.read('practice', contentId, attemptId);
+        if (saved?.answers?.some(Boolean)) {
+            const choice = await SLMClient.chooseDraft();
+            if (choice === 'restore') current.inputs.forEach((input, index) => { input.value = saved.answers[index] || ''; });
+            else if (choice === 'discard') SLMClient.drafts.remove('practice', contentId, attemptId);
+            else { root.location.href = '/dashboard.html'; return; }
+        }
+        const save = () => {
+            if (owner !== SLMClient.account()) return;
+            SLMClient.drafts.write('practice', contentId, attemptId, { answers: current.inputs.map(input => input.value) });
+        };
+        current.inputs.forEach(input => input.addEventListener('input', save));
+        root.addEventListener('pagehide', save);
+    }
+    root.SLMPractice = Object.freeze({ render, bindAttempt });
+})(window);

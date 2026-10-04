@@ -1,6 +1,7 @@
 """Packaging safety contracts; real SQLite/seeder, simulated Windows freezer."""
 
 from contextlib import closing
+import ast
 from pathlib import Path
 import re
 import shutil
@@ -12,6 +13,47 @@ from typing import Any, Iterator
 import pytest
 
 from scripts import build_package as builder
+
+
+def test_windows_freezer_collects_iana_timezone_database(tmp_path):
+    command = builder._pyinstaller_command(tmp_path / "staging", tmp_path / "work", "Synthetic")
+    collected = [command[index + 1] for index, value in enumerate(command) if value == "--collect-all"]
+    assert "tzdata" in collected
+
+
+def test_freezer_omits_removed_provider_and_password_libraries() -> None:
+    """Removed SDKs must not become undeclared freezer dependencies again."""
+    retired = {"passlib", "langsmith", "langchain_core", "langchain_openai"}
+    assert not retired.intersection(name.split(".")[0] for name in builder.HIDDEN_IMPORTS)
+    assert "bcrypt" in builder.HIDDEN_IMPORTS
+    assert "tkinter.scrolledtext" not in builder.HIDDEN_IMPORTS
+
+
+def test_freezer_covers_all_mounted_routes() -> None:
+    """Keep the explicit frozen API manifest aligned without importing the app."""
+    root = Path(__file__).resolve().parents[1]
+    tree = ast.parse((root / "src" / "api" / "main.py").read_text(encoding="utf-8"))
+    routes = {
+        f"src.api.routes.{alias.name}"
+        for node in ast.walk(tree)
+        if isinstance(node, ast.ImportFrom) and node.module == "src.api.routes"
+        for alias in node.names
+    }
+    assert routes
+    assert routes <= set(builder.HIDDEN_IMPORTS)
+    for module in builder.HIDDEN_IMPORTS:
+        if module.startswith("src."):
+            assert (root / (module.replace(".", "/") + ".py")).is_file(), module
+
+
+def test_freezer_covers_uvicorn_default_dispatch() -> None:
+    """Uvicorn resolves these default protocol/loop modules by string name."""
+    from uvicorn.config import HTTP_PROTOCOLS, LIFESPAN, LOOP_FACTORIES, WS_PROTOCOLS
+
+    for choices in (HTTP_PROTOCOLS, WS_PROTOCOLS, LIFESPAN, LOOP_FACTORIES):
+        module = str(choices["auto"]).split(":")[0]
+        assert module in builder.HIDDEN_IMPORTS, module
+    assert len(builder.HIDDEN_IMPORTS) == len(set(builder.HIDDEN_IMPORTS))
 
 
 @pytest.fixture
@@ -292,6 +334,42 @@ def test_modes_require_explicit_database_selection(arguments: list[str]) -> None
     assert error.value.code == 2
 
 
+def test_cli_rejects_non_windows_builds_before_writing(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    fake_freezer: list[Any],
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """A simulated freezer on Linux cannot establish native Windows readiness."""
+    monkeypatch.setattr(sys, "platform", "linux")
+    output = tmp_path / "not-a-windows-package"
+    with pytest.raises(SystemExit) as error:
+        builder.main(["--prod", "--output-dir", str(output)])
+    assert error.value.code == 2
+    assert "Windows packages must be built on Windows" in capsys.readouterr().err
+    assert not output.exists()
+    assert not fake_freezer
+
+
+def test_cli_rejects_unbundlable_zipfs_tcl_before_writing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A successful freezer exit must not publish a launcher without Tcl/Tk."""
+    import tkinter
+
+    class ZipfsTcl:
+        def eval(self, expression: str) -> str:
+            assert expression == "info library"
+            return "//zipfs:/lib/tcl/tcl_library"
+
+    monkeypatch.setattr(sys, "platform", "win32")
+    monkeypatch.setattr(tkinter, "Tcl", ZipfsTcl)
+    output = tmp_path / "unusable-package"
+    assert builder.main(["--prod", "--output-dir", str(output)]) == 1
+    assert "Tcl/Tk in zipfs" in capsys.readouterr().err
+    assert not output.exists()
+
+
 def test_batch_wrapper_has_no_destructive_legacy_steps() -> None:
     script = (
         (Path(__file__).resolve().parents[1] / "build_package.bat").read_text().lower()
@@ -317,6 +395,8 @@ def test_packaged_first_run_resolves_seeded_database_from_other_directory(
     from src.startup_utils import setup_frozen_working_directory
     from src.core.services.database import DatabaseService
     from src.core.services.settings_config_service import get_config_file_path
+    from src.core.services.translation_service import TranslationService
+    from src.api.main import _resolve_web_dir
 
     package = builder.build_package(project, tmp_path / "package")
     other = tmp_path / "unrelated-caller"
@@ -329,6 +409,19 @@ def test_packaged_first_run_resolves_seeded_database_from_other_directory(
     setup_frozen_working_directory()
     assert Path.cwd() == package
     assert Path(get_config_file_path()) == package / "env.properties"
+    monkeypatch.delenv("SLM_WEB_DIR", raising=False)
+    assert _resolve_web_dir() == (package, package / "_internal" / "src" / "web")
+    translations = TranslationService()
+    assert translations.translations_dir == package / "_internal" / "translations"
+    assert translations.load_language("en")
+    assert translations.load_language("es")
+    assert translations.translations["en"]
+    assert translations.translations["es"]
+    for directory in ("src/web", "translations", "alembic"):
+        for source in (project / directory).rglob("*"):
+            if source.is_file() and "__pycache__" not in source.parts:
+                packaged = package / "_internal" / source.relative_to(project)
+                assert packaged.read_bytes() == source.read_bytes()
     database = DatabaseService()
     try:
         with database.get_session() as session:
@@ -360,10 +453,18 @@ def test_production_does_not_open_or_change_a_live_working_database(
 ) -> None:
     source, writer = live_database
     paths = [source, Path(str(source) + "-wal"), Path(str(source) + "-shm")]
-    before = {path: path.read_bytes() for path in paths}
+    def fingerprint(path: Path) -> bytes | tuple[int, int]:
+        """Read live files where Windows SQLite sharing permits it."""
+        try:
+            return path.read_bytes()
+        except PermissionError:
+            metadata = path.stat()
+            return metadata.st_size, metadata.st_mtime_ns
+
+    before = {path: fingerprint(path) for path in paths}
     monkeypatch.setenv("SLM_DB_PATH", str(source))
     builder.build_package(project, tmp_path / "production")
-    assert {path: path.read_bytes() for path in paths} == before
+    assert {path: fingerprint(path) for path in paths} == before
     assert writer.execute("SELECT * FROM records").fetchall() == [
         ("synthetic committed WAL row",),
         ("uncommitted must be excluded",),

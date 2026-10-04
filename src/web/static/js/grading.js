@@ -1,466 +1,283 @@
-// grading.js - Calificaciones/Grading page functionality
-// Loaded as regular script (not ES module) to support inline onclick handlers
-
-// I18n helper (fallback if I18n not available)
-const t = (key, params = {}) => {
-    if (typeof I18n !== 'undefined' && I18n.t) {
-        return I18n.t(key, params);
-    }
-    // Fallback messages
-    const fallbacks = {
-        'grading.access_denied': 'Access denied. Grading is only available to teachers and administrators.',
-        'grading.grade_saved': 'Grade Saved!',
-        'grading.ai_grades_accepted': `AI grades accepted! Final score: ${params.score || ''}`,
-        'grading.error_accept_grade': 'Failed to accept grade',
-        'grading.error_save_grade': 'Failed to save grade',
-        'grading.error_network': 'Network Error',
-        'grading.error_accept_ai': 'Failed to accept AI grades',
-        'grading.labels.submissions': 'Submissions',
-        'grading.labels.final_score': 'Final Score',
-        'grading.labels.feedback': 'Feedback',
-        'grading.labels.ai_suggestion': 'AI Suggestion',
-        'grading.labels.student_answer': 'Student Answer',
-        'grading.labels.correct_answer': 'Correct Answer',
-        'grading.labels.modified': 'Modified',
-        'grading.labels.score': 'Score',
-        'grading.labels.optional_feedback': 'Optional feedback',
-        'grading.labels.pts': 'pts',
-        'grading.labels.confidence': `${params.percent || ''}% confidence`,
-        'grading.buttons.accept_all_ai': '✓ Accept All AI Suggestions',
-        'grading.buttons.accept': '✓ Accept',
-        'grading.buttons.modify': '✏️ Modify',
-        'grading.buttons.save': 'Save',
-        'grading.buttons.submit_grade': 'Submit Grade',
-        'grading.placeholders.select_submission': 'Select a submission to start grading',
-        'grading.placeholders.grade_score': '0-100',
-        'grading.placeholders.grade_feedback': 'Great job, but watch out for...',
-        'grading.messages.error_loading_submissions': `Error loading submissions: ${params.error || ''}`,
-        'grading.messages.not_authenticated': 'Error: Not authenticated',
-        'grading.messages.error_loading_details': 'Error loading details',
-        'grading.messages.no_answer': 'No answer',
-        'grading.messages.no_answer_data': 'No answer data found.',
-        'grading.ai.summary': `${params.count || ''} question(s) with AI suggestions`
-    };
-    return fallbacks[key] || key;
+/* Grading reuses the authorized submission APIs and preserves queue navigation. */
+const gradingFallbacks = {
+    'grading.access_denied': 'Grading is only available to teachers and administrators.',
+    'grading.grade_saved': 'Grade saved.',
+    'grading.labels.student_answer': 'Student answer',
+    'grading.labels.correct_answer': 'Correct answer',
+    'grading.labels.ai_suggestion': 'AI suggestion',
+    'grading.labels.feedback': 'Feedback',
+    'grading.labels.score': 'Score',
+    'grading.labels.optional_feedback': 'Optional feedback',
+    'grading.labels.pts': 'pts',
+    'grading.buttons.accept': 'Accept',
+    'grading.buttons.modify': 'Edit score',
+    'grading.buttons.save': 'Save',
+    'grading.messages.no_answer': 'No answer',
+    'grading.messages.no_answer_data': 'No answers found.',
+    'grading.messages.error_loading_details': 'Could not load this submission. Select it again to retry.',
+    'grading.messages.error_loading_submissions': 'Could not load submissions. Please refresh to retry.',
+    'grading.empty_state': 'No submissions match this filter.',
+    'grading.status.submitted': 'Pending review',
+    'grading.status.ai_graded': 'AI suggestions: pending teacher review',
+    'grading.status.graded': 'Final grade',
+    'common.labels.loading': 'Loading…'
 };
+const t = (key, params = {}) => {
+    const translated = window.I18n?.t?.(key, params);
+    return translated && translated !== key ? translated : gradingFallbacks[key] || key;
+};
+const gradingText = (key, fallback) => SLMClient.message(key, fallback);
+const gradingEscape = value => SLMRender.escape(value);
+const gradingId = value => /^\d+$/.test(String(value || '')) && Number.isSafeInteger(Number(value)) && Number(value) > 0 ? Number(value) : null;
+const gradingFilter = value => ['all', 'pending', 'graded'].includes(value) ? value : 'all';
+let currentSubmissionId = gradingId(new URLSearchParams(window.location.search).get('submission_id'));
+let currentSubmissionData = null;
+let allSubmissions = [];
+let currentStatusFilter = gradingFilter(new URLSearchParams(window.location.search).get('filter'));
+let gradingDetailRevision = 0;
+let gradingListRevision = 0;
+let gradingSaving = false;
 
-// Check authentication
 function checkAuth() {
-    // Wait for AuthService to be available (it's loaded as a module)
-    if (typeof AuthService === 'undefined' || !AuthService) {
-        console.log('[Grading] Waiting for AuthService...');
-        setTimeout(checkAuth, 100);
+    if (!window.AuthService?.isAuthenticated()) {
+        window.location.href = '/login.html?redirect=' + encodeURIComponent(window.location.pathname + window.location.search);
         return false;
     }
-
-    if (!AuthService.isAuthenticated()) {
-        window.location.href = '/login.html';
-        return false;
-    }
-
-    // Role-based access control: Only teachers and admins can access grading
-    const userRole = AuthService.getRole();
-    if (userRole !== 'teacher' && userRole !== 'admin') {
-        // Show toast message then redirect
-        if (typeof showToast === 'function') {
-            showToast(t('grading.access_denied'), 'danger', 2000);
-        }
-        setTimeout(() => {
-            window.location.href = '/dashboard.html';
-        }, 1500);
+    if (!['teacher', 'admin'].includes(AuthService.getRole())) {
+        document.getElementById('grading-placeholder').textContent = t('grading.access_denied');
         return false;
     }
     return true;
 }
 
-let currentSubmissionId = null;
-let currentSubmissionData = null;
-let allSubmissions = []; // Store globally for filtering
-let currentStatusFilter = 'all';
+async function initializeGrading() {
+    if (!checkAuth()) return;
+    if (!window.I18n?.loaded) await window.I18n?.init?.();
+    window.I18n?.translatePage?.();
+    updateGradingNavigation();
+    document.getElementById('grading-form').onsubmit = event => { event.preventDefault(); submitGrade(); };
+    await SLMTime.load().catch(() => {});
+    await Promise.all([loadSubmissions(), currentSubmissionId ? loadSubmissionDetails(currentSubmissionId) : Promise.resolve()]);
+}
 
-// Wait for DOM to be ready
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('[Grading] DOMContentLoaded fired');
-    
-    // Wait a brief moment for AuthService module to load
-    setTimeout(() => {
-        if (checkAuth()) {
-            loadSubmissions();
-        }
-    }, 100);
+document.addEventListener('DOMContentLoaded', initializeGrading);
+window.addEventListener('popstate', () => {
+    const params = new URLSearchParams(window.location.search);
+    currentStatusFilter = gradingFilter(params.get('filter'));
+    const id = gradingId(params.get('submission_id'));
+    currentSubmissionId = id;
+    updateGradingNavigation();
+    applyCurrentFilter();
+    if (id) selectSubmission({ id }, false);
+    else {
+        ++gradingDetailRevision; currentSubmissionData = null;
+        document.getElementById('grading-area').classList.add('hidden');
+        document.getElementById('grading-placeholder').classList.remove('hidden');
+    }
 });
 
-function loadSubmissions() {
-    console.log('[Grading] loadSubmissions called');
-    const list = document.getElementById('submission-list');
-    if (!list) {
-        console.error('[Grading] submission-list element not found');
-        return;
-    }
-    list.innerHTML = `<div class="text-center p-3 text-muted">${t('common.labels.loading')}</div>`;
-
-    const token = AuthService.getToken();
-    console.log('[Grading] Got token:', token ? 'Yes' : 'No');
-    
-    if (!token) {
-        console.error('[Grading] No authentication token');
-        list.innerHTML = `<div class="text-danger p-3">${t('grading.messages.not_authenticated')}</div>`;
-        return;
-    }
-
-    // Include ai_graded status in filter for AI-assisted submissions needing review
-    fetch('/api/assessments/submissions?status=submitted&status=graded&status=ai_graded', {
-        headers: { 'Authorization': `Bearer ${token}` }
-    })
-    .then(res => {
-        console.log('[Grading] API response status:', res.status);
-        if (!res.ok) {
-            throw new Error(`Failed to load: ${res.status}`);
-        }
-        return res.json();
-    })
-    .then(submissions => {
-        console.log('[Grading] Got submissions:', submissions.length);
-        allSubmissions = submissions;
-        applyCurrentFilter();
-    })
-    .catch(e => {
-        console.error('[Grading] Error in loadSubmissions:', e);
-        list.innerHTML = `<div class="text-danger p-3">${t('grading.messages.error_loading_submissions', { error: e.message })}</div>`;
+function updateGradingNavigation() {
+    const back = document.getElementById('grading-dashboard-link');
+    back.href = `dashboard.html?view=grading&grading_filter=${currentStatusFilter}`;
+    document.querySelectorAll('#grading-filter-tabs button').forEach(button => {
+        const active = button.dataset.filter === currentStatusFilter;
+        button.classList.toggle('active', active);
+        button.setAttribute('aria-pressed', String(active));
     });
 }
 
-/**
- * Filter submissions by status
- */
-function filterSubmissions(status, btn) {
-    currentStatusFilter = status;
+function syncGradingUrl() {
+    const url = new URL(window.location.href);
+    url.searchParams.set('filter', currentStatusFilter);
+    if (currentSubmissionId) url.searchParams.set('submission_id', currentSubmissionId);
+    else url.searchParams.delete('submission_id');
+    window.history.replaceState(null, '', url.pathname + url.search);
+}
 
-    // Update active button
-    const tabs = document.querySelectorAll('#grading-filter-tabs button');
-    tabs.forEach(t => t.classList.remove('active'));
-    if (btn) btn.classList.add('active');
+async function loadSubmissions() {
+    if (!checkAuth()) return;
+    const revision = ++gradingListRevision;
+    const list = document.getElementById('submission-list');
+    list.textContent = t('common.labels.loading');
+    try {
+        const submissions = await SLMClient.request('/api/assessments/submissions?status=submitted&status=graded&status=ai_graded');
+        if (revision !== gradingListRevision) return;
+        if (!Array.isArray(submissions)) throw new Error(t('grading.messages.error_loading_submissions'));
+        allSubmissions = submissions;
+        applyCurrentFilter();
+    } catch (error) {
+        if (revision === gradingListRevision) list.textContent = error.message || t('grading.messages.error_loading_submissions');
+    }
+}
 
+function filterSubmissions(status) {
+    currentStatusFilter = gradingFilter(status);
+    updateGradingNavigation();
+    syncGradingUrl();
     applyCurrentFilter();
 }
 
-/**
- * Apply current filter to submissions
- */
 function applyCurrentFilter() {
-    let filtered = allSubmissions;
-
-    if (currentStatusFilter === 'pending') {
-        filtered = allSubmissions.filter(s =>
-            s.status === 'submitted' || s.status === 'ai_graded'
-        );
-    } else if (currentStatusFilter === 'graded') {
-        filtered = allSubmissions.filter(s => s.status === 'graded');
-    }
-
+    const filtered = allSubmissions.filter(sub => currentStatusFilter === 'pending' ?
+        ['submitted', 'ai_graded'].includes(sub.status) : currentStatusFilter === 'graded' ? sub.status === 'graded' : true);
     renderList(filtered);
 }
 
 function renderList(submissions) {
     const list = document.getElementById('submission-list');
-    list.innerHTML = '';
-
-    if (submissions.length === 0) {
-        list.innerHTML = `<div class="text-center p-3 text-muted">${t('grading.empty_state')}</div>`;
-        return;
-    }
-
+    list.replaceChildren();
+    if (!submissions.length) { list.textContent = t('grading.empty_state'); return; }
     const template = document.getElementById('submission-item-template');
-
     submissions.forEach(sub => {
         const clone = template.content.cloneNode(true);
         const link = clone.querySelector('a');
-
-        link.onclick = (e) => { e.preventDefault(); selectSubmission(sub); };
-        clone.querySelector('.student-name').textContent = sub.student_name || `Student #${sub.student_id}`;
-        clone.querySelector('.assessment-title').textContent = sub.assessment_title || `Assessment #${sub.assessment_id}`;
-        clone.querySelector('.submission-date').textContent = new Date(sub.submitted_at).toLocaleDateString();
-
+        link.href = `grading.html?submission_id=${Number(sub.id)}&filter=${currentStatusFilter}`;
+        link.classList.toggle('active', Number(sub.id) === currentSubmissionId);
+        if (Number(sub.id) === currentSubmissionId) link.setAttribute('aria-current', 'true');
+        link.onclick = event => {
+            if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+            event.preventDefault(); selectSubmission(sub);
+        };
+        clone.querySelector('.student-name').textContent = sub.student_name;
+        clone.querySelector('.assessment-title').textContent = sub.assessment_title;
+        clone.querySelector('.submission-date').textContent = SLMTime.format(sub.submitted_at, { dateOnly: true });
         const badge = clone.querySelector('.status-badge');
         badge.textContent = getStatusLabel(sub.status);
         badge.className = 'status-badge badge ' + getStatusBadgeClass(sub.status);
-
-        list.appendChild(clone);
+        list.append(clone);
     });
 }
 
-function getStatusLabel(status) {
-    const keyByStatus = {
-        submitted: 'grading.status.submitted',
-        ai_graded: 'grading.status.ai_graded',
-        graded: 'grading.status.graded',
-        pending: 'grading.status.pending'
-    };
-    const key = keyByStatus[status];
-    return key ? t(key) : status;
-}
-
+function getStatusLabel(status) { return t(`grading.status.${status}`); }
 function getStatusBadgeClass(status) {
-    const classes = {
-        'submitted': 'bg-warning text-dark',
-        'ai_graded': 'bg-info text-dark',
-        'graded': 'bg-success',
-        'returned': 'bg-secondary'
-    };
-    return classes[status] || 'bg-secondary';
+    return { submitted: 'bg-warning text-dark', ai_graded: 'bg-info text-dark', graded: 'bg-success' }[status] || 'bg-secondary';
 }
 
-function selectSubmission(sub) {
-    currentSubmissionId = sub.id;
+async function selectSubmission(sub, syncUrl = true) {
+    const id = gradingId(sub.id);
+    if (!id || gradingSaving) return;
+    currentSubmissionId = id;
+    if (syncUrl) syncGradingUrl();
+    applyCurrentFilter();
+    await loadSubmissionDetails(id);
+}
 
-    // UI Updates
+function setGradingControlsDisabled(disabled) {
+    document.querySelectorAll('#grading-area button, #grading-area input, #grading-area textarea').forEach(control => { control.disabled = disabled; });
+}
+
+async function loadSubmissionDetails(id) {
+    if (!checkAuth()) return;
+    const revision = ++gradingDetailRevision;
+    currentSubmissionId = Number(id);
+    currentSubmissionData = null;
     document.getElementById('grading-placeholder').classList.add('hidden');
-    const area = document.getElementById('grading-area');
-    area.classList.remove('hidden');
-
-    document.getElementById('submission-title').textContent = `${sub.student_name} - ${sub.assessment_title}`;
-    const statusBadge = document.getElementById('submission-status');
-    statusBadge.textContent = getStatusLabel(sub.status);
-    statusBadge.className = 'badge ' + getStatusBadgeClass(sub.status);
-
-    // Load details
-    loadSubmissionDetails(sub.id);
-}
-
-function loadSubmissionDetails(id) {
+    document.getElementById('grading-area').classList.remove('hidden');
+    document.getElementById('submission-title').textContent = t('common.labels.loading');
+    document.getElementById('submission-status').textContent = '';
+    document.getElementById('ai-actions').classList.add('hidden');
+    document.getElementById('grade-score').value = '';
+    document.getElementById('grade-feedback').value = '';
     const container = document.getElementById('answers-container');
-    if (!container) return;
-    container.innerHTML = t('common.labels.loading');
-
-    const token = AuthService.getToken();
-    
-    fetch(`/api/assessments/submissions/${id}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-    })
-    .then(res => {
-        if (!res.ok) throw new Error(`Failed to load: ${res.status}`);
-        return res.json();
-    })
-    .then(fullSub => {
-        currentSubmissionData = fullSub;
-        renderAnswers(fullSub, container);
-
-        // Show/hide AI actions based on status
-        const aiActions = document.getElementById('ai-actions');
-        const hasAiSuggestions = fullSub.answers?.some(a => a.ai_suggested_score !== null);
-
-        if (fullSub.status === 'ai_graded' || hasAiSuggestions) {
-            aiActions.classList.remove('hidden');
-            const aiCount = fullSub.answers?.filter(a => a.ai_suggested_score !== null).length || 0;
-            document.getElementById('ai-summary').textContent =
-                t('grading.ai.summary', { count: aiCount });
-        } else {
-            aiActions.classList.add('hidden');
-        }
-
-        // Populate existing grade if any
-        if (fullSub.score !== null) {
-            document.getElementById('grade-score').value = fullSub.score;
-        }
-        if (fullSub.feedback) {
-            document.getElementById('grade-feedback').value = fullSub.feedback;
-        }
-    })
-    .catch(e => {
-        container.innerHTML = t('grading.messages.error_loading_details');
-        console.error(e);
-    });
+    container.textContent = t('common.labels.loading');
+    setGradingControlsDisabled(true);
+    try {
+        const sub = await SLMClient.request(`/api/assessments/submissions/${Number(id)}`);
+        if (revision !== gradingDetailRevision) return;
+        if (Number(sub?.id) !== Number(id) || !Array.isArray(sub.answers)) throw new Error(t('grading.messages.error_loading_details'));
+        currentSubmissionData = sub;
+        document.getElementById('submission-title').textContent = `${sub.student_name} · ${sub.assessment_title}`;
+        const badge = document.getElementById('submission-status');
+        badge.textContent = getStatusLabel(sub.status);
+        badge.className = 'badge ' + getStatusBadgeClass(sub.status);
+        renderAnswers(sub, container);
+        document.getElementById('ai-actions').classList.toggle('hidden', sub.status !== 'ai_graded');
+        document.getElementById('ai-summary').textContent = gradingText('grading_ai_provisional', 'AI scores are suggestions until you approve them.');
+        document.getElementById('grade-score').value = sub.score ?? '';
+        document.getElementById('grade-score').max = sub.total_points ?? 0;
+        document.getElementById('grade-feedback').value = sub.feedback || '';
+        setGradingControlsDisabled(!['submitted', 'ai_graded', 'graded'].includes(sub.status));
+        document.getElementById('submission-title').focus();
+    } catch (error) {
+        if (revision === gradingDetailRevision) container.textContent = error.message || t('grading.messages.error_loading_details');
+    }
 }
 
 function renderAnswers(sub, container) {
-    if (!sub.answers || !Array.isArray(sub.answers)) {
-        container.innerHTML = t('grading.messages.no_answer_data');
-        return;
-    }
-
-    container.innerHTML = sub.answers.map((ans, idx) => {
-        const hasAiSuggestion = ans.ai_suggested_score !== null;
-        const confidencePercent = ans.ai_confidence ? Math.round(ans.ai_confidence * 100) : null;
-        const ptsLabel = t('grading.labels.pts');
-        const studentAnswerLabel = t('grading.labels.student_answer');
-        const correctAnswerLabel = t('grading.labels.correct_answer');
-        const noAnswerLabel = t('grading.messages.no_answer');
-        const aiSuggestionLabel = t('grading.labels.ai_suggestion');
-        const modifiedLabel = t('grading.labels.modified');
-        const acceptLabel = t('grading.buttons.accept');
-        const modifyLabel = t('grading.buttons.modify');
-        const scoreLabel = t('grading.labels.score');
-        const optionalFeedbackLabel = t('grading.labels.optional_feedback');
-        const saveLabel = t('grading.buttons.save');
-
-        return `
-        <div class="card mb-3" data-response-id="${ans.response_id}">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <div>
-                    <strong>Q${idx + 1}:</strong> ${ans.question_text}
-                </div>
-                <span class="badge ${ans.points !== null ? 'bg-success' : 'bg-secondary'}">
-                    ${ans.points ?? '?'} / ${ans.max_points || 1} ${ptsLabel}
-                </span>
-            </div>
-            <div class="card-body">
-                <p><strong>${studentAnswerLabel}:</strong> 
-                    <span class="${ans.is_correct === true ? 'text-success' : ans.is_correct === false ? 'text-danger' : ''}">
-                        ${ans.given_answer || `<em>${noAnswerLabel}</em>`}
-                    </span>
-                </p>
-                ${ans.is_correct === false && ans.correct_answer ?
-                `<p class="text-muted"><small>${correctAnswerLabel}: ${ans.correct_answer}</small></p>` : ''}
-                
-                ${hasAiSuggestion ? `
-                <div class="ai-suggestion-panel mt-3 p-3 bg-light rounded border-start border-4 border-info">
-                    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
-                        <div>
-                            <span class="fw-bold text-info">🤖 ${aiSuggestionLabel}:</span>
-                            <strong>${ans.ai_suggested_score}/${ans.max_points}</strong>
-                            ${confidencePercent !== null ?
-                    `<span class="badge ${confidencePercent >= 80 ? 'bg-success' : confidencePercent >= 50 ? 'bg-warning text-dark' : 'bg-danger'} ms-2">
-                                    ${t('grading.labels.confidence', { percent: confidencePercent })}
-                                </span>` : ''}
-                            ${ans.teacher_override ? `<span class="badge bg-secondary ms-2">${modifiedLabel}</span>` : ''}
-                        </div>
-                        <div class="btn-group btn-group-sm">
-                            <button class="btn btn-success btn-sm" onclick="acceptSingleAiGrade(${ans.response_id}, ${ans.ai_suggested_score})">
-                                ${acceptLabel}
-                            </button>
-                            <button class="btn btn-outline-warning btn-sm" onclick="toggleManualGrade(${ans.response_id})">
-                                ${modifyLabel}
-                            </button>
-                        </div>
-                    </div>
-                    ${ans.ai_suggested_feedback ?
-                    `<div class="mt-2 text-muted small">${ans.ai_suggested_feedback}</div>` : ''}
-                </div>
-                ` : ''}
-                
-                <!-- Manual grade input (hidden by default) -->
-                <div class="manual-grade-input mt-3 hidden" id="manual-grade-${ans.response_id}">
-                    <div class="row g-2">
-                        <div class="col-4">
-                            <input type="number" class="form-control form-control-sm" 
-                                   id="score-${ans.response_id}" 
-                                   placeholder="${scoreLabel}" max="${ans.max_points}" value="${ans.points ?? ''}">
-                        </div>
-                        <div class="col-8">
-                            <div class="input-group input-group-sm">
-                                <input type="text" class="form-control" 
-                                       id="feedback-${ans.response_id}" 
-                                       placeholder="${optionalFeedbackLabel}">
-                                <button class="btn btn-primary" onclick="submitQuestionGrade(${ans.response_id})">
-                                    ${saveLabel}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
+    if (!sub.answers.length) { container.textContent = t('grading.messages.no_answer_data'); return; }
+    container.innerHTML = sub.answers.map((answer, index) => {
+        const id = Number(answer.response_id);
+        const ai = Number.isFinite(answer.ai_suggested_score);
+        return `<section class="card mb-3" data-response-id="${id}"><div class="card-header">
+            <h3 class="h6">${index + 1}. ${gradingEscape(answer.question_text)}</h3>
+            <span>${gradingEscape(answer.points ?? '—')} / ${gradingEscape(answer.max_points)} ${gradingEscape(t('grading.labels.pts'))}</span></div>
+            <div class="card-body"><p><strong>${gradingEscape(t('grading.labels.student_answer'))}:</strong> ${gradingEscape(answer.given_answer || t('grading.messages.no_answer'))}</p>
+            ${answer.correct_answer ? `<p><strong>${gradingEscape(t('grading.labels.correct_answer'))}:</strong> ${gradingEscape(answer.correct_answer)}</p>` : ''}
+            ${answer.feedback ? `<p><strong>${gradingEscape(t('grading.labels.feedback'))}:</strong> ${gradingEscape(answer.feedback)}</p>` : ''}
+            ${ai ? `<div class="border rounded p-2 mb-2"><p>${gradingEscape(t('grading.labels.ai_suggestion'))}: ${gradingEscape(answer.ai_suggested_score)} / ${gradingEscape(answer.max_points)}</p><p>${gradingEscape(answer.ai_suggested_feedback || '')}</p><button type="button" class="btn btn-outline-success btn-sm" data-grade-action="accept" data-response-id="${id}">${gradingEscape(t('grading.buttons.accept'))}</button></div>` : ''}
+            <button type="button" class="btn btn-outline-secondary btn-sm" data-grade-action="edit" data-response-id="${id}" aria-controls="manual-grade-${id}" aria-expanded="false">${gradingEscape(t('grading.buttons.modify'))}</button>
+            <div class="manual-grade-input mt-3 hidden" id="manual-grade-${id}">
+                <label for="score-${id}" class="form-label">${gradingEscape(t('grading.labels.score'))}</label>
+                <input type="number" class="form-control" id="score-${id}" min="0" step="1" max="${Number(answer.max_points)}" value="${answer.points ?? ''}">
+                <label for="feedback-${id}" class="form-label">${gradingEscape(t('grading.labels.optional_feedback'))}</label>
+                <textarea class="form-control mb-2" id="feedback-${id}">${gradingEscape(answer.feedback || '')}</textarea>
+                <button type="button" class="btn btn-primary btn-sm" data-grade-action="save" data-response-id="${id}">${gradingEscape(t('grading.buttons.save'))}</button>
+            </div></div></section>`;
     }).join('');
+    container.querySelectorAll('[data-grade-action]').forEach(button => {
+        button.onclick = () => {
+            const id = Number(button.dataset.responseId);
+            if (button.dataset.gradeAction === 'edit') toggleManualGrade(id);
+            else if (button.dataset.gradeAction === 'save') submitQuestionGrade(id);
+            else acceptSingleAiGrade(id, sub.answers.find(answer => Number(answer.response_id) === id).ai_suggested_score);
+        };
+    });
 }
 
 function toggleManualGrade(responseId) {
     const input = document.getElementById(`manual-grade-${responseId}`);
     input.classList.toggle('hidden');
+    const button = document.querySelector(`[data-grade-action="edit"][data-response-id="${responseId}"]`);
+    button.setAttribute('aria-expanded', String(!input.classList.contains('hidden')));
+    if (!input.classList.contains('hidden')) document.getElementById(`score-${responseId}`).focus();
+}
+
+async function saveGradingChange(path, body) {
+    if (!currentSubmissionData || gradingSaving || !checkAuth()) return;
+    gradingSaving = true;
+    setGradingControlsDisabled(true);
+    const id = currentSubmissionId;
+    try {
+        const result = await SLMClient.request(`/api/assessments/submissions/${id}${path}`, {
+            method: 'POST', ...(body === undefined ? {} : { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+        });
+        if (result?.status !== 'ok') throw new Error(gradingText('grading_save_unconfirmed', 'The server could not confirm the grade was saved. Review your inputs and retry.'));
+        showToast(t('grading.grade_saved'), 'success');
+        await Promise.all([loadSubmissionDetails(id), loadSubmissions()]);
+    } catch (error) { showToast(error.message, 'danger'); }
+    finally { gradingSaving = false; setGradingControlsDisabled(!currentSubmissionData || !['submitted', 'ai_graded', 'graded'].includes(currentSubmissionData.status)); }
+}
+
+function validGrade(input) {
+    if (!input.value.trim() || !Number.isInteger(Number(input.value)) || !input.checkValidity()) {
+        input.setCustomValidity(gradingText('grading_invalid_score', 'Enter a whole-number score within the allowed range.'));
+        input.reportValidity(); input.setCustomValidity(''); input.focus(); return false;
+    }
+    return true;
 }
 
 function acceptSingleAiGrade(responseId, suggestedScore) {
-    const token = AuthService.getToken();
-    
-    fetch(`/api/assessments/submissions/${currentSubmissionId}/responses/${responseId}/grade`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ score: suggestedScore, feedback: null })
-    })
-    .then(res => {
-        if (res.ok) {
-            loadSubmissionDetails(currentSubmissionId);
-        } else {
-            showToast(t('grading.error_accept_grade'), 'danger');
-        }
-    })
-    .catch(e => {
-        showToast(t('grading.error_network'), 'danger');
-        console.error(e);
-    });
+    const answer = currentSubmissionData?.answers.find(item => Number(item.response_id) === Number(responseId));
+    return saveGradingChange(`/responses/${responseId}/grade`, { score: suggestedScore, feedback: answer?.ai_suggested_feedback || null });
 }
-
 function submitQuestionGrade(responseId) {
-    const score = document.getElementById(`score-${responseId}`).value;
-    const feedback = document.getElementById(`feedback-${responseId}`).value;
-    const token = AuthService.getToken();
-
-    fetch(`/api/assessments/submissions/${currentSubmissionId}/responses/${responseId}/grade`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ score: parseInt(score), feedback: feedback || null })
-    })
-    .then(res => {
-        if (res.ok) {
-            document.getElementById(`manual-grade-${responseId}`).classList.add('hidden');
-            loadSubmissionDetails(currentSubmissionId);
-        } else {
-            showToast(t('grading.error_save_grade'), 'danger');
-        }
-    })
-    .catch(e => {
-        showToast(t('grading.error_network'), 'danger');
-        console.error(e);
-    });
+    const score = document.getElementById(`score-${responseId}`);
+    if (!validGrade(score)) return;
+    return saveGradingChange(`/responses/${responseId}/grade`, { score: Number(score.value), feedback: document.getElementById(`feedback-${responseId}`).value || null });
 }
-
-function acceptAllAiGrades() {
-    const token = AuthService.getToken();
-    
-    fetch(`/api/assessments/submissions/${currentSubmissionId}/accept-ai`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
-    })
-    .then(res => {
-        if (res.ok) {
-            return res.json();
-        } else {
-            return res.json().then(err => { throw err; });
-        }
-    })
-    .then(result => {
-        showToast(t('grading.ai_grades_accepted', { score: result.final_score }), 'success');
-        loadSubmissionDetails(currentSubmissionId);
-        loadSubmissions();
-    })
-    .catch(err => {
-        showToast(err.detail || t('grading.error_accept_ai'), 'danger');
-        console.error(err);
-    });
-}
-
+function acceptAllAiGrades() { return saveGradingChange('/accept-ai'); }
 function submitGrade() {
-    if (!currentSubmissionId) return;
-
-    const score = document.getElementById('grade-score').value;
-    const feedback = document.getElementById('grade-feedback').value;
-    const token = AuthService.getToken();
-
-    fetch(`/api/assessments/submissions/${currentSubmissionId}/grade`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ score: parseFloat(score), feedback })
-    })
-    .then(res => {
-        if (res.ok) {
-            showToast(t('grading.grade_saved'), 'success');
-            loadSubmissions();
-        } else {
-            showToast(t('grading.error_save_grade'), 'danger');
-        }
-    })
-    .catch(e => {
-        showToast(t('grading.error_network'), 'danger');
-        console.error(e);
-    });
+    const score = document.getElementById('grade-score');
+    if (!validGrade(score)) return;
+    return saveGradingChange('/grade', { score: Number(score.value), feedback: document.getElementById('grade-feedback').value });
 }

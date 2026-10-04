@@ -1,7 +1,7 @@
-from fastapi import Depends
+from fastapi import Depends, HTTPException
 from sqlalchemy.orm import Session
 from src.core.models import User, AIModelConfiguration
-from src.core.services.ai_service import AIService
+from src.core.services.ai_service import AIService, RuntimeAIConfig
 from src.core.services.database import get_db_service as _get_db_service
 from src.core.services.settings_config_service import get_settings_service
 
@@ -78,4 +78,18 @@ def get_ai_service_dependency(
             # API key handling omitted for brevity/safety in this transient object
         )
 
-    return AIService(config, logger)
+    parameters = config.model_parameters or {}
+    if config.provider not in {"ollama", "lm_studio", "openai", "openrouter"}:
+        raise HTTPException(
+            status_code=409,
+            detail="Saved AI provider is unsupported; choose a supported provider in settings",
+        )
+    runtime = RuntimeAIConfig(
+        provider=config.provider,
+        model=config.model,
+        endpoint=config.endpoint,
+        api_key=config.decrypted_api_key,
+        temperature=parameters.get("temperature"),
+        max_tokens=parameters.get("max_tokens"),
+    )
+    return AIService(runtime, logger)

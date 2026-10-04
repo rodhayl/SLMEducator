@@ -22,16 +22,11 @@ client = TestClient(app)
 
 
 @pytest.fixture(autouse=True)
-def mock_auth():
+def mock_auth(test_teacher):
     """Mock authentication for all tests."""
 
     def mock_get_current_user():
-        user = MagicMock(spec=User)
-        user.id = 1
-        user.email = "test@example.com"
-        user.grade_level = "10"
-        user.role = UserRole.TEACHER
-        return user
+        return test_teacher
 
     app.dependency_overrides[get_current_user] = mock_get_current_user
     yield
@@ -55,8 +50,9 @@ class TestFileUpload:
         data = response.json()
         assert data["filename"] == "notes.txt"
         assert "extracted_text" in data
-        assert data["extracted_text"] == content.decode("utf-8")
-        assert data["char_count"] == len(content)
+        assert data["sections"][0]["text"] == content.decode("utf-8")
+        assert data["extracted_text"].startswith("[section:1]")
+        assert data["char_count"] == len(data["extracted_text"])
 
     def test_upload_markdown_file(self):
         """Test uploading a markdown file."""
@@ -217,7 +213,7 @@ class TestContentCreation:
                     "title": "Cell Structure Lesson",
                     "type": "lesson",  # Using alias
                     "data": {  # Using alias
-                        "introduction": "Cells are...",
+                        "content": "Cells are the units of living organisms.",
                         "sections": [],
                     },
                     "difficulty": 1,
@@ -227,11 +223,7 @@ class TestContentCreation:
             )
 
             # Should not return 422 (validation error)
-            assert response.status_code in [
-                200,
-                201,
-                500,
-            ]  # 500 if DB not set up in test
+            assert response.status_code == 200, response.text
 
     def test_create_content_with_content_type(self):
         """Test creating content using standard field names."""
@@ -241,13 +233,13 @@ class TestContentCreation:
                 json={
                     "title": "Exercise Set",
                     "content_type": "exercise",
-                    "content_data": {"questions": []},
+                    "content_data": {"question":"What is a cell?", "type":"short_answer"},
                     "difficulty": 2,
                     "is_personal": False,
                 },
             )
 
-            assert response.status_code in [200, 201, 500]
+            assert response.status_code == 200, response.text
 
     def test_create_content_with_study_plan_id(self):
         """Test creating content linked to a study plan."""
@@ -263,7 +255,7 @@ class TestContentCreation:
                 },
             )
 
-            assert response.status_code in [200, 201, 500]
+            assert response.status_code == 403, response.text
 
 
 # === End-to-End Workflow Tests ===

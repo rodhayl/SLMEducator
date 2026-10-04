@@ -1,28 +1,32 @@
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session
 import logging
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Literal
 
 from src.api.dependencies import get_db, get_ai_service_dependency
 from src.api.security import get_current_user, get_optional_current_user
 from src.core.models import User, ApplicationConfiguration, AIModelConfiguration
-from src.core.services.ai_service import AIProvider, AIService
+from src.core.services.ai_service import AIProvider, AIService, RuntimeAIConfig
 
 router = APIRouter(prefix="/api/settings", tags=["settings"])
 logger = logging.getLogger(__name__)
 
 
 class AIConfigModel(BaseModel):
-    provider: str = "ollama"
+    provider: Literal["ollama", "lm_studio", "openai", "openrouter"] = "ollama"
     model: str = "llama3"
     endpoint: Optional[str] = None
     api_key: Optional[str] = None
+    has_api_key: bool = False
+    clear_api_key: bool = False
     # Advanced settings
-    temperature: float = 0.7
-    max_tokens: int = 1000
-    preprocessing_model: Optional[str] = None
-    enable_preprocessing: bool = False
+    temperature: float = Field(default=0.7, ge=0, le=2)
+    max_tokens: int = Field(default=1000, ge=1, le=16384)
+    # Accepted only to migrate old clients; never persisted or advertised active.
+    preprocessing_model: Optional[str] = Field(default=None, exclude=True)
+    enable_preprocessing: Optional[bool] = Field(default=None, exclude=True)
+    compatibility_warnings: List[str] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -57,15 +61,38 @@ async def get_ai_config(
         # Return defaults
         return AIConfigModel()
 
-    # Decrypt key for display? Or keep hidden?
-    # Usually we don't send back the key unless requested or masked.
-    # For now, let's send it back specific for the user to edit.
-    key = config.decrypted_api_key
+    return _public_ai_config(config)
+
+
+def _public_ai_config(config: AIModelConfiguration) -> AIConfigModel:
+    """Return settings and key presence without revealing the saved credential."""
+    parameters = config.model_parameters or {}
+    if config.provider not in {"ollama", "lm_studio", "openai", "openrouter"}:
+        raise HTTPException(
+            status_code=409,
+            detail="Saved AI provider is unsupported. Choose Ollama, LM Studio, OpenAI or OpenRouter and save a supported configuration.",
+        )
     return AIConfigModel(
         provider=config.provider,
         model=config.model,
         endpoint=config.endpoint,
-        api_key=key,
+        has_api_key=bool(config.api_key),
+        compatibility_warnings=(
+            [
+                "Legacy preprocessing settings are inactive and will be removed on the next save."
+            ]
+            if parameters.get("enable_preprocessing")
+            or parameters.get("preprocessing_model")
+            else []
+        ),
+        **{
+            key: parameters[key]
+            for key in (
+                "temperature",
+                "max_tokens",
+            )
+            if key in parameters
+        },
     )
 
 
@@ -85,23 +112,31 @@ async def update_ai_config(
         config = AIModelConfiguration(user_id=current_user.id)
         db.add(config)
 
+    destination_changed = config.provider != data.provider or (
+        config.endpoint or ""
+    ) != (data.endpoint or "")
     config.provider = data.provider
     config.model = data.model
     config.endpoint = data.endpoint
-    if "api_key" in data.model_fields_set:
-        if data.api_key:
-            config.set_encrypted_api_key(data.api_key)
-        else:
-            config.api_key = None
-
+    if data.clear_api_key or (destination_changed and not data.api_key):
+        config.api_key = None
+    elif data.api_key:
+        config.set_encrypted_api_key(data.api_key)
+    config.model_parameters = {
+        key: getattr(data, key)
+        for key in (
+            "temperature",
+            "max_tokens",
+        )
+    }
     db.commit()
     db.refresh(config)
-    return AIConfigModel(
-        provider=config.provider,
-        model=config.model,
-        endpoint=config.endpoint,
-        api_key=config.decrypted_api_key,
-    )
+    public = _public_ai_config(config)
+    if data.enable_preprocessing or data.preprocessing_model:
+        public.compatibility_warnings = [
+            "Preprocessing is retired. These legacy settings were ignored; the selected model receives the bounded source directly."
+        ]
+    return public
 
 
 @router.get("/app", response_model=AppConfigModel)
@@ -188,7 +223,7 @@ async def fetch_models(
     Fetch available models from the specified AI provider.
 
     If no provider is specified, uses the user's configured provider.
-    Supports: ollama, lm_studio, openai, anthropic, openrouter
+    Supports: ollama, lm_studio, openai, openrouter
     """
     try:
         # Get user's AI configuration for defaults
@@ -212,10 +247,15 @@ async def fetch_models(
                 status_code=400,
                 detail=(
                     f"Invalid provider: {target_provider}. "
-                    "Valid options: ollama, lm_studio, openai, anthropic, openrouter"
+                    "Valid options: ollama, lm_studio, openai, openrouter"
                 ),
             )
 
+        if target_provider not in {"ollama", "lm_studio", "openai", "openrouter"}:
+            raise HTTPException(
+                status_code=422,
+                detail="Unsupported provider; choose a supported provider in settings",
+            )
         models = ai_service.fetch_available_models(provider=target_enum)
 
         return ModelsResponse(models=models, provider=target_provider)
@@ -230,15 +270,28 @@ def _build_ai_service(
     config_override: Optional[AIConfigModel], current_user: User, db: Session
 ) -> AIService:
     if config_override:
-        temp_config = AIModelConfiguration(
-            user_id=current_user.id,
-            provider=config_override.provider,
-            model=config_override.model,
-            endpoint=config_override.endpoint or None,
+        saved = (
+            db.query(AIModelConfiguration).filter_by(user_id=current_user.id).first()
         )
-        if config_override.api_key:
-            temp_config.set_encrypted_api_key(config_override.api_key)
-        return AIService(temp_config, logger)
+        key = config_override.api_key
+        same_destination = (
+            saved is not None
+            and saved.provider == config_override.provider
+            and (saved.endpoint or "") == (config_override.endpoint or "")
+        )
+        if not key and same_destination and not config_override.clear_api_key:
+            key = saved.decrypted_api_key
+        return AIService(
+            RuntimeAIConfig(
+                provider=config_override.provider,
+                model=config_override.model,
+                endpoint=config_override.endpoint,
+                api_key=key,
+                temperature=config_override.temperature,
+                max_tokens=config_override.max_tokens,
+            ),
+            logger,
+        )
     return get_ai_service_dependency(current_user, db)
 
 

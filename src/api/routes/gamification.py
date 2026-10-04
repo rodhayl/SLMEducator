@@ -8,7 +8,7 @@ Provides endpoints for Phase 3 gamification features:
 - Daily goals
 """
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List, Optional
@@ -17,6 +17,9 @@ from datetime import datetime, date
 
 from src.api.dependencies import get_db
 from src.api.security import get_current_user
+from src.core.services.temporal_service import local_date, record_activity_day, user_timezone, record_goal_day, goal_day_info, last_activity_day
+from src.api.policies import teacher_student_ids
+from src.core.roles import is_admin, is_student, is_teacher
 from src.core.models import (
     User,
     Badge,
@@ -41,6 +44,8 @@ class GamificationProfile(BaseModel):
     longest_streak: int
     last_activity_date: Optional[date]
     badges_earned: int
+    timezone: str = "UTC"
+    day_provenance: str = "legacy_unknown"
 
 
 class BadgeResponse(BaseModel):
@@ -58,13 +63,15 @@ class BadgeResponse(BaseModel):
 
 
 class LeaderboardItem(BaseModel):
-    """Leaderboard entry"""
+    """Participation feedback ranked only within the viewer's authorized scope."""
 
     rank: int
     user_id: int
     username: str
     xp: int
     level: int
+    metric_type: str = "participation"
+    rank_scope: str = "visible_users"
 
 
 class DailyGoalResponse(BaseModel):
@@ -76,6 +83,10 @@ class DailyGoalResponse(BaseModel):
     current_value: int
     completed: bool
     goal_date: date
+    timezone: str = "UTC"
+    day_timezone: Optional[str] = None
+    day_provenance: str = "legacy_unknown"
+    mixed_day_policy: bool = False
 
 
 class DailyGoalCreate(BaseModel):
@@ -109,6 +120,8 @@ async def get_gamification_profile(
         longest_streak=current_user.longest_streak or 0,
         last_activity_date=current_user.last_activity_date,
         badges_earned=badges_count,
+        timezone=user_timezone(current_user),
+        day_provenance="recorded" if last_activity_day(current_user) else "legacy_unknown",
     )
 
 
@@ -140,60 +153,63 @@ async def get_badges(
     return result
 
 
+def _leaderboard_users(db: Session, user: User):
+    """Apply the same enrollment boundary to live and cached participation data."""
+    query = db.query(User.id).filter(User.active.is_(True))
+    if is_admin(user):
+        return query
+    if is_teacher(user):
+        return query.filter(User.id.in_(teacher_student_ids(db, user.id)))
+    if is_student(user):
+        return query.filter(User.id == user.id)
+    return query.filter(User.id.in_([]))
+
+
 @router.get("/leaderboard", response_model=List[LeaderboardItem])
 async def get_leaderboard(
     period: str = "weekly",
-    limit: int = 10,
+    limit: int = Query(10, ge=1, le=100),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Get leaderboard for specified period"""
-    # Try to get from pre-computed leaderboard
+    """Return scoped participation XP, never a global student directory/rank."""
+    visible_users = _leaderboard_users(db, current_user)
     entries = (
-        db.query(LeaderboardEntry)
-        .filter(LeaderboardEntry.period == period)
-        .order_by(LeaderboardEntry.rank)
+        db.query(LeaderboardEntry, User)
+        .join(User, User.id == LeaderboardEntry.user_id)
+        .filter(LeaderboardEntry.period == period, User.id.in_(visible_users))
+        .order_by(LeaderboardEntry.rank, User.id)
         .limit(limit)
         .all()
     )
-
     if entries:
-        result = []
-        for entry in entries:
-            user = db.query(User).filter(User.id == entry.user_id).first()
-            result.append(
-                LeaderboardItem(
-                    rank=entry.rank,
-                    user_id=entry.user_id,
-                    username=user.username if user else f"User #{entry.user_id}",
-                    xp=entry.xp,
-                    level=user.level if user else 1,
-                )
-            )
-        return result
-
-    # Fallback: compute from users table
-    users = (
-        db.query(User)
-        .filter(User.active == True)
-        .order_by(User.xp.desc())
-        .limit(limit)
-        .all()
-    )
-
-    result = []
-    for idx, user in enumerate(users, 1):
-        result.append(
+        return [
             LeaderboardItem(
-                rank=idx,
+                rank=rank,
                 user_id=user.id,
                 username=user.username,
-                xp=user.xp or 0,
+                xp=entry.xp,
                 level=user.level or 1,
             )
+            for rank, (entry, user) in enumerate(entries, 1)
+        ]
+    users = (
+        db.query(User)
+        .filter(User.id.in_(visible_users))
+        .order_by(User.xp.desc(), User.id)
+        .limit(limit)
+        .all()
+    )
+    return [
+        LeaderboardItem(
+            rank=rank,
+            user_id=user.id,
+            username=user.username,
+            xp=user.xp or 0,
+            level=user.level or 1,
         )
-
-    return result
+        for rank, user in enumerate(users, 1)
+    ]
 
 
 @router.get("/daily-goal", response_model=DailyGoalResponse)
@@ -201,7 +217,8 @@ async def get_daily_goal(
     current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     """Get today's daily goal"""
-    today = date.today()
+    current_user = db.get(User, current_user.id)
+    today = local_date(current_user)
 
     goal = (
         db.query(DailyGoal)
@@ -228,6 +245,8 @@ async def get_daily_goal(
                 completed=False,
             )
             db.add(goal)
+            db.flush()
+            record_goal_day(current_user, goal, new=True)
             db.commit()
             db.refresh(goal)
         else:
@@ -239,6 +258,7 @@ async def get_daily_goal(
                 current_value=0,
                 completed=False,
                 goal_date=today,
+                **goal_day_info(current_user),
             )
 
     return DailyGoalResponse(
@@ -248,6 +268,7 @@ async def get_daily_goal(
         current_value=goal.current_value,
         completed=goal.completed,
         goal_date=goal.goal_date,
+        **goal_day_info(current_user, goal),
     )
 
 
@@ -260,7 +281,7 @@ async def get_daily_goal_progress(
 
     Returns progress data for dashboard widgets.
     """
-    today = date.today()
+    today = local_date(current_user)
 
     goal = (
         db.query(DailyGoal)
@@ -284,6 +305,7 @@ async def get_daily_goal_progress(
                 "percentage": 0,
                 "completed": False,
                 "has_goal": True,
+                **goal_day_info(current_user),
             }
         else:
             return {
@@ -293,6 +315,7 @@ async def get_daily_goal_progress(
                 "percentage": 0,
                 "completed": False,
                 "has_goal": False,
+                **goal_day_info(current_user),
             }
 
     percentage = (
@@ -308,6 +331,7 @@ async def get_daily_goal_progress(
         "percentage": percentage,
         "completed": goal.completed,
         "has_goal": True,
+        **goal_day_info(current_user, goal),
     }
 
 
@@ -318,7 +342,8 @@ async def set_daily_goal(
     db: Session = Depends(get_db),
 ):
     """Set or update today's daily goal"""
-    today = date.today()
+    current_user = db.get(User, current_user.id)
+    today = local_date(current_user)
 
     goal = (
         db.query(DailyGoal)
@@ -326,6 +351,7 @@ async def set_daily_goal(
         .first()
     )
 
+    new_goal = goal is None
     if goal:
         goal.goal_type = goal_data.goal_type
         goal.target_value = goal_data.target_value
@@ -339,6 +365,9 @@ async def set_daily_goal(
             completed=False,
         )
         db.add(goal)
+
+    db.flush()
+    record_goal_day(current_user, goal, new=new_goal)
 
     # Handle save as default
     if goal_data.save_as_default:
@@ -369,7 +398,33 @@ async def set_daily_goal(
         current_value=goal.current_value,
         completed=goal.completed,
         goal_date=goal.goal_date,
+        **goal_day_info(current_user, goal),
     )
+
+
+def award_activity_xp(db: Session, user_id: int, amount: int) -> None:
+    """Record a server-verified reward inside the activity's transaction.
+
+    Call only after claiming a previously unfinished activity. The caller owns
+    commit/rollback, so activity completion and its reward cannot split.
+    """
+    db.query(User).filter(User.id == user_id).update(
+        {User.xp: func.coalesce(User.xp, 0) + amount}, synchronize_session=False
+    )
+    user = db.get(User, user_id)
+    db.refresh(user)
+    record_activity_day(user)
+    user.level = (user.xp // 1000) + 1
+    from src.core.services.progress_tracking_service import ProgressTrackingService
+
+    earned_ids = {row[0] for row in db.query(UserBadge.badge_id).filter_by(user_id=user_id)}
+    for badge in db.query(Badge).filter(Badge.is_active == True).all():
+        if badge.id in earned_ids:
+            continue
+        if ProgressTrackingService._check_badge_criteria(None, db, user, badge):
+            db.add(UserBadge(user_id=user_id, badge_id=badge.id))
+            user.xp += max(0, badge.xp_value or 0)
+    user.level = (user.xp // 1000) + 1
 
 
 @router.post("/award-xp")
@@ -379,37 +434,8 @@ async def award_xp(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Award XP to current user (internal use)"""
-    if amount <= 0:
-        raise HTTPException(status_code=400, detail="XP amount must be positive")
-
-    current_user.xp = (current_user.xp or 0) + amount
-
-    # Level up check (simple: 100 XP per level)
-    new_level = (current_user.xp // 100) + 1
-    if new_level > (current_user.level or 1):
-        current_user.level = new_level
-
-    # Update streak
-    today = date.today()
-    if current_user.last_activity_date:
-        days_diff = (today - current_user.last_activity_date).days
-        if days_diff == 1:
-            current_user.current_streak = (current_user.current_streak or 0) + 1
-            if current_user.current_streak > (current_user.longest_streak or 0):
-                current_user.longest_streak = current_user.current_streak
-        elif days_diff > 1:
-            current_user.current_streak = 1
-    else:
-        current_user.current_streak = 1
-
-    current_user.last_activity_date = today
-
-    db.commit()
-
-    return {
-        "xp_awarded": amount,
-        "total_xp": current_user.xp,
-        "level": current_user.level,
-        "streak": current_user.current_streak,
-    }
+    """Reject arbitrary client rewards; verified activity routes award XP."""
+    raise HTTPException(
+        status_code=403,
+        detail="XP is awarded only for verified server-side activity",
+    )
