@@ -4,6 +4,7 @@ import argparse
 import json
 import os
 from pathlib import Path
+import sqlite3
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -67,7 +68,7 @@ def main(argv=None) -> int:
             result = {"summary": inspect_database(args.database, key), "key_fingerprint": fingerprint}
         print(json.dumps(result, indent=2))
         return 0
-    except (ValueError, OSError, RuntimeError) as error:
+    except (ValueError, OSError, RuntimeError, sqlite3.Error) as error:
         print(f"Recovery stopped: {error}", file=sys.stderr)
         return 1
 

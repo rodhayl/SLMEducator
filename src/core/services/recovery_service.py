@@ -133,6 +133,8 @@ def restore_backup(archive_bytes: bytes, destination: Path, key: bytes) -> dict:
     if len(archive_bytes) > MAX_ARCHIVE_BYTES:
         raise ValueError("Backup archive exceeds the supported size")
     archive = json.loads(archive_bytes)
+    if not isinstance(archive, dict):
+        raise ValueError("Backup archive must be a JSON object")
     if archive.get("format") != BACKUP_FORMAT or archive.get("version") != BACKUP_VERSION:
         raise ValueError("Unsupported backup format/version")
     if archive.get("key_fingerprint") != key_fingerprint(key):
@@ -185,6 +187,7 @@ def upgrade_database(
         timestamp_migration = None
         if source_timezone is not None:
             from src.core.services.temporal_migration import migrate_timestamps
+            assert timestamp_fields is not None  # Validated before any backup/restore writes.
             timestamp_migration = migrate_timestamps(destination, source_timezone, timestamp_fields)
     except Exception:
         # The unchanged source and verified backup remain available. The failed
