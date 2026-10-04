@@ -33,7 +33,7 @@ fueron dos docentes y dos estudiantes adultos sintéticos.
   `acceptance_focused_junit.xml`.
 - `npm ci --ignore-scripts --prefix tests/ui` y `npm test --prefix tests/ui`:
   **154 passed**, cero fallos. Ver `acceptance_dom_test.log`.
-- La única consolidación completa de Python sobre el checkpoint inicial de esta
+- El agregado exploratorio de Python sobre el checkpoint inicial de esta
   aceptación dio **881 passed, 7 failed, 23 skipped, 5 deselected** y **81,28 %**
   de cobertura (7.116/8.755 líneas). Los siete fallos de
   `tests/ui/test_frontend_safety.py` se conservaron en
@@ -42,6 +42,13 @@ fueron dos docentes y dos estudiantes adultos sintéticos.
   assets vendorizados, cuyos hashes deben coincidir byte a byte con el
   manifiesto. La repetición individual del archivo afectado dio **8 passed**.
   No se presenta el gate completo fallido como PASS posterior a la reparación.
+- La **consolidación final del candidato estable `6a3a6e3`** dio
+  **889 passed, 0 failed, 23 skipped, 5 deselected** en 459,55 s. La cobertura
+  completa de `src` fue **81,28 % (7.116/8.755 líneas)**, sobre el mínimo del
+  80 %. JUnit, salida y cobertura: `acceptance_stable_junit.xml`,
+  `acceptance_stable_test.log` y `acceptance_stable_coverage.json`. Los 23
+  saltos requieren proveedor real; cinco casos marcados `real_ai` se excluyeron
+  por el límite offline del comando.
 
 ## Paquete y defecto reproducido
 
@@ -109,4 +116,6 @@ La consolidación offline de Python, cobertura y JUnit se registra en
 `acceptance_coverage.json`. Identidad del checkpoint inicial de aceptación:
 `e6f866c`; el gate comenzó antes de la corrección UTF-8/CRLF. Su resultado
 fallido se conserva para auditoría y se complementa con la repetición afectada.
+La consolidación final limpia se ejecutó sobre `6a3a6e3`, antes de esta adición
+documental, y tiene sus tres archivos `acceptance_stable_*` propios.
 No se ejecutaron inferencias pagadas, ni merge, ni despliegue.
