@@ -33,6 +33,15 @@ fueron dos docentes y dos estudiantes adultos sintéticos.
   `acceptance_focused_junit.xml`.
 - `npm ci --ignore-scripts --prefix tests/ui` y `npm test --prefix tests/ui`:
   **154 passed**, cero fallos. Ver `acceptance_dom_test.log`.
+- La única consolidación completa de Python sobre el checkpoint inicial de esta
+  aceptación dio **881 passed, 7 failed, 23 skipped, 5 deselected** y **81,28 %**
+  de cobertura (7.116/8.755 líneas). Los siete fallos de
+  `tests/ui/test_frontend_safety.py` se conservaron en
+  `acceptance_full_test.log` y `acceptance_full_junit.xml`. Se corrigieron sus
+  causas: lecturas de texto sin UTF-8 en Windows y conversión CRLF de los
+  assets vendorizados, cuyos hashes deben coincidir byte a byte con el
+  manifiesto. La repetición individual del archivo afectado dio **8 passed**.
+  No se presenta el gate completo fallido como PASS posterior a la reparación.
 
 ## Paquete y defecto reproducido
 
@@ -60,6 +69,13 @@ función probada. Se ajustó para comparar bytes donde se permite y tamaño/fech
 donde SQLite bloquea la lectura. Las pruebas de paquete y bootstrap pasaron:
 **58 passed**. La nueva prueba de rechazo `zipfs` pasó por separado.
 
+La prueba de hashes del frontend falló porque Git transformó LF en CRLF al
+extraer ocho archivos vendorizados. `.gitattributes` ahora los trata como bytes
+sin conversión, y el checkout de esta ejecución se restauró desde blobs Git
+comprobados contra `manifest.json`. Las otras seis fallas fueron
+`UnicodeDecodeError` bajo `cp1252`; las lecturas de esa prueba ahora piden
+UTF-8 explícito. El archivo de pruebas afectado pasa completo en Windows.
+
 ## Matriz de escenarios
 
 | Escenario | Estado | Evidencia o límite |
@@ -69,15 +85,17 @@ donde SQLite bloquea la lectura. Las pruebas de paquete y bootstrap pasaron:
 | Paquete Python 3.14 con Tcl/Tk zipfs | FAIL reparado | Antes emitía paquete inutilizable; ahora rechazo temprano explícito |
 | Cierre mediante GUI Tk | NO EJERCITADO | Sólo parada de procesos sintéticos |
 | Matrícula cruzada por API HTTP | PASS parcial | Dos docentes reciben únicamente su propio estudiante en lista |
-| Contenido, notas, soluciones y exportaciones ajenas por API HTTP | NO EJERCITADO | Las pruebas sintéticas enfocadas pasan; falta recorrido HTTP directo completo |
+| Contenido, notas, soluciones y exportaciones ajenas por API HTTP | PASS parcial | Docente B y ambos alumnos reciben 403 en JSON docente; alumno B recibe 403 en handout de A; solución ausente de JSON/HTML/Markdown de A; otras notas y rutas sin recorrer |
 | Inactivación y recuperación administrativa en navegador | NO EJERCITADO | Pruebas sintéticas incluidas en las 50 enfocadas |
-| Creación, revisión, publicación, asignación, fuentes y versiones | PASS automatizado | Pruebas sintéticas enfocadas; sin recorrido GUI completo |
+| Revisión, publicación y asignación HTTP | PASS | Curso sintético de tres lecciones: `reviewed`, `published`, asignado sólo a A; A ve un curso y B cero |
+| Fuentes TXT/Markdown/PDF, reemplazo y versión HTTP | PASS | Tres subidas a copia borrador; hashes de bytes conservados, `review_required=true`; PDF de dos páginas informa cobertura parcial y página 2 ilegible; curso sigue `draft` |
+| Creación GUI y revisión visual de versiones/fragmentos | NO EJERCITADO | La ruta HTTP y las pruebas sintéticas pasan; falta recorrido GUI completo |
 | Pausa, reanudación, reinicio, evaluación y cero | PASS automatizado | Pruebas de recorrido y 154 DOM; sin recorrido humano en navegador |
 | GUI Chrome DevTools `--isolated` | NO EJERCITADO | MCP rechazó conexión: perfil Chrome DevTools ya ocupado |
 | Chrome aislado con Playwright, login español | PASS parcial | Foco por Tab en `INPUT`, sin desbordamiento a 1280 px ni 390 px; capturas adjuntas |
 | Inglés, temas, errores, reintentos y zoom nativo 100/200 % | NO EJERCITADO | Requiere inspección DevTools aislada completa |
 | Tutor con modelo real gratuito | NO EJERCITADO | Ollama no responde en 11434; no hay comando instalado; autorización solicitada para instalarlo |
-| Exportación/importación en segunda instalación sintética | NO EJERCITADO | Contratos automatizados incluidos; no recorrido integral entre instalaciones |
+| Exportación/importación en segunda instalación sintética | PASS parcial | Paquete docente con respuesta, handouts JSON/HTML/Markdown sin ella; importación HTTP en otra base crea borrador |
 | Copia de seguridad y restauración operativa | NO EJERCITADO | Contratos automatizados incluidos; no restauración manual del paquete |
 
 Capturas complementarias: `acceptance_login_es_100.png` y
@@ -88,6 +106,7 @@ pero no pudo medir un 200 % nativo de Chrome; no se presenta como tal.
 
 La consolidación offline de Python, cobertura y JUnit se registra en
 `acceptance_full_test.log`, `acceptance_full_junit.xml` y
-`acceptance_coverage.json`. Sus cifras finales y el SHA del checkpoint se
-añadirán tras terminar el proceso. No se ejecutaron inferencias pagadas, ni
-merge, ni despliegue.
+`acceptance_coverage.json`. Identidad del checkpoint inicial de aceptación:
+`e6f866c`; el gate comenzó antes de la corrección UTF-8/CRLF. Su resultado
+fallido se conserva para auditoría y se complementa con la repetición afectada.
+No se ejecutaron inferencias pagadas, ni merge, ni despliegue.

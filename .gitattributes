@@ -1,2 +1,4 @@
-# Preserve upstream vendored license bytes, including CRLF.
+# Vendored distributions are verified byte-for-byte against manifest hashes.
+src/web/static/vendor/** -text
+# Keep the upstream SortableJS license's CRLF and diff whitespace behavior.
 src/web/static/vendor/sortablejs@1.15.0/LICENSE -text whitespace=cr-at-eol
