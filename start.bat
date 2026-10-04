@@ -49,9 +49,8 @@ set SLM_DATA_DIR=data
 set SLM_EXPORTS_DIR=exports
 set SLM_TEMP_DIR=temp
 
-if "%SLM_INITIAL_ADMIN_PASSWORD%"=="" (
-    set "SLM_INITIAL_ADMIN_PASSWORD=Admin12345678"
-)
+REM Bootstrap creates a missing admin only; existing accounts are never reset.
+REM Without an explicit initial password, the seeder prints a random one once.
 if "%SLM_INITIAL_ADMIN_EMAIL%"=="" (
     set "SLM_INITIAL_ADMIN_EMAIL=admin@example.invalid"
 )

@@ -21,7 +21,7 @@ Use demonstration data for evaluation. Generated learning material needs teacher
 
 ## Quick Start (Windows)
 
-Clone this repository and open PowerShell in its root. Before launching, review [Initial Admin Account](#initial-admin-account) and set your own credential override; the launcher otherwise seeds a shared development default.
+Clone this repository and open PowerShell in its root. Before launching, review [Initial Admin Account](#initial-admin-account). For a new database, supply your own initial credential or privately save the one-time generated password printed during startup.
 
 ```powershell
 .\install_dependencies.bat
@@ -35,7 +35,7 @@ Application URL: `http://127.0.0.1:8080`
 - Activates `venv`
 - Creates runtime folders (`logs`, `data`, `exports`, `temp`)
 - Sets local runtime environment variables
-- Calls admin seeding on each launch; configured password overrides can reset an existing admin password
+- Calls create-only admin seeding on each launch; existing accounts and their security state are preserved
 - Starts FastAPI with Uvicorn on port `8080`
 
 ## Manual Run (Alternative)
@@ -57,13 +57,13 @@ python -m venv venv
 
 ## Initial Admin Account
 
-`start.bat` supplies a shared development password when `SLM_INITIAL_ADMIN_PASSWORD` is absent and calls [scripts/seed_admin.py](scripts/seed_admin.py) on every launch. When the password variable is present, the seeder updates an existing `admin` account as well as creating a missing one. Changing the password only in the UI can therefore be undone at the next scripted launch.
+`start.bat` calls [scripts/seed_admin.py](scripts/seed_admin.py) on every launch. The seeder creates an account only when the username `admin` is absent. If that username already exists, it leaves the password, email, role, active status, lockout state and authentication attempts unchanged. Bootstrap environment variables are ignored for existing accounts, even if a password value is invalid. Restarting therefore preserves a password changed in the UI.
 
-Before using the launcher, set `SLM_INITIAL_ADMIN_PASSWORD` to your own unique password of at least 12 characters in that process environment. `SLM_INITIAL_ADMIN_EMAIL` is an optional override. Treat the password as a secret: do not place a real value in shared commands, documentation or commits.
+For an explicit first-run credential, set `SLM_INITIAL_ADMIN_PASSWORD` to your own unique password of at least 12 characters in the launcher's process environment. `SLM_INITIAL_ADMIN_EMAIL` optionally sets the new account's email. These variables are for initial creation only, not password recovery. Treat the password as a secret: do not place a real value in shared commands, documentation or commits.
 
-When the seeder is invoked directly without a password override, it generates a random password for a new administrator and prints it once; it leaves an existing administrator unchanged. Keep that output private. These development provisioning paths need review before use with real student information.
+The launcher no longer supplies a shared default password. With no nonblank password override, the seeder generates a random password for a new administrator and prints it once, whether invoked by the launcher or directly. Keep that output private and save it before closing the terminal. A later launch will not print or recover it. Sign in and rotate the initial credential. These development provisioning paths need review before use with real student information.
 
-`build_package.bat --prod` also seeds an administrator and replaces the root database. See [Build Packages](#build-packages) before running it.
+Packaging uses the same create-only seeder in disposable staging. It does not delete or seed the working database, copy local configuration, supply a shared password, or stop running applications. See [Build Packages](#build-packages) for credential handling and explicit test-data snapshots.
 
 ## Testing
 
@@ -108,26 +108,64 @@ Then open `http://127.0.0.1:8080` in Chrome, open DevTools (`F12`), and execute 
 
 ## Build Packages
 
-Build script:
+Build Windows packages on Windows with the project dependencies and PyInstaller
+installed in the same Python environment. `build_package.bat` activates `venv`
+when available and delegates to `scripts/build_package.py`. It resolves the
+checkout from the script location, rather than the caller's working directory.
+Relative `--database` and `--output-dir` arguments to the batch wrapper resolve
+from that checkout; use absolute paths when selecting a database elsewhere.
 
 ```powershell
 .\build_package.bat --help
-```
-
-Modes:
-- `--prod`: Creates a clean package and recreates `slm_educator.db` with seeded admin credentials. The flag names a build mode; it is not a production-readiness certification.
-- `--test`: Packages the current working `slm_educator.db` (if present).
-
-Examples:
-
-```powershell
 .\build_package.bat --prod
-.\build_package.bat --test
+.\build_package.bat --prod --output-dir "dist\SLMEducator-next"
+.\build_package.bat --test --database "C:\synthetic-fixtures\education.db"
 ```
 
-Important:
-- Packaging requires `pyinstaller` available in the active environment/PATH.
-- `--prod` intentionally replaces local `slm_educator.db` in the repository root during packaging.
+Modes and data boundaries:
+- `--prod`: Creates a new database in disposable staging and seeds its initial
+  admin with the existing seeder. The working database, WAL/SHM files and local
+  configuration are not read or changed. No running app is stopped.
+- `--test --database PATH`: Requires an explicit existing SQLite database.
+  SQLite's online backup API includes committed WAL data in a consistent,
+  standalone snapshot. It does not copy live WAL/SHM files or run the seeder, so
+  existing accounts and credentials remain unchanged. SQLite may manage source
+  WAL/SHM sidecars and read marks during this explicitly requested backup; test
+  mode does not promise byte-identical sidecars. Missing, invalid or
+  persistently busy source databases fail the build instead of silently
+  producing an empty package.
+- Both modes generate configuration from the application's public defaults.
+  Working `env.properties`, `.env`, `settings.properties`, test config and home
+  security keys are never intentionally bundled. Configure the new package's
+  `env.properties` after building; builder environment path overrides do not
+  select a different database/configuration accidentally.
+- Default outputs are `dist\SLMEducator` and `dist\SLMEducator_Test`. Existing
+  output directories are refused, including prior packages with user data.
+  Choose a new `--output-dir` for each rebuild. Staging and build caches are
+  isolated and cleaned after success or failure.
+
+For production, set `SLM_INITIAL_ADMIN_PASSWORD` to a unique password of at least
+12 characters in the build process environment, or save the random password
+printed once by the seeder. `SLM_INITIAL_ADMIN_EMAIL` optionally sets the new
+account email. No plaintext credential file is included. Sign in as `admin` and
+rotate the initial credential. Build separately for each installation: copying a
+seeded package also copies its account and password hash. A bootstrap failure is
+fatal; the builder will not report success for an unseeded package.
+
+The frozen launcher uses the executable's directory for relative runtime paths,
+so the packaged admin database and configuration work when launched from another
+directory. Use a writable package location. Explicit runtime `SLM_DB_PATH` and
+`SLM_CONFIG_FILE` overrides remain supported. Source-run launch behavior is
+unchanged.
+
+Test snapshots may contain personal information, accounts and encrypted provider
+settings. Use synthetic data and do not distribute them. Encryption keys are not
+exported; encrypted records require the matching key in the test runtime.
+
+The `--prod` label is a build mode, not a production-readiness certification.
+Automated packaging tests exercise real SQLite and the real seeder with a
+simulated freezer. A native Windows build and packaged startup/login smoke test
+are still required before distributing an executable.
 
 ## Repository Layout
 
@@ -151,13 +189,13 @@ python -m venv venv
 .\venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
 
-- Login issues after local DB changes: review the provisioning behavior above before reseeding. If an intentional reset is needed, set your unique password in `SLM_INITIAL_ADMIN_PASSWORD` in the current process environment, then run:
+- A missing initial admin can be created directly with the same first-run behavior described above:
 
 ```powershell
 .\venv\Scripts\python.exe scripts\seed_admin.py
 ```
 
-This can change an existing administrator's credentials. Back up important data first.
+This command never resets an existing account or clears a lockout. For a known password, use the application's password-change flow after signing in. If access is lost or the account is disabled, stop and arrange an explicit recovery procedure with the administrator; changing bootstrap variables will not recover the account. Do not delete the database to regain access.
 
 ## Security Notes
 

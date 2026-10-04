@@ -24,7 +24,11 @@ if getattr(sys, "frozen", False):
 import uvicorn
 
 # Shared startup utilities
-from src.startup_utils import setup_frozen_logging, find_free_port
+from src.startup_utils import (
+    setup_frozen_logging,
+    setup_frozen_working_directory,
+    find_free_port,
+)
 
 # GUI imports
 try:
@@ -155,6 +159,7 @@ def setup_frozen_modules():
 
 def run_server(port):
     """Run Uvicorn server (target for subprocess)."""
+    setup_frozen_working_directory()
     setup_frozen_logging()
     setup_frozen_modules()
 
@@ -429,6 +434,7 @@ class ServerControlWindow:
 
 def main():
     """Main entry point."""
+    setup_frozen_working_directory()
     log_message("=== SLM Educator Starting ===")
 
     if not GUI_AVAILABLE:

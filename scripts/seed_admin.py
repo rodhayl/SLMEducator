@@ -3,7 +3,8 @@
 Seed initial admin user for fresh database installation.
 
 Security behavior:
-- If SLM_INITIAL_ADMIN_PASSWORD is set, that value is used (min length: 12).
+- Existing admin accounts are always left unchanged, including their security state.
+- For a new account, SLM_INITIAL_ADMIN_PASSWORD is used when set (min length: 12).
 - Otherwise, a cryptographically random password is generated and printed once.
 """
 
@@ -40,46 +41,25 @@ def _resolve_admin_password() -> tuple[str, bool]:
 
 
 def seed_admin_user() -> int:
-    """Ensure admin user exists with deterministic credentials when requested."""
+    """Create a missing admin account without changing an existing account."""
     print("Seeding database with initial admin user...")
 
     db_service = DatabaseService()
     session = db_service.get_session()
 
     try:
-        from sqlalchemy import or_
-        from src.core.models import User, AuthAttempt
+        from src.core.models import User
+
+        admin_user = session.query(User).filter(User.username == "admin").first()
+        if admin_user is not None:
+            print("Admin user already exists, skipping admin creation.")
+            return 0
 
         initial_password, password_from_env = _resolve_admin_password()
         initial_email = (
             os.getenv("SLM_INITIAL_ADMIN_EMAIL", "admin@example.invalid").strip()
             or "admin@example.invalid"
         )
-
-        admin_user = session.query(User).filter(User.username == "admin").first()
-
-        if admin_user:
-            if password_from_env:
-                admin_user.password_hash = hash_password(initial_password)
-                admin_user.email = initial_email
-                admin_user.active = True
-                admin_user.role = UserRole.ADMIN
-                admin_user.failed_login_count = 0
-                admin_user.locked_until = None
-                session.query(AuthAttempt).filter(
-                    or_(
-                        AuthAttempt.user_id == admin_user.id,
-                        AuthAttempt.username == "admin",
-                    )
-                ).delete(synchronize_session=False)
-                session.commit()
-                print("[OK] Admin credentials updated from environment.")
-                print("  Username: admin")
-                print("  Password: (from SLM_INITIAL_ADMIN_PASSWORD)")
-                print(f"  Email: {initial_email}")
-                return 0
-            print("Admin user already exists, skipping admin creation.")
-            return 0
 
         admin_user = User(
             username="admin",
