@@ -1038,7 +1038,7 @@ for use in an educational tutoring response. Keep essential facts and questions:
         }
 
         # Get OpenAI endpoint from settings
-        openai_endpoint = self.settings_service.get(
+        openai_endpoint = self.config.endpoint or self.settings_service.get(
             "ai", "openai.endpoint", "https://api.openai.com/v1/chat/completions"
         )
         response = self._client.post(
@@ -1463,6 +1463,19 @@ for use in an educational tutoring response. Keep essential facts and questions:
     def _parse_study_plan_response(self, response: str) -> Dict[str, Any]:
         """Reject malformed plans rather than persisting plausible generic fallbacks."""
         data = self._parse_json_response(response, "study_plan")
+        # Preserve the older flat-item contract while producing canonical phases.
+        if (
+            not data.get("phases")
+            and isinstance(data.get("items"), list)
+            and data["items"]
+        ):
+            if all(
+                isinstance(item, dict) and (item.get("title") or item.get("name"))
+                for item in data["items"]
+            ):
+                data["phases"] = [
+                    {"title": "Learning sequence", "topics": data["items"]}
+                ]
         if (
             not isinstance(data, dict)
             or not isinstance(data.get("phases"), list)

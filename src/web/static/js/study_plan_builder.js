@@ -26,6 +26,7 @@ const t = (key, params = {}) => {
 };
 
 let availableContent = [];
+let phaseSortable = null;
 
 // Init
 document.addEventListener('DOMContentLoaded', async () => {
@@ -34,8 +35,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Initialize Sortable for phase reordering (33.1)
     const phasesContainer = document.getElementById('phases-container');
-    if (phasesContainer && typeof Sortable !== 'undefined') {
-        new Sortable(phasesContainer, {
+    if (!savedPlanId && phasesContainer && typeof Sortable !== 'undefined') {
+        phaseSortable = new Sortable(phasesContainer, {
             animation: 150,
             handle: '.drag-handle',
             ghostClass: 'bg-warning-subtle',
@@ -90,12 +91,14 @@ window.allowDrop = event => event.preventDefault();
 window.drag = event => event.dataTransfer.setData('id', event.currentTarget.dataset.id);
 window.drop = event => {
     event.preventDefault();
+    if (savedPlanId) return;
     const area = event.target.closest('.phase-content-area');
     const item = availableContent.find(item => String(item.id) === event.dataTransfer.getData('id'));
     if (area && item) appendContent(area, item);
 };
 const builderMessage = (key, fallback) => SLMClient.message(key, fallback);
 function moveElement(element, direction) {
+    if (savedPlanId) return;
     const sibling = direction < 0 ? element.previousElementSibling : element.nextElementSibling;
     if (!sibling) return;
     if (direction < 0) element.parentNode.insertBefore(element, sibling);
@@ -197,7 +200,7 @@ window.saveStudyPlan = async () => {
             savedPlanId = plan.id;
             history.replaceState(null, '', `study_plan_builder.html?id=${plan.id}`);
             document.getElementById('plan-workflow').classList.remove('d-none');
-            document.querySelectorAll('#phases-container input, #phases-container select, #phases-container button, #plan-title, #plan-description, #plan-public, #save-plan-btn, #add-phase-btn').forEach(control => { control.disabled = true; });
+            lockSavedPlan();
             showToast(t('study_plan.created'), 'success', 2000);
         } else {
             const err = await res.json();
@@ -236,7 +239,14 @@ async function loadSavedPlan() {
             (plan.contents || []).filter(item => item.phase_index === index).sort((a,b) => a.order_index - b.order_index).forEach(item => appendContent(card.querySelector('.phase-content-area'), item));
         });
         document.getElementById('plan-workflow').classList.remove('d-none');
-        document.querySelectorAll('#phases-container input, #phases-container select, #phases-container button, #plan-title, #plan-description, #plan-public, #save-plan-btn, #add-phase-btn').forEach(control => { control.disabled = true; });
+        lockSavedPlan();
         return true;
     } catch (error) { showToast(error.message, 'danger'); return true; }
+}
+
+function lockSavedPlan() {
+    document.querySelectorAll('#phases-container input, #phases-container select, #phases-container button, #plan-title, #plan-description, #plan-public, #save-plan-btn, #add-phase-btn').forEach(control => { control.disabled = true; });
+    phaseSortable?.option('disabled', true);
+    document.querySelectorAll('[draggable]').forEach(item => { item.draggable = false; });
+    document.querySelectorAll('.drag-handle').forEach(handle => { handle.hidden = true; });
 }

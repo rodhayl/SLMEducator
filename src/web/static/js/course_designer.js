@@ -25,7 +25,9 @@ let generationTasks = [];
 let courseOwner = null;
 function persistCourse() {
     if (courseOwner !== SLMClient.account()) return;
-    SLMClient.drafts.write('course', 'designer', 'active', { currentConfig, generatedOutline, sourceMaterialText, sourceCoverage, createdStudyPlanId, generationTasks });
+    const saved = SLMClient.drafts.write('course', 'designer', 'active', { currentConfig, generatedOutline, sourceMaterialText, sourceCoverage, createdStudyPlanId, generationTasks });
+    if (!saved) showError(SLMClient.message('course_storage_failed', 'The course draft could not be saved on this device. Keep this page open; confirmed server items remain in the library.'));
+    return saved;
 }
 async function restoreCourse() {
     courseOwner = SLMClient.account();
@@ -41,7 +43,16 @@ async function restoreCourse() {
         document.getElementById('stage-2').classList.remove('hidden');
     }
     renderSourceCoverage();
-    if (createdStudyPlanId) document.getElementById('course-workflow').classList.remove('d-none');
+    if (createdStudyPlanId) {
+        showGenerationStage();
+        totalGenerationTasks = generationTasks.length;
+        completedTasks = generationTasks.filter(task => task.status === 'saved').length;
+        failedTasks = totalGenerationTasks - completedTasks;
+        updateProgress(totalGenerationTasks ? Math.round(completedTasks / totalGenerationTasks * 100) : 0,
+            `${completedTasks}/${totalGenerationTasks} saved; ${failedTasks} need retry.`);
+        finishGeneration(completedTasks === 0);
+        document.getElementById('retry-generation').classList.toggle('d-none', failedTasks === 0);
+    }
 }
 
 // === Initialization ===
@@ -385,6 +396,7 @@ function renderOutline(outline) {
  * Add a custom unit to the outline
  */
 async function addCustomUnit() {
+    if (createdStudyPlanId) return;
     // Ensure outline exists before adding units
     if (!generatedOutline) {
         generatedOutline = { title: currentConfig.subject || 'New Course', units: [] };
@@ -410,6 +422,7 @@ async function addCustomUnit() {
  * Add a lesson to a specific unit
  */
 async function addLessonToUnit(unitIndex) {
+    if (createdStudyPlanId) return;
     const lessonTitle = await showPrompt('Enter lesson title:', '', 'Add Lesson');
     if (!lessonTitle || !lessonTitle.trim()) return;
 
@@ -429,19 +442,26 @@ async function addLessonToUnit(unitIndex) {
 
 // === Stage 3: Cascade Generation ===
 
+function showGenerationStage() {
+    document.getElementById('stage-1').classList.add('hidden');
+    document.getElementById('stage-2').classList.add('hidden');
+    document.getElementById('stage-3').classList.remove('hidden');
+    document.getElementById('course-workflow').classList.remove('d-none');
+    // A persisted generation job keeps its exact outline/request identity.
+    document.querySelectorAll('#stage-2 input, #stage-2 button').forEach(control => { control.disabled = true; });
+}
+
 async function proceedToGeneration() {
     if (generationRunning || courseOwner !== SLMClient.account()) return;
     const checked = Array.from(document.querySelectorAll('.lesson-check:checked'));
     if (!checked.length) { showError('Please select at least one lesson.'); return; }
-    if (!generationTasks.length) generationTasks = checked.map(box => ({
+    if (!createdStudyPlanId) generationTasks = checked.map(box => ({
         unit: Number(box.dataset.unit), lesson: Number(box.dataset.lesson), status: 'pending'
     }));
     generationRunning = true;
     try {
         if (!createdStudyPlanId) await createStudyPlanShell();
-        document.getElementById('stage-2').classList.add('hidden');
-        document.getElementById('stage-3').classList.remove('hidden');
-        document.getElementById('course-workflow').classList.remove('d-none');
+        showGenerationStage();
         await startCascade();
     } catch (error) { showError(error.message); }
     finally { generationRunning = false; persistCourse(); }
@@ -516,6 +536,10 @@ window.retryCourseGeneration = async () => {
 };
 window.courseWorkflow = async action => {
     if (!createdStudyPlanId || generationRunning) return;
+    if (generationTasks.some(task => task.status !== 'saved')) {
+        showError(SLMClient.message('generation_partial', 'Some items failed. Saved items were kept; retry the same request to finish.'));
+        return;
+    }
     try {
         if (action === 'publish' && !await showConfirm(SLMClient.message('publish_course_confirm', 'Publish this reviewed course for authorized learners?'))) return;
         await SLMClient.request(`/api/study-plans/${createdStudyPlanId}/workflow`, {

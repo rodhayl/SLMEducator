@@ -1,3 +1,5 @@
+> Historical functional specification. The maintained application is FastAPI with a Bootstrap/vanilla-JavaScript web UI and a Tkinter package launcher. Current implemented/tested/unverified capability boundaries are recorded in [LEARNING_LOOP_VALIDATION](../implementation_documents/LEARNING_LOOP_VALIDATION.md). Earlier platform/readiness descriptions below are not current acceptance evidence.
+
 # SLMEducator Functional Requirements and Capabilities
 
 This document enumerates all user-facing and system functionality of SLMEducator from both Teacher and Student perspectives, and details how features are provided across UI, services, and AI/LLM configuration.

@@ -16,6 +16,8 @@ from src.core.models import (
     ContentType,
     GradingMode,
     QuestionType,
+    Rubric,
+    RubricCriterion,
     StudyPlanContent,
 )
 from src.core.services.content_schema import normalize_content
@@ -137,12 +139,54 @@ def _draft_assessment(db, user, request, data: dict) -> Assessment:
         if item.get("correct_answer") is not None:
             question.set_encrypted_correct_answer(str(item["correct_answer"]))
         db.add(question)
+        db.flush()
+        rubric_data = item.get("rubric")
+        if rubric_data:
+            if (
+                not isinstance(rubric_data, dict)
+                or not isinstance(rubric_data.get("criteria"), list)
+                or not rubric_data["criteria"]
+            ):
+                raise ValueError("Generated rubric needs explicit criteria")
+            criteria = rubric_data["criteria"]
+            if any(
+                not isinstance(criterion, dict)
+                or not isinstance(criterion.get("max_points"), int)
+                or isinstance(criterion["max_points"], bool)
+                or criterion["max_points"] < 1
+                or not criterion.get("name")
+                for criterion in criteria
+            ):
+                raise ValueError(
+                    "Generated rubric criteria need names and positive point limits"
+                )
+            if sum(criterion["max_points"] for criterion in criteria) != points:
+                raise ValueError("Generated rubric points must match its question")
+            rubric = Rubric(
+                name=rubric_data.get("name") or "Generated draft rubric",
+                created_by_id=user.id,
+                assessment_id=assessment.id,
+                question_id=question.id,
+                total_points=points,
+            )
+            db.add(rubric)
+            db.flush()
+            for order, criterion in enumerate(criteria):
+                db.add(
+                    RubricCriterion(
+                        rubric_id=rubric.id,
+                        name=criterion["name"],
+                        description=criterion.get("description"),
+                        max_points=criterion["max_points"],
+                        order_index=order,
+                    )
+                )
         assessment.total_points += points
     return assessment
 
 
 def _save_item(
-    db, user, plan, service, request, kind: str, index: int, data: dict
+    db, user, plan, service, request, kind: str, index: int, data: dict, position: int
 ) -> dict:
     data["generation"] = {
         "model": service.model,
@@ -172,12 +216,6 @@ def _save_item(
     content.set_encrypted_content_data(data)
     db.add(content)
     db.flush()
-    # Use request-relative order, but append this topic after earlier items.
-    position = (
-        db.query(StudyPlanContent)
-        .filter_by(study_plan_id=plan.id, phase_index=request.phase_index)
-        .count()
-    )
     db.add(
         StudyPlanContent(
             study_plan_id=plan.id,
@@ -203,6 +241,47 @@ def _record(db, plan, job_key: str, job: dict) -> None:
     data["generation_jobs"] = jobs
     plan.set_encrypted_metadata(data)
     db.commit()
+
+
+def _reserve_positions(db, plan, request, job: dict, tasks: list) -> None:
+    """Reserve each item's position before generation, including failed gaps."""
+    if "item_positions" in job:
+        return
+    links = (
+        db.query(StudyPlanContent)
+        .filter_by(study_plan_id=plan.id, phase_index=request.phase_index)
+        .all()
+    )
+    prior = {
+        item.get("content_id")
+        for item in job["items"].values()
+        if item.get("status") == "ready"
+    }
+    prior_positions = [link.order_index for link in links if link.content_id in prior]
+    # Existing jobs from the draft implementation retain their first position.
+    base = (
+        min(prior_positions)
+        if prior_positions
+        else max((link.order_index for link in links), default=-1) + 1
+    )
+    if not prior_positions:
+        for other in metadata(plan).get("generation_jobs", {}).values():
+            if other.get("phase_index") == request.phase_index:
+                base = max(
+                    base, max(other.get("item_positions", {}).values(), default=-1) + 1
+                )
+    job["phase_index"] = request.phase_index
+    job["item_positions"] = {
+        item_key: base + offset for offset, (item_key, _, _) in enumerate(tasks)
+    }
+    # A legacy partial job may have appended later ready items ahead of a failure.
+    for item_key, item in job["items"].items():
+        for link in links:
+            if (
+                link.content_id == item.get("content_id")
+                and item_key in job["item_positions"]
+            ):
+                link.order_index = job["item_positions"][item_key]
 
 
 def generate_package(db, user, plan, service, request) -> dict:
@@ -232,7 +311,19 @@ def generate_package(db, user, plan, service, request) -> dict:
             if plan
             else {"items": {}}
         )
-        for item_key, kind, index in _tasks(request):
+        # A new explicit request resumes an earlier cancelled package. It never
+        # restarts a concurrent request because the per-course lock is held.
+        if plan and job.get("cancel_requested"):
+            job["cancel_requested"] = False
+            current = metadata(plan)
+            current.setdefault("generation_jobs", {})[key] = job
+            plan.set_encrypted_metadata(current)
+            db.commit()
+        tasks = _tasks(request)
+        if plan:
+            _reserve_positions(db, plan, request, job, tasks)
+            _record(db, plan, key, job)
+        for item_key, kind, index in tasks:
             item = job["items"].get(item_key, {})
             data = None
             if item.get("status") == "ready" and plan:
@@ -254,12 +345,23 @@ def generate_package(db, user, plan, service, request) -> dict:
                             job["items"][item_key] = item
                             result["success"] = False
                             result["items"].append({"key": item_key, **item})
+                            _record(db, plan, key, job)
                             continue
                         job["items"][item_key] = {"status": "running"}
                         _record(db, plan, key, job)
                     data = _generate(service, request, kind, index)
                     item = (
-                        _save_item(db, user, plan, service, request, kind, index, data)
+                        _save_item(
+                            db,
+                            user,
+                            plan,
+                            service,
+                            request,
+                            kind,
+                            index,
+                            data,
+                            job["item_positions"][item_key],
+                        )
                         if plan
                         else {"status": "ready"}
                     )

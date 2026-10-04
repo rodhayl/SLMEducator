@@ -208,7 +208,7 @@ test('question authoring safely previews text and explicitly saves before publis
     w.previewAssessment();
     assert.ok(preview.includes('&lt;img'));
     const requests = [];
-    w.fetch = async (url, options) => { requests.push({url, options}); return reply(200, {id: 2}); };
+    w.fetch = async (url, options) => { requests.push({url, options}); return reply(200, {id: 2, is_published: false}); };
     await w.saveAssessmentDraft();
     assert.equal(requests.length, 1);
     assert.equal(requests[0].url, '/api/assessments/');
@@ -270,4 +270,89 @@ test('malformed successful HTTP response never clears the assessment draft', asy
         assert.equal(w.document.getElementById('submit-btn').disabled, false);
         dom.window.close();
     }
+});
+
+test('published assessment saves request draft state and rubric/drag changes require saving again', async () => {
+    const { dom, window: w } = await fixture('assessment_builder.html');
+    const requests = [];
+    w.fetch = async (url, options = {}) => {
+        requests.push({ url, options });
+        if (options.method) return reply(200, { id: 4, is_published: false });
+        return reply(200, { ...assessment, is_published: true, rubric: { name: 'Review', criteria: [{ name: 'Reasoning', max_points: 10, description: 'Explain' }] } });
+    };
+    w.Sortable = class { constructor(element, options) { w.sortableOptions = options; } };
+    w.eval(read('static/js/assessment_builder.js'));
+    w.document.dispatchEvent(new w.Event('DOMContentLoaded'));
+    await new Promise(resolve => setImmediate(resolve));
+    await w.saveAssessmentDraft();
+    assert.equal(JSON.parse(requests.find(request => request.options.method === 'PUT').options.body).is_published, false);
+    w.document.querySelector('#rubric-section .btn-close').click();
+    await w.publishAssessment();
+    assert.match(w.document.getElementById('assessment-feedback').textContent, /Save your changes before publishing/);
+    assert.equal(requests.some(request => request.url.endsWith('/publish')), false);
+    await w.saveAssessmentDraft();
+    w.sortableOptions.onEnd();
+    await w.publishAssessment();
+    assert.match(w.document.getElementById('assessment-feedback').textContent, /Save your changes before publishing/);
+    assert.equal(requests.some(request => request.url.endsWith('/publish')), false);
+    dom.window.close();
+});
+
+test('persisted course resumes frozen generation stage and retries only failed selection with stable phase/source', async () => {
+    const { dom, window: w } = await fixture('course_designer.html');
+    w.SLMClient = { ...w.SLMClient, chooseDraft: async () => 'restore' };
+    w.SLMClient.drafts.write('course', 'designer', 'active', {
+        currentConfig: { subject: 'Fractions', grade_level: 'Adult' },
+        generatedOutline: { title: 'Fractions', units: [{ title: 'First', lessons: [{ title: 'Saved' }, { title: 'Retry me' }] }] },
+        sourceMaterialText: 'Same source', sourceCoverage: null, createdStudyPlanId: 6,
+        generationTasks: [{ unit: 0, lesson: 0, status: 'saved' }, { unit: 0, lesson: 1, status: 'failed' }]
+    });
+    const requests = [];
+    w.fetch = async (url, options) => { requests.push({ url, payload: JSON.parse(options.body) }); return reply(200, { success: true, saved_content_ids: [9] }); };
+    w.eval(read('static/js/course_designer.js'));
+    await w.restoreCourse();
+    assert.equal(w.document.getElementById('stage-2').classList.contains('hidden'), true);
+    assert.equal(w.document.getElementById('stage-3').classList.contains('hidden'), false);
+    assert.ok(Array.from(w.document.querySelectorAll('#stage-2 input, #stage-2 button')).every(control => control.disabled));
+    await w.courseWorkflow('review');
+    assert.equal(requests.length, 0);
+    await w.retryCourseGeneration();
+    assert.equal(requests.length, 1);
+    assert.equal(requests[0].payload.topic_name, 'Retry me');
+    assert.equal(requests[0].payload.study_plan_id, 6);
+    assert.equal(requests[0].payload.phase_index, 0);
+    assert.equal(requests[0].payload.source_material, 'Same source');
+    assert.equal(w.SLMClient.drafts.read('course', 'designer', 'active').generationTasks[1].status, 'saved');
+    await w.retryCourseGeneration();
+    assert.equal(requests.length, 1);
+    dom.window.close();
+});
+
+test('course local-storage failure is visible and does not claim a recoverable draft', async () => {
+    const { dom, window: w } = await fixture('course_designer.html');
+    w.eval(read('static/js/course_designer.js'));
+    await w.restoreCourse();
+    w.Storage.prototype.setItem = () => { throw new Error('quota exceeded'); };
+    assert.equal(w.persistCourse(), false);
+    assert.match(w.document.getElementById('course-designer-error').textContent, /could not be saved on this device/);
+    dom.window.close();
+});
+
+test('saved plan blocks drag/drop, disables sortable and cannot show unsaved order changes', async () => {
+    const { dom, window: w } = await fixture('study_plan_builder.html');
+    w.history.replaceState(null, '', '/study_plan_builder.html');
+    w.fetch = async (url, options) => options?.method ? reply(200, {id: 5}) : reply(200, [{id:1,title:'One',content_type:'lesson'},{id:2,title:'Two',content_type:'lesson'}]);
+    w.Sortable = class { constructor() {} option(name, value) { w.sortableDisabled = name === 'disabled' && value; } };
+    w.eval(read('static/js/study_plan_builder.js').replace("import { AuthService } from './auth.js';", ''));
+    w.document.dispatchEvent(new w.Event('DOMContentLoaded'));
+    await new Promise(resolve => setImmediate(resolve));
+    w.document.getElementById('plan-title').value = 'Saved course';
+    const card = w.document.querySelector('.phase-card');
+    card.querySelector('button.btn-outline-primary').click();
+    await w.saveStudyPlan();
+    assert.equal(w.sortableDisabled, true);
+    assert.ok(Array.from(w.document.querySelectorAll('[draggable]')).every(item => !item.draggable));
+    w.drop({ preventDefault() {}, target: card.querySelector('.phase-content-area'), dataTransfer: {getData: () => '2'} });
+    assert.equal(card.querySelectorAll('[data-content-id]').length, 1);
+    dom.window.close();
 });

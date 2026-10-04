@@ -1380,6 +1380,8 @@
     "ai_review_required": "AI suggestions (teacher review required)",
     "final_assessment_score": "Final assessment score",
     "legacy_evidence": "Legacy activity, not assessed mastery",
-    "self_confidence": "Self-rated confidence"
+    "self_confidence": "Self-rated confidence",
+    "course_storage_failed": "The course draft could not be saved on this device. Keep this page open; confirmed server items remain in the library.",
+    "participation_scope": "Participation XP. Students see their own row; teachers see their enrolled learners; administrators see active accounts. Rank is within the visible group."
   }
 }

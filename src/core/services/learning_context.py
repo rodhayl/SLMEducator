@@ -43,6 +43,10 @@ def source_context(content) -> SourceContext:
             sections.append((key, data[key]))
     texts = [f"[content:{content.id}/{ref}]\n{text}" for ref, text in sections]
     complete = "\n\n".join(texts)
+    if not any(text.strip() for _, text in sections):
+        raise ValueError(
+            "This source has no readable lesson or practice text. Choose a lesson or ask without source context."
+        )
     included = complete[:CONTEXT_CHAR_LIMIT]
     return SourceContext(
         id=content.id,

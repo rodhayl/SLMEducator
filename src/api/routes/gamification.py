@@ -8,7 +8,7 @@ Provides endpoints for Phase 3 gamification features:
 - Daily goals
 """
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List, Optional
@@ -17,6 +17,8 @@ from datetime import datetime, date
 
 from src.api.dependencies import get_db
 from src.api.security import get_current_user
+from src.api.policies import teacher_student_ids
+from src.core.roles import is_admin, is_student, is_teacher
 from src.core.models import (
     User,
     Badge,
@@ -58,13 +60,15 @@ class BadgeResponse(BaseModel):
 
 
 class LeaderboardItem(BaseModel):
-    """Leaderboard entry"""
+    """Participation feedback ranked only within the viewer's authorized scope."""
 
     rank: int
     user_id: int
     username: str
     xp: int
     level: int
+    metric_type: str = "participation"
+    rank_scope: str = "visible_users"
 
 
 class DailyGoalResponse(BaseModel):
@@ -140,60 +144,63 @@ async def get_badges(
     return result
 
 
+def _leaderboard_users(db: Session, user: User):
+    """Apply the same enrollment boundary to live and cached participation data."""
+    query = db.query(User.id).filter(User.active.is_(True))
+    if is_admin(user):
+        return query
+    if is_teacher(user):
+        return query.filter(User.id.in_(teacher_student_ids(db, user.id)))
+    if is_student(user):
+        return query.filter(User.id == user.id)
+    return query.filter(User.id.in_([]))
+
+
 @router.get("/leaderboard", response_model=List[LeaderboardItem])
 async def get_leaderboard(
     period: str = "weekly",
-    limit: int = 10,
+    limit: int = Query(10, ge=1, le=100),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Get leaderboard for specified period"""
-    # Try to get from pre-computed leaderboard
+    """Return scoped participation XP, never a global student directory/rank."""
+    visible_users = _leaderboard_users(db, current_user)
     entries = (
-        db.query(LeaderboardEntry)
-        .filter(LeaderboardEntry.period == period)
-        .order_by(LeaderboardEntry.rank)
+        db.query(LeaderboardEntry, User)
+        .join(User, User.id == LeaderboardEntry.user_id)
+        .filter(LeaderboardEntry.period == period, User.id.in_(visible_users))
+        .order_by(LeaderboardEntry.rank, User.id)
         .limit(limit)
         .all()
     )
-
     if entries:
-        result = []
-        for entry in entries:
-            user = db.query(User).filter(User.id == entry.user_id).first()
-            result.append(
-                LeaderboardItem(
-                    rank=entry.rank,
-                    user_id=entry.user_id,
-                    username=user.username if user else f"User #{entry.user_id}",
-                    xp=entry.xp,
-                    level=user.level if user else 1,
-                )
-            )
-        return result
-
-    # Fallback: compute from users table
-    users = (
-        db.query(User)
-        .filter(User.active == True)
-        .order_by(User.xp.desc())
-        .limit(limit)
-        .all()
-    )
-
-    result = []
-    for idx, user in enumerate(users, 1):
-        result.append(
+        return [
             LeaderboardItem(
-                rank=idx,
+                rank=rank,
                 user_id=user.id,
                 username=user.username,
-                xp=user.xp or 0,
+                xp=entry.xp,
                 level=user.level or 1,
             )
+            for rank, (entry, user) in enumerate(entries, 1)
+        ]
+    users = (
+        db.query(User)
+        .filter(User.id.in_(visible_users))
+        .order_by(User.xp.desc(), User.id)
+        .limit(limit)
+        .all()
+    )
+    return [
+        LeaderboardItem(
+            rank=rank,
+            user_id=user.id,
+            username=user.username,
+            xp=user.xp or 0,
+            level=user.level or 1,
         )
-
-    return result
+        for rank, user in enumerate(users, 1)
+    ]
 
 
 @router.get("/daily-goal", response_model=DailyGoalResponse)

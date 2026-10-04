@@ -345,12 +345,31 @@ async def update_assessment(
             detail="Assessment grading rules cannot change after an attempt starts; create a new assessment",
         )
 
+    # An assigned published definition must stay stable even before its first
+    # attempt. Reject demotion too, otherwise a two-request edit could bypass
+    # this guard. Unpublished drafts can still be prepared on an assigned plan.
+    revision_fields = grading_fields | {"title", "description", "max_attempts"}
+    if assessment.is_published and assessment.study_plan_id and (
+        revision_fields.intersection(update_data.model_fields_set)
+        or update_data.is_published is False
+    ):
+        from src.core.models import StudentStudyPlan
+
+        assigned = db.query(StudentStudyPlan.student_id).filter_by(
+            study_plan_id=assessment.study_plan_id
+        ).first()
+        if assigned:
+            raise HTTPException(
+                status_code=409,
+                detail="Published assessment material belongs to an assigned course. Copy it to a new draft before editing.",
+            )
+
     # Update basic fields
     if update_data.title is not None:
         assessment.title = update_data.title
     if update_data.description is not None:
         assessment.description = update_data.description
-    if update_data.time_limit_minutes is not None:
+    if "time_limit_minutes" in update_data.model_fields_set:
         assessment.time_limit_minutes = update_data.time_limit_minutes
     if update_data.max_attempts is not None:
         assessment.max_attempts = update_data.max_attempts
@@ -415,6 +434,11 @@ async def update_assessment(
                     )
                 )
         db.expire(assessment, ["rubrics"])
+
+    # Saving revised material is a draft operation. A separate explicit publish
+    # must follow review, even if a stale client sends is_published=true as well.
+    if not has_attempts and revision_fields.intersection(update_data.model_fields_set):
+        assessment.is_published = False
 
     db.flush()
     if assessment.is_published:
@@ -540,7 +564,7 @@ async def get_submission_details(
                 ),
                 given_answer=resp.get_decrypted_response(),
                 correct_answer=(
-                    question.get_decrypted_correct_answer() if teacher_view else None
+                    _usable_answer_key(question) if teacher_view else None
                 ),
                 is_correct=resp.is_correct,
                 points=resp.score,
@@ -763,7 +787,7 @@ async def get_assessment(
                 points=q.points,
                 options=q.options,
                 correct_answer=(
-                    q.get_decrypted_correct_answer()
+                    _usable_answer_key(q)
                     if can_manage_assessment(db, current_user, assessment)
                     else None
                 ),
@@ -822,6 +846,23 @@ def _require_submitted(submission: Submission) -> None:
         raise HTTPException(status_code=409, detail="Attempt has not been submitted")
 
 
+def _usable_answer_key(question: Question) -> Optional[str]:
+    """Fail closed on missing, corrupt or unverifiable legacy grading keys."""
+    try:
+        answer = question.get_decrypted_correct_answer()
+    except Exception:
+        return None
+    # Legacy decrypt_data returns raw input on failure. Require actual decryption
+    # before a key can govern a final result or appear as an editable valid key.
+    if (
+        not isinstance(answer, str)
+        or not answer.strip()
+        or answer == question.correct_answer
+    ):
+        return None
+    return answer
+
+
 def _validate_publish(assessment: Assessment) -> None:
     """Ensure a published assessment has usable questions and answer keys."""
     if not assessment.questions or any(q.points <= 0 for q in assessment.questions):
@@ -833,7 +874,7 @@ def _validate_publish(assessment: Assessment) -> None:
     for question in assessment.questions:
         if (
             question.question_type in objective
-            and not question.get_decrypted_correct_answer()
+            and not _usable_answer_key(question)
         ):
             raise HTTPException(
                 status_code=422,
@@ -1038,21 +1079,24 @@ def _grading_rubric(assessment: Assessment, question: Question) -> Optional[dict
 def _score_response(
     response: QuestionResponse, question: Question, answer: str
 ) -> None:
-    """Score only deterministic work while persisting the submitted answer."""
+    """Score only deterministic work with a usable key, preserving review states."""
     response.set_encrypted_response(answer)
+    objective = question.question_type in {
+        QuestionType.MULTIPLE_CHOICE,
+        QuestionType.TRUE_FALSE,
+    }
+    correct = _usable_answer_key(question) if objective else None
+    if objective and correct is None:
+        response.score = None
+        response.is_correct = None
+        response.feedback = "Answer key unavailable; teacher review required."
+        return
     if not answer.strip():
         response.score = 0
         response.is_correct = False
         response.feedback = "Unanswered question: zero points."
         return
-    correct = question.get_decrypted_correct_answer()
-    if question.question_type in {
-        QuestionType.MULTIPLE_CHOICE,
-        QuestionType.TRUE_FALSE,
-    }:
-        if correct is None:
-            response.feedback = "Answer key unavailable; teacher review required."
-            return
+    if objective and correct is not None:
         response.is_correct = correct.strip().casefold() == answer.strip().casefold()
         response.score = question.points if response.is_correct else 0
 
@@ -1195,7 +1239,7 @@ def submit_assessment(
                         "question": question.question_text,
                         "answer": answer,
                         "question_type": question.question_type.value,
-                        "correct_answer": question.get_decrypted_correct_answer(),
+                        "correct_answer": _usable_answer_key(question),
                         "rubric": _grading_rubric(assessment, question),
                         "max_points": question.points,
                     },

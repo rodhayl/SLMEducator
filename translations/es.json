@@ -1380,6 +1380,8 @@
     "ai_review_required": "Sugerencias de IA (requieren revisión docente)",
     "final_assessment_score": "Puntuación final de evaluación",
     "legacy_evidence": "Actividad anterior, no dominio evaluado",
-    "self_confidence": "Confianza autoevaluada"
+    "self_confidence": "Confianza autoevaluada",
+    "course_storage_failed": "No se pudo guardar el borrador del curso en este dispositivo. Mantén esta página abierta; los elementos confirmados por el servidor siguen en la biblioteca.",
+    "participation_scope": "XP de participación. Los estudiantes ven su propia fila; los docentes, a sus estudiantes asignados; y los administradores, las cuentas activas. La posición corresponde al grupo visible."
   }
 }

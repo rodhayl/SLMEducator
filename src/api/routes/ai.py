@@ -133,7 +133,7 @@ class AnswerQuestionResponse(BaseModel):
 
 
 @router.post("/answer-question", response_model=AnswerQuestionResponse)
-async def answer_question(
+def answer_question(
     request: AnswerQuestionRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -147,6 +147,7 @@ async def answer_question(
 
     logger = logging.getLogger(__name__)
 
+    ai_service = None
     try:
         ai_service = get_ai_service_dependency(current_user, db)
 
@@ -168,22 +169,22 @@ Keep answers concise but thorough enough to be helpful."""
             conversation_history=None,
         )
 
-        # Extract the answer
-        answer_text = result.get(
-            "explanation",
-            result.get(
-                "response",
-                "I couldn't generate an answer. Please try rephrasing your question.",
-            ),
+        answer_text = (
+            result.get("explanation") or result.get("answer") or result.get("response")
         )
+        if not isinstance(answer_text, str) or not answer_text.strip():
+            return AnswerQuestionResponse(
+                answer="The provider returned no usable answer. Try again or ask your teacher.",
+                success=False,
+            )
         suggestions = result.get("suggestions", result.get("follow_up_questions", None))
 
         return AnswerQuestionResponse(
             answer=answer_text, suggestions=suggestions, success=True
         )
 
-    except Exception as e:
-        logger.error(f"AI Answer Question error: {e}")
+    except Exception:
+        logger.warning("AI answer generation unavailable")
 
         return AnswerQuestionResponse(
             answer=(
@@ -193,3 +194,7 @@ Keep answers concise but thorough enough to be helpful."""
             suggestions=["Check AI settings", "Try a simpler question"],
             success=False,
         )
+
+    finally:
+        if ai_service is not None:
+            ai_service.close()

@@ -68,6 +68,10 @@ function openRubricModal() {
 function addCriterionUI() {
     const template = document.getElementById('criterion-template');
     const clone = template.content.cloneNode(true);
+    const remove = clone.querySelector('.btn-close');
+    remove.setAttribute('aria-label', SLMClient.message('remove', 'Remove'));
+    remove.onclick = () => { remove.closest('.criterion-item').remove(); assessmentDirty = true; };
+    assessmentDirty = true;
     clone.querySelectorAll('input, textarea').forEach(input => input.setAttribute('aria-label', input.placeholder || 'Maximum points'));
     document.getElementById('rubric-section').appendChild(clone);
 }
@@ -82,6 +86,7 @@ function collectAssessment() {
         time_limit_minutes: Number(document.getElementById('quiz-time').value) || null,
         max_attempts: Number(document.getElementById('quiz-attempts').value) || 1,
         grading_mode: document.getElementById('grading-mode').value,
+        is_published: false,
         questions: Array.from(document.querySelectorAll('.question-item')).map(item => ({
             question_text: item.querySelector('.question-text').value,
             question_type: item.querySelector('.question-type').value,
@@ -112,6 +117,9 @@ window.saveAssessmentDraft = async () => {
             method: window.editingAssessmentId ? 'PUT' : 'POST',
             headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
         });
+        if (!Number.isInteger(saved?.id) || saved.id <= 0 || saved.is_published !== false) {
+            throw new Error(SLMClient.message('failed', 'The server could not confirm a saved draft. Keep this page open and retry.'));
+        }
         window.editingAssessmentId = saved.id;
         history.replaceState(null, '', `assessment_builder.html?id=${saved.id}`);
         assessmentDirty = false;
@@ -189,7 +197,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             handle: '.drag-handle',
             ghostClass: 'bg-primary-subtle',
             onEnd: function () {
-                console.log('Questions reordered');
+                assessmentDirty = true;
             }
         });
     }
@@ -217,7 +225,7 @@ async function loadAssessmentForEdit(assessmentId) {
         // Populate form fields
         document.getElementById('quiz-title').value = assessment.title || '';
         document.getElementById('quiz-desc').value = assessment.description || '';
-        document.getElementById('quiz-pass').value = assessment.passing_score || 70;
+        document.getElementById('quiz-pass').value = assessment.passing_score ?? 70;
         if (document.getElementById('quiz-time')) {
             document.getElementById('quiz-time').value = assessment.time_limit_minutes || '';
         }

@@ -453,3 +453,59 @@ def test_slow_provider_does_not_hold_writes_or_overwrite_teacher(world, monkeypa
     world.db.expire_all()
     assert world.db.get(User, learner_id).xp == 25
     assert world.db.query(QuestionResponse).one().ai_suggested_score is None
+
+
+@pytest.mark.parametrize(
+    "key_state",
+    [
+        "missing",
+        "wrong_key",
+        "malformed",
+        "getter_unavailable",
+        "blank_key",
+        "legacy_plaintext",
+    ],
+)
+@pytest.mark.parametrize("answer", ["A", ""])
+def test_unusable_objective_keys_preserve_pending_review(
+    world, monkeypatch, key_state, answer
+):
+    """Missing/corrupt keys cannot become final zeroes, including omitted work."""
+    from cryptography.fernet import Fernet
+    from src.core.models import Question
+
+    quiz_id, questions = create_quiz(world)
+    question = world.db.get(Question, questions[0]["id"])
+    if key_state == "missing":
+        question.correct_answer = None
+    elif key_state == "wrong_key":
+        question.correct_answer = Fernet(Fernet.generate_key()).encrypt(b"A").decode()
+    elif key_state == "malformed":
+        question.correct_answer = "gAAAA-invalid-ciphertext"
+    elif key_state == "blank_key":
+        question.set_encrypted_correct_answer("   ")
+    elif key_state == "legacy_plaintext":
+        question.correct_answer = "A"
+    else:
+        monkeypatch.setattr(Question, "get_decrypted_correct_answer", lambda self: None)
+    world.db.commit()
+    world.user = world.owner
+    preview = world.client.get(f"/api/assessments/{quiz_id}")
+    assert (
+        preview.status_code == 200
+        and preview.json()["questions"][0]["correct_answer"] is None
+    )
+    publish = world.client.post(f"/api/assessments/{quiz_id}/publish")
+    assert publish.status_code == 422
+    world.user = world.learner
+    result, _ = attempt(
+        world, quiz_id, [{"question_id": question.id, "response_text": answer}]
+    )
+    assert (
+        result["status"] == "submitted"
+        and result["score"] is None
+        and result["needs_review"]
+    )
+    response = world.db.query(QuestionResponse).one()
+    assert response.score is None and response.is_correct is None
+    assert "teacher review" in response.feedback.lower()

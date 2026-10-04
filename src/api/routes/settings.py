@@ -7,7 +7,7 @@ from typing import Optional, Dict, Any, List, Literal
 from src.api.dependencies import get_db, get_ai_service_dependency
 from src.api.security import get_current_user, get_optional_current_user
 from src.core.models import User, ApplicationConfiguration, AIModelConfiguration
-from src.core.services.ai_service import AIProvider, AIService
+from src.core.services.ai_service import AIProvider, AIService, RuntimeAIConfig
 
 router = APIRouter(prefix="/api/settings", tags=["settings"])
 logger = logging.getLogger(__name__)
@@ -99,10 +99,13 @@ async def update_ai_config(
         config = AIModelConfiguration(user_id=current_user.id)
         db.add(config)
 
+    destination_changed = config.provider != data.provider or (
+        config.endpoint or ""
+    ) != (data.endpoint or "")
     config.provider = data.provider
     config.model = data.model
     config.endpoint = data.endpoint
-    if data.clear_api_key:
+    if data.clear_api_key or (destination_changed and not data.api_key):
         config.api_key = None
     elif data.api_key:
         config.set_encrypted_api_key(data.api_key)
@@ -246,15 +249,28 @@ def _build_ai_service(
     config_override: Optional[AIConfigModel], current_user: User, db: Session
 ) -> AIService:
     if config_override:
-        temp_config = AIModelConfiguration(
-            user_id=current_user.id,
-            provider=config_override.provider,
-            model=config_override.model,
-            endpoint=config_override.endpoint or None,
+        saved = (
+            db.query(AIModelConfiguration).filter_by(user_id=current_user.id).first()
         )
-        if config_override.api_key:
-            temp_config.set_encrypted_api_key(config_override.api_key)
-        return AIService(temp_config, logger)
+        key = config_override.api_key
+        same_destination = (
+            saved is not None
+            and saved.provider == config_override.provider
+            and (saved.endpoint or "") == (config_override.endpoint or "")
+        )
+        if not key and same_destination and not config_override.clear_api_key:
+            key = saved.decrypted_api_key
+        return AIService(
+            RuntimeAIConfig(
+                provider=config_override.provider,
+                model=config_override.model,
+                endpoint=config_override.endpoint,
+                api_key=key,
+                temperature=config_override.temperature,
+                max_tokens=config_override.max_tokens,
+            ),
+            logger,
+        )
     return get_ai_service_dependency(current_user, db)
 
 

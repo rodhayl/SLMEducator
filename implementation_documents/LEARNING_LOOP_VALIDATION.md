@@ -59,3 +59,55 @@ stabilizes; these bounded passes are not that gate.
 - Private backup excludes encryption/JWT keys, runtime configuration and external
   uploads. Matching existing encryption key is required; source schema upgrades
   refuse destructive/type-changing inference and preserve the original file.
+
+## Single aggregate gate and focused repairs
+
+The one applicable offline aggregate run was executed against frozen local
+`cdbe0956a80ae05e24a7210f77885140220a4571`: **505 passed, 15 failed, 23 skipped,
+5 real-AI tests deselected**, 235.42 seconds. Manual tests, real-provider suites
+and tests requiring an existing browser server were excluded. Unexpected provider
+transport fails closed in the synthetic test fixtures.
+
+The 15 failures were traced to a missed canonical exception import, a valid
+legacy flat-plan shape rejected by the new parser, and 13 help/session fixtures
+or expectations inconsistent with the new authorization contract. The import
+and legacy normalization were repaired; fixtures now establish actual enrollment
+and assignment, and invalid resource IDs must fail without writes.
+
+After these repairs and bounded edge-case hardening, **186 affected tests passed**
+(75.71 seconds), including all 15 previously failing cases. The **22-case DOM
+suite passed**. A later five-case generation slice additionally verifies persisted
+cancellation, explicit retry, reserved order and preserved teacher edits. Critical
+flake8 checks pass; focused mypy reports no issues in four new source files.
+There was no second aggregate run. Do not describe the final tree as a new
+all-suite green result or sum overlapping test counts.
+
+Post-gate hardening also covers scoped participation leaderboards; missing,
+corrupted, wrong-key and raw objective answer keys; immutable assigned assessment
+rules; timer clearing; draft demotion; malformed HTTP-200 result recovery; and
+saved API keys staying bound to the configured destination. Connection testing
+uses a decrypted runtime credential without returning it to the browser.
+
+## Approved requirement map
+
+| Approved requirement | Code/deliverable | Evidence or remaining boundary |
+| --- | --- | --- |
+| Small reproducible local scenario and role matrix | Two teachers/two learners; bilingual three-lesson fixture; create-only pilot seeder; explicit policy | Synthetic API journey and seed refusal tests pass; no real people or institution selected |
+| Permissions across content/link/tutor/session/help/submission/contact paths | Shared policy functions and route gates, including legacy unsafe-link denial | Role/resource regressions pass; not an exhaustive security certification |
+| Safe rendering, truthful saves, recovery and account-separated drafts | Bundled DOMPurify, shared API/render/draft utilities, failed/malformed-result retention | DOM/source tests pass; live browser blocked, XSS/browser acceptance unverified |
+| Password/settings/score/retry integrity | Token revocation, secret-redacted settings, bounded attempts, durable replay/rewards, strict-key handling | API, concurrent/slow-provider and corruption tests pass |
+| Reviewed course, assignment version and coherent practice | Draft/review/publish, immutable assigned content/assessment rules, actual assessment drafts, reserved order and per-item retry | Full synthetic three-lesson API journey passes; human usability not established |
+| Maintained UI, keyboard alternatives and languages | Existing Bootstrap/tokens/modules retained, non-drag controls, focus/status handling, English/Spanish pilot strings, Continue Learning | Static/DOM contracts pass; full keyboard, screen reader, theme/zoom/reflow and bilingual browser journeys unverified |
+| Grounded optional AI with source limits | Bounded authorized text, source/page/section/hash/coverage, hint/explanation modes, typed failures and saved rubric/model/prompt provenance | Deterministic source/failure cases pass; source references are not automatic factual verification |
+| Teacher-configurable assessment-assistance policy | Current fixed hint/hidden-answer safeguards | Partial: per-assessment teacher policy configuration remains to be completed; do not claim this control exists |
+| Real-model usefulness and latency/cancellation | Proposed 12-case educator evaluation pack; bounded generation cancellation/resume | No real model/hardware or educator-rated evaluation; requires separate authorization and observation |
+| Confidence, observed attempts and review | Confidence stored separately; final linked assessment scores drive review heuristic; legacy evidence labelled | Idempotent observed-review tests pass; heuristic is not validated learning efficacy |
+| Exports, transactional import, backup and upgrade | Preview-first learner/teacher packages, remapped IDs/books/rubrics, encrypted private database archive, new-path restore, copy-first schema reconciliation | Synthetic roundtrip, corruption, wrong-key and packaging regressions pass; archive excludes keys/config/external files |
+| Reproducible local setup/offline assets | Runtime/dev dependency separation, no launch-time install/upgrade, pinned bundled assets | Source/asset/package tests pass; native Windows build/start/restore and real offline browser operation unverified |
+| Consistent legacy timestamps/user-local day | Existing local-session data preserved; explicit UTC timestamps for new confidence records | Partial: a safe legacy timezone migration and complete user-local day policy remain; existing timestamps must not be silently reinterpreted |
+| Chosen shared deployment and protected Windows secret custody | Safe local-only default retained; backup requires matching separately held key | No remote-classroom deployment or OS-protected key-store rollout selected/validated |
+| Pilot, evaluation and evidence-driven expansion | Synthetic scenario, proposed cases, observation template and conservative evaluator | Tooling tested; human pilot, institution/minors review, teaching acceptance and continuation decision not performed |
+
+These are implementation and verification boundaries, not excuses to claim the
+whole six-phase product plan is accepted. Any remaining configurable policy or
+timezone work should be tracked explicitly alongside the external acceptance gates.

@@ -331,3 +331,63 @@ def test_password_rotation_revokes_old_token_and_survives_service_restart(
         ).status_code
         == 401
     )
+
+
+def test_saved_ai_key_stays_bound_to_destination_and_test_uses_runtime_secret(scenario):
+    from src.api.routes.settings import _build_ai_service, AIConfigModel
+
+    client, db, users, selected, _, _, _ = scenario
+    selected[0] = users["teacher_a"]
+    original = {
+        "provider": "openai",
+        "model": "synthetic",
+        "endpoint": "https://provider.example.test/chat",
+        "api_key": "synthetic-runtime-key",
+    }
+    assert client.post("/api/settings/ai", json=original).json()["has_api_key"]
+    runtime = _build_ai_service(
+        AIConfigModel(
+            provider="openai", model="changed-model", endpoint=original["endpoint"]
+        ),
+        selected[0],
+        db,
+    )
+    assert runtime.config.api_key == original["api_key"]
+    runtime.close()
+    changed = _build_ai_service(
+        AIConfigModel(
+            provider="openrouter", model="synthetic", endpoint=original["endpoint"]
+        ),
+        selected[0],
+        db,
+    )
+    assert changed.config.api_key is None
+    changed.close()
+    response = client.post(
+        "/api/settings/ai",
+        json={
+            "provider": "openai",
+            "model": "synthetic",
+            "endpoint": "https://different.example.test/chat",
+        },
+    )
+    assert response.status_code == 200 and not response.json()["has_api_key"]
+
+
+def test_question_answer_only_contract_is_not_lost_and_client_closes(
+    scenario, monkeypatch
+):
+    from src.api.routes import ai
+
+    client, _, _, _, _, _, _ = scenario
+    service = MagicMock()
+    service.provide_tutoring.return_value = {"answer": "A usable synthetic answer."}
+    monkeypatch.setattr(ai, "get_ai_service_dependency", lambda *args: service)
+    response = client.post(
+        "/api/ai/answer-question", json={"question": "Explain a fraction"}
+    )
+    assert (
+        response.json()["answer"] == "A usable synthetic answer."
+        and response.json()["success"]
+    )
+    service.close.assert_called_once()

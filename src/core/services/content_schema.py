@@ -26,6 +26,11 @@ def normalize_content(kind: str, value: dict[str, Any]) -> dict[str, Any]:
             raise ValueError("Lesson sections must be objects")
         if body and not sections:
             data["sections"] = [{"title": "Lesson", "content": body}]
+        if not (isinstance(body, str) and body.strip()) and not any(
+            isinstance(section.get("content"), str) and section["content"].strip()
+            for section in sections
+        ):
+            raise ValueError("A lesson needs nonempty explanatory text")
         for section in data.get("sections", []):
             if not isinstance(section.get("content", ""), str):
                 raise ValueError("Section content must be text")

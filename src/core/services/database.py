@@ -262,7 +262,7 @@ class DatabaseService:
                 session.refresh(user)
                 return user
         except Exception as e:
-            from core.exceptions import DatabaseError
+            from src.core.exceptions import DatabaseError
 
             raise DatabaseError(f"Failed to create user: {str(e)}") from e
 
