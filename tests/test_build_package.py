@@ -351,6 +351,25 @@ def test_cli_rejects_non_windows_builds_before_writing(
     assert not fake_freezer
 
 
+def test_cli_rejects_unbundlable_zipfs_tcl_before_writing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A successful freezer exit must not publish a launcher without Tcl/Tk."""
+    import tkinter
+
+    class ZipfsTcl:
+        def eval(self, expression: str) -> str:
+            assert expression == "info library"
+            return "//zipfs:/lib/tcl/tcl_library"
+
+    monkeypatch.setattr(sys, "platform", "win32")
+    monkeypatch.setattr(tkinter, "Tcl", ZipfsTcl)
+    output = tmp_path / "unusable-package"
+    assert builder.main(["--prod", "--output-dir", str(output)]) == 1
+    assert "Tcl/Tk in zipfs" in capsys.readouterr().err
+    assert not output.exists()
+
+
 def test_batch_wrapper_has_no_destructive_legacy_steps() -> None:
     script = (
         (Path(__file__).resolve().parents[1] / "build_package.bat").read_text().lower()
@@ -434,10 +453,18 @@ def test_production_does_not_open_or_change_a_live_working_database(
 ) -> None:
     source, writer = live_database
     paths = [source, Path(str(source) + "-wal"), Path(str(source) + "-shm")]
-    before = {path: path.read_bytes() for path in paths}
+    def fingerprint(path: Path) -> bytes | tuple[int, int]:
+        """Read live files where Windows SQLite sharing permits it."""
+        try:
+            return path.read_bytes()
+        except PermissionError:
+            metadata = path.stat()
+            return metadata.st_size, metadata.st_mtime_ns
+
+    before = {path: fingerprint(path) for path in paths}
     monkeypatch.setenv("SLM_DB_PATH", str(source))
     builder.build_package(project, tmp_path / "production")
-    assert {path: path.read_bytes() for path in paths} == before
+    assert {path: fingerprint(path) for path in paths} == before
     assert writer.execute("SELECT * FROM records").fetchall() == [
         ("synthetic committed WAL row",),
         ("uncommitted must be excluded",),

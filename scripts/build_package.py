@@ -326,6 +326,19 @@ def main(argv: list[str] | None = None) -> int:
         parser.error(
             "Windows packages must be built on Windows with PyInstaller installed"
         )
+    # PyInstaller 6.16 cannot collect Tcl/Tk from Python's embedded zipfs layout.
+    # Such a build appears successful but its windowed launcher never starts.
+    import tkinter
+
+    tcl_library = tkinter.Tcl().eval("info library")
+    if tcl_library.startswith("//zipfs:"):
+        print(
+            "[ERROR] This Python installation stores Tcl/Tk in zipfs, which "
+            "PyInstaller cannot bundle. Build with a Python installation "
+            "that provides Tcl/Tk directories (verified with Python 3.13).",
+            file=sys.stderr,
+        )
+        return 1
     project_root = Path(__file__).resolve().parent.parent
     name = "SLMEducator_Test" if args.test else "SLMEducator"
     output = args.output_dir or project_root / "dist" / name
