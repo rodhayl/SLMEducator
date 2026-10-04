@@ -11,6 +11,7 @@ from uuid import uuid4
 
 from fastapi import HTTPException
 from src.core.models import User
+from .ai_service import TUTOR_MAX_OUTPUT_TOKENS, output_token_limit
 from .temporal_service import utc_now
 
 DAILY_REQUEST_LIMIT = 100
@@ -30,7 +31,7 @@ class RequestRecord:
     status: str = "running"
     provider: str = "unknown"
     model: str = "unknown"
-    max_output_tokens: int = 1000
+    max_output_tokens: int = TUTOR_MAX_OUTPUT_TOKENS
     tokens_used: int | None = None
     requests_used_today: int = 0
     result: dict | None = None
@@ -154,8 +155,7 @@ async def invoke_provider(db, user, service, **kwargs):
         value = getattr(config, name, None)
         if isinstance(value, str):
             setattr(record, name, value)
-    cap = getattr(config, "max_tokens", None)
-    record.max_output_tokens = min(1000, cap) if type(cap) is int and cap > 0 else 1000
+    record.max_output_tokens = output_token_limit(config, TUTOR_MAX_OUTPUT_TOKENS)
     claim_daily_usage(db, user.id, record)
     record.provider_running = True
 

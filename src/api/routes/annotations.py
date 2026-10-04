@@ -144,7 +144,7 @@ async def delete_annotation(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Delete an annotation (owner or teacher only)"""
+    """Delete private notes only as owner, or shared notes as authorized staff."""
     annotation = db.query(Annotation).filter(Annotation.id == annotation_id).first()
 
     if not annotation:
@@ -154,7 +154,8 @@ async def delete_annotation(
     require_content(db, current_user, annotation.content_id)
     owner = db.get(User, annotation.user_id)
     if annotation.user_id != current_user.id and not (
-        is_admin(current_user) or can_manage_student(db, current_user, owner)
+        annotation.is_public
+        and (is_admin(current_user) or can_manage_student(db, current_user, owner))
     ):
         raise HTTPException(status_code=403, detail="Cannot delete this annotation")
 

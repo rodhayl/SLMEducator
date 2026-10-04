@@ -44,6 +44,8 @@ reset_settings_service()
 
 def is_lm_studio_available():
     """Check if LM Studio is running and accessible at the configured endpoint."""
+    if os.environ.get("SLM_OFFLINE_TESTS") == "1":
+        return False
     import httpx
 
     try:
@@ -73,6 +75,8 @@ def get_configured_ai_provider():
 
 def is_configured_ai_available():
     """Check if the configured AI provider is available."""
+    if os.environ.get("SLM_OFFLINE_TESTS") == "1":
+        return False
     provider = get_configured_ai_provider()
     if provider == "lm_studio":
         return is_lm_studio_available()
@@ -137,6 +141,25 @@ def test_log_dir(test_data_dir):
     log_dir = test_data_dir / "logs"
     log_dir.mkdir(exist_ok=True)
     return log_dir
+
+
+@pytest.fixture(autouse=True)
+def block_offline_http_transport(monkeypatch):
+    """Fail closed on real HTTP transports in the explicit synthetic CI gate."""
+    if os.environ.get("SLM_OFFLINE_TESTS") != "1":
+        return
+    import httpx
+    import requests
+
+    def blocked(*args, **kwargs):
+        raise RuntimeError("Network transport is disabled by SLM_OFFLINE_TESTS")
+
+    async def blocked_async(*args, **kwargs):
+        blocked()
+
+    monkeypatch.setattr(httpx.HTTPTransport, "handle_request", blocked)
+    monkeypatch.setattr(httpx.AsyncHTTPTransport, "handle_async_request", blocked_async)
+    monkeypatch.setattr(requests.adapters.HTTPAdapter, "send", blocked)
 
 
 @pytest.fixture(autouse=True)
@@ -348,6 +371,11 @@ def student_token(client, test_student):
 
 def pytest_configure(config):
     """Configure pytest for headless operation"""
+    if (
+        os.environ.get("SLM_OFFLINE_TESTS") == "1"
+        and os.environ.get("USE_REAL_AI") == "1"
+    ):
+        raise pytest.UsageError("Offline tests cannot enable USE_REAL_AI")
     os.environ["TKINTER_HEADLESS"] = "true"
     # Register custom markers used across tests
     config.addinivalue_line(

@@ -96,6 +96,29 @@ Notes:
 - `--real-ai` performs real network API calls and may incur provider cost.
 - Test files and commands describe the available checks; record the commit, environment, provider and executed scope when reporting results. Browser scenarios and real-provider calls require their own validation.
 
+## Deterministic offline checks
+
+The GitHub workflow `.github/workflows/offline-tests.yml` installs pinned test
+dependencies, then runs synthetic API/service/packaging tests and serial DOM
+regressions. The test phase disables provider discovery and real HTTP transports.
+It excludes manual tests, existing-server browser tests and real-provider suites;
+installation still requires access to package registries.
+
+From a prepared PowerShell environment, the equivalent Python gate is:
+
+```powershell
+$env:SLM_OFFLINE_TESTS = "1"
+$env:USE_REAL_AI = "0"
+python -m pytest tests -q -ra --strict-markers --ignore=tests/manual --ignore=tests/e2e --ignore=tests/real_ai -m "not real_ai" --basetemp="$env:TEMP/slm-check-$([guid]::NewGuid())"
+Remove-Item Env:SLM_OFFLINE_TESTS
+```
+
+For DOM checks, run `npm ci --ignore-scripts --prefix tests/ui`, then
+`npm test --prefix tests/ui` with Node 20+. See [the UI test boundary](tests/ui/README.md).
+These checks do not certify a Windows executable, a live browser or model quality.
+See [maintained functional contracts](docs/FUNCTIONAL_REQUIREMENTS.md) for current
+capabilities instead of historical desktop-module inventories.
+
 ## Browser E2E Testing (Chrome DevTools)
 
 Manual browser validation scenarios are tracked in:

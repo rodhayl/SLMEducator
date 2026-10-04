@@ -87,6 +87,15 @@ class LoggerLike(Protocol):
     def error(self, msg: str, *args: Any, **kwargs: Any) -> Any: ...
 
 
+TUTOR_MAX_OUTPUT_TOKENS = 1200
+
+
+def output_token_limit(config: Any, requested: int) -> int:
+    """Use the same positive output ceiling for transport and request receipts."""
+    configured = getattr(config, "max_tokens", None)
+    return min(requested, configured) if type(configured) is int and configured > 0 else requested
+
+
 class AIService:
     """
     AI Service for content generation and tutoring functionality.
@@ -674,7 +683,7 @@ class AIService:
         conversation_history: Optional[List[Dict[str, str]]] = None,
     ) -> Dict[str, Any]:
         """
-        Provide AI tutoring assistance with Two-LLM pipeline support.
+        Provide AI tutoring assistance with bounded context for one selected model.
 
         Args:
             user: Student requesting tutoring
@@ -705,7 +714,7 @@ class AIService:
             "history": conversation_history or [],
         }
 
-        # Format context (uses Two-LLM if enabled)
+        # Format the bounded context without a separate preprocessing model.
         final_context_str = self._format_context(context_data)
         self.logger.debug(
             f"AIService provide_tutoring - Final context length: {len(final_context_str)}"
@@ -719,7 +728,7 @@ class AIService:
         prompt = self._build_tutoring_prompt(question, final_context_str, grade_level)
 
         try:
-            response = self._call_ai(prompt, max_tokens=1200, temperature=0.5)
+            response = self._call_ai(prompt, max_tokens=TUTOR_MAX_OUTPUT_TOKENS, temperature=0.5)
             tutoring_data = self._parse_tutoring_response(response.content)
 
             self.logger.info("Successfully provided tutoring response")
@@ -885,10 +894,8 @@ class AIService:
         """
         start_time = time.time()
 
-        configured_max = getattr(self.config, "max_tokens", None)
         configured_temperature = getattr(self.config, "temperature", None)
-        if configured_max is not None:
-            max_tokens = min(max_tokens, configured_max)
+        max_tokens = output_token_limit(self.config, max_tokens)
         if configured_temperature is not None:
             temperature = configured_temperature
 

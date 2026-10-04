@@ -10,14 +10,44 @@ import pytest
 
 from src.api.routes import ai
 from src.core.services import ai_request_lifecycle as lifecycle
+from src.core.services.ai_service import AIService, RuntimeAIConfig
 from src.core.services.assistance_policy import set_assessment_policy
 from src.core.services.temporal_service import utc_now
 from tests.trust.test_assistance_policy import assessment_fixture
 from tests.trust.test_resource_contracts import scenario, synthetic_credentials
 
+REAL_CALL_AI = AIService._call_ai
+
 
 def identity():
     return str(uuid4())
+
+
+@pytest.mark.parametrize("configured,expected", [(None, 1200), (300, 300), (5000, 1200)])
+@pytest.mark.parametrize("route,field", [("chat", "message"), ("answer-question", "question")])
+def test_receipt_output_cap_matches_actual_transport(scenario, monkeypatch, configured, expected, route, field):
+    """Exercise the real tutoring service; stub only the final HTTP adapter."""
+    import logging
+
+    client, db, users, selected, _, _, _ = scenario
+    selected[0] = users["teacher_a"]
+    config = RuntimeAIConfig(provider="ollama", model="synthetic", max_tokens=configured)
+    service = AIService(config, logging.getLogger(__name__))
+    sent = []
+
+    def adapter(prompt, max_tokens, temperature, system_prompt):
+        sent.append(max_tokens)
+        return {"content": '{"explanation":"Synthetic suggestion"}', "tokens_used": 7}
+
+    monkeypatch.setattr(service, "_call_ollama", adapter)
+    monkeypatch.setattr(service, "_call_ai", REAL_CALL_AI.__get__(service, AIService))
+    monkeypatch.setattr(ai, "get_ai_service_dependency", lambda *args: service)
+    response = client.post(f"/api/ai/{route}", json={field: "Explain fractions", "client_request_id": identity()})
+    assert response.status_code == 200, response.text
+    assert response.json()["receipt"]["status"] == "completed", response.text
+    assert sent == [expected]
+    assert response.json()["receipt"]["max_output_tokens"] == expected
+    assert response.json()["receipt"]["tokens_used"] == 7
 
 
 def test_same_request_replays_without_new_provider_work_or_usage(scenario):

@@ -90,7 +90,7 @@ class PhaseModel(BaseModel):
 
 
 class StudyPlanCreate(BaseModel):
-    title: str
+    title: str = Field(min_length=1, max_length=200)
     description: Optional[str] = None
     is_public: bool = False
     phases: List[PhaseModel] = Field(default_factory=list, max_length=101)
@@ -166,9 +166,8 @@ async def create_study_plan(
         # Flatten phases to linear contents if needed, or just store associations for query purposes.
         # We need StudyPlanContent to link Content to Plan for foreign key constraints and simple queries.
 
-        association_order = 0
         for phase_idx, phase in enumerate(plan.phases):
-            for content_id in phase.content_ids:
+            for association_order, content_id in enumerate(phase.content_ids):
                 # Verify content exists using proper SQLAlchemy 2.0 pattern
                 content = db.query(Content).filter(Content.id == content_id).first()
                 if not content:
@@ -182,7 +181,6 @@ async def create_study_plan(
                     order_index=association_order,
                 )
                 db.add(assoc)
-                association_order += 1
 
         db.commit()
         db.refresh(new_plan)
@@ -469,12 +467,12 @@ class StudyPlanTree(BaseModel):
 class TopicCreate(BaseModel):
     """Create a topic (Content) linked to a study plan."""
 
-    title: str
+    title: str = Field(min_length=1, max_length=200)
     content_type: str = "lesson"  # Default to lesson
     description: Optional[str] = None
-    difficulty: int = 1
+    difficulty: int = Field(default=1, ge=1, le=10)
     content_data: Optional[Dict[str, Any]] = None
-    phase_index: int = 0
+    phase_index: int = Field(default=0, ge=0, le=100)
 
 
 class GradeSummary(BaseModel):
@@ -608,23 +606,14 @@ async def add_topic_to_study_plan(
             created_at=utc_now(),
         )
 
-        if topic.content_data:
-            new_content.set_encrypted_content_data(
-                normalize_content(topic.content_type, topic.content_data)
-            )
+        new_content.set_encrypted_content_data(
+            normalize_content(topic.content_type, topic.content_data or {})
+        )
 
         db.add(new_content)
         db.flush()
 
-        # Get max order index for this phase
-        max_order = (
-            db.query(StudyPlanContent)
-            .filter(
-                StudyPlanContent.study_plan_id == plan_id,
-                StudyPlanContent.phase_index == topic.phase_index,
-            )
-            .count()
-        )
+        max_order = course_workflow.next_course_position(db, plan, topic.phase_index)
 
         # Create association
         assoc = StudyPlanContent(
@@ -647,6 +636,11 @@ async def add_topic_to_study_plan(
             "phase_index": topic.phase_index,
         }
 
+    except (ValueError, HTTPException) as error:
+        db.rollback()
+        if isinstance(error, HTTPException):
+            raise
+        raise HTTPException(status_code=422, detail=str(error)) from error
     except Exception as e:
         db.rollback()
         logger.error(f"Error adding topic to study plan: {e}")

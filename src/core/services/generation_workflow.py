@@ -25,6 +25,7 @@ from src.core.services.course_workflow import (
     metadata,
     assert_plan_editable,
     invalidate_reviews,
+    next_course_position,
 )
 from src.core.services.learning_context import PROMPT_VERSION
 from src.core.exceptions import AIResponseParseError, AIContentValidationError
@@ -192,6 +193,10 @@ def _draft_assessment(db, user, request, data: dict) -> Assessment:
 def _save_item(
     db, user, plan, service, request, kind: str, index: int, data: dict, position: int
 ) -> dict:
+    if db.query(StudyPlanContent).filter_by(
+        study_plan_id=plan.id, phase_index=request.phase_index, order_index=position
+    ).first():
+        raise ValueError("Reserved course position changed; create a new generation request")
     data["generation"] = {
         "model": service.model,
         "provider": service.provider.value,
@@ -251,6 +256,8 @@ def _record(db, plan, job_key: str, job: dict) -> None:
         )
     if jobs.get(job_key, {}).get("cancel_requested"):
         job["cancel_requested"] = True
+    if jobs.get(job_key, {}).get("obsolete_source"):
+        job["obsolete_source"] = True
     jobs[job_key] = job
     data["generation_jobs"] = jobs
     plan.set_encrypted_metadata(data)
@@ -260,6 +267,19 @@ def _record(db, plan, job_key: str, job: dict) -> None:
 def _reserve_positions(db, plan, request, job: dict, tasks: list) -> None:
     """Reserve each item's position before generation, including failed gaps."""
     if "item_positions" in job:
+        if any(
+            type(position) is not int or not 0 <= position <= 1000
+            for position in job["item_positions"].values()
+        ):
+            raise ValueError("Course phase is full; create a new draft for this job")
+        for key, position in job["item_positions"].items():
+            occupied = db.query(StudyPlanContent).filter_by(
+                study_plan_id=plan.id,
+                phase_index=request.phase_index,
+                order_index=position,
+            ).first()
+            if occupied and occupied.content_id != job["items"].get(key, {}).get("content_id"):
+                raise ValueError("Reserved course position changed; create a new generation request")
         return
     links = (
         db.query(StudyPlanContent)
@@ -276,14 +296,10 @@ def _reserve_positions(db, plan, request, job: dict, tasks: list) -> None:
     base = (
         min(prior_positions)
         if prior_positions
-        else max((link.order_index for link in links), default=-1) + 1
+        else next_course_position(db, plan, request.phase_index, len(tasks))
     )
-    if not prior_positions:
-        for other in metadata(plan).get("generation_jobs", {}).values():
-            if other.get("phase_index") == request.phase_index:
-                base = max(
-                    base, max(other.get("item_positions", {}).values(), default=-1) + 1
-                )
+    if base < 0 or base + len(tasks) - 1 > 1000:
+        raise ValueError("Course phase is full; create a new draft for this job")
     job["phase_index"] = request.phase_index
     job["item_positions"] = {
         item_key: base + offset for offset, (item_key, _, _) in enumerate(tasks)
@@ -317,6 +333,7 @@ def generate_package(db, user, plan, service, request) -> dict:
             "Generation is already running for this course; wait and retry"
         )
     try:
+        expected_source = None
         if plan is not None:
             db.refresh(plan)
             assert_plan_editable(db, plan)
@@ -349,6 +366,7 @@ def generate_package(db, user, plan, service, request) -> dict:
                 )
                 key = _fingerprint(request)
                 result["job_key"] = key
+            expected_source = document
         job = (
             metadata(plan).get("generation_jobs", {}).get(key, {"items": {}})
             if plan
@@ -393,7 +411,10 @@ def generate_package(db, user, plan, service, request) -> dict:
                             continue
                         job["items"][item_key] = {"status": "running"}
                         _record(db, plan, key, job)
+                        _require_current_generation_source(db, plan, expected_source)
                     data = _generate(service, request, kind, index)
+                    if plan:
+                        _require_current_generation_source(db, plan, expected_source)
                     item = (
                         _save_item(
                             db,
@@ -441,3 +462,12 @@ def generate_package(db, user, plan, service, request) -> dict:
         return result
     finally:
         lock.release()
+
+
+def _require_current_generation_source(db, plan, expected_source: dict | None) -> None:
+    """Do not save an old answer under changed source/provenance or assignment."""
+    db.refresh(plan)
+    assert_plan_editable(db, plan)
+    current = metadata(plan).get("source_document")
+    if current != expected_source:
+        raise ValueError("Source revision changed during generation; review and retry")

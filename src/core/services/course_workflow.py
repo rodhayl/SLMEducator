@@ -2,6 +2,7 @@
 
 from hashlib import sha256
 import json
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from src.core.models import (
     Assessment,
@@ -39,6 +40,28 @@ def course_items(db: Session, plan_id: int) -> list[StudyPlanContent]:
         )
         .all()
     )
+
+
+def next_course_position(
+    db: Session, plan: StudyPlan, phase_index: int, item_count: int = 1
+) -> int:
+    """Append within graph bounds without occupying a resumable job's positions."""
+    if not 0 <= phase_index <= 100 or not 1 <= item_count <= 1001:
+        raise ValueError("Course phase and item count must be within supported bounds")
+    last = (
+        db.query(func.max(StudyPlanContent.order_index))
+        .filter_by(study_plan_id=plan.id, phase_index=phase_index)
+        .scalar()
+    )
+    position = 0 if last is None else last + 1
+    for job in metadata(plan).get("generation_jobs", {}).values():
+        if job.get("phase_index") == phase_index:
+            position = max(
+                position, max(job.get("item_positions", {}).values(), default=-1) + 1
+            )
+    if position + item_count - 1 > 1000:
+        raise ValueError("Course phase is full; choose another phase or reorder it")
+    return position
 
 
 def course_snapshot(

@@ -1,4 +1,4 @@
-from datetime import datetime
+from src.core.services.temporal_service import utc_now
 
 
 def _auth_headers(token: str) -> dict:
@@ -96,7 +96,7 @@ def test_dashboard_activity_shows_percent_when_total_points_present(
         status=SubmissionStatus.GRADED,
         score=10,
         total_points=10,
-        submitted_at=datetime.now(),
+        submitted_at=utc_now(),
     )
     db_service.session.add(sub)
     db_service.session.commit()
@@ -185,7 +185,7 @@ def test_student_cannot_self_assign_via_progress_endpoints(
         content_type=ContentType.LESSON,
         difficulty=1,
         creator_id=test_teacher.id,
-        created_at=datetime.now(),
+        created_at=utc_now(),
     )
     db_service.session.add(content)
     db_service.session.commit()

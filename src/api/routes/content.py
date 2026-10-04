@@ -3,7 +3,7 @@ from src.core.services.temporal_service import utc_now
 
 from sqlalchemy.orm import Session
 from typing import List, Optional, Dict, Any
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from datetime import datetime
 
 from src.api.dependencies import get_db
@@ -12,6 +12,7 @@ from src.core.services.course_workflow import (
     assert_content_editable,
     assert_plan_editable,
     invalidate_reviews,
+    next_course_position,
 )
 from src.api.security import get_current_user
 from src.api.policies import (
@@ -102,13 +103,13 @@ def _can_edit_content(db: Session, user: User, content: Content) -> bool:
 
 
 class ContentCreate(BaseModel):
-    title: str
+    title: str = Field(min_length=1, max_length=200)
     content_type: Optional[str] = None  # Standard field name
     type: Optional[str] = None  # Alias for compatibility with frontend
     description: Optional[str] = None
     content_data: Optional[Dict[str, Any]] = None  # Standard field name
     data: Optional[Dict[str, Any]] = None  # Alias for compatibility
-    difficulty: int = 1
+    difficulty: int = Field(default=1, ge=1, le=10)
     is_personal: bool = False
     shared_with_teacher: bool = False
     study_plan_id: Optional[int] = (
@@ -586,10 +587,8 @@ async def create_content(
         if content_data.study_plan_id is not None and not is_student(current_user):
             from src.core.models import StudyPlanContent
 
-            position = (
-                db.query(StudyPlanContent)
-                .filter_by(study_plan_id=content_data.study_plan_id, phase_index=0)
-                .count()
+            position = next_course_position(
+                db, db.get(StudyPlan, content_data.study_plan_id), 0
             )
             db.add(
                 StudyPlanContent(
@@ -633,8 +632,8 @@ async def create_content(
 class ContentUpdate(BaseModel):
     """Pydantic model for updating content."""
 
-    title: Optional[str] = None
-    difficulty: Optional[int] = None
+    title: Optional[str] = Field(default=None, min_length=1, max_length=200)
+    difficulty: Optional[int] = Field(default=None, ge=1, le=10)
     content_data: Optional[Dict[str, Any]] = None
     is_personal: Optional[bool] = None
     shared_with_teacher: Optional[bool] = None
@@ -756,6 +755,7 @@ async def delete_content(
     except ValueError as exc:
         raise HTTPException(status_code=409, detail=str(exc))
     try:
+        invalidate_reviews(db, content)
         db.delete(content)
         db.commit()
         return {"message": "Content deleted successfully", "id": content_id}
@@ -776,18 +776,18 @@ async def delete_content(
 class BatchContentItem(BaseModel):
     """Single item for batch content creation."""
 
-    title: str
+    title: str = Field(min_length=1, max_length=200)
     content_type: str = "lesson"
     content_data: Optional[Dict[str, Any]] = None
-    difficulty: int = 1
+    difficulty: int = Field(default=1, ge=1, le=10)
 
 
 class BatchContentCreate(BaseModel):
     """Batch create multiple content items."""
 
-    items: List[BatchContentItem]
+    items: List[BatchContentItem] = Field(min_length=1, max_length=1001)
     study_plan_id: Optional[int] = None
-    phase_index: int = 0
+    phase_index: int = Field(default=0, ge=0, le=100)
 
 
 @router.post("/batch", response_model=Dict[str, Any])
@@ -825,15 +825,14 @@ async def create_content_batch(
     try:
         if batch_data.study_plan_id:
             assert_plan_editable(db, plan)
-        # Get starting order index
+        normalized_items = [
+            normalize_content(item.content_type, item.content_data or {})
+            for item in batch_data.items
+        ]
+        # Append after the greatest existing position, including sparse graphs.
         if batch_data.study_plan_id:
-            max_order = (
-                db.query(StudyPlanContent)
-                .filter(
-                    StudyPlanContent.study_plan_id == batch_data.study_plan_id,
-                    StudyPlanContent.phase_index == batch_data.phase_index,
-                )
-                .count()
+            max_order = next_course_position(
+                db, plan, batch_data.phase_index, len(batch_data.items)
             )
         else:
             max_order = 0
@@ -848,10 +847,7 @@ async def create_content_batch(
                 created_at=utc_now(),
             )
 
-            if item.content_data:
-                new_content.set_encrypted_content_data(
-                    normalize_content(item.content_type, item.content_data)
-                )
+            new_content.set_encrypted_content_data(normalized_items[idx])
 
             db.add(new_content)
             db.flush()
@@ -865,6 +861,7 @@ async def create_content_batch(
                     order_index=max_order + idx,
                 )
                 db.add(assoc)
+                invalidate_reviews(db, new_content)
 
             created_items.append(
                 {
@@ -883,6 +880,11 @@ async def create_content_batch(
             "study_plan_id": batch_data.study_plan_id,
         }
 
+    except (ValueError, HTTPException) as error:
+        db.rollback()
+        if isinstance(error, HTTPException):
+            raise
+        raise HTTPException(status_code=422, detail=str(error)) from error
     except Exception as e:
         db.rollback()
         logger.error(f"Error in batch content creation: {e}")

@@ -8,12 +8,12 @@ characterizations are evidence of defects, never evidence of repaired behavior.
 
 | Phase | Requirements and audit coverage | Status / acceptance evidence |
 | --- | --- | --- |
-| 0 | UX-01 role selection; UX-02 annotation audience; CUR-01 hidden inline assessment keys; CUR-02 usable linked assessments; CUR-07 content/reference/order validation; CUR-08 audience-complete exports; shared create/edit/import contracts | In progress; two teachers/two learners, malformed input rejected before writes, keys/rubrics confined to author endpoints |
-| 1 | CUR-03/04/05/06/10/11: canonical content; durable extraction/usage provenance; coherent render/tutor/export/session revisions; late sections; consistent budgets; source changes invalidate dependent review | Pending; actual source selection and review snapshots, no inferred historical provenance |
-| 2 | UX-03/04/05/06/07/08/11/12/13/14/16/17: correction and feedback; completion/navigation; roster enrollment; draft edits and copies; attempts; admin scope; truthful metrics | Pending; complete role journeys and failure/retry regressions using existing services |
-| 3 | UX-10 and AI audit 1–7: contextual tutor/help; supported providers/settings; section selection/context invalidation; delivery permission recheck; bounded usage/concurrency/cancel and honest receipts | Pending; deterministic provider stubs only; real model semantics remain unverified |
-| 4 | CUR-09/12 and full portability criteria: preview/validation/round-trip; vocabulary/objectives/references; explicit copies/revisions and version compatibility; separate private backup; explicit media/OCR exclusions | Pending; cross-installation synthetic keys and transactional failure cases |
-| 5 | UX-09/15 and AI audit 3/7–12: keyboard/labels/i18n/navigation; verified unused-code cleanup; packaging imports/readiness; minimal offline CI; stable aggregate and requirement map | Pending; source/DOM checks are separate from native/browser/human acceptance |
+| 0 | UX-01 role selection; UX-02 annotation audience; CUR-01 hidden inline assessment keys; CUR-02 usable linked assessments; CUR-07 content/reference/order validation; CUR-08 audience-complete exports; shared create/edit/import contracts | Implemented; canonical ingress and private-note mutation regression closure is recorded below |
+| 1 | CUR-03/04/05/06/10/11: canonical content; durable extraction/usage provenance; coherent render/tutor/export/session revisions; late sections; consistent budgets; source changes invalidate dependent review | Implemented; saved manifests, captured sessions and in-flight source replacement guards |
+| 2 | UX-03/04/05/06/07/08/11/12/13/14/16/17: correction and feedback; completion/navigation; roster enrollment; draft edits and copies; attempts; admin scope; truthful metrics | Implemented; role journeys, completion, attempts, feedback and account recovery |
+| 3 | UX-10 and AI audit 1–7: contextual tutor/help; supported providers/settings; section selection/context invalidation; delivery permission recheck; bounded usage/concurrency/cancel and honest receipts | Implemented with deterministic provider stubs; model semantics remain unverified |
+| 4 | CUR-09/12 and full portability criteria: preview/validation/round-trip; vocabulary/objectives/references; explicit copies/revisions and version compatibility; separate private backup; explicit media/OCR exclusions | Implemented; v2 graph, v1 compatibility, readable formats and transactional recovery |
+| 5 | UX-09/15 and AI audit 3/7–12: keyboard/labels/i18n/navigation; verified unused-code cleanup; packaging imports/readiness; minimal offline CI; stable aggregate and requirement map | Implementation complete; final synthetic aggregate/CI evidence recorded in PRODUCT_ACCEPTANCE_20261004.md |
 
 ## Contract decisions
 
@@ -145,3 +145,37 @@ earlier provenance. Help queue retries gain durable owner-scoped identities.
 The remaining closure work is the requirement audit, demonstrated dead-code and
 packaging cleanup, minimal deterministic CI, and one stable final aggregate.
 Native Windows, real-browser/accessibility and human/model gates remain external.
+
+
+## Checkpoint 5: audited closure and deterministic acceptance
+
+The final requirement audit reproduced alternate authoring routes that accepted
+empty instructional bodies or invalid phases, reused sparse positions, or retained
+stale publication review. Shared bounded append allocation now also respects
+resumable generation reservations. Generation refuses full/out-of-range graphs,
+occupied reservations and source/provenance replacement during inference, without
+saving an old answer under new source metadata. Private annotations cannot be
+deleted by another teacher or administrator; shared-note staff scope is preserved.
+
+Tutor/Q&A receipts use the same configured output-token ceiling as the actual
+transport. Six adapter-level regressions cover both routes with default, smaller
+and larger configured limits. The dashboard fixture now records a known UTC
+submission rather than expecting unknown historical time to appear as recent.
+
+Packaging removes demonstrated unused hints, includes mounted routes and dynamic
+Uvicorn dispatch, and checks frozen resource layout/translations. The unreferenced
+legacy export/import service and its otherwise unused Markdown/ReportLab runtime
+dependencies are removed after a repository-wide caller/import audit. Maintained
+audience-specific portability and PDF source extraction remain covered separately.
+The functional guide now describes actual maintained modules and capabilities.
+
+Minimal GitHub CI installs pinned dependencies, runs critical-name/syntax lint,
+the synthetic Python gate and serial DOM tests. Explicit offline mode blocks real
+HTTP transports and skips provider discovery. It cannot accidentally turn into a
+paid provider run; dependency installation still requires registry access.
+
+Affected evidence before freeze: 77 audit/ingress/source cases; 22 receipt,
+permissions and settings cases; 36 setup/portability/source-style cases; 58
+packaging/seeder cases; 154 serial DOM cases. Scopes overlap and must not be summed.
+The stable aggregate, exact source identity and external acceptance boundaries
+are recorded in PRODUCT_ACCEPTANCE_20261004.md after execution.

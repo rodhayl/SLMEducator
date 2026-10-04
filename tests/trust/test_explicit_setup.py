@@ -19,3 +19,13 @@ def test_runtime_and_dev_dependencies_are_separate():
     assert 'pytest' not in runtime and 'mypy' not in runtime and 'black' not in runtime
     assert '-r requirements.txt' in dev and 'pytest==' in dev
     assert '--upgrade pip' not in (ROOT / 'install_dependencies.bat').read_text()
+
+
+def test_obsolete_unreferenced_export_service_is_not_packaged():
+    """The maintained audience-aware portability path has no old PDF stack."""
+    assert not (ROOT / 'src/core/services/export_import_service.py').exists()
+    assert (ROOT / 'src/core/services/portability_service.py').is_file()
+    requirements = (ROOT / 'requirements.txt').read_text()
+    assert 'reportlab==' not in requirements
+    assert 'markdown==' not in requirements
+    assert 'pypdf==' in requirements  # Source extraction is still supported.
