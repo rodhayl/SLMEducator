@@ -143,6 +143,9 @@ async def test_maximum_source_including_reference_labels_fits_generation_contrac
 
 def test_lesson_prompt_includes_relevant_late_text_and_explicit_usage():
     service = AIService.__new__(AIService)
+    from src.core.services.ai_service import RuntimeAIConfig
+
+    service.config = RuntimeAIConfig("ollama", "synthetic")
     service.logger = MagicMock()
     captured = []
 

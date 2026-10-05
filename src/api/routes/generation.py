@@ -27,6 +27,9 @@ class ExerciseRequest(BaseModel):
     topic: str
     difficulty: str  # easy, medium, hard
     exercise_type: str  # multiple_choice, true_false, short_answer
+    source_material: Optional[str] = Field(default=None, max_length=100000)
+    grade_level: Optional[str] = None
+    learning_objectives: Optional[List[str]] = None
 
 
 class EnhancementRequest(BaseModel):
@@ -108,6 +111,9 @@ def generate_exercise(
             topic=request.topic,
             difficulty=request.difficulty,
             exercise_type=request.exercise_type,
+            source_material=request.source_material,
+            grade_level=request.grade_level,
+            learning_objectives=request.learning_objectives,
         )
         return exercise
     except HTTPException:

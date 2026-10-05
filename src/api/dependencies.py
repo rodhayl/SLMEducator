@@ -26,6 +26,40 @@ def get_db():
         session.close()
 
 
+def default_ai_configuration(user_id: int) -> AIModelConfiguration:
+    """One transient default for the settings receipt and actual transport."""
+    settings = get_settings_service()
+
+    # Get provider and model (try both key variations for compatibility)
+    provider = settings.get("ai", "default_provider", None) or settings.get(
+        "ai", "provider", "ollama"
+    )
+    model = settings.get("ai", "default_model", None) or settings.get(
+        "ai", "model", "llama3"
+    )
+
+    # Get endpoint based on provider
+    if provider == "lm_studio":
+        endpoint = settings.get("ai", "lm_studio.url", "http://localhost:1234")
+    elif provider == "ollama":
+        endpoint = settings.get("ai", "ollama.url", "http://localhost:11434")
+    elif provider == "openrouter":
+        endpoint = settings.get(
+            "ai", "openrouter.url", "https://openrouter.ai/api/v1/chat/completions"
+        )
+    else:
+        endpoint = settings.get("ai", f"{provider}.url", None)
+
+    return AIModelConfiguration(
+        user_id=user_id,
+        provider=provider,
+        model=model,
+        endpoint=endpoint,
+        model_parameters={"temperature": 0.7, "max_tokens": 1000},
+    )
+
+
+
 def get_ai_service_dependency(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),  # Now available
@@ -46,37 +80,7 @@ def get_ai_service_dependency(
     )
 
     if not config:
-        # Create a transient/default config object based on settings.properties
-        # or just return a default one.
-        settings = get_settings_service()
-
-        # Get provider and model (try both key variations for compatibility)
-        provider = settings.get("ai", "default_provider", None) or settings.get(
-            "ai", "provider", "ollama"
-        )
-        model = settings.get("ai", "default_model", None) or settings.get(
-            "ai", "model", "llama3"
-        )
-
-        # Get endpoint based on provider
-        if provider == "lm_studio":
-            endpoint = settings.get("ai", "lm_studio.url", "http://localhost:1234")
-        elif provider == "ollama":
-            endpoint = settings.get("ai", "ollama.url", "http://localhost:11434")
-        elif provider == "openrouter":
-            endpoint = settings.get(
-                "ai", "openrouter.url", "https://openrouter.ai/api/v1/chat/completions"
-            )
-        else:
-            endpoint = settings.get("ai", f"{provider}.url", None)
-
-        config = AIModelConfiguration(
-            user_id=current_user.id,
-            provider=provider,
-            model=model,
-            endpoint=endpoint,
-            # API key handling omitted for brevity/safety in this transient object
-        )
+        config = default_ai_configuration(current_user.id)
 
     parameters = config.model_parameters or {}
     if config.provider not in {"ollama", "lm_studio", "openai", "openrouter"}:

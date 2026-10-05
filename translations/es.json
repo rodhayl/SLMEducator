@@ -299,15 +299,15 @@
       "password_changed": "¡Contraseña cambiada con éxito!",
       "password_mismatch": "Las contraseñas nuevas no coinciden",
       "password_required": "Todos los campos de contraseña son requeridos",
-      "password_error": "[ES] Error changing password"
+      "password_error": "Error al cambiar la contraseña"
     },
     "advanced": {
-      "cache_size_label": "[ES] Cache Size (MB):",
-      "log_debug": "[ES] DEBUG",
-      "log_error": "[ES] ERROR",
-      "log_info": "[ES] INFO",
-      "log_level_label": "[ES] Logging Level:",
-      "log_warning": "[ES] WARNING"
+      "cache_size_label": "Tamaño de caché (MB):",
+      "log_debug": "DEBUG",
+      "log_error": "ERROR",
+      "log_info": "INFO",
+      "log_level_label": "Nivel de registro:",
+      "log_warning": "WARNING"
     },
     "ai": {
       "advanced": "Configuración Avanzada",
@@ -380,17 +380,17 @@
       "save_preferences": "Guardar Preferencias"
     },
     "general": {
-      "auto_save": "[ES] Enable Auto-save",
-      "auto_save_label": "[ES] Auto Save:",
-      "font_large": "[ES] Large",
-      "font_medium": "[ES] Medium",
-      "font_size_label": "[ES] Font Size:",
-      "font_small": "[ES] Small",
-      "language_label": "[ES] Language:",
-      "theme_auto": "[ES] Auto",
-      "theme_dark": "[ES] Dark",
-      "theme_label": "[ES] Theme:",
-      "theme_light": "[ES] Light"
+      "auto_save": "Activar guardado automático",
+      "auto_save_label": "Guardado automático:",
+      "font_large": "Grande",
+      "font_medium": "Mediana",
+      "font_size_label": "Tamaño de letra:",
+      "font_small": "Pequeña",
+      "language_label": "Idioma:",
+      "theme_auto": "Automático",
+      "theme_dark": "Oscuro",
+      "theme_label": "Tema:",
+      "theme_light": "Claro"
     },
     "profile": {
       "email": "Correo",
@@ -896,7 +896,7 @@
       "delete": "Eliminar",
       "badge_new": "Nuevo",
       "badge_read": "Leído",
-      "delete_confirm": "[ES] Are you sure you want to delete this message? This action cannot be undone."
+      "delete_confirm": "¿Quieres eliminar este mensaje? Esta acción no se puede deshacer."
     },
     "bulk": {
       "select_all": "Seleccionar Todo",
@@ -956,7 +956,7 @@
   },
   "create": {
     "ai": {
-      "alert_text": "Texto de Alerta",
+      "alert_text": "Genera borradores para revisar. Usa el asistente para aportar fuentes y diseñar un curso.",
       "button_wizard": "Asistente",
       "buttons": {
         "generate": "Generar"
@@ -1026,7 +1026,7 @@
       }
     },
     "manual_builder": {
-      "description": "Descripción",
+      "description": "Organiza lecciones, práctica y evaluaciones en un borrador de curso ordenado.",
       "title": "✏️ Constructor Manual"
     },
     "tabs": {
@@ -1318,6 +1318,7 @@
     "time_limit": "Límite de tiempo (minutos, vacío sin límite)",
     "attempt_limit": "Máximo de intentos",
     "plan_saved_review": "Borrador guardado. Revisa el material guardado en la biblioteca antes de publicar.",
+    "generation_scope": "Borrador sin revisar. La estructura y el envío de fuentes no verifican la exactitud. Comprueba afirmaciones y respuestas con las fuentes antes de revisar y publicar. La salida está limitada por los ajustes de IA; acorta la solicitud si queda incompleta.",
     "open_library": "Abrir biblioteca",
     "mark_reviewed": "Marcar como revisado",
     "notes_ready": "Notas listas",

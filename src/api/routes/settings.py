@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 import logging
 from typing import Optional, Dict, Any, List, Literal
 
-from src.api.dependencies import get_db, get_ai_service_dependency
+from src.api.dependencies import get_db, get_ai_service_dependency, default_ai_configuration
 from src.api.security import get_current_user, get_optional_current_user
 from src.core.models import User, ApplicationConfiguration, AIModelConfiguration
 from src.core.services.ai_service import AIProvider, AIService, RuntimeAIConfig
@@ -58,8 +58,7 @@ async def get_ai_config(
         .first()
     )
     if not config:
-        # Return defaults
-        return AIConfigModel()
+        config = default_ai_configuration(current_user.id)
 
     return _public_ai_config(config)
 

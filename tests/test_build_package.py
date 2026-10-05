@@ -72,6 +72,7 @@ def project(tmp_path: Path) -> Path:
     shutil.copyfile(
         source / "scripts" / "seed_admin.py", project / "scripts" / "seed_admin.py"
     )
+    shutil.copyfile(source / "scripts/recover_database.py", project / "scripts/recover_database.py")
     shutil.copyfile(source / "alembic.ini", project / "alembic.ini")
     return project
 

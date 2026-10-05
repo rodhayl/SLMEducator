@@ -372,7 +372,8 @@ class ServerControlWindow:
                 self._add_log(f"Server ready at http://localhost:{self.port}")
                 self.update_status()
                 # Auto-open browser
-                self.open_browser()
+                if "--no-browser" not in sys.argv:
+                    self.open_browser()
         except OSError:
             # Try again in 1 second
             self.root.after(1000, self._check_server_ready)
@@ -435,6 +436,10 @@ class ServerControlWindow:
 def main():
     """Main entry point."""
     setup_frozen_working_directory()
+    if len(sys.argv) > 1 and sys.argv[1] == "--recovery":
+        from scripts.recover_database import main as recover_database
+
+        return recover_database(sys.argv[2:])
     log_message("=== SLM Educator Starting ===")
 
     if not GUI_AVAILABLE:
@@ -488,4 +493,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

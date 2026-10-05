@@ -96,6 +96,20 @@ def main() -> None:
     path.write_text(json.dumps(manifest), encoding="utf-8")
     path.chmod(0o600)
     import uvicorn
+    from fastapi.responses import Response
+    from src.api.main import app
+
+    sw_requests = 0
+
+    @app.get("/acceptance-sw.js")
+    def acceptance_worker():
+        """Serve the actual previous worker once, then the candidate for update."""
+        nonlocal sw_requests
+        sw_requests += 1
+        source = (ROOT / "tests/fixtures/service_worker_v14.js" if sw_requests == 1
+                  else ROOT / "src/web/sw.js")
+        return Response(source.read_text(encoding="utf-8-sig"), media_type="application/javascript",
+                        headers={"Service-Worker-Allowed": "/", "Cache-Control": "no-store"})
 
     uvicorn.run("src.api.main:app", host="127.0.0.1", port=args.port, log_level="warning")
 

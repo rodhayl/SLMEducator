@@ -391,12 +391,12 @@
       "success_theme": "Settings saved successfully!\n\nTheme changed to {theme} mode.\nProvider: {provider}\nSome elements may require an app restart to fully update.",
       "success_basic": "Settings saved successfully!\n\nProvider: {provider}\nAPI Key: {api_key_status}\nModel: {model}",
       "error": "Failed to save settings: {error}",
-      "error_app": "Error guardar la configuration de la aplicacion",
-      "error_generic": "Error guarsave configuration",
-      "failed": "Error guardar",
-      "failed_msg": "Error guarsave configuration",
-      "network_error": "Error de network",
-      "saving": "Guardando configuration...",
+      "error_app": "Could not save application settings",
+      "error_generic": "Could not save settings",
+      "failed": "Save failed",
+      "failed_msg": "Could not save settings",
+      "network_error": "Network error",
+      "saving": "Saving settings...",
       "success": "Success",
       "success_app": "Settings de la aplicacion guardada"
     },
@@ -910,7 +910,7 @@
   },
   "create": {
     "ai": {
-      "alert_text": "Alert Text",
+      "alert_text": "Generate drafts for review. Use the wizard to provide sources and design a course.",
       "button_wizard": "Wizard",
       "buttons": {
         "generate": "Generate"
@@ -980,7 +980,7 @@
       }
     },
     "manual_builder": {
-      "description": "Description",
+      "description": "Arrange lessons, practice and assessments into an ordered course draft.",
       "title": "Manual Builder"
     },
     "tabs": {
@@ -1318,6 +1318,7 @@
     "time_limit": "Time limit (minutes, blank for none)",
     "attempt_limit": "Maximum attempts",
     "plan_saved_review": "Draft saved. Review the saved material in the library before publishing.",
+    "generation_scope": "Unreviewed draft. Structure and source submission do not verify accuracy. Check claims and answers against the sources before reviewing and publishing. Output is bounded by AI settings; shorten the request if it is incomplete.",
     "open_library": "Open library",
     "mark_reviewed": "Mark reviewed",
     "notes_ready": "Notes ready",

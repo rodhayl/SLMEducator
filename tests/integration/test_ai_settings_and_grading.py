@@ -77,6 +77,32 @@ def test_ai_config_preserves_api_key_when_omitted():
     assert update.json()["has_api_key"] is True
 
 
+def test_unsaved_ai_settings_match_actual_transport(monkeypatch):
+    from src.api import dependencies
+
+    username = _unique_username("defaults")
+    _register_user(username, "teacher")
+    headers = _auth_headers(_login_user(username))
+    defaults = {("ai", "default_provider"): "lm_studio",
+                ("ai", "default_model"): "synthetic-instruct",
+                ("ai", "lm_studio.url"): "http://127.0.0.1:1234"}
+    settings = Mock()
+    settings.get.side_effect = lambda section, key, default=None: defaults.get((section, key), default)
+    monkeypatch.setattr(dependencies, "get_settings_service", lambda: settings)
+    receipt = client.get("/api/settings/ai", headers=headers)
+    assert receipt.status_code == 200
+    captured = []
+    monkeypatch.setattr(dependencies, "AIService", lambda runtime, logger: captured.append(runtime))
+    from src.core.services.database import get_db_service
+    from src.core.models import User
+    with get_db_service().get_session() as db:
+        user = db.query(User).filter(User.username == username).one()
+        dependencies.get_ai_service_dependency(user, db)
+    runtime = captured[0]
+    for field in ("provider", "model", "endpoint", "temperature", "max_tokens"):
+        assert receipt.json()[field] == getattr(runtime, field)
+
+
 def test_ai_assisted_submission_creates_ai_graded(monkeypatch):
     teacher_username = _unique_username("teacher")
     student_username = _unique_username("student")

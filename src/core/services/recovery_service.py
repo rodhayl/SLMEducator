@@ -112,17 +112,25 @@ def create_backup(source: Path, key: bytes) -> bytes:
 
 
 def write_new(path: Path, data: bytes) -> None:
-    """Write a new file with restrictive permissions and never clobber a target."""
+    """Flush a sibling staging file, then atomically create a new destination.
+
+    Hard-link promotion is create-only on Windows NTFS and POSIX. An abrupt
+    process termination can leave a staging file, never a partial destination.
+    Unsupported filesystems fail safely instead of falling back to overwrite.
+    """
     path = Path(path)
-    descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    if path.exists() or path.is_symlink():
+        raise FileExistsError("Output already exists; choose a new path")
+    descriptor, staging_name = tempfile.mkstemp(prefix=".slm-write-", dir=path.parent)
+    staging = Path(staging_name)
     try:
         with os.fdopen(descriptor, "wb") as target:
             target.write(data)
             target.flush()
             os.fsync(target.fileno())
-    except BaseException:
-        path.unlink(missing_ok=True)
-        raise
+        os.link(staging, path)
+    finally:
+        staging.unlink(missing_ok=True)
 
 
 def restore_backup(archive_bytes: bytes, destination: Path, key: bytes) -> dict:

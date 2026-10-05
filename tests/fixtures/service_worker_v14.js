@@ -1,10 +1,10 @@
-/**
+﻿/**
  * Service Worker for SLM Educator
  * Provides offline caching for static assets and basic pages
  * Version: 1.0.2
  */
 
-const CACHE_NAME = 'slm-educator-v15-atomic-install';
+const CACHE_NAME = 'slm-educator-v14-practice-options';
 const OFFLINE_URL = '/404.html';
 
 // Static assets to cache on install
@@ -39,7 +39,7 @@ self.addEventListener('install', (event) => {
                 const cache = await caches.open(CACHE_NAME);
                 console.log('[SW] Caching static assets');
 
-                await Promise.all(
+                await Promise.allSettled(
                     STATIC_ASSETS.map(async (assetUrl) => {
                         try {
                             const request = new Request(assetUrl, { cache: 'reload' });
@@ -50,18 +50,14 @@ self.addEventListener('install', (event) => {
                             await cache.put(request, response.clone());
                         } catch (error) {
                             console.warn('[SW] Failed to cache:', assetUrl, error);
-                            throw error;
                         }
                     })
                 );
 
                 console.log('[SW] Install complete');
-                // Wait for old controlled tabs to close before activating a new
-                // asset cache. An interrupted install must not replace them.
+                await self.skipWaiting();
             } catch (error) {
                 console.error('[SW] Install failed:', error);
-                await caches.delete(CACHE_NAME);
-                throw error;
             }
         })()
     );
@@ -74,7 +70,7 @@ self.addEventListener('activate', (event) => {
         caches.keys().then((cacheNames) => {
             return Promise.all(
                 cacheNames
-                    .filter((name) => name.startsWith('slm-educator-') && name !== CACHE_NAME)
+                    .filter((name) => name !== CACHE_NAME)
                     .map((name) => {
                         console.log('[SW] Deleting old cache:', name);
                         return caches.delete(name);
@@ -82,7 +78,7 @@ self.addEventListener('activate', (event) => {
             );
         }).then(() => {
             console.log('[SW] Activation complete');
-            // Existing pages retain their original controller until navigation.
+            return self.clients.claim();
         })
     );
 });
@@ -115,8 +111,7 @@ self.addEventListener('fetch', (event) => {
                     }
                     return response;
                 })
-                .catch(async () => (await (await caches.open(CACHE_NAME)).match(request))
-                    || new Response('', {status: 503, statusText: 'Offline asset unavailable'}))
+                .catch(() => caches.match(request))
         );
         return;
     }
@@ -137,9 +132,9 @@ self.addEventListener('fetch', (event) => {
                 })
                 .catch(() => {
                     // Offline - try cache, then offline page
-                    return caches.open(CACHE_NAME).then(async (cache) =>
-                        (await cache.match(request)) || (await cache.match(OFFLINE_URL))
-                        || new Response('Application offline. Reconnect and reload.', {status: 503}));
+                    return caches.match(request).then((cachedResponse) => {
+                        return cachedResponse || caches.match(OFFLINE_URL);
+                    });
                 })
         );
         return;
@@ -147,7 +142,7 @@ self.addEventListener('fetch', (event) => {
 
     // For static assets: Cache first, network fallback
     event.respondWith(
-        caches.open(CACHE_NAME).then(cache => cache.match(request)).then((cachedResponse) => {
+        caches.match(request).then((cachedResponse) => {
             if (cachedResponse) {
                 return cachedResponse;
             }

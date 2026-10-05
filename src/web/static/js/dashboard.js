@@ -894,8 +894,8 @@ window.loadProfileBadges = async function () {
             badgesList.innerHTML = `
                 <div class="text-muted text-center py-3">
                     <div class="mb-2">🎯</div>
-                    <small>${I18n.t('profile.badges.empty')}</small><br>
-                    <small>${I18n.t('profile.badges.empty_hint')}</small>
+                    <small data-i18n="profile.badges.empty">${escapeHtml(I18n.t('profile.badges.empty'))}</small><br>
+                    <small data-i18n="profile.badges.empty_hint">${escapeHtml(I18n.t('profile.badges.empty_hint'))}</small>
                 </div>
             `;
             return;
@@ -920,7 +920,7 @@ window.loadProfileBadges = async function () {
         console.error('Failed to load badges:', err);
         badgesList.innerHTML = `
             <div class="text-muted text-center">
-                <small>${I18n.t('profile.badges.error_load')}</small>
+                <small data-i18n="profile.badges.error_load">${escapeHtml(I18n.t('profile.badges.error_load'))}</small>
             </div>
         `;
     }
@@ -1092,8 +1092,8 @@ async function loadActivity() {
         const list = document.getElementById('activity-list');
         list.innerHTML = activities.map(a => `
             <div class="activity-item">
-                <div>${escapeHtml(a.text)}</div>
-                <div class="activity-time">${escapeHtml(a.time)}</div>
+                <div>${escapeHtml(a.id === 0 ? I18n.t('dashboard.recent_activity.no_activity') : a.text)}</div>
+                <div class="activity-time">${escapeHtml(a.id === 0 ? I18n.t('dashboard.recent_activity.start_learning') : a.time)}</div>
             </div>
         `).join('');
     } catch (err) {
@@ -1158,7 +1158,7 @@ document.querySelectorAll('.nav-item').forEach(item => {
     });
 });
 
-document.addEventListener('DOMContentLoaded', () => {
+function initializeResponsiveNavigation() {
     const toggle = document.getElementById('sidebar-toggle');
     const backdrop = document.getElementById('sidebar-backdrop');
 
@@ -1173,7 +1173,12 @@ document.addEventListener('DOMContentLoaded', () => {
             document.body.classList.remove('sidebar-open');
         });
     }
-});
+}
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeResponsiveNavigation, {once: true});
+} else {
+    initializeResponsiveNavigation();
+}
 
 function restoreDashboardView() {
     if (dashboardStartupFailed) return;

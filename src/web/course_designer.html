@@ -198,6 +198,7 @@
                 <button id="retry-generation" class="btn btn-warning d-none" onclick="retryCourseGeneration()" data-i18n="recovery.retry_failed">Retry failed items</button>
                 <div class="card card-body mt-3">
                     <p id="generation-source-coverage" class="small" role="status"></p>
+                    <p class="alert alert-warning" data-i18n="recovery.generation_scope">Unreviewed draft. Structure and source submission do not verify accuracy. Check claims and answers against the sources before reviewing and publishing. Output is bounded by AI settings; shorten the request if it is incomplete.</p>
                     <label for="replace-source-file" data-i18n="recovery.replace_source">Replace source for a new draft version</label>
                     <input id="replace-source-file" class="form-control" type="file" accept=".pdf,.txt,.md">
                     <button id="replace-source-btn" type="button" class="btn btn-outline-primary mt-2" onclick="replaceCourseSource()" data-i18n="recovery.replace_source">Replace source for a new draft version</button>

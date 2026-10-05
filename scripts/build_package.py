@@ -87,6 +87,7 @@ HIDDEN_IMPORTS = (
     "src.core.services.auth",
     "src.core.services.database",
     "src.core.services.ai_service",
+    "scripts.recover_database",
 )
 COLLECT_ALL = ("fastapi", "pydantic", "sqlalchemy", "cryptography", "tzdata")
 
@@ -147,7 +148,7 @@ def _copy_inputs(project_root: Path, staging: Path) -> None:
         if _is_link(source) or any(_is_link(path) for path in source.rglob("*")):
             raise ValueError(f"Symlinked package input is not supported: {name}")
         shutil.copytree(source, staging / name, ignore=ignore)
-    for name in ("alembic.ini", "scripts", "scripts/seed_admin.py"):
+    for name in ("alembic.ini", "scripts", "scripts/seed_admin.py", "scripts/recover_database.py"):
         if _is_link(project_root / name):
             raise ValueError(f"Symlinked package input is not supported: {name}")
     shutil.copyfile(project_root / "alembic.ini", staging / "alembic.ini")
@@ -156,6 +157,7 @@ def _copy_inputs(project_root: Path, staging: Path) -> None:
         project_root / "scripts" / "seed_admin.py",
         staging / "scripts" / "seed_admin.py",
     )
+    shutil.copyfile(project_root / "scripts/recover_database.py", staging / "scripts/recover_database.py")
 
 
 def _build_environment(staging: Path) -> dict[str, str]:

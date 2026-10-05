@@ -75,9 +75,12 @@ def _generate(service, request, kind: str, index: int) -> dict:
         )
     elif kind == "exercise":
         result = service.generate_exercise(
-            topic=topic,
+            topic=request.topic_name,
             difficulty=request.exercise_difficulty,
             exercise_type=["multiple_choice", "true_false", "short_answer"][index % 3],
+            source_material=request.source_material,
+            grade_level=request.grade_level,
+            learning_objectives=request.learning_objectives,
         )
     else:
         questions = service.generate_assessment_questions(
@@ -205,6 +208,8 @@ def _save_item(
         "prompt_version": PROMPT_VERSION,
         "source_version": sha256((request.source_material or "").encode()).hexdigest(),
         "review_status": "draft",
+        "structural_status": "valid",
+        "source_support": "unverified",
         "source_document_id": request.source_document_id,
         "source_origin": {
             key: value

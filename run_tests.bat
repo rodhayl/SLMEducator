@@ -129,11 +129,15 @@ if not exist "venv\Scripts\activate.bat" (
 goto :activate_environment
 
 :run_full
-echo Running full test suite...
+echo Running full isolated synthetic suite. Manual, existing-server E2E and real-provider suites are separate opt-in gates.
+set "SLM_OFFLINE_TESTS=1"
+set "USE_REAL_AI=0"
+set "PYTHONUTF8=1"
+set "FULL_SCOPE=--strict-markers --ignore=tests/manual --ignore=tests/e2e --ignore=tests/real_ai -m "not real_ai""
 if "%NO_COVERAGE%"=="1" (
-    pytest tests/ %PYTEST_BASE%
+    python -m pytest tests/ %PYTEST_BASE% %FULL_SCOPE%
 ) else (
-    pytest tests/ %PYTEST_BASE% --cov=src/core --cov-report=term-missing --cov-report=html:htmlcov
+    python -m pytest tests/ %PYTEST_BASE% %FULL_SCOPE% --cov=src --cov-fail-under=80 --cov-report=term-missing --cov-report=html:htmlcov
 )
 set "TEST_EXIT_CODE=%ERRORLEVEL%"
 goto :finish
@@ -217,7 +221,8 @@ echo Usage:
 echo   run_tests.bat [MODE] [OPTIONS]
 echo.
 echo Modes (pick one):
-echo   --full       Run full suite in tests/ (default mode when provided explicitly)
+echo   --full       Run full isolated synthetic gate, whole-source coverage 80%%
+echo                Manual, existing-server E2E and real AI are separate gates
 echo   --quick      Run full suite without coverage, quick defaults
 echo   --ai         Run tests/ai only
 echo   --phases     Run phase-specific feature tests

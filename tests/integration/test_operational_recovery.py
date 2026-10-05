@@ -67,15 +67,32 @@ def application():
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
         probe.bind(("127.0.0.1", 0))
         port = probe.getsockname()[1]
-    with Path("application.log").open("w", encoding="utf-8") as log:
-        server = subprocess.Popen([
+    command = [
             sys.executable, "-m", "uvicorn", "src.api.main:app",
             "--host", "127.0.0.1", "--port", str(port), "--log-level", "warning",
-        ], stdout=log, stderr=subprocess.STDOUT)
+        ]
+    server_environment = None
+    if request.get("executable"):
+        # The frozen launcher chooses its own first free loopback port.
+        port = 8000
+        while True:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+                try:
+                    probe.bind(("127.0.0.1", port))
+                    break
+                except OSError:
+                    port += 1
+        command = [request["executable"], "--no-browser"]
+        import os
+        server_environment = {name: value for name, value in os.environ.items()
+                              if name not in {"PYTHONPATH", "PYTHONHOME", "VIRTUAL_ENV"}}
+        server_environment["PATH"] = os.environ["SYSTEMROOT"] + "/System32"
+    with Path("application.log").open("w", encoding="utf-8") as log:
+        server = subprocess.Popen(command, env=server_environment, stdout=log, stderr=subprocess.STDOUT)
         try:
             with httpx.Client(base_url=f"http://127.0.0.1:{port}",
                               trust_env=False, timeout=10) as client:
-                deadline = time.monotonic() + 20
+                deadline = time.monotonic() + 40
                 while time.monotonic() < deadline:
                     assert server.poll() is None, "Application process exited at startup"
                     try:
@@ -89,7 +106,12 @@ def application():
                 yield client
         finally:
             if server.poll() is None:
-                server.terminate()
+                if request.get("executable"):
+                    subprocess.run(["taskkill", "/PID", str(server.pid), "/T", "/F"],
+                                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+                    server.wait(timeout=10)
+                else:
+                    server.terminate()
                 try:
                     server.wait(timeout=10)
                 except subprocess.TimeoutExpired:
@@ -118,6 +140,8 @@ with application() as client:
 
     plan = state["plan_id"]
     if request["mode"] == "prepare":
+        state["source"] = api("PUT", f"/api/study-plans/{plan}/source", "teacher_a",
+                              json={"filename": "synthetic.md", "extracted_text": "Equal eighths of the same whole can be compared by their numerators."})["source"]
         package = api("GET", f"/api/portability/plans/{plan}/export?audience=teacher", "teacher_a")
         imported = api("POST", "/api/portability/import", "teacher_b",
                        json={"package": package, "confirm": True})
@@ -145,10 +169,22 @@ with application() as client:
         ended = api("POST", f"/api/learning/{session['id']}/end", "learner_a",
                     json={"notes": request["note"], "difficulty_rating": 3})
         assert ended["status"] == "completed"
+        assessment = api("GET", "/api/assessments/", "teacher_a")[0]
+        assessment_id = assessment["id"]
+        question = api("GET", f"/api/assessments/{assessment_id}", "teacher_a")["questions"][0]
+        api("POST", f"/api/assessments/{assessment_id}/publish", "teacher_a")
+        attempt = api("POST", f"/api/assessments/{assessment_id}/start", "learner_a")
+        state["submission_id"] = attempt["submission_id"]
+        pending = api("POST", f"/api/assessments/{assessment_id}/submit", "learner_a",
+                      json={"submission_id": state["submission_id"],
+                            "answers": [{"question_id": question["id"], "response_text": "Synthetic answer needs teacher correction."}]})
+        assert pending["score"] is None
+        api("POST", f"/api/assessments/submissions/{state['submission_id']}/grade", "teacher_a",
+            json={"score": 0, "feedback": "Synthetic recovery feedback: compare equal eighths."})
     else:
         history = api("GET", f"/api/learning/history/{state['content_id']}", "learner_a")
         assert len(history) == 1 and history[0]["id"] == state["session_id"]
-        assert history[0]["status"] == "completed"
+        assert history[0]["status"] == ("active" if request["mode"] == "reopen-active" else "completed")
         assert history[0]["notes"] == request["note"]
         assert history[0]["content_snapshot"] == state["snapshot"]
         assert history[0]["context_revision"] == state["revision"]
@@ -160,6 +196,11 @@ with application() as client:
             assert reopened["context_revision"] == state["revision"]
 
     source = api("GET", f"/api/content/{state['content_id']}", "teacher_a")
+    grade = api("GET", f"/api/assessments/submissions/{state['submission_id']}", "learner_a")
+    assert grade["score"] == 0 and grade["feedback"] == "Synthetic recovery feedback: compare equal eighths."
+    api("GET", f"/api/assessments/submissions/{state['submission_id']}", "learner_b", expected=403)
+    assert api("GET", f"/api/study-plans/{plan}/source", "teacher_a")["source"] == state["source"]
+    api("GET", f"/api/study-plans/{plan}/source", "learner_a", expected=403)
     imported = api("GET", f"/api/content/{state['imported_content_id']}", "teacher_b")
     assert imported["content_data"] == source["content_data"]
     learner = api("GET", f"/api/content/{state['content_id']}", "learner_a")
@@ -301,6 +342,63 @@ def test_cli_wrong_key_and_existing_outputs_preserve_source_and_destination(inst
     _run(run.env, RECOVERY, "backup", "--database", run.source, "--output", run.backup, expected=1)
     assert _logical_digest(run.source) == before
     assert run.backup.read_bytes() == archive_bytes
+
+
+def test_windowless_receipt_cannot_replace_backup_or_database(installation):
+    run = installation
+    archive = run.backup.read_bytes()
+    before = _logical_digest(run.source)
+    _run(run.env, RECOVERY, "--result-file", run.backup, "inspect", "--database", run.source, expected=2)
+    missing = run.root / "absent.db"
+    _run(run.env, RECOVERY, "--result-file", missing, "restore", "--backup", run.backup,
+         "--output", missing, expected=2)
+    assert not missing.exists()
+    assert run.backup.read_bytes() == archive
+    assert _logical_digest(run.source) == before
+
+
+def test_interrupted_restore_can_retry_without_partial_destination(installation):
+    """Kill a real restore process immediately before atomic final promotion."""
+    import time
+
+    run = installation
+    destination = run.root / "interrupted-restore.db"
+    signal = run.root / "promotion-ready"
+    original = run.backup.read_bytes()
+    driver = r'''
+import os, sys, time
+from pathlib import Path
+from src.core.services.recovery_service import restore_backup
+archive, destination, signal = map(Path, sys.argv[1:])
+link = os.link
+def pause_promotion(source, target, **kwargs):
+    if Path(target) == destination:
+        signal.write_text("ready")
+        time.sleep(60)
+    return link(source, target, **kwargs)
+os.link = pause_promotion
+restore_backup(archive.read_bytes(), destination, os.environ["SLM_ENCRYPTION_KEY"].encode())
+'''
+    process = subprocess.Popen([sys.executable, "-c", driver, str(run.backup),
+                                str(destination), str(signal)], env=run.env, cwd=run.root,
+                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    try:
+        deadline = time.monotonic() + 20
+        while not signal.exists() and time.monotonic() < deadline:
+            assert process.poll() is None
+            time.sleep(0.05)
+        assert signal.exists(), "Restore never reached final promotion"
+        process.kill()
+        process.wait(timeout=5)
+        assert not destination.exists()
+        assert run.backup.read_bytes() == original
+        _run(run.env, RECOVERY, "restore", "--backup", run.backup, "--output", destination)
+        _run(run.env, RECOVERY, "inspect", "--database", destination)
+        assert destination.exists()
+    finally:
+        if process.poll() is None:
+            process.kill()
+            process.wait(timeout=5)
 
 
 @pytest.mark.parametrize("damage", ["ciphertext", "size", "digest", "manifest", "json", "root", "sqlite"])
