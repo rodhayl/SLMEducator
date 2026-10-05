@@ -18,9 +18,11 @@ def main() -> None:
     parser.add_argument("--state-dir", type=Path, required=True)
     parser.add_argument("--base-url", default="http://127.0.0.1:8097")
     parser.add_argument("--split", choices=["development", "reserved"], required=True)
+    parser.add_argument("--max-tokens", type=int, default=2000)
+    parser.add_argument("--cases-file", type=Path)
     args = parser.parse_args()
     fixture = json.loads((args.state_dir / "fixture.json").read_text(encoding="utf-8"))
-    cases_file = Path(__file__).resolve().parents[1] / "fixtures/local_semantic_cases.json"
+    cases_file = args.cases_file or Path(__file__).resolve().parents[1] / "fixtures/local_semantic_cases.json"
     cases = json.loads(cases_file.read_text(encoding="utf-8"))
     destination = args.state_dir / (args.split + "-results.json")
     if destination.exists():
@@ -35,7 +37,7 @@ def main() -> None:
 
         authenticate()
         config = {"provider": "lm_studio", "model": "slm-production-evaluation",
-                  "endpoint": "http://127.0.0.1:1234", "temperature": 0, "max_tokens": 2000}
+                  "endpoint": "http://127.0.0.1:1234", "temperature": 0, "max_tokens": args.max_tokens}
         client.post("/api/settings/ai", json=config).raise_for_status()
         results["configuration"] = client.get("/api/settings/ai").json()
         for case in cases["cases"]:

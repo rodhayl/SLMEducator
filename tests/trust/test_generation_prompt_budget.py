@@ -39,6 +39,25 @@ def test_exercise_prompt_uses_types_instead_of_sample_answers(service):
     assert "exactly" in prompt
 
 
+@pytest.mark.parametrize("operation", ["outline", "topic", "study_plan"])
+def test_planning_prompts_share_bounded_noncopyable_contract(service, operation):
+    service._client.post.return_value = httpx.Response(
+        200, json={"choices": [{"message": {"content": '{"title":"Actual plan","description":"Draft","phases":[],"units":[]}'}, "finish_reason": "stop"}], "model": "synthetic"},
+        request=httpx.Request("POST", "http://synthetic.invalid"),
+    )
+    if operation == "outline":
+        service.generate_course_outline("Synthetic topic", "beginner", source_material="Known source fact.")
+    elif operation == "topic":
+        service.generate_topic_content("Synthetic subject", "Synthetic topic", "beginner", ["Read"], source_material="Known source fact.")
+    else:
+        prompt = service._build_study_plan_prompt("Synthetic subject", "beginner", ["Read"], 4)
+        assert "1200" in prompt and "objective1" not in prompt and "comprehensive" not in prompt
+        return
+    prompt = service._client.post.call_args.kwargs["json"]["messages"][-1]["content"]
+    assert "1200" in prompt and "insufficient" in prompt
+    assert "obj1" not in prompt and "point1" not in prompt and "Educational content text" not in prompt
+
+
 def test_exercise_preserves_objectives_level_and_source_receipt(service):
     service._client.post.return_value = httpx.Response(
         200, json={"choices": [{"message": {"content": '{"question":"Compute water","type":"short_answer"}'}, "finish_reason": "stop"}], "model": "synthetic"},
@@ -49,6 +68,19 @@ def test_exercise_preserves_objectives_level_and_source_receipt(service):
     assert "beginner adult" in prompt and "Multiply by three" in prompt
     assert result["_source_usage"]["fragment"] in prompt
     assert result["_source_usage"]["use_coverage"] == "complete"
+
+
+def test_assessment_sources_reach_prompt_without_becoming_logged_topic(service):
+    marker = "Synthetic private source marker"
+    service._client.post.return_value = httpx.Response(
+        200, json={"choices": [{"message": {"content": '{"questions":[]}'}, "finish_reason": "stop"}], "model": "synthetic"},
+        request=httpx.Request("POST", "http://synthetic.invalid"),
+    )
+    service.generate_assessment_questions("Sharing", ["Explain equal amounts"],
+        source_material=marker, grade_level="beginner adult")
+    prompt = service._client.post.call_args.kwargs["json"]["messages"][-1]["content"]
+    assert marker in prompt and "beginner adult" in prompt
+    assert marker not in repr(service.logger.mock_calls)
 
 
 @pytest.mark.parametrize("provider", ["lm_studio", "openai", "openrouter", "ollama"])

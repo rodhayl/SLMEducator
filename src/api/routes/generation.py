@@ -75,6 +75,8 @@ class AssessmentQuestionsRequest(BaseModel):
     question_types: Optional[List[str]] = None  # Default: mixed
     num_questions: int = 5
     difficulty: str = "medium"  # easy, medium, hard
+    source_material: Optional[str] = Field(default=None, max_length=100000)
+    grade_level: Optional[str] = None
 
 
 @router.post("/study-plan")
@@ -219,6 +221,8 @@ def generate_assessment_questions(
             question_types=request.question_types,
             num_questions=request.num_questions,
             difficulty=request.difficulty,
+            source_material=request.source_material,
+            grade_level=request.grade_level,
         )
         return {"questions": questions, "total": len(questions)}
     except HTTPException:
@@ -245,7 +249,7 @@ async def enhance_content(
 class FullTopicPackageRequest(BaseModel):
     """
     Request model for generating a complete topic package.
-    Creates lesson, exercises, and assessment in one AI call.
+    Generates independently recoverable lesson, exercises and assessment items.
     """
 
     subject: str

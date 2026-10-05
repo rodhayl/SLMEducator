@@ -1,0 +1,8 @@
+{
+  "protocol": "New held-out sources frozen before the final GPU/budget run. Earlier reserved cases became regression evidence after budget repair; no prompt is tuned on these three new sources. Same five 0/1/2 dimensions and strict all-2 criterion as the initial protocol. Preserve failures and explicit failed-item retries.",
+  "cases": [
+    {"id":"fresh-mcq","split":"reserved","kind":"exercise","topic":"Riko packets","level":"adult beginner","objective":"Calculate counters in six packets","source":"[section:1]\nA riko packet holds three counters. A shelf contains six riko packets.","oracle":"18 counters from 6 times 3; four distinct useful options, exact answer binding and verified explanation."},
+    {"id":"fresh-hints","split":"reserved","kind":"exercise","topic":"Nemi strips","level":"adult beginner with limited reading vocabulary","objective":"Calculate two strips with seven nemi marks each, with progressive hints","source":"[section:1]\nThere are two strips. Each strip has seven nemi marks.","oracle":"14 marks; first hint encourages grouping without stating 14; explanation 2 times 7; readable simple words."},
+    {"id":"fresh-open","split":"reserved","kind":"open","topic":"Explain equal portions of a rope","level":"adult beginner","objective":"Explain why three people need same-length rope pieces","source":"[section:1]\nThree people divide a rope into three pieces of the same length. Equal sharing here means each receives the same length.","oracle":"Actual open short-answer question about same length; grounded answer/explanation; saved as unreviewed draft and subjective grading remains pending teacher approval."}
+  ]
+}

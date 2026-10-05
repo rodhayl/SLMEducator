@@ -59,12 +59,10 @@ def _tasks(request) -> list[tuple[str, str, int]]:
 
 
 def _generate(service, request, kind: str, index: int) -> dict:
-    topic = request.topic_name
-    block, usage = source_prompt(
+    _, usage = source_prompt(
         request.source_material,
         request.topic_name + " " + " ".join(request.learning_objectives),
     )
-    topic += block
     if kind == "lesson":
         result = service.generate_lesson(
             topic=request.topic_name,
@@ -84,11 +82,13 @@ def _generate(service, request, kind: str, index: int) -> dict:
         )
     else:
         questions = service.generate_assessment_questions(
-            topic=topic,
+            topic=request.topic_name,
             learning_objectives=request.learning_objectives,
             question_types=None,
             num_questions=request.num_assessment_questions,
             difficulty=request.assessment_difficulty,
+            source_material=request.source_material,
+            grade_level=request.grade_level,
         )
         result = {
             "title": f"Assessment: {request.topic_name}",

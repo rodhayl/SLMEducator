@@ -8,6 +8,7 @@ import json
 import os
 from pathlib import Path
 import re
+import secrets
 
 import pytest
 from playwright.sync_api import expect
@@ -176,3 +177,46 @@ def test_unavailable_profile_keeps_dashboard_closed_until_retry(live_page, brows
     expect(page.locator("#dashboard-app")).not_to_have_attribute("inert", "")
     page.locator('[data-view="students"]').click()
     expect(page.locator("#student-list")).to_contain_text("learner_a")
+
+
+def test_admin_recovery_ui_revokes_sessions_and_preserves_isolation(live_page, browser_world):
+    import requests
+
+    page, world = live_page, browser_world
+    # The second learner leaves the original teacher/learner journey intact.
+    target = world.manifest['users']['learner_b']
+    with requests.Session() as http:
+        http.trust_env = False
+        old = http.post(world.base_url + '/api/auth/login', data={
+            'username': 'learner_b', 'password': world.accounts['learner_b']['password']}).json()['access_token']
+        login(page, world, 'teacher_b')
+        page.locator('[data-view="students"]').click()
+        expect(page.locator('#student-list')).to_contain_text('learner_b')
+        expect(page.locator('#student-list')).not_to_contain_text('learner_a')
+        denied = page.evaluate("""async id => (await fetch('/api/auth/users/'+id+'/status', {
+            method:'PATCH',headers:{Authorization:'Bearer '+localStorage.getItem('token'),'Content-Type':'application/json'},
+            body:JSON.stringify({active:false,confirm:true})})).status""", target)
+        assert denied == 403
+        login(page, world, 'admin')
+        page.locator('[data-view="students"]').click()
+        page.locator(f'#student-list button[onclick="manageAccount({target}, \'student\')"]').click()
+        expect(page.locator('#account-identity')).to_contain_text('@learner_b')
+        page.locator('#account-status-btn').click()
+        page.locator('button[id^="confirm-modal-"][id$="-confirm"]:visible').click()
+        expect(page.locator('#account-operation-status')).to_contain_text(re.compile('saved|guardado',re.I))
+        assert http.get(world.base_url + '/api/auth/me',headers={'Authorization':'Bearer '+old}).status_code == 401
+        assert http.post(world.base_url + '/api/auth/login',data={
+            'username':'learner_b','password':world.accounts['learner_b']['password']}).status_code == 401
+        page.locator('#account-status-btn').click()
+        page.locator('button[id^="confirm-modal-"][id$="-confirm"]:visible').click()
+        expect(page.locator('#account-status-btn')).to_contain_text(re.compile('Deactivate|Desactivar',re.I))
+        new_password = 'SyntheticRecovery-' + secrets.token_urlsafe(16) + 'A1!'
+        page.locator('#account-new-password').fill(new_password)
+        page.locator('#account-confirm-password').fill(new_password)
+        page.locator('#account-reset-btn').click()
+        page.locator('button[id^="confirm-modal-"][id$="-confirm"]:visible').click()
+        expect(page.locator('#account-operation-status')).to_contain_text(re.compile('reset|restablecida',re.I))
+        assert http.post(world.base_url+'/api/auth/login',data={'username':'learner_b','password':new_password}).status_code == 200
+        expect(page.locator('#account-new-password')).to_have_value('')
+        world.accounts['learner_b']['password'] = new_password
+        screenshot(page, 'admin-account-recovery.png')
