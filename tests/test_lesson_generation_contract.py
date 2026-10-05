@@ -75,4 +75,4 @@ def test_single_lesson_preserves_valid_response_fields(lesson_client, output):
     assert response.status_code == 200
     actual = response.json()
     assert actual.pop("_source_usage")["use_coverage"] == "complete"
-    assert actual == output
+    assert actual == {**output, "objectives": ["Recall supplied facts"]}

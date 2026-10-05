@@ -165,14 +165,22 @@ def real_ai_service(real_ai_config):
 
     This fixture creates an actual AI service that will make real API calls.
     """
-    from src.core.services.ai_service import AIService
-    from src.core.models import AIModelConfig
+    from src.core.services.ai_service import AIService, RuntimeAIConfig
     import logging
 
-    config = AIModelConfig(
+    reasoning = os.environ.get("SLM_REAL_AI_REASONING_EFFORT")
+    if reasoning is not None and (reasoning != "none" or real_ai_config["provider"] != "lm_studio"):
+        pytest.fail("Explicit real-AI reasoning override supports only LM Studio / none")
+    defaults = real_ai_config["config"]
+    endpoint = defaults.get("lm_studio_url") if real_ai_config["provider"] == "lm_studio" else defaults.get("ollama_url") if real_ai_config["provider"] == "ollama" else None
+    config = RuntimeAIConfig(
         provider=real_ai_config["provider"],
         model=real_ai_config["model"],
         api_key=real_ai_config["api_key"],
+        endpoint=endpoint,
+        temperature=defaults.get("temperature"),
+        max_tokens=defaults.get("max_tokens"),
+        reasoning_effort=reasoning,
     )
 
     logger = logging.getLogger("RealAITest")
