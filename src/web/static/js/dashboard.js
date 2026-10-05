@@ -752,12 +752,6 @@ window.loadProfile = async function () {
         document.getElementById('profile-grade-level').value = profile.grade_level || '';
         document.getElementById('profile-username-readonly').value = profile.username || '';
 
-        // Hide grade level for teachers (optional for them)
-        const gradeLevelGroup = document.getElementById('profile-grade-level-group');
-        if (profile.role === 'teacher') {
-            gradeLevelGroup.querySelector('label').textContent = I18n.t('profile.grade_optional');
-        }
-
         // Clear feedback
         const feedback = document.getElementById('profile-feedback');
         feedback.classList.add('d-none');

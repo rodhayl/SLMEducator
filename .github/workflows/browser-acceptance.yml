@@ -1,7 +1,7 @@
 name: Isolated browser acceptance
 on:
   push:
-    branches: [feat/local-acceptance-recovery-20261004]
+    branches: [feat/local-acceptance-recovery-20261004, feat/assessment-browser-acceptance-20261005]
     paths: ['src/**', 'tests/browser/**', 'requirements*.txt', '.github/workflows/browser-acceptance.yml']
   workflow_dispatch:
 permissions:

@@ -4,7 +4,7 @@
  * Version: 1.0.2
  */
 
-const CACHE_NAME = 'slm-educator-v12-localized-status';
+const CACHE_NAME = 'slm-educator-v13-assessment-feedback';
 const OFFLINE_URL = '/404.html';
 
 // Static assets to cache on install

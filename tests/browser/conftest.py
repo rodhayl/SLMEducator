@@ -86,6 +86,20 @@ def browser_world(tmp_path_factory):
             ), f"Synthetic setup/check failed: {method} {path} {response.status_code}"
             return response
 
+        manifest["private_rubric_marker"] = (
+            "Synthetic private rubric: equal eighths reasoning"
+        )
+        api(
+            "PUT",
+            f"/api/assessments/{manifest['assessment_id']}",
+            json={
+                "rubric": {
+                    "name": manifest["private_rubric_marker"],
+                    "description": "Teacher-only synthetic grading guidance.",
+                    "criteria": [{"name": "Explain the comparison", "max_points": 10}],
+                }
+            },
+        )
         api("POST", f"/api/assessments/{manifest['assessment_id']}/publish")
         for action in ("review", "publish"):
             api("POST", f"/api/study-plans/{manifest['plan_id']}/workflow", json={"action": action})
