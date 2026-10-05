@@ -66,11 +66,15 @@ The [Windows report](../PRODUCTION_READINESS_WINDOWS_20261005.md) records actual
 native builds, password preservation/restart, frozen restoration, Chromium
 keyboard/zoom/cache journeys and real native LM Studio inference. Ordinary DOM
 and browser fixtures remain explicitly synthetic; they do not certify AI quality.
-The strict real-model rubric retains four semantic failures (21/25 accepted).
+The final strict real-model rubric accepts 34/36 (23/25 known, 11/11 new reserved).
+The remaining cases are an omitted teacher clarification and an educational error
+already written in a synthetic source. Previous failures/results remain preserved.
+The human pilot is deferred at the user's request; do not ask the participant to
+validate these unresolved cases or treat preparation as acceptance.
 
 The configured synthetic pilot contains provider settings for all five accounts,
 Spanish source/course/drafts and four separate source-backed courses preserving
-those failures for review. No participant must configure or install libraries.
+historical outputs for review. No participant must configure or install libraries.
 The agent opens each relevant screen and changes accounts during an interactive
 pilot; this preparation does not constitute human approval or new inference for
 the imported failure examples.

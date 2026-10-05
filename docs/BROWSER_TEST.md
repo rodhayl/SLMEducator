@@ -40,10 +40,12 @@ accounts and encrypted recovery key, and records actual transport responses.
 application HTTP; run development first and reserve the other split until prompts
 are stable. Preserve every result. Never publish that installation or credentials.
 
-For the 2026-10-05 follow-up use
-`--cases-file tests/fixtures/local_semantic_followup_20261005.json --max-tokens 4000 --reasoning-effort none`.
-The 14 known cases are development regressions; 11 new cases were reserved before
-inference. Native LM Studio uses the pinned model/configuration in the production
+For the final 2026-10-05 evaluation use
+`--cases-file tests/fixtures/local_semantic_objective_20261005.json --max-tokens 4000 --reasoning-effort none`.
+The 25 previous cases are development regressions; 11 new sources were reserved
+before v8 inference. The earlier follow-up fixture/results remain historical
+evidence, including the erroneous half definition already present in its source.
+Native LM Studio uses the pinned model/configuration in the production
 readiness report. For `run_tests.bat --real-ai --yes`, use an isolated config with
 temperature 0/max 4000 and `SLM_REAL_AI_REASONING_EFFORT=none`; the fixture verifies
 the actual service parameters. Other providers/configurations are separate scope.
