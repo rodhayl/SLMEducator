@@ -2,6 +2,7 @@
 
 import json
 import os
+import re
 
 import pytest
 from playwright.sync_api import expect
@@ -60,7 +61,9 @@ def test_teacher_previews_supported_options_and_retries_failure(live_page, brows
     expect(page.locator("#ai-content-generation-result")).to_be_hidden()
     expect(page.locator('[name="exercise_topic"]')).to_have_value("Synthetic option preview")
     expect(page.locator("#generate-btn")).to_be_enabled()
-    expect(page.get_by_text("Generation failed: Synthetic invalid option container; retry your request.", exact=True)).to_be_visible()
+    expect(page.get_by_text(re.compile(
+        r"^(?:Generation failed|Error de generaci\u00f3n): Synthetic invalid option container; retry your request\.$"
+    ))).to_be_visible()
     screenshot(page, "practice-generation-failure.png")
     pending.append((200, {"question": "Synthetic retry: choose two", "type": "multiple_choice",
                           "options": options[1], "correct_answer": "second"}))
