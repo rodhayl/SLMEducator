@@ -816,29 +816,7 @@ function renderSessionContent(content) {
             const extractContent = (parsed) => {
                 if (!parsed || typeof parsed !== 'object') return null;
 
-                // AI-generated format with sections array
-                if (parsed.sections && Array.isArray(parsed.sections)) {
-                    let markdown = '';
-                    parsed.sections.forEach(section => {
-                        if (section.title) markdown += `## ${section.title}\n\n`;
-                        if (section.content) markdown += `${section.content}\n\n`;
-                        if (section.text) markdown += `${section.text}\n\n`;
-                    });
-                    if (parsed.summary) markdown += `## ${sessionMessage('lesson_summary', 'Summary')}\n\n${parsed.summary}\n\n`;
-                    if (parsed.vocabulary && Array.isArray(parsed.vocabulary)) {
-                        markdown += `## ${sessionMessage('lesson_terms', 'Key terms')}\n\n`;
-                        parsed.vocabulary.forEach(term => {
-                            markdown += `- **${term.term || term}**: ${term.definition || ''}\n`;
-                        });
-                    }
-                    if (parsed.key_concepts && Array.isArray(parsed.key_concepts)) {
-                        markdown += `## ${sessionMessage('lesson_concepts', 'Key concepts')}\n\n`;
-                        parsed.key_concepts.forEach(concept => {
-                            markdown += `- ${concept}\n`;
-                        });
-                    }
-                    return markdown.trim() || null;
-                }
+                if (content.content_type === 'lesson') return SLMRender.lessonText(parsed);
 
                 // Direct text fields (common patterns)
                 if (parsed.content && typeof parsed.content === 'string') return parsed.content;
@@ -888,7 +866,6 @@ function renderSessionContent(content) {
             }
         }
         if (!isPractice && !isAssessment) {
-            if (Array.isArray(structured?.objectives) && structured.objectives.length) bodyText = `## ${sessionMessage('learning_objectives', 'Learning objectives')}\n\n` + structured.objectives.map(objective => `- ${objective}`).join('\n') + '\n\n' + bodyText;
             SLMRender.setMarkdown(body, bodyText);
         }
         SLMRender.generationNotice(body, {...structured, source_selection: content.source_selection});

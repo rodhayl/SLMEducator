@@ -4,6 +4,10 @@ from copy import deepcopy
 from typing import Any
 
 SCHEMA_VERSION = 1
+LESSON_EXTRA_TEXT = (
+    "worked_example", "independent_attempt", "feedback", "delayed_review",
+    "prerequisite_check",
+)
 
 
 def normalize_content(kind: str, value: dict[str, Any]) -> dict[str, Any]:
@@ -16,6 +20,14 @@ def normalize_content(kind: str, value: dict[str, Any]) -> dict[str, Any]:
     data["schema_version"] = SCHEMA_VERSION
     data["kind"] = kind
     if kind == "lesson":
+        for key in LESSON_EXTRA_TEXT:
+            if key in data and not isinstance(data[key], str):
+                raise ValueError(f"Lesson {key} must be text")
+        if "discussion_questions" in data and (
+            not isinstance(data["discussion_questions"], list)
+            or any(not isinstance(item, str) for item in data["discussion_questions"])
+        ):
+            raise ValueError("Discussion questions must be a list of text")
         body = data.get("content") or data.get("text") or data.get("body")
         sections = data.get("sections") or []
         if not body and not sections:
@@ -109,11 +121,23 @@ def learner_content(
         "assessment": {"assessment_id", "title", "instructions"},
         "qa": {"question", "answer", "content"},
     }.get(kind, set())
+    if kind == "lesson":
+        allowed |= set(LESSON_EXTRA_TEXT) | {"discussion_questions"}
     # Independent practice intentionally supports learner self-checks. A printable
     # handout has a different purpose and omits its answer/solution keys.
     if kind == "exercise" and not handout:
         allowed |= {"answer", "correct_answer", "solution", "explanation", "hints"}
     result = {key: deepcopy(item) for key, item in value.items() if key in allowed}
+    if kind == "lesson":
+        for key in LESSON_EXTRA_TEXT:
+            if key in result and not isinstance(result[key], str):
+                result.pop(key)
+        if "discussion_questions" in result:
+            questions = result["discussion_questions"]
+            result["discussion_questions"] = (
+                [item for item in questions if isinstance(item, str)]
+                if isinstance(questions, list) else []
+            )
     if "sections" in result:
         sections = result["sections"]
         result["sections"] = (

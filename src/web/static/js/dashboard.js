@@ -1504,10 +1504,10 @@ window.viewContent = async function viewContent(id) {
             try {
                 if (typeof content.content_data === 'string') {
                     const parsed = JSON.parse(content.content_data);
-                    bodyText = Array.isArray(parsed.sections) && parsed.sections.length ? parsed.sections.map(section => `## ${section.title || ''}\n\n${section.content || section.text || ''}`).join('\n\n') : parsed.content || parsed.body || parsed.text || JSON.stringify(parsed, null, 2);
+                    bodyText = type === 'lesson' ? SLMRender.lessonText(parsed) : parsed.content || parsed.body || parsed.text || JSON.stringify(parsed, null, 2);
                 } else {
                     const parsed = content.content_data;
-                    bodyText = Array.isArray(parsed.sections) && parsed.sections.length ? parsed.sections.map(section => `## ${section.title || ''}\n\n${section.content || section.text || ''}`).join('\n\n') : parsed.content || parsed.body || JSON.stringify(parsed, null, 2);
+                    bodyText = type === 'lesson' ? SLMRender.lessonText(parsed) : parsed.content || parsed.body || JSON.stringify(parsed, null, 2);
                 }
             } catch {
                 bodyText = content.content_data;
@@ -1527,91 +1527,118 @@ window.viewContent = async function viewContent(id) {
 };
 
 // Edit content
+let editingContentState = null;
+let savingContentEdit = false;
+let contentEditSequence = 0;
+const editField = id => document.getElementById(id);
+const editLines = id => editField(id).value.split('\n').map(line => line.trim()).filter(Boolean);
+function editChoices(selected = '') {
+    const select = editField('edit-exercise-correct-choice');
+    select.replaceChildren(new Option(SLMClient.message('select_answer', 'Choose an answer'), ''));
+    editLines('edit-exercise-options').forEach((value, index) => select.append(new Option(value, String(index))));
+    select.value = selected;
+}
 window.editContent = async function editContent(id) {
-    // Close view modal if open
-    const viewModal = bootstrap.Modal.getInstance(document.getElementById('contentViewModal'));
-    if (viewModal) viewModal.hide();
-
+    if (savingContentEdit) return;
+    const sequence = ++contentEditSequence;
+    const owner = SLMClient.account();
+    editingContentState = null;
+    bootstrap.Modal.getInstance(editField('contentViewModal'))?.hide();
     try {
-        const token = AuthService.getToken();
-        const res = await fetch(`/api/content/${id}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-
+        const res = await fetch(`/api/content/${id}`, {headers: {Authorization: `Bearer ${AuthService.getToken()}`}});
         if (!res.ok) throw new Error(I18n.t('content.viewer.error_load'));
-
         const content = await res.json();
+        if (sequence !== contentEditSequence || owner !== SLMClient.account()) return;
         if (content.can_edit !== true) { showToast(SLMClient.message('content_read_only', 'This content cannot be edited. Open its course to create a draft copy.'), 'warning'); return; }
-
-        // Populate edit form
-        document.getElementById('edit-content-id').value = content.id;
-        document.getElementById('edit-content-title').value = content.title;
-        const type = content.content_type?.value || content.content_type || 'lesson';
-        document.getElementById('edit-content-type').value = type;
-        document.getElementById('edit-content-difficulty').value = content.difficulty || 1;
-
-        // Parse body
-        let bodyText = '';
-        if (content.content_data) {
-            try {
-                if (typeof content.content_data === 'string') {
-                    const parsed = JSON.parse(content.content_data);
-                    bodyText = Array.isArray(parsed.sections) && parsed.sections.length ? parsed.sections.map(section => `## ${section.title || ''}\n\n${section.content || section.text || ''}`).join('\n\n') : parsed.content || parsed.body || parsed.text || JSON.stringify(parsed, null, 2);
-                } else {
-                    const parsed = content.content_data;
-                    bodyText = Array.isArray(parsed.sections) && parsed.sections.length ? parsed.sections.map(section => `## ${section.title || ''}\n\n${section.content || section.text || ''}`).join('\n\n') : parsed.content || parsed.body || JSON.stringify(parsed, null, 2);
-                }
-            } catch {
-                bodyText = content.content_data;
-            }
+        const type = content.content_type?.value || content.content_type;
+        let data = content.content_data;
+        if (typeof data === 'string') { try { data = JSON.parse(data); } catch { data = {body: data}; } }
+        if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error(I18n.t('content.viewer.error_load'));
+        if (type === 'assessment') {
+            if (!Number.isInteger(data.assessment_id) || data.assessment_id < 1) throw new Error(SLMClient.message('practice_unavailable', 'This item needs teacher review.'));
+            window.location.href = `/assessment_builder.html?id=${data.assessment_id}`;
+            return;
         }
-        document.getElementById('edit-content-body').value = bodyText;
-
-        // Show modal
-        new bootstrap.Modal(document.getElementById('contentEditModal')).show();
+        editingContentState = {id: content.id, type, data, owner};
+        editField('edit-content-id').value = content.id;
+        editField('edit-content-title').value = content.title;
+        editField('edit-content-type').value = type;
+        editField('edit-content-difficulty').value = content.difficulty || 1;
+        editField('edit-lesson-fields').classList.toggle('d-none', type === 'exercise');
+        editField('edit-exercise-fields').classList.toggle('d-none', type !== 'exercise');
+        if (type === 'exercise') {
+            const choices = SLMPractice.optionsFor(data);
+            const multiple = (data.type || data.question_type) === 'multiple_choice';
+            editField('edit-exercise-question').value = data.question || data.question_text || '';
+            editField('edit-exercise-options-fields').classList.toggle('d-none', !multiple);
+            editField('edit-exercise-answer-fields').classList.toggle('d-none', multiple);
+            editField('edit-exercise-options').value = choices.map(choice => choice.value).join('\n');
+            const answer = String(data.correct_answer ?? data.answer ?? '');
+            const selected = choices.findIndex(choice => choice.key.toLowerCase() === answer.toLowerCase() || choice.value.toLowerCase() === answer.toLowerCase());
+            editChoices(selected < 0 ? '' : String(selected));
+            editField('edit-exercise-options').oninput = () => editChoices(editField('edit-exercise-correct-choice').value);
+            editField('edit-exercise-answer').value = answer;
+            editField('edit-exercise-explanation').value = data.explanation || '';
+            editField('edit-exercise-hints').value = (Array.isArray(data.hints) ? data.hints : [data.hint]).filter(item => typeof item === 'string').join('\n');
+        } else {
+            editField('edit-content-body').value = type === 'lesson' ? SLMRender.lessonText(data) : data.content || data.body || data.answer || '';
+        }
+        new bootstrap.Modal(editField('contentEditModal')).show();
     } catch (err) {
-        showToast(I18n.t('content.editor.error_load', { error: err.message }), 'danger');
+        showToast(I18n.t('content.editor.error_load', {error: err.message}), 'danger');
     }
 };
 
-// Save content edit
+// Save corrections without discarding source receipts or practice structure.
 window.saveContentEdit = async function saveContentEdit() {
-    const id = document.getElementById('edit-content-id').value;
-    const title = document.getElementById('edit-content-title').value;
-    const difficulty = document.getElementById('edit-content-difficulty').value;
-    const body = document.getElementById('edit-content-body').value;
-
+    const state = editingContentState;
+    if (savingContentEdit || !state || state.owner !== SLMClient.account() || String(state.id) !== editField('edit-content-id').value) return;
+    const data = {...state.data};
     try {
-        const token = AuthService.getToken();
-
-        // Note: Backend needs PATCH/PUT endpoint for content update
-        // For now, we'll try PUT if it exists
-        const res = await fetch(`/api/content/${id}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({
-                title: title,
-                difficulty: parseInt(difficulty),
-                content_data: { body: body }
-            })
-        });
-
-        if (res.ok) {
-            showToast(I18n.t('content.editor.success_update'), 'success');
-            bootstrap.Modal.getInstance(document.getElementById('contentEditModal')).hide();
-            // Clear existing grid immediately and reload to ensure fresh data
-            const grid = document.getElementById('library-content-list');
-            if (grid) grid.innerHTML = '<div class="text-center p-4">Refreshing...</div>';
-            await loadLibrary(); // Refresh with await
+        if (state.type === 'exercise') {
+            data.question = editField('edit-exercise-question').value.trim();
+            if (!data.question) throw new Error(SLMClient.message('editor_required', 'Complete the question and answer before saving.'));
+            if ((data.type || data.question_type) === 'multiple_choice') {
+                data.options = editLines('edit-exercise-options');
+                const selected = editField('edit-exercise-correct-choice').value;
+                if (data.options.length < 2 || selected === '' || !data.options[Number(selected)]) throw new Error(SLMClient.message('editor_required', 'Complete the choices and correct answer before saving.'));
+                data.correct_answer = data.options[Number(selected)];
+            } else {
+                data.correct_answer = editField('edit-exercise-answer').value.trim();
+                if (!data.correct_answer) throw new Error(SLMClient.message('editor_required', 'Complete the question and answer before saving.'));
+            }
+            data.hints = editLines('edit-exercise-hints');
+            data.explanation = editField('edit-exercise-explanation').value;
+            delete data.hint;
+            delete data.answer;
+            delete data.question_text;
         } else {
-            const err = await res.json();
-            showToast(I18n.t('content.editor.error_update', { error: err.detail || I18n.t('common.errors.unknown') }), 'danger');
+            const body = editField('edit-content-body').value;
+            if (!body.trim()) throw new Error(SLMClient.message('editor_required', 'Complete the content before saving.'));
+            if (state.type === 'lesson') {
+                // All visible fields were included in the editable Markdown. Keeping
+                // their old structured values would duplicate stale instructions.
+                for (const key of ['sections', 'content', 'text', 'objectives', 'summary', 'vocabulary', 'key_concepts', 'discussion_questions', 'worked_example', 'independent_attempt', 'feedback', 'delayed_review', 'prerequisite_check']) delete data[key];
+                data.body = body;
+            } else data.content = body;
         }
+        savingContentEdit = true;
+        editField('save-content-edit').disabled = true;
+        const res = await fetch(`/api/content/${state.id}`, {
+            method: 'PUT', headers: {'Content-Type': 'application/json', Authorization: `Bearer ${AuthService.getToken()}`},
+            body: JSON.stringify({title: editField('edit-content-title').value, difficulty: parseInt(editField('edit-content-difficulty').value), content_data: data})
+        });
+        if (state.owner !== SLMClient.account()) return;
+        if (!res.ok) { const error = await res.json(); throw new Error(error.detail || I18n.t('common.errors.unknown')); }
+        showToast(I18n.t('content.editor.success_update'), 'success');
+        bootstrap.Modal.getInstance(editField('contentEditModal'))?.hide();
+        editingContentState = null;
+        await loadLibrary();
     } catch (err) {
-        showToast(I18n.t('content.editor.error_save_generic', { error: err.message }), 'danger');
+        showToast(I18n.t('content.editor.error_save_generic', {error: err.message}), 'danger');
+    } finally {
+        savingContentEdit = false;
+        editField('save-content-edit').disabled = false;
     }
 };
 

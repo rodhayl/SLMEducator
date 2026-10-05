@@ -164,6 +164,46 @@ def test_keyboard_and_narrow_login_remain_usable(live_page, browser_world):
     screenshot(page, "login-narrow-keyboard.png")
 
 
+def test_teacher_corrections_preserve_source_and_executable_practice(live_page, browser_world):
+    page, world = live_page, browser_world
+    receipt = {"source_usage": {"source_document_id": "synthetic", "source_characters": 50,
+                               "ranges": [{"start": 0, "end": 50}]}}
+    lesson = world.api("POST", "/api/content/", json={"title": "Synthetic editable lesson", "content_type": "lesson",
+        "content_data": {"body": "Observed amount.", "objectives": ["Explain the observation"],
+                         "vocabulary": [{"term": "Half", "definition": "Wrong definition to correct"}], "generation": receipt}}).json()
+    exercise = world.api("POST", "/api/content/", json={"title": "Synthetic editable practice", "content_type": "exercise",
+        "content_data": {"question": "Choose two", "type": "multiple_choice", "options": {"A": "One", "B": "Two"},
+                         "correct_answer": "B", "hints": ["Count groups", "Count both"], "explanation": "Two groups."}}).json()
+    login(page, world, "teacher_a")
+    page.evaluate("id => window.editContent(id)", lesson["id"])
+    body = page.locator("#edit-content-body")
+    assert "Explain the observation" in body.input_value()
+    assert "Wrong definition to correct" in body.input_value()
+    body.fill(body.input_value().replace("Wrong definition to correct", "One of two equal parts"))
+    with page.expect_response(lambda response: f'/api/content/{lesson["id"]}' in response.url and response.request.method == "PUT") as saved:
+        page.locator("#save-content-edit").click()
+    assert saved.value.ok
+    expect(page.locator("#contentEditModal")).to_be_hidden()
+    data = world.api("GET", f'/api/content/{lesson["id"]}').json()["content_data"]
+    assert data["generation"] == receipt and "One of two equal parts" in data["content"]
+    page.evaluate("id => window.viewContent(id)", lesson["id"])
+    expect(page.locator("#content-view-body")).to_contain_text("One of two equal parts")
+    expect(page.locator("#content-view-body [data-generation-notice]")).to_contain_text("50/50")
+    page.locator("#contentViewModal .btn-close").click()
+    expect(page.locator("#contentViewModal")).to_be_hidden()
+    page.evaluate("id => window.editContent(id)", exercise["id"])
+    expect(page.locator("#edit-exercise-question")).to_have_value("Choose two")
+    expect(page.locator("#edit-exercise-correct-choice")).to_have_value("1")
+    page.locator("#edit-exercise-question").fill("Choose the count of two groups")
+    with page.expect_response(lambda response: f'/api/content/{exercise["id"]}' in response.url and response.request.method == "PUT") as corrected:
+        page.locator("#save-content-edit").click()
+    assert corrected.value.ok
+    data = world.api("GET", f'/api/content/{exercise["id"]}').json()["content_data"]
+    assert data["question"] == "Choose the count of two groups"
+    assert data["options"] == ["One", "Two"] and data["correct_answer"] == "Two"
+    assert data["hints"] == ["Count groups", "Count both"]
+
+
 def test_isolated_fixture_has_only_synthetic_course(browser_world):
     world = browser_world
     assert len(world.manifest["content_ids"]) == 3

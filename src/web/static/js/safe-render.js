@@ -52,5 +52,37 @@
             message('generation_receipt_scope', 'This receipt records text sent to the model; it does not prove that the response is supported by the source.');
         element.prepend(notice);
     }
-    root.SLMRender = Object.freeze({ escape, html, markdown, setMarkdown, generationNotice });
+    function lessonText(data) {
+        if (!data || typeof data !== 'object') return typeof data === 'string' ? data : '';
+        const message = (key, fallback) => root.SLMClient?.message?.(key, fallback) || fallback;
+        const blocks = [];
+        const list = (key, title) => {
+            const items = Array.isArray(data[key]) ? data[key].filter(item => typeof item === 'string') : [];
+            if (items.length) blocks.push(`## ${title}\n\n` + items.map(item => `- ${item}`).join('\n'));
+        };
+        list('objectives', message('learning_objectives', 'Learning objectives'));
+        if (Array.isArray(data.sections) && data.sections.length) {
+            data.sections.forEach(section => {
+                if (!section || typeof section !== 'object') return;
+                const title = typeof section.title === 'string' ? `## ${section.title}\n\n` : '';
+                const body = section.content || section.text;
+                if (typeof body === 'string') blocks.push(title + body);
+            });
+        } else {
+            const body = data.content || data.body || data.text;
+            if (typeof body === 'string') blocks.push(body);
+        }
+        if (typeof data.summary === 'string') blocks.push(`## ${message('lesson_summary', 'Summary')}\n\n${data.summary}`);
+        if (Array.isArray(data.vocabulary)) {
+            const terms = data.vocabulary.filter(term => term && typeof term.term === 'string' && typeof term.definition === 'string');
+            if (terms.length) blocks.push(`## ${message('lesson_terms', 'Key terms')}\n\n` + terms.map(term => `- **${term.term}**: ${term.definition}`).join('\n'));
+        }
+        list('key_concepts', message('lesson_concepts', 'Key concepts'));
+        list('discussion_questions', message('lesson_questions', 'Discussion questions'));
+        for (const [key, label] of [['worked_example','Worked example'],['independent_attempt','Independent attempt'],['feedback','Feedback'],['delayed_review','Later review'],['prerequisite_check','Before you start']]) {
+            if (typeof data[key] === 'string') blocks.push(`## ${message('lesson_' + key, label)}\n\n${data[key]}`);
+        }
+        return blocks.join('\n\n');
+    }
+    root.SLMRender = Object.freeze({ escape, html, markdown, setMarkdown, generationNotice, lessonText });
 })(window);

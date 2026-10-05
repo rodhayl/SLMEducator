@@ -5,7 +5,7 @@ import json
 import re
 from pydantic import BaseModel, Field
 
-from .content_schema import normalize_content, learner_content
+from .content_schema import normalize_content, learner_content, LESSON_EXTRA_TEXT
 
 CONTEXT_CHAR_LIMIT = 6000
 PROMPT_VERSION = "teacher-reviewed-v6-observations-and-selection"
@@ -68,7 +68,7 @@ def _sections(content) -> list[tuple[str, str, str]]:
         for key in ("question", "question_text", "instructions", "content", "hint"):
             if isinstance(data.get(key), str):
                 sections.append((key, key, data[key]))
-    for key in ("summary", "objectives", "key_concepts", "vocabulary"):
+    for key in ("summary", "objectives", "key_concepts", "vocabulary", "discussion_questions", *LESSON_EXTRA_TEXT):
         value = data.get(key)
         if value:
             sections.append(

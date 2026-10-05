@@ -1,7 +1,16 @@
 {
   "generation_controls": {
-    "question_type": "Tipo de pregunta", "mixed": "Mezcla de tipos", "multiple_choice": "Opción múltiple", "true_false": "Verdadero / falso", "short_answer": "Respuesta abierta corta", "long_answer": "Respuesta abierta larga", "fill_in_blank": "Completar el hueco",
-    "reasoning": "Razonamiento interno (LM Studio)", "model_default": "Predeterminado del modelo", "reasoning_none": "Desactivar razonamiento interno", "reasoning_help": "Requiere un modelo compatible de LM Studio. Ahorra tokens de razonamiento; sigue siendo necesaria la revisión docente."
+    "question_type": "Tipo de pregunta",
+    "mixed": "Mezcla de tipos",
+    "multiple_choice": "Opción múltiple",
+    "true_false": "Verdadero / falso",
+    "short_answer": "Respuesta abierta corta",
+    "long_answer": "Respuesta abierta larga",
+    "fill_in_blank": "Completar el hueco",
+    "reasoning": "Razonamiento interno (LM Studio)",
+    "model_default": "Predeterminado del modelo",
+    "reasoning_none": "Desactivar razonamiento interno",
+    "reasoning_help": "Requiere un modelo compatible de LM Studio. Ahorra tokens de razonamiento; sigue siendo necesaria la revisión docente."
   },
   "app": {
     "name": "SLMEducator",
@@ -1646,7 +1655,19 @@
     "new_tutor_request": "Preparar una nueva solicitud",
     "new_tutor_confirm": "¿Iniciar una nueva solicitud para esta pregunta? El resultado anterior es desconocido y el proveedor aún podría terminar el trabajo o cobrar. La nueva solicitud se cuenta por separado.",
     "source_metadata_updated": "Procedencia de la fuente actualizada. El texto extraído no cambia, por lo que se conservan los trabajos de generación.",
-    "help_delivery_unconfirmed": "La entrega de la ayuda no está confirmada. Se conserva tu texto; reintentar el mismo texto consulta la misma solicitud."
+    "help_delivery_unconfirmed": "La entrega de la ayuda no está confirmada. Se conserva tu texto; reintentar el mismo texto consulta la misma solicitud.",
+    "editor_question": "Pregunta",
+    "editor_options": "Opciones (una por línea)",
+    "editor_answer": "Respuesta correcta",
+    "editor_explanation": "Explicación",
+    "editor_hints": "Pistas progresivas (una por línea)",
+    "editor_required": "Completa el contenido, las opciones y la respuesta correcta antes de guardar.",
+    "lesson_questions": "Preguntas para comentar",
+    "lesson_worked_example": "Ejemplo resuelto",
+    "lesson_independent_attempt": "Intento independiente",
+    "lesson_feedback": "Comentarios",
+    "lesson_delayed_review": "Repaso posterior",
+    "lesson_prerequisite_check": "Antes de empezar"
   },
   "help_panel": {
     "tutor": "Tutor",

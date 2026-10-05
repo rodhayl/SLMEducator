@@ -1,7 +1,16 @@
 {
   "generation_controls": {
-    "question_type": "Question type", "mixed": "Mixed", "multiple_choice": "Multiple choice", "true_false": "True / false", "short_answer": "Open short answer", "long_answer": "Open long answer", "fill_in_blank": "Fill in the blank",
-    "reasoning": "Internal reasoning (LM Studio)", "model_default": "Model default", "reasoning_none": "Disable internal reasoning", "reasoning_help": "Requires a compatible LM Studio model. Saves reasoning tokens; teacher review is still required."
+    "question_type": "Question type",
+    "mixed": "Mixed",
+    "multiple_choice": "Multiple choice",
+    "true_false": "True / false",
+    "short_answer": "Open short answer",
+    "long_answer": "Open long answer",
+    "fill_in_blank": "Fill in the blank",
+    "reasoning": "Internal reasoning (LM Studio)",
+    "model_default": "Model default",
+    "reasoning_none": "Disable internal reasoning",
+    "reasoning_help": "Requires a compatible LM Studio model. Saves reasoning tokens; teacher review is still required."
   },
   "app": {
     "name": "SLMEducator",
@@ -1646,7 +1655,19 @@
     "new_tutor_request": "Prepare a new request",
     "new_tutor_confirm": "Start a new request for this question? The previous outcome is unknown and its provider work may still finish or incur charges. The new request counts separately.",
     "source_metadata_updated": "Source provenance updated. The extracted text is unchanged, so generation tasks are kept.",
-    "help_delivery_unconfirmed": "Help delivery is unconfirmed. Your text is kept; retrying the same text checks the same request."
+    "help_delivery_unconfirmed": "Help delivery is unconfirmed. Your text is kept; retrying the same text checks the same request.",
+    "editor_question": "Question",
+    "editor_options": "Choices (one per line)",
+    "editor_answer": "Correct answer",
+    "editor_explanation": "Explanation",
+    "editor_hints": "Progressive hints (one per line)",
+    "editor_required": "Complete the content, choices and correct answer before saving.",
+    "lesson_questions": "Discussion questions",
+    "lesson_worked_example": "Worked example",
+    "lesson_independent_attempt": "Independent attempt",
+    "lesson_feedback": "Feedback",
+    "lesson_delayed_review": "Later review",
+    "lesson_prerequisite_check": "Before you start"
   },
   "help_panel": {
     "tutor": "Tutor",

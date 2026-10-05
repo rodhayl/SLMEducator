@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - SLM Educator</title>
     <link href="/static/vendor/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/main.css?v=18">
+    <link rel="stylesheet" href="/static/css/main.css?v=19">
     <script src="/static/js/theme.js"></script>
     <script src="/static/js/i18n.js"></script>
     <script src="/static/js/toast.js"></script>
@@ -14,7 +14,7 @@
     <script src="/static/vendor/marked@15.0.12/marked.min.js"></script>
     <script src="/static/js/safe-render.js"></script>
     <script src="/static/js/learning-client.js"></script>
-    <script src="/static/js/practice.js?v=1"></script>
+    <script src="/static/js/practice.js?v=19"></script>
     <script src="/static/js/time-display.js?v=12"></script>
 </head>
 
@@ -477,17 +477,35 @@
                                     <input type="number" class="form-control" id="edit-content-difficulty" min="1"
                                         max="5" value="1">
                                 </div>
-                                <div class="mb-3">
+                                <div class="mb-3" id="edit-lesson-fields">
                                     <label class="form-label" for="edit-content-body"
                                         data-i18n="content.editor.content_label">Content</label>
                                     <textarea class="form-control" id="edit-content-body" rows="10" required></textarea>
+                                </div>
+                                <div id="edit-exercise-fields" class="d-none">
+                                    <label class="form-label" for="edit-exercise-question" data-i18n="recovery.editor_question">Question</label>
+                                    <textarea id="edit-exercise-question" class="form-control mb-3" rows="3"></textarea>
+                                    <div id="edit-exercise-options-fields">
+                                        <label class="form-label" for="edit-exercise-options" data-i18n="recovery.editor_options">Options, one per line</label>
+                                        <textarea id="edit-exercise-options" class="form-control mb-3" rows="4"></textarea>
+                                        <label class="form-label" for="edit-exercise-correct-choice" data-i18n="recovery.editor_answer">Correct answer</label>
+                                        <select id="edit-exercise-correct-choice" class="form-select mb-3"></select>
+                                    </div>
+                                    <div id="edit-exercise-answer-fields">
+                                        <label class="form-label" for="edit-exercise-answer" data-i18n="recovery.editor_answer">Correct answer</label>
+                                        <input id="edit-exercise-answer" class="form-control mb-3">
+                                    </div>
+                                    <label class="form-label" for="edit-exercise-explanation" data-i18n="recovery.editor_explanation">Explanation</label>
+                                    <textarea id="edit-exercise-explanation" class="form-control mb-3" rows="3"></textarea>
+                                    <label class="form-label" for="edit-exercise-hints" data-i18n="recovery.editor_hints">Progressive hints, one per line</label>
+                                    <textarea id="edit-exercise-hints" class="form-control" rows="3"></textarea>
                                 </div>
                             </form>
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"
                                 data-i18n="common.buttons.cancel">Cancel</button>
-                            <button type="button" class="btn btn-primary" onclick="saveContentEdit()"
+                            <button type="button" class="btn btn-primary" id="save-content-edit" onclick="saveContentEdit()"
                                 data-i18n="common.buttons.save_changes">Save
                                 Changes</button>
                         </div>
@@ -1996,7 +2014,7 @@
     <script src="/static/vendor/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script type="module" src="/static/js/auth.js?v=20260204"></script>
     <script src="/static/js/admin-accounts.js"></script>
-    <script type="module" src="/static/js/dashboard.js?v=18"></script>
+    <script type="module" src="/static/js/dashboard.js?v=19"></script>
     <script type="module" src="/static/js/modules/inbox.js"></script>
     <script type="module" src="/static/js/assessment.js"></script> <!-- Added Assessment Logic -->
     <script>
