@@ -1444,6 +1444,12 @@ class AIService:
         from .content_schema import normalize_content
 
         data = self._parse_json_response(response, "exercise")
+        if (
+            data.get("type") == "multiple_choice"
+            and data.get("question") == "Exercise question/prompt"
+            and data.get("options") == ["option1", "option2", "option3", "option4"]
+        ):
+            raise AIContentValidationError("Generated practice echoed the prompt template")
         try:
             return normalize_content("exercise", data)
         except ValueError as exc:

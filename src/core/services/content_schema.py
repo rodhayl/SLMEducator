@@ -50,8 +50,12 @@ def normalize_content(kind: str, value: dict[str, Any]) -> dict[str, Any]:
         ):
             raise ValueError("Practice needs a meaningful question")
         data["question"] = question
-        if data.get("type") == "multiple_choice" and not data.get("options"):
-            raise ValueError("Multiple-choice practice needs options")
+        if (data.get("type") or data.get("question_type")) == "multiple_choice":
+            options = data.get("options")
+            if isinstance(options, dict) and "choices" in options:
+                options = options["choices"]
+            if not isinstance(options, (list, dict)) or not options:
+                raise ValueError("Multiple-choice practice needs nonempty list or mapped options")
     elif kind == "assessment":
         if type(data.get("assessment_id")) is not int or data["assessment_id"] <= 0:
             raise ValueError(

@@ -73,5 +73,5 @@
         current.inputs.forEach(input => input.addEventListener('input', save));
         root.addEventListener('pagehide', save);
     }
-    root.SLMPractice = Object.freeze({ render, bindAttempt });
+    root.SLMPractice = Object.freeze({ render, bindAttempt, optionsFor });
 })(window);

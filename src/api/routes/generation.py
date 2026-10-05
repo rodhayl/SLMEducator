@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 from src.api.dependencies import get_db
 from src.core.models import User
 from src.core.services.ai_service import AIService
+from src.core.services.content_schema import normalize_content
 from src.api.security import require_teacher_or_admin
 from src.api.policies import can_manage_plan, require_allowed
 from src.api.dependencies import get_ai_service_dependency
@@ -134,6 +135,8 @@ def generate_lesson(
             duration_minutes=request.duration_minutes,
             source_material=request.source_material,
         )
+        # Share package admission checks without changing valid legacy payloads.
+        normalize_content("lesson", lesson)
         return lesson
     except HTTPException:
         raise

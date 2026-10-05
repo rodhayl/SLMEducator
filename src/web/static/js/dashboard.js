@@ -1695,6 +1695,8 @@ if (manualForm) {
 // Toggle generation mode (Study Plan vs Topic vs Exercise)
 window.toggleGenerationMode = function () {
     const mode = document.querySelector('input[name="generation_mode"]:checked')?.value || 'topic';
+    const objectives = document.querySelector('#create-ai-content-form [name="learning_objectives"]');
+    if (objectives) objectives.required = mode === 'topic';
 
     // Hide all mode fields
     document.getElementById('study-plan-mode-fields')?.classList.add('hidden');
@@ -1912,9 +1914,10 @@ async function generateAIContent(endpoint, payload, mode) {
             html += `<div class="card mb-2"><div class="card-header bg-success text-white">🏋️ Exercise</div>
             <div class="card-body">
                 <p><strong>Question:</strong> ${json.question || json.title || 'Generated'}</p>`;
-            if (json.options?.length) {
+            const options = SLMPractice.optionsFor(json);
+            if (options.length) {
                 html += '<p><strong>Options:</strong></p><ul class="mb-0">';
-                json.options.forEach(opt => { html += `<li>${opt}</li>`; });
+                options.forEach(option => { html += `<li>${escapeHtml(option.key)}: ${escapeHtml(option.value)}</li>`; });
                 html += '</ul>';
             }
             html += '</div></div>';
