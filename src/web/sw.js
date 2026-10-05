@@ -4,7 +4,7 @@
  * Version: 1.0.2
  */
 
-const CACHE_NAME = 'slm-educator-v15-atomic-install';
+const CACHE_NAME = 'slm-educator-v16-explicit-generation';
 const OFFLINE_URL = '/404.html';
 
 // Static assets to cache on install

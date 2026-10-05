@@ -4,7 +4,7 @@ from typing import List, Dict, Any, Optional
 from pydantic import BaseModel, Field
 
 from src.api.dependencies import get_db
-from src.core.models import User
+from src.core.models import User, QuestionType
 from src.core.services.ai_service import AIService
 from src.core.services.content_schema import normalize_content
 from src.api.security import require_teacher_or_admin
@@ -72,7 +72,7 @@ class AssessmentQuestionsRequest(BaseModel):
 
     topic: str
     learning_objectives: List[str]
-    question_types: Optional[List[str]] = None  # Default: mixed
+    question_types: Optional[List[QuestionType]] = Field(default=None, min_length=1, max_length=5)
     num_questions: int = 5
     difficulty: str = "medium"  # easy, medium, hard
     source_material: Optional[str] = Field(default=None, max_length=100000)
@@ -218,7 +218,7 @@ def generate_assessment_questions(
         questions = ai_service.generate_assessment_questions(
             topic=request.topic,
             learning_objectives=request.learning_objectives,
-            question_types=request.question_types,
+            question_types=[kind.value for kind in request.question_types] if request.question_types else None,
             num_questions=request.num_questions,
             difficulty=request.difficulty,
             source_material=request.source_material,
@@ -269,6 +269,7 @@ class FullTopicPackageRequest(BaseModel):
     # Assessment options
     num_assessment_questions: int = Field(default=5, ge=1, le=20)
     assessment_difficulty: str = "medium"
+    assessment_question_types: Optional[List[QuestionType]] = Field(default=None, min_length=1, max_length=5)
 
     source_material: Optional[str] = Field(default=None, max_length=100000)
     source_document_id: Optional[str] = Field(default=None, pattern="^[a-f0-9]{64}$")

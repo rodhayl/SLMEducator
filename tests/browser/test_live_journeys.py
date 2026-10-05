@@ -65,6 +65,20 @@ def test_teacher_roster_and_interface_preferences(live_page, browser_world):
     expect(page.locator("#profile-badges-list")).to_contain_text("Complete activities to earn badges!")
     expect(page.locator("#timezone-status")).to_have_text("UTC is the explicit default. Choose and save your timezone.")
     screenshot(page, "teacher-en-dark.png")
+    page.locator('#settings-tabs [data-settings-tab="ai"]').click()
+    page.locator('#ai-provider').select_option('lm_studio')
+    page.locator('#ai-model').fill('synthetic-browser-model')
+    page.locator('#settings-ai-form details summary').click()
+    page.locator('#ai-reasoning-effort').select_option('none')
+    page.locator('#ai-max-tokens').fill('4000')
+    with page.expect_response(lambda response: '/api/settings/ai' in response.url and response.request.method == 'POST') as configured:
+        page.locator('#save-ai-config').click()
+    assert configured.value.ok
+    page.reload()
+    page.locator('[data-view="settings"]').click()
+    page.locator('#settings-tabs [data-settings-tab="ai"]').click()
+    expect(page.locator('#ai-reasoning-effort')).to_have_value('none')
+    expect(page.locator('#ai-max-tokens')).to_have_value('4000')
 
 
 def test_learner_notes_help_and_completion_are_real_ui_actions(live_page, browser_world):

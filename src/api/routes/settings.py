@@ -23,6 +23,7 @@ class AIConfigModel(BaseModel):
     # Advanced settings
     temperature: float = Field(default=0.7, ge=0, le=2)
     max_tokens: int = Field(default=1000, ge=1, le=16384)
+    reasoning_effort: Optional[Literal["none"]] = None
     # Accepted only to migrate old clients; never persisted or advertised active.
     preprocessing_model: Optional[str] = Field(default=None, exclude=True)
     enable_preprocessing: Optional[bool] = Field(default=None, exclude=True)
@@ -89,6 +90,7 @@ def _public_ai_config(config: AIModelConfiguration) -> AIConfigModel:
             for key in (
                 "temperature",
                 "max_tokens",
+                "reasoning_effort",
             )
             if key in parameters
         },
@@ -102,6 +104,8 @@ async def update_ai_config(
     db: Session = Depends(get_db),
 ):
     """Update User AI Config"""
+    if data.reasoning_effort is not None and data.provider != "lm_studio":
+        raise HTTPException(status_code=422, detail="Reasoning override is supported only for compatible LM Studio models")
     config = (
         db.query(AIModelConfiguration)
         .filter(AIModelConfiguration.user_id == current_user.id)
@@ -128,6 +132,8 @@ async def update_ai_config(
             "max_tokens",
         )
     }
+    if data.reasoning_effort is not None:
+        config.model_parameters = {**config.model_parameters, "reasoning_effort": data.reasoning_effort}
     db.commit()
     db.refresh(config)
     public = _public_ai_config(config)
@@ -288,6 +294,7 @@ def _build_ai_service(
                 api_key=key,
                 temperature=config_override.temperature,
                 max_tokens=config_override.max_tokens,
+                reasoning_effort=config_override.reasoning_effort,
             ),
             logger,
         )
@@ -306,7 +313,7 @@ def _run_ai_connection_test(
 
         response = ai_service.generate_content(
             context="Say 'Hello, I am connected!' in exactly those words.",
-            max_tokens=50,
+            max_tokens=256,
             temperature=0.1,
         )
 

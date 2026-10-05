@@ -244,7 +244,7 @@ async function transitionToStage2() {
     // Show loading state
     if (submitBtn) {
         submitBtn.disabled = true;
-        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Generating...';
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>' + escapeHtml(I18n.t('designer.generate'));
     }
 
     // Show loading indicator in Stage 1 (don't transition yet)
@@ -253,8 +253,8 @@ async function transitionToStage2() {
     loadingIndicator.className = 'text-center p-4';
     loadingIndicator.innerHTML = `
         <div class="spinner-border text-primary" role="status"></div>
-        <p class="mt-2">Analyzing material & generating outline...</p>
-        <small class="text-muted">This may take 30-60 seconds</small>
+        <p class="mt-2">${escapeHtml(I18n.t('designer.outline_loading'))}</p>
+        <small class="text-muted">${escapeHtml(I18n.t('designer.waiting'))}</small>
     `;
     document.getElementById('stage-1').appendChild(loadingIndicator);
 
@@ -311,7 +311,7 @@ async function transitionToStage2() {
         // Reset button and remove loading
         if (submitBtn) {
             submitBtn.disabled = false;
-            submitBtn.innerHTML = 'Next: Generate Outline ➡️';
+            submitBtn.textContent = I18n.t('designer.next');
         }
         const overlay = document.getElementById('loading-overlay');
         if (overlay) overlay.remove();

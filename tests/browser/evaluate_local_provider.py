@@ -20,6 +20,7 @@ def main() -> None:
     parser.add_argument("--split", choices=["development", "reserved"], required=True)
     parser.add_argument("--max-tokens", type=int, default=2000)
     parser.add_argument("--cases-file", type=Path)
+    parser.add_argument("--reasoning-effort", choices=["none"])
     args = parser.parse_args()
     fixture = json.loads((args.state_dir / "fixture.json").read_text(encoding="utf-8"))
     cases_file = args.cases_file or Path(__file__).resolve().parents[1] / "fixtures/local_semantic_cases.json"
@@ -38,6 +39,8 @@ def main() -> None:
         authenticate()
         config = {"provider": "lm_studio", "model": "slm-production-evaluation",
                   "endpoint": "http://127.0.0.1:1234", "temperature": 0, "max_tokens": args.max_tokens}
+        if args.reasoning_effort:
+            config["reasoning_effort"] = args.reasoning_effort
         client.post("/api/settings/ai", json=config).raise_for_status()
         results["configuration"] = client.get("/api/settings/ai").json()
         for case in cases["cases"]:
@@ -53,6 +56,8 @@ def main() -> None:
                        "include_lesson": case["kind"] == "lesson", "include_exercises": case["kind"] == "exercise",
                        "num_exercises": 1, "include_assessment": case["kind"] == "open", "num_assessment_questions": 1,
                        "study_plan_id": plan_id, "auto_save": True, "phase_index": 0}
+            if case["kind"] == "open":
+                payload["assessment_question_types"] = ["short_answer"]
             start = time.monotonic()
             response = client.post("/api/generate/full-topic-package", json=payload)
             record = {"id": case["id"], "plan_id": plan_id, "seconds": time.monotonic() - start,

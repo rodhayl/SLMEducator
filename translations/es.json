@@ -1,4 +1,8 @@
 {
+  "generation_controls": {
+    "question_type": "Tipo de pregunta", "mixed": "Mezcla de tipos", "multiple_choice": "Opción múltiple", "true_false": "Verdadero / falso", "short_answer": "Respuesta abierta corta", "long_answer": "Respuesta abierta larga", "fill_in_blank": "Completar el hueco",
+    "reasoning": "Razonamiento interno (LM Studio)", "model_default": "Predeterminado del modelo", "reasoning_none": "Desactivar razonamiento interno", "reasoning_help": "Requiere un modelo compatible de LM Studio. Ahorra tokens de razonamiento; sigue siendo necesaria la revisión docente."
+  },
   "app": {
     "name": "SLMEducator",
     "organization": "SLMEducator",
@@ -1741,6 +1745,7 @@
     "restart": "Volver a empezar",
     "review_help": "Revisa el esquema generado antes de continuar.",
     "outline_loading": "La IA está preparando el esquema…",
+    "waiting": "El tiempo depende del modelo y del material. Se conserva lo que has escrito.",
     "add_unit": "+ Añadir unidad",
     "confirm": "Confirmar y generar 🚀",
     "step3": "⚡ Paso 3: Generación de contenido",

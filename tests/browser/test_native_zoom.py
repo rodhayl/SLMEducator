@@ -42,10 +42,13 @@ def test_native_200_percent_zoom_keeps_modes_keyboard_and_reflow(browser_world, 
                 expect(page.locator('body')).to_have_class(re.compile('sidebar-open'))
             page.locator('[data-view="create"]').click()
             page.locator('[name="topic_name"]').fill("Retained synthetic topic")
+            page.locator('#include-assessment').check()
+            page.locator('#assessment-question-type').select_option('short_answer')
             for mode in ["exercise", "study_plan", "topic"]:
                 page.locator(f'[name="generation_mode"][value="{mode}"]').check()
                 expect(page.locator('#generate-btn')).to_be_visible()
             expect(page.locator('[name="topic_name"]')).to_have_value("Retained synthetic topic")
+            expect(page.locator('#assessment-question-type')).to_have_value('short_answer')
             assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
             page.keyboard.press('Tab')
             assert page.evaluate("document.activeElement !== document.body")

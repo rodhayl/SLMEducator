@@ -57,7 +57,7 @@ def test_source_backed_generation_keeps_exact_fragment_receipt(generation_servic
         result = service.generate_lesson(
             "Fractions", "synthetic adult", ["Explain numerator"], 25, source
         )
-        expected_tokens = 2000
+        expected_tokens = 4000
     elif kind == "topic":
         result = service.generate_topic_content(
             "Math",
@@ -117,7 +117,7 @@ def test_question_generation_preserves_keys_and_requested_constraints(
     assert "Explain numerator" in body["prompt"]
     expected = ", ".join(question_types or ["multiple_choice", "true_false", "short_answer"])
     assert f"Question Types: {expected}" in body["prompt"]
-    assert body["options"]["num_predict"] == 2500
+    assert body["options"]["num_predict"] == 4000
 
 
 @pytest.mark.parametrize(

@@ -42,6 +42,11 @@ def _plan_lock(plan_id: int) -> Lock:
 
 def _fingerprint(request) -> str:
     fields = request.model_dump(exclude={"auto_save"})
+    # Preserve the identity of pre-selector mixed requests and their ready items.
+    if fields.get("assessment_question_types") is None:
+        fields.pop("assessment_question_types", None)
+    else:
+        fields["assessment_question_types"] = [getattr(kind, "value", kind) for kind in fields["assessment_question_types"]]
     return sha256(json.dumps(fields, sort_keys=True).encode()).hexdigest()
 
 
@@ -84,7 +89,8 @@ def _generate(service, request, kind: str, index: int) -> dict:
         questions = service.generate_assessment_questions(
             topic=request.topic_name,
             learning_objectives=request.learning_objectives,
-            question_types=None,
+            question_types=[getattr(kind, "value", kind) for kind in request.assessment_question_types]
+            if getattr(request, "assessment_question_types", None) else None,
             num_questions=request.num_assessment_questions,
             difficulty=request.assessment_difficulty,
             source_material=request.source_material,

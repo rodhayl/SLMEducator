@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - SLM Educator</title>
     <link href="/static/vendor/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/main.css?v=15">
+    <link rel="stylesheet" href="/static/css/main.css?v=16">
     <script src="/static/js/theme.js"></script>
     <script src="/static/js/i18n.js"></script>
     <script src="/static/js/toast.js"></script>
@@ -867,7 +867,6 @@
                                             </label>
                                         </div>
                                         <div id="assessment-options" class="ms-4 mt-2 row hidden">
-                                            <div class="col-md-4">
                                                 <div class="col-md-4">
                                                     <label class="form-label small"
                                                         data-i18n="create.ai.topic.num_questions">Number of
@@ -875,6 +874,7 @@
                                                     <select name="num_assessment_questions"
                                                         class="form-select form-select-sm"
                                                         aria-label="Number of assessment questions">
+                                                        <option value="1">1</option>
                                                         <option value="3">3</option>
                                                         <option value="5" selected>5</option>
                                                         <option value="8">8</option>
@@ -892,6 +892,16 @@
                                                         <option value="hard">Hard</option>
                                                     </select>
                                                 </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label small" for="assessment-question-type" data-i18n="generation_controls.question_type">Question type</label>
+                                                <select id="assessment-question-type" name="assessment_question_type" class="form-select form-select-sm">
+                                                    <option value="mixed" data-i18n="generation_controls.mixed">Mixed</option>
+                                                    <option value="multiple_choice" data-i18n="generation_controls.multiple_choice">Multiple choice</option>
+                                                    <option value="true_false" data-i18n="generation_controls.true_false">True / false</option>
+                                                    <option value="short_answer" data-i18n="generation_controls.short_answer">Open short answer</option>
+                                                    <option value="long_answer" data-i18n="generation_controls.long_answer">Open long answer</option>
+                                                    <option value="fill_in_blank" data-i18n="generation_controls.fill_in_blank">Fill in the blank</option>
+                                                </select>
                                             </div>
                                         </div>
                                     </div>
@@ -1394,6 +1404,14 @@
                                         <input type="number" class="form-control" id="ai-max-tokens" min="100"
                                             max="4000" step="100" value="1000" aria-label="AI max tokens">
                                         <small class="text-muted">Response length limit</small>
+                                    </div>
+                                    <div class="col-md-6 mt-3">
+                                        <label class="form-label" for="ai-reasoning-effort" data-i18n="generation_controls.reasoning">Internal reasoning (LM Studio)</label>
+                                        <select id="ai-reasoning-effort" class="form-select" aria-describedby="ai-reasoning-help">
+                                            <option value="" data-i18n="generation_controls.model_default">Model default</option>
+                                            <option value="none" data-i18n="generation_controls.reasoning_none">Disable internal reasoning</option>
+                                        </select>
+                                        <small id="ai-reasoning-help" class="text-muted" data-i18n="generation_controls.reasoning_help">Requires a compatible LM Studio model. Saves reasoning tokens; teacher review is still required.</small>
                                     </div>
                                 </div>
                             </div>
@@ -1978,7 +1996,7 @@
     <script src="/static/vendor/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script type="module" src="/static/js/auth.js?v=20260204"></script>
     <script src="/static/js/admin-accounts.js"></script>
-    <script type="module" src="/static/js/dashboard.js?v=15"></script>
+    <script type="module" src="/static/js/dashboard.js?v=16"></script>
     <script type="module" src="/static/js/modules/inbox.js"></script>
     <script type="module" src="/static/js/assessment.js"></script> <!-- Added Assessment Logic -->
     <script>

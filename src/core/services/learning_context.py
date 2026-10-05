@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 from .content_schema import normalize_content, learner_content
 
 CONTEXT_CHAR_LIMIT = 6000
-PROMPT_VERSION = "teacher-reviewed-v4-separated-sources"
+PROMPT_VERSION = "teacher-reviewed-v5-explicit-assessment-types"
 SECTION_CHAR_LIMIT = 1800
 
 

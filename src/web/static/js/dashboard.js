@@ -259,6 +259,8 @@ async function loadSettings() {
             if (aiData.max_tokens !== undefined) {
                 document.getElementById('ai-max-tokens').value = aiData.max_tokens;
             }
+            const reasoningSelect = document.getElementById('ai-reasoning-effort');
+            if (reasoningSelect) reasoningSelect.value = aiData.reasoning_effort || '';
             // Update UI hints based on provider
             onProviderChange();
         } else {
@@ -366,7 +368,9 @@ function buildAIConfigPayload() {
         endpoint: endpointValue || null,
         // Advanced settings
         temperature: parseFloat(document.getElementById('ai-temperature').value),
-        max_tokens: parseInt(document.getElementById('ai-max-tokens').value)
+        max_tokens: parseInt(document.getElementById('ai-max-tokens').value),
+        reasoning_effort: document.getElementById('ai-provider').value === 'lm_studio'
+            ? (document.getElementById('ai-reasoning-effort')?.value || null) : null
     };
 }
 
@@ -465,6 +469,8 @@ window.onProviderChange = function () {
     // Cloud providers need API key
     const cloudProviders = ['openai', 'openrouter'];
     const valid = supportedAIProviders.includes(provider);
+    const reasoningSelect = document.getElementById('ai-reasoning-effort');
+    if (reasoningSelect) reasoningSelect.disabled = provider !== 'lm_studio' || savingAISettings;
     ['fetch-models-btn', 'save-ai-config', 'test-ai-config'].forEach(id => { const control = document.getElementById(id); if (control) control.disabled = !valid || savingAISettings || !['ready', 'repair'].includes(aiConfigLoadState); });
 
     if (cloudProviders.includes(provider)) {
@@ -1840,6 +1846,8 @@ if (aiContentForm) {
                 exercise_difficulty: aiContentForm.exercise_difficulty?.value || 'medium',
                 num_assessment_questions: parseInt(aiContentForm.num_assessment_questions?.value) || 5,
                 assessment_difficulty: aiContentForm.assessment_difficulty?.value || 'medium',
+                assessment_question_types: aiContentForm.assessment_question_type?.value && aiContentForm.assessment_question_type.value !== 'mixed'
+                    ? [aiContentForm.assessment_question_type.value] : null,
                 auto_save: document.getElementById('auto-save')?.checked ?? false
             };
 

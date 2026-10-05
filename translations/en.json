@@ -1,4 +1,8 @@
 {
+  "generation_controls": {
+    "question_type": "Question type", "mixed": "Mixed", "multiple_choice": "Multiple choice", "true_false": "True / false", "short_answer": "Open short answer", "long_answer": "Open long answer", "fill_in_blank": "Fill in the blank",
+    "reasoning": "Internal reasoning (LM Studio)", "model_default": "Model default", "reasoning_none": "Disable internal reasoning", "reasoning_help": "Requires a compatible LM Studio model. Saves reasoning tokens; teacher review is still required."
+  },
   "app": {
     "name": "SLMEducator",
     "organization": "SLMEducator",
@@ -1741,6 +1745,7 @@
     "restart": "⬅️ Start Over",
     "review_help": "Review the AI-generated outline below.",
     "outline_loading": "AI is building your course structure...",
+    "waiting": "The time depends on the model and material. Your input is preserved.",
     "add_unit": "+ Add Unit",
     "confirm": "Confirm & Start Generation 🚀",
     "step3": "⚡ Step 3: Generating Content",

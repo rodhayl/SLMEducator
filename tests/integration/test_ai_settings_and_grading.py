@@ -42,6 +42,25 @@ def _auth_headers(token: str) -> dict:
     return {"Authorization": f"Bearer {token}"}
 
 
+def test_reasoning_setting_roundtrips_and_is_not_applied_to_other_providers(monkeypatch):
+    from src.api import dependencies
+    from src.core.services.database import get_db_service
+    from src.core.models import User
+    username = _unique_username("reasoning")
+    _register_user(username, "teacher")
+    headers = _auth_headers(_login_user(username))
+    payload = {"provider": "lm_studio", "model": "synthetic", "reasoning_effort": "none", "max_tokens": 4000}
+    assert client.post("/api/settings/ai", json=payload, headers=headers).status_code == 200
+    assert client.get("/api/settings/ai", headers=headers).json()["reasoning_effort"] == "none"
+    captured = []
+    monkeypatch.setattr(dependencies, "AIService", lambda runtime, logger: captured.append(runtime))
+    with get_db_service().get_session() as db:
+        dependencies.get_ai_service_dependency(db.query(User).filter_by(username=username).one(), db)
+    assert captured[0].reasoning_effort == "none"
+    assert client.post("/api/settings/ai", json={**payload, "provider": "ollama"}, headers=headers).status_code == 422
+    assert client.get("/api/settings/ai", headers=headers).json()["provider"] == "lm_studio"
+
+
 def test_ai_config_preserves_api_key_when_omitted():
     username = _unique_username("settings")
     _register_user(username, "teacher")

@@ -95,5 +95,6 @@ def get_ai_service_dependency(
         api_key=config.decrypted_api_key,
         temperature=parameters.get("temperature"),
         max_tokens=parameters.get("max_tokens"),
+        reasoning_effort=parameters.get("reasoning_effort"),
     )
     return AIService(runtime, logger)
