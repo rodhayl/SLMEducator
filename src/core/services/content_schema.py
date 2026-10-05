@@ -143,9 +143,12 @@ def learner_content(
         result["sections"] = (
             [
                 {
-                    key: item[key]
-                    for key in ("title", "content", "text")
-                    if isinstance(item.get(key), str)
+                    **({"source_clarification": True} if item.get("source_clarification") is True else {}),
+                    **{
+                        key: item[key]
+                        for key in ("title", "content", "text")
+                        if isinstance(item.get(key), str)
+                    },
                 }
                 for item in sections
                 if isinstance(item, dict)

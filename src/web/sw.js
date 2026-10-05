@@ -4,7 +4,7 @@
  * Version: 1.0.2
  */
 
-const CACHE_NAME = 'slm-educator-v20-correctable-drafts';
+const CACHE_NAME = 'slm-educator-v21-source-clarification';
 const OFFLINE_URL = '/404.html';
 
 // Static assets to cache on install

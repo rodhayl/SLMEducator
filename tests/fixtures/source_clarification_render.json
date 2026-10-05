@@ -1,0 +1,377 @@
+{
+  "scope": "Synthetic literal-rendering contracts, not model semantic judgments.",
+  "cases": [
+    {
+      "name": "plain",
+      "input": {
+        "content": "Two records differ.",
+        "objectives": [
+          "Explain the count"
+        ],
+        "source_review": {
+          "status": "needs_clarification",
+          "issues": [
+            {
+              "kind": "conflicting",
+              "description": "The records need confirmation.",
+              "teacher_question": "Which corrected source confirms thirteen or nineteen?"
+            }
+          ]
+        }
+      },
+      "learner_output": {
+        "content": "Which corrected source confirms thirteen or nineteen?\n\nTwo records differ.",
+        "objectives": [
+          "Explain the count"
+        ],
+        "sections": [
+          {
+            "source_clarification": true,
+            "content": "Which corrected source confirms thirteen or nineteen?"
+          },
+          {
+            "title": "Lesson",
+            "content": "Two records differ."
+          }
+        ]
+      },
+      "question": "Which corrected source confirms thirteen or nineteen?"
+    },
+    {
+      "name": "hidden-comment",
+      "input": {
+        "content": "<!-- Which corrected source confirms thirteen or nineteen? -->\n\nTwo records differ.",
+        "objectives": [],
+        "source_review": {
+          "status": "needs_clarification",
+          "issues": [
+            {
+              "kind": "conflicting",
+              "description": "The records need confirmation.",
+              "teacher_question": "Which corrected source confirms thirteen or nineteen?"
+            }
+          ]
+        }
+      },
+      "learner_output": {
+        "content": "Which corrected source confirms thirteen or nineteen?\n\n<!-- Which corrected source confirms thirteen or nineteen? -->\n\nTwo records differ.",
+        "objectives": [],
+        "sections": [
+          {
+            "source_clarification": true,
+            "content": "Which corrected source confirms thirteen or nineteen?"
+          },
+          {
+            "title": "Lesson",
+            "content": "<!-- Which corrected source confirms thirteen or nineteen? -->\n\nTwo records differ."
+          }
+        ]
+      },
+      "question": "Which corrected source confirms thirteen or nineteen?"
+    },
+    {
+      "name": "html-question",
+      "input": {
+        "content": "Two records differ.",
+        "objectives": [],
+        "source_review": {
+          "status": "needs_clarification",
+          "issues": [
+            {
+              "kind": "conflicting",
+              "description": "The records need confirmation.",
+              "teacher_question": "<script>Which corrected source confirms thirteen or nineteen?</script>"
+            }
+          ]
+        }
+      },
+      "learner_output": {
+        "content": "&#60;script&#62;Which corrected source confirms thirteen or nineteen?&#60;&#47;script&#62;\n\nTwo records differ.",
+        "objectives": [],
+        "sections": [
+          {
+            "source_clarification": true,
+            "content": "&#60;script&#62;Which corrected source confirms thirteen or nineteen?&#60;&#47;script&#62;"
+          },
+          {
+            "title": "Lesson",
+            "content": "Two records differ."
+          }
+        ]
+      },
+      "question": "<script>Which corrected source confirms thirteen or nineteen?</script>"
+    },
+    {
+      "name": "markdown-definition",
+      "input": {
+        "content": "Two records differ.",
+        "objectives": [],
+        "source_review": {
+          "status": "needs_clarification",
+          "issues": [
+            {
+              "kind": "conflicting",
+              "description": "The records need confirmation.",
+              "teacher_question": "[Which corrected source confirms thirteen or nineteen?]: https://example.test"
+            }
+          ]
+        }
+      },
+      "learner_output": {
+        "content": "&#91;Which corrected source confirms thirteen or nineteen?&#93;&#58; https&#58;&#47;&#47;example&#46;test\n\nTwo records differ.",
+        "objectives": [],
+        "sections": [
+          {
+            "source_clarification": true,
+            "content": "&#91;Which corrected source confirms thirteen or nineteen?&#93;&#58; https&#58;&#47;&#47;example&#46;test"
+          },
+          {
+            "title": "Lesson",
+            "content": "Two records differ."
+          }
+        ]
+      },
+      "question": "[Which corrected source confirms thirteen or nineteen?]: https://example.test"
+    },
+    {
+      "name": "benign-comparison",
+      "input": {
+        "content": "The comparison needs confirmation.",
+        "objectives": [],
+        "source_review": {
+          "status": "needs_clarification",
+          "issues": [
+            {
+              "kind": "conflicting",
+              "description": "The records need confirmation.",
+              "teacher_question": "Is 2 < 4 the intended comparison?"
+            }
+          ]
+        }
+      },
+      "learner_output": {
+        "content": "Is 2 &#60; 4 the intended comparison?\n\nThe comparison needs confirmation.",
+        "objectives": [],
+        "sections": [
+          {
+            "source_clarification": true,
+            "content": "Is 2 &#60; 4 the intended comparison?"
+          },
+          {
+            "title": "Lesson",
+            "content": "The comparison needs confirmation."
+          }
+        ]
+      },
+      "question": "Is 2 < 4 the intended comparison?"
+    },
+    {
+      "name": "unclosed-objective-comment",
+      "input": {
+        "content": "Two records differ.",
+        "objectives": [
+          "<!--"
+        ],
+        "source_review": {
+          "status": "needs_clarification",
+          "issues": [
+            {
+              "kind": "conflicting",
+              "description": "The records need confirmation.",
+              "teacher_question": "Which corrected source confirms thirteen or nineteen?"
+            }
+          ]
+        }
+      },
+      "learner_output": {
+        "content": "Which corrected source confirms thirteen or nineteen?\n\nTwo records differ.",
+        "objectives": [
+          "<!--"
+        ],
+        "sections": [
+          {
+            "source_clarification": true,
+            "content": "Which corrected source confirms thirteen or nineteen?"
+          },
+          {
+            "title": "Lesson",
+            "content": "Two records differ."
+          }
+        ]
+      },
+      "question": "Which corrected source confirms thirteen or nineteen?"
+    },
+    {
+      "name": "unclosed-body-comment",
+      "input": {
+        "content": "Two records differ.\n\n<!--",
+        "objectives": [],
+        "source_review": {
+          "status": "needs_clarification",
+          "issues": [
+            {
+              "kind": "conflicting",
+              "description": "The records need confirmation.",
+              "teacher_question": "Which corrected source confirms thirteen or nineteen?"
+            }
+          ]
+        }
+      },
+      "learner_output": {
+        "content": "Which corrected source confirms thirteen or nineteen?\n\nTwo records differ.\n\n<!--",
+        "objectives": [],
+        "sections": [
+          {
+            "source_clarification": true,
+            "content": "Which corrected source confirms thirteen or nineteen?"
+          },
+          {
+            "title": "Lesson",
+            "content": "Two records differ.\n\n<!--"
+          }
+        ]
+      },
+      "question": "Which corrected source confirms thirteen or nineteen?"
+    },
+    {
+      "name": "unclosed-body-script",
+      "input": {
+        "content": "Two records differ.\n\n<script>",
+        "objectives": [],
+        "source_review": {
+          "status": "needs_clarification",
+          "issues": [
+            {
+              "kind": "conflicting",
+              "description": "The records need confirmation.",
+              "teacher_question": "Which corrected source confirms thirteen or nineteen?"
+            }
+          ]
+        }
+      },
+      "learner_output": {
+        "content": "Which corrected source confirms thirteen or nineteen?\n\nTwo records differ.\n\n<script>",
+        "objectives": [],
+        "sections": [
+          {
+            "source_clarification": true,
+            "content": "Which corrected source confirms thirteen or nineteen?"
+          },
+          {
+            "title": "Lesson",
+            "content": "Two records differ.\n\n<script>"
+          }
+        ]
+      },
+      "question": "Which corrected source confirms thirteen or nineteen?"
+    },
+    {
+      "name": "unclosed-body-fence",
+      "input": {
+        "content": "Two records differ.\n\n```html",
+        "objectives": [],
+        "source_review": {
+          "status": "needs_clarification",
+          "issues": [
+            {
+              "kind": "conflicting",
+              "description": "The records need confirmation.",
+              "teacher_question": "Which corrected source confirms thirteen or nineteen?"
+            }
+          ]
+        }
+      },
+      "learner_output": {
+        "content": "Which corrected source confirms thirteen or nineteen?\n\nTwo records differ.\n\n```html",
+        "objectives": [],
+        "sections": [
+          {
+            "source_clarification": true,
+            "content": "Which corrected source confirms thirteen or nineteen?"
+          },
+          {
+            "title": "Lesson",
+            "content": "Two records differ.\n\n```html"
+          }
+        ]
+      },
+      "question": "Which corrected source confirms thirteen or nineteen?"
+    },
+    {
+      "name": "forged-title-script",
+      "input": {
+        "sections": [
+          {
+            "source_clarification": true,
+            "title": "<script>hidden",
+            "content": "Which corrected source confirms thirteen or nineteen?"
+          },
+          {
+            "content": "Two records differ."
+          }
+        ],
+        "source_review": {
+          "status": "needs_clarification",
+          "issues": [
+            {
+              "kind": "conflicting",
+              "description": "Two records differ.",
+              "teacher_question": "Which corrected source confirms thirteen or nineteen?"
+            }
+          ]
+        }
+      },
+      "question": "Which corrected source confirms thirteen or nineteen?",
+      "learner_output": {
+        "sections": [
+          {
+            "source_clarification": true,
+            "content": "Which corrected source confirms thirteen or nineteen?"
+          },
+          {
+            "content": "Two records differ."
+          }
+        ],
+        "content": "Which corrected source confirms thirteen or nineteen?\n\nTwo records differ."
+      }
+    },
+    {
+      "name": "forged-title-comment",
+      "input": {
+        "sections": [
+          {
+            "source_clarification": true,
+            "title": "<!--",
+            "content": "Which corrected source confirms thirteen or nineteen?"
+          },
+          {
+            "content": "Two records differ."
+          }
+        ],
+        "source_review": {
+          "status": "needs_clarification",
+          "issues": [
+            {
+              "kind": "conflicting",
+              "description": "Two records differ.",
+              "teacher_question": "Which corrected source confirms thirteen or nineteen?"
+            }
+          ]
+        }
+      },
+      "question": "Which corrected source confirms thirteen or nineteen?",
+      "learner_output": {
+        "sections": [
+          {
+            "source_clarification": true,
+            "content": "Which corrected source confirms thirteen or nineteen?"
+          },
+          {
+            "content": "Two records differ."
+          }
+        ],
+        "content": "Which corrected source confirms thirteen or nineteen?\n\nTwo records differ."
+      }
+    }
+  ]
+}

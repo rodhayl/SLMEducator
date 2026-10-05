@@ -1,0 +1,163 @@
+{
+  "scope": "Synthetic contract and browser validation only. No new model inference or human educational acceptance.",
+  "base_commit": "b0fa6f9599a3032289746b2425b3ba0471620feb",
+  "base_tree": "42b1aaba7d6789649a8a4e1c50d1fa780dd1b6c6",
+  "runtime_src_tree": "18fa8d463a512b4ba5ab06c5d97fce32077bc515",
+  "prompt_version": "teacher-reviewed-v9-explicit-source-concerns",
+  "asset_cache": "slm-educator-v21-source-clarification",
+  "runtime_files": {
+    "src/core/services/ai_service.py": {
+      "sha256": "bda368d7725397aa73b99091c3c425b1f1a18e7df870d26e09f58d8f720ddf12",
+      "git_blob": "eb361d6671ab344b877f53749ad7d1d6a017fa9c"
+    },
+    "src/core/services/content_schema.py": {
+      "sha256": "f5ac37fa4b101bdf4d57ba8c3ec46fef3ac5a7a1994b6487f45b189d2a5aea10",
+      "git_blob": "c743d49aa85c2e1dd4252ff666b79c7475247d49"
+    },
+    "src/core/services/learning_context.py": {
+      "sha256": "fedabf146dbbcf148005e49d38fe35c47a85426f3896fb4f0c220b76e2d697a8",
+      "git_blob": "91379178379ffbac2ce4fab111c31a8caacbaa68"
+    },
+    "src/web/dashboard.html": {
+      "sha256": "ddecb071a9d8dbf2215eebb8ecafa276e8dd6099db60ee9d9f06709c3b695efd",
+      "git_blob": "0de56fd4c20a32e6115dd270e79f9176c8412ce9"
+    },
+    "src/web/static/js/safe-render.js": {
+      "sha256": "bc6c495ad4a1f81e0ceaa475c6fe87c4b23a66d1041efda0d70713ac41d869be",
+      "git_blob": "0d43ba7c5bcbd8ded74d5e667e69ecc98260bb44"
+    },
+    "src/web/sw.js": {
+      "sha256": "e5c6743dee016c331114b9804f4ecc61208b8755175bf7dd9ada06e92945f338",
+      "git_blob": "46816fb7a48475a2aa809fb67eeaab0bba851587"
+    }
+  },
+  "environment": {
+    "os": "Linux",
+    "python": "3.12.14",
+    "pytest": "9.0.2",
+    "node": "24.19.0",
+    "playwright": "1.56.0",
+    "chromium": "141.0.7390.37"
+  },
+  "final_results": {
+    "python": {
+      "passed": 1007,
+      "skipped": 36,
+      "deselected": 5,
+      "exit": 0,
+      "seconds": 565.48,
+      "line_coverage_percent": 81.61616161616162,
+      "threshold_percent": 80
+    },
+    "dom": {
+      "passed": 192,
+      "failed": 0,
+      "seconds": 12.182475893,
+      "exit": 0
+    },
+    "browser": {
+      "passed": 11,
+      "failed": 0,
+      "seconds": 49.83,
+      "exit": 0,
+      "native_zoom": "not_run: visible display unavailable",
+      "service_worker_network_events": true,
+      "provider": "synthetic declared stub"
+    },
+    "critical_lint": "pass: E9,F63,F7,F82 only",
+    "types": "pass: ai_service, learning_context, generation_workflow, content_schema; follow-imports=silent",
+    "pip_check": "pass",
+    "independent_contract_review": {
+      "python_passed": 23,
+      "dom_passed": 26,
+      "model_inference": false,
+      "runtime_hashes_match": true
+    }
+  },
+  "red_before_fix": {
+    "v8_source_contract": {
+      "failed": 12,
+      "passed": 2
+    },
+    "canonical_body_duplication": {
+      "failed": 1
+    },
+    "topic_path": {
+      "failed": 4
+    },
+    "render_hidden_questions": "Independent adversarial reproductions retained; fixed by literal leading section and untrusted marker reconstruction.",
+    "cache_version_consistency": {
+      "dom_passed": 191,
+      "dom_failed": 1
+    }
+  },
+  "superseded_or_failed_runs": {
+    "first_candidate": {
+      "python_passed": 987,
+      "dom_passed": 181,
+      "not_final": true
+    },
+    "first_browser": {
+      "passed": 10,
+      "failed": 1,
+      "cause": "Offline was not propagated to service-worker network manager by Playwright 1.56 without its flag."
+    },
+    "second_browser": {
+      "passed": 10,
+      "failed": 1,
+      "cause": "Chromium target crashed during screenshot."
+    },
+    "development_consolidations": "Two cancelled at discovered changes. Partial logs retained; not passes.",
+    "initial_red_harness": "Missing synthetic HTTP model key fixed before valid baseline red; not evidence of a product defect."
+  },
+  "semantic_acceptance": {
+    "v9_inference": "not_run",
+    "historical_v8": "34/36, unchanged",
+    "unclosed_known_cases": [
+      "followup-conflict",
+      "followup-level"
+    ],
+    "new_reserved_cases": 8,
+    "new_reserved_status": "unexecuted",
+    "teacher_pilot": "deferred; not requested",
+    "native_windows_build": "not_run; previous EXE does not contain changes",
+    "native_X_close": "not_run"
+  },
+  "model_feasibility": {
+    "artifact_url": "https://huggingface.co/unsloth/gemma-4-12B-it-qat-GGUF/blob/980b060c40a8539ac159e0501a3e0f66a6365af3/gemma-4-12B-it-qat-UD-Q4_K_XL.gguf",
+    "reported_model_bytes": 6716356800,
+    "published_model_sha256": "90fd44e29e0d7cffeb0fd00dc73cfdab9ed0b0e95306ecf7821ea634c940c370",
+    "existing_official_runtime": "llama.cpp b11146/7fe450e19 lists gemma4; exact GGUF load untested",
+    "ram_total_bytes": 10451464192,
+    "ram_available_after_python_bytes": 2924318720,
+    "swap_bytes": 0,
+    "nvidia_device_visible": false,
+    "weight_download_or_load_attempted": false,
+    "boundary": "Exact weights plus KV/cache cannot be kept resident in current spare RAM; no shared services stopped, no heavy concurrent inference, no alternate model certified."
+  },
+  "historical_fixture": {
+    "git_blob": "9de1673f2287ccdeb3f5e8ceb3f0883e26186d90",
+    "lf_sha256": "a5c1622411c64d87942c601a93baeb59c52771e877e2c167e214e209ad24def1",
+    "crlf_sha256": "cf3c6d9c6e0e02004368aaabd0c86332a56429b13b059e17d8d14fdc93ddf107",
+    "cases_or_oracles_modified": false
+  },
+  "new_reserved_fixture_sha256": "9668e347b2cdf0881419465fc57c29091b20e51bf0f7c64ea20b5f0f3dd29cb2",
+  "local_log_sha256": {
+    "source_review_red_valid.log": "f66a7ec78d76d8b4aeb9901572548ae57598d05e7601847c11533887d5ad71b4",
+    "canonical_question_red.log": "4aad28b0004afa9dcc1110bd074f548550085aa6ea36802a97efb879ea392c21",
+    "topic_review_red.log": "94ccf709d0cc96f4003782c70deb8eb8c85cb39de2a75bb17206ad34fc5db989",
+    "candidate3_dom_version_red.log": "8ac60236bd2dc625cd46073d3a88de6e2cd2ebc4749d5cab1f03e52758f3b2d1",
+    "final_python.log": "037dc7efc17818499171a865c9bb6f4a912b9af768893968739e37f2980e6320",
+    "final_dom.log": "a1a829586ed59a0eca9c19807f330b319e6ea283d67d508c599cd9ddc56ccc50",
+    "final_browser.log": "ff65aee23246d7c52b4c8e0f98718cc5d2ba7b88491fd5c04e3f561e6a1afad2",
+    "final_lint.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "final_mypy.log": "71144743c83babea384888a735db0c4daba3d4d7b7942b6839984bd5c21b52bb"
+  },
+  "publication_constraints": {
+    "github_actions": "[skip ci]; no workflow dispatch",
+    "merge": false,
+    "deployment": false,
+    "paid_models": false,
+    "credentials_or_runtime_data_included": false
+  }
+}

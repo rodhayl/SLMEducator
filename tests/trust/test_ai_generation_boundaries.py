@@ -52,6 +52,11 @@ def test_source_backed_generation_keeps_exact_fragment_receipt(generation_servic
     service, respond = generation_service
     source = "[page:1]\nA numerator counts selected equal parts."
     result_data = {"title": "Synthetic fractions", "content": "Selected equal parts"}
+    if kind == "lesson":
+        result_data["source_review"] = {"status": "no_issue_reported", "issues": []}
+    elif kind == "topic":
+        result_data["lesson"] = {"content": "Selected equal parts",
+                                 "source_review": {"status": "no_issue_reported", "issues": []}}
     respond(result_data)
     if kind == "lesson":
         result = service.generate_lesson(

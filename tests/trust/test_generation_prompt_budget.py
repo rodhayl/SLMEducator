@@ -48,7 +48,7 @@ def test_reasoning_override_reaches_lmstudio_transport(service):
 def test_partial_selection_is_disclosed_in_model_input(service):
     source = "Synthetic inventory. " * 800
     service._client.post.return_value = httpx.Response(
-        200, json={"choices": [{"message": {"content": '{"content":"Selected inventory"}'}, "finish_reason": "stop"}], "model": "synthetic"},
+        200, json={"choices": [{"message": {"content": '{"content":"Selected inventory", "source_review":{"status":"no_issue_reported","issues":[]}}'}, "finish_reason": "stop"}], "model": "synthetic"},
         request=httpx.Request("POST", "http://synthetic.invalid"),
     )
     result = service.generate_lesson("Inventory", "adult", ["Read observations"], source_material=source)
@@ -68,7 +68,7 @@ def service(monkeypatch):
 
 def test_lesson_prompt_has_budget_and_no_copyable_example(service):
     service._client.post.return_value = httpx.Response(
-        200, json={"choices": [{"message": {"content": '{"content":"Actual explanation"}'}, "finish_reason": "stop"}], "model": "synthetic"},
+        200, json={"choices": [{"message": {"content": '{"content":"Actual explanation", "source_review":{"status":"no_issue_reported","issues":[]}}'}, "finish_reason": "stop"}], "model": "synthetic"},
         request=httpx.Request("POST", "http://synthetic.invalid"),
     )
     service.generate_lesson("Fractions", "beginner", ["Count parts"], source_material="Equal parts.")
@@ -81,7 +81,7 @@ def test_lesson_prompt_has_budget_and_no_copyable_example(service):
 
 def test_lesson_task_prioritizes_objectives_over_topic_and_optional_expansion(service):
     service._client.post.return_value = httpx.Response(
-        200, json={"choices": [{"message": {"content": '{"content":"Source is insufficient; ask the teacher."}'}, "finish_reason": "stop"}], "model": "synthetic"},
+        200, json={"choices": [{"message": {"content": '{"content":"Source is insufficient; ask the teacher.", "source_review":{"status":"no_issue_reported","issues":[]}}'}, "finish_reason": "stop"}], "model": "synthetic"},
         request=httpx.Request("POST", "http://synthetic.invalid"),
     )
     service.generate_lesson("Unknown tool", "beginner adult", ["Explain its capacity"],
@@ -108,7 +108,7 @@ def test_exercise_prompt_uses_types_instead_of_sample_answers(service):
 @pytest.mark.parametrize("operation", ["outline", "topic", "study_plan"])
 def test_planning_prompts_share_bounded_noncopyable_contract(service, operation):
     service._client.post.return_value = httpx.Response(
-        200, json={"choices": [{"message": {"content": '{"title":"Actual plan","description":"Draft","phases":[],"units":[]}'}, "finish_reason": "stop"}], "model": "synthetic"},
+        200, json={"choices": [{"message": {"content": '{"title":"Actual plan","description":"Draft","phases":[],"units":[],"lesson":{"content":"Known source fact.","source_review":{"status":"no_issue_reported","issues":[]}}}'}, "finish_reason": "stop"}], "model": "synthetic"},
         request=httpx.Request("POST", "http://synthetic.invalid"),
     )
     if operation == "outline":

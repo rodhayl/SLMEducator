@@ -149,6 +149,10 @@ freezing and refuses Python installations using an unsupported zipfs layout
 artifact hashes, acceptance results and remaining limits in
 [Windows candidate report](docs/PRODUCTION_READINESS_WINDOWS_20261005.md).
 
+The subsequent [source-clarification contract candidate](docs/SOURCE_CLARIFICATION_CONTRACT_20261005.md)
+adds bounded lesson-output checks. Its exact-model semantic rerun and rebuilt
+Windows artifact remain pending; the earlier EXE does not contain that change.
+
 ```powershell
 .\build_package.bat --help
 .\build_package.bat --prod

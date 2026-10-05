@@ -70,6 +70,7 @@ def test_single_lesson_rejects_unusable_provider_objects(lesson_client, output):
 ])
 def test_single_lesson_preserves_valid_response_fields(lesson_client, output):
     client, response_body = lesson_client
+    output = {**output, "source_review": {"status": "no_issue_reported", "issues": []}}
     response_body.update(output)
     response = request_lesson(client)
     assert response.status_code == 200

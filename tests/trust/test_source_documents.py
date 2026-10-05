@@ -182,7 +182,7 @@ def test_lesson_prompt_includes_relevant_late_text_and_explicit_usage():
 
     def call(prompt, **kwargs):
         captured.append(prompt)
-        return SimpleNamespace(content='{"content":"synthetic"}')
+        return SimpleNamespace(content='{"content":"synthetic", "source_review":{"status":"no_issue_reported","issues":[]}}')
 
     service._call_ai = call
     service._parse_json_response = lambda text, kind: json.loads(text)

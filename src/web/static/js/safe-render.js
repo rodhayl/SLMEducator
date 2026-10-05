@@ -60,14 +60,18 @@
             const items = Array.isArray(data[key]) ? data[key].filter(item => typeof item === 'string') : [];
             if (items.length) blocks.push(`## ${title}\n\n` + items.map(item => `- ${item}`).join('\n'));
         };
+        const sectionText = section => {
+            const title = typeof section.title === 'string' ? `## ${section.title}\n\n` : '';
+            const body = section.content || section.text;
+            if (typeof body === 'string') blocks.push(title + body);
+        };
+        const sections = Array.isArray(data.sections) ? data.sections.filter(section => section && typeof section === 'object') : [];
+        // Canonical clarifications are literal-escaped sections. They precede
+        // even objectives, whose untrusted markup must not swallow a question.
+        sections.filter(section => section.source_clarification === true).forEach(sectionText);
         list('objectives', message('learning_objectives', 'Learning objectives'));
-        if (Array.isArray(data.sections) && data.sections.length) {
-            data.sections.forEach(section => {
-                if (!section || typeof section !== 'object') return;
-                const title = typeof section.title === 'string' ? `## ${section.title}\n\n` : '';
-                const body = section.content || section.text;
-                if (typeof body === 'string') blocks.push(title + body);
-            });
+        if (sections.length) {
+            sections.filter(section => section.source_clarification !== true).forEach(sectionText);
         } else {
             const body = data.content || data.body || data.text;
             if (typeof body === 'string') blocks.push(body);
