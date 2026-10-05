@@ -344,19 +344,28 @@ class AIService:
         budget = output_token_limit(self.config, 4000)
 
         prompt = f"""
-        Create a concise educational draft lesson on the topic: {topic}
+        Write a concise educational draft that addresses these teacher objectives:
+        {objectives_str}
+
+        Topic (navigation label, not evidence or an additional objective): {topic}
 
         Target Grade Level: {grade_level}
         Estimated Duration: {duration_minutes} minutes
         {context_block}
 
-        Learning Objectives:
-        {objectives_str}
+        First identify what the reference actually establishes for each objective.
+        Explain those supported facts and any calculation from supplied premises.
+        If an objective cannot be answered, say exactly what information is absent
+        or disputed and include a direct question to the teacher requesting it.
+        Do not substitute a guessed definition, purpose, care advice or general
+        introduction for an objective that the reference cannot establish.
 
         Output one JSON object. Required fields: title (string), sections (array
         of objects with title and content strings), summary (string).
         Optional fields: vocabulary (array of term/definition string objects),
-        discussion_questions (array of strings). Write actual explanations,
+        discussion_questions (array of strings). Omit vocabulary unless a definition
+        is supported by the reference and helps the requested objective. Optional
+        fields are not a checklist to fill. Write actual explanations,
         not headings alone. Use at most three sections. Worked examples are
         optional: omit them when the source does not supply the needed premises.
         The entire JSON must fit within {budget} output tokens, including syntax.

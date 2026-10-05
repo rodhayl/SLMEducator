@@ -79,6 +79,21 @@ def test_lesson_prompt_has_budget_and_no_copyable_example(service):
     assert "insufficient" in prompt
 
 
+def test_lesson_task_prioritizes_objectives_over_topic_and_optional_expansion(service):
+    service._client.post.return_value = httpx.Response(
+        200, json={"choices": [{"message": {"content": '{"content":"Source is insufficient; ask the teacher."}'}, "finish_reason": "stop"}], "model": "synthetic"},
+        request=httpx.Request("POST", "http://synthetic.invalid"),
+    )
+    service.generate_lesson("Unknown tool", "beginner adult", ["Explain its capacity"],
+                            source_material="Two handles. Capacity was not measured.")
+    prompt = service._client.post.call_args.kwargs["json"]["messages"][-1]["content"]
+    assert prompt.index("Explain its capacity") < prompt.index("UNTRUSTED SOURCE")
+    assert "navigation label" in prompt
+    assert "direct question to the teacher" in prompt
+    assert "Do not substitute" in prompt
+    assert "Omit vocabulary" in prompt
+
+
 def test_exercise_prompt_uses_types_instead_of_sample_answers(service):
     prompt = service._build_exercise_prompt("Fractions", "easy", "multiple_choice")
     assert "option1" not in prompt
