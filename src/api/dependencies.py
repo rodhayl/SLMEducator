@@ -68,21 +68,22 @@ def get_ai_service_dependency(
     Get AI Service instance configured for the specific user.
     If no config exists, creating a default one (or using system default).
     """
-    # Try to find user-specific config
-    # In a real app we query DB. For MVP/Migration, we might rely on settings service defaults
-    # But AIService expects an AIModelConfig object.
-
-    # Check if user has a config
+    user_id = current_user.id
+    if user_id is None:
+        raise HTTPException(status_code=401, detail="Authenticated account is unavailable")
     config = (
         db.query(AIModelConfiguration)
-        .filter(AIModelConfiguration.user_id == current_user.id)
+        .filter(AIModelConfiguration.user_id == user_id)
         .first()
     )
 
     if not config:
-        config = default_ai_configuration(current_user.id)
+        config = default_ai_configuration(user_id)
 
     parameters = config.model_parameters or {}
+    model = config.model
+    if not isinstance(model, str) or not model.strip():
+        raise HTTPException(status_code=409, detail="Choose an AI model in settings before generation")
     if config.provider not in {"ollama", "lm_studio", "openai", "openrouter"}:
         raise HTTPException(
             status_code=409,
@@ -90,7 +91,7 @@ def get_ai_service_dependency(
         )
     runtime = RuntimeAIConfig(
         provider=config.provider,
-        model=config.model,
+        model=model,
         endpoint=config.endpoint,
         api_key=config.decrypted_api_key,
         temperature=parameters.get("temperature"),

@@ -75,6 +75,23 @@ async function sessionFixture(query='?content_id=8&plan_id=4', withHelp=false) {
     w.eval(read('static/js/session.js'));await w.initSession();calls.length=0;
     return {...context,calls,failProgress:value=>{progressFails=value;}};
 }
+
+test('learner sees partial selection without falsely certifying source support', async()=>{
+    const {dom,w}=await sessionFixture();
+    const data={sections:[{title:'Facts',content:'Valid saved explanation.'}],generation:{source_usage:{source_document_id:'synthetic',use_coverage:'partial',source_characters:1000,ranges:[{start:0,end:100}]}}};
+    const render=()=>w.renderSessionContent({title:'Current',content_type:'lesson',content_data:data});
+    render();render();
+    const body=w.document.getElementById('session-content-body');
+    assert.match(body.textContent,/Valid saved explanation/);
+    assert.match(body.textContent,/100\/1000/);
+    assert.match(body.textContent,/Partial source/);
+    assert.match(body.textContent,/does not prove/);
+    assert.equal(body.querySelectorAll('[data-generation-notice]').length,1);
+    w.renderSessionContent({title:'Manual',content_type:'lesson',content_data:{body:'Teacher-authored text'}});
+    assert.equal(body.querySelector('[data-generation-notice]'),null);
+    await new Promise(resolve=>setImmediate(resolve));
+    dom.window.close();
+});
 test('Complete and next use the same completion and progress transition; repeat is idempotent',async()=>{
     const {dom,w,calls,failProgress}=await sessionFixture();
     failProgress(true);await w.confirmEndSession();

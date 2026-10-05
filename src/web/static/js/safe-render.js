@@ -33,5 +33,24 @@
             } catch { link.removeAttribute('href'); }
         });
     }
-    root.SLMRender = Object.freeze({ escape, html, markdown, setMarkdown });
+    function generationNotice(element, data) {
+        if (!element) return;
+        element.querySelector('[data-generation-notice]')?.remove();
+        const usage = data?.generation?.source_usage || data?._source_usage;
+        if (!usage?.source_document_id) return;
+        const message = (key, fallback) => root.SLMClient?.message?.(key, fallback) || fallback;
+        const notice = document.createElement('p');
+        notice.dataset.generationNotice = '';
+        notice.className = 'alert alert-warning';
+        notice.setAttribute('role', 'status');
+        const ranges = usage.ranges || [];
+        const supplied = ranges.reduce((sum, range) => sum + Math.max(0, Number(range.end) - Number(range.start)), 0);
+        const total = Number(usage.source_characters);
+        const count = Number.isFinite(supplied) && Number.isFinite(total) ? ` ${supplied}/${total}.` : '';
+        notice.textContent = message('source_context', 'Source context') + count + ' ' +
+            (usage.use_coverage === 'partial' ? message('source_partial', 'Partial source: some material was not included.') + ' ' : '') +
+            message('generation_receipt_scope', 'This receipt records text sent to the model; it does not prove that the response is supported by the source.');
+        element.prepend(notice);
+    }
+    root.SLMRender = Object.freeze({ escape, html, markdown, setMarkdown, generationNotice });
 })(window);

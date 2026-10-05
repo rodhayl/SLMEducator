@@ -1351,6 +1351,7 @@
     "source_context": "Context",
     "characters": "characters",
     "source_partial": "Partial source: some material was not included.",
+    "generation_receipt_scope": "This receipt records text sent to the model; it does not prove that the response is supported by the source.",
     "source_extracted": "Source text extracted; review it before generation.",
     "no_source": "No source material selected.",
     "unreadable_pages": "Unreadable pages",

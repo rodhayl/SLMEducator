@@ -1515,6 +1515,9 @@ window.viewContent = async function viewContent(id) {
         }
 
         SLMRender.setMarkdown(document.getElementById('content-view-body'), bodyText);
+        let receiptData = content.content_data;
+        if (typeof receiptData === 'string') { try { receiptData = JSON.parse(receiptData); } catch { receiptData = null; } }
+        SLMRender.generationNotice(document.getElementById('content-view-body'), receiptData);
 
         // Show modal
         new bootstrap.Modal(document.getElementById('contentViewModal')).show();
@@ -1959,6 +1962,7 @@ async function generateAIContent(endpoint, payload, mode) {
 
         if (json.success === false) html += `<p>${escapeHtml(SLMClient.message('generation_partial', 'Some items failed. Saved items were kept; retry the same request to finish.'))}</p>`;
         if (itemsList) itemsList.innerHTML = SLMRender.html(html || '<p>Content generated!</p>');
+        SLMRender.generationNotice(itemsList, json.lesson || json.exercises?.[0] || json);
         resultDiv?.classList.remove('hidden');
     } catch (err) {
         showToast('Generation failed: ' + err.message, 'danger');

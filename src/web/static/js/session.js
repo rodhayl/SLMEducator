@@ -889,4 +889,5 @@ function renderSessionContent(content) {
             }
         }
         if (!isPractice && !isAssessment) SLMRender.setMarkdown(body, bodyText);
+        SLMRender.generationNotice(body, structured);
 }
