@@ -393,6 +393,8 @@ class AIService:
         try:
             response = self._call_ai(prompt, max_tokens=4000, temperature=0.7)
             lesson_data = self._parse_json_response(response.content, "lesson")
+            if learning_objectives:
+                lesson_data["objectives"] = list(learning_objectives)
 
             self.logger.info(f"Successfully generated lesson for {topic}")
             lesson_data["_source_usage"] = source_usage

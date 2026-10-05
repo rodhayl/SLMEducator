@@ -36,15 +36,15 @@
     function generationNotice(element, data) {
         if (!element) return;
         element.querySelector('[data-generation-notice]')?.remove();
-        const usage = data?.generation?.source_usage || data?._source_usage;
-        if (!usage?.source_document_id) return;
+        const usage = data?.source_selection || data?.generation?.source_usage || data?._source_usage;
+        if (!usage || (!data?.source_selection && !usage.source_document_id)) return;
         const message = (key, fallback) => root.SLMClient?.message?.(key, fallback) || fallback;
         const notice = document.createElement('p');
         notice.dataset.generationNotice = '';
         notice.className = 'alert alert-warning';
         notice.setAttribute('role', 'status');
         const ranges = usage.ranges || [];
-        const supplied = ranges.reduce((sum, range) => sum + Math.max(0, Number(range.end) - Number(range.start)), 0);
+        const supplied = usage.supplied_characters ?? ranges.reduce((sum, range) => sum + Math.max(0, Number(range.end) - Number(range.start)), 0);
         const total = Number(usage.source_characters);
         const count = Number.isFinite(supplied) && Number.isFinite(total) ? ` ${supplied}/${total}.` : '';
         notice.textContent = message('source_context', 'Source context') + count + ' ' +

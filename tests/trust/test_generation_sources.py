@@ -128,6 +128,7 @@ def test_generation_retries_failed_item_only_and_preserves_teacher_edits(scenari
     assert service.generate_exercise.call_count == 2
     assert service.generate_assessment_questions.call_count == 1
     assert len(set(second.json()["saved_content_ids"])) == 3
+    assert first.json()["lesson"]["objectives"] == ["Compare fractions"]
     generated_ids = second.json()["saved_content_ids"]
     ordered = (
         db.query(StudyPlanContent)

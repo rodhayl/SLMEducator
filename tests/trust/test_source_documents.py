@@ -17,6 +17,37 @@ from src.api.routes.generation import FullTopicPackageRequest
 from tests.trust.test_resource_contracts import scenario, synthetic_credentials
 
 
+def test_learner_receives_selection_counts_without_private_source_or_keys(scenario):
+    client, db, users, selected, _, lessons, _ = scenario
+    lesson = lessons[0]
+    lesson.set_encrypted_content_data({
+        "sections": [{"title": "Observation", "content": "One recorded observation."}],
+        "objectives": ["Read the recorded observation"],
+        "correct_answer": "PRIVATE_GRADING_KEY",
+        "generation": {"source_usage": {"source_document_id": "synthetic",
+            "source_characters": 1000, "ranges": [{"start": 0, "end": 100}],
+            "fragment": "PRIVATE_SOURCE_EXCERPT"}, "api_key": "PRIVATE_PROVIDER_KEY"},
+    })
+    db.commit()
+    selected[0] = users["learner_a"]
+    response = client.get(f"/api/content/{lesson.id}")
+    assert response.status_code == 200
+    assert response.json()["source_selection"] == {
+        "supplied_characters": 100, "source_characters": 1000, "use_coverage": "partial"}
+    assert response.json()["content_data"]["objectives"] == ["Read the recorded observation"]
+    assert "PRIVATE_" not in response.text
+    selected[0] = users["learner_b"]
+    assert client.get(f"/api/content/{lesson.id}").status_code == 403
+
+
+@pytest.mark.parametrize("span", [{"start": -1, "end": 5}, {"start": 0, "end": 1001},
+    {"start": True, "end": 5}, {"start": 7, "end": 2}, "private-text"])
+def test_malformed_source_ranges_do_not_make_a_public_receipt(span):
+    from src.core.services.source_documents import public_source_selection
+    assert public_source_selection({"generation": {"source_usage": {
+        "source_characters": 1000, "ranges": [span]}}}) is None
+
+
 def document(text="Synthetic source"):
     return {
         "filename": "synthetic.txt",

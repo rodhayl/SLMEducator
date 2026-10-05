@@ -71,7 +71,8 @@ def test_source_backed_generation_keeps_exact_fragment_receipt(generation_servic
         result = service.generate_course_outline("Fractions", "synthetic adult", 3, source)
         expected_tokens = 2000
     usage = result.pop("_source_usage")
-    assert result == result_data
+    expected = {**result_data, "objectives": ["Explain numerator"]} if kind == "lesson" else result_data
+    assert result == expected
     assert usage["source_document_id"] == sha256(source.encode()).hexdigest()
     assert usage["fragment_hash"] == sha256(usage["fragment"].encode()).hexdigest()
     assert usage["source_references"] == ["page:1"]

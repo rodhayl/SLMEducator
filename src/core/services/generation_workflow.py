@@ -102,6 +102,8 @@ def _generate(service, request, kind: str, index: int) -> dict:
             "passing_score": 70,
         }
     result.setdefault("_source_usage", usage)
+    if kind == "lesson" and request.learning_objectives:
+        result["objectives"] = list(request.learning_objectives)
     # Generated exam definitions are converted transactionally to Assessment;
     # only the resulting pointer is learner Content and uses that schema.
     return result if kind == "assessment" else normalize_content(kind, result)

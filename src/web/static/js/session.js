@@ -824,16 +824,15 @@ function renderSessionContent(content) {
                         if (section.content) markdown += `${section.content}\n\n`;
                         if (section.text) markdown += `${section.text}\n\n`;
                     });
-                    if (Array.isArray(parsed.objectives) && parsed.objectives.length) markdown += `## ${sessionMessage('learning_objectives', 'Learning objectives')}\n\n` + parsed.objectives.map(objective => `- ${objective}`).join('\n') + '\n\n';
-                    if (parsed.summary) markdown += `## Summary\n\n${parsed.summary}\n\n`;
+                    if (parsed.summary) markdown += `## ${sessionMessage('lesson_summary', 'Summary')}\n\n${parsed.summary}\n\n`;
                     if (parsed.vocabulary && Array.isArray(parsed.vocabulary)) {
-                        markdown += `## Key Terms\n\n`;
+                        markdown += `## ${sessionMessage('lesson_terms', 'Key terms')}\n\n`;
                         parsed.vocabulary.forEach(term => {
                             markdown += `- **${term.term || term}**: ${term.definition || ''}\n`;
                         });
                     }
                     if (parsed.key_concepts && Array.isArray(parsed.key_concepts)) {
-                        markdown += `## Key Concepts\n\n`;
+                        markdown += `## ${sessionMessage('lesson_concepts', 'Key concepts')}\n\n`;
                         parsed.key_concepts.forEach(concept => {
                             markdown += `- ${concept}\n`;
                         });
@@ -888,6 +887,9 @@ function renderSessionContent(content) {
                 bodyText = String(content.content_data);
             }
         }
-        if (!isPractice && !isAssessment) SLMRender.setMarkdown(body, bodyText);
-        SLMRender.generationNotice(body, structured);
+        if (!isPractice && !isAssessment) {
+            if (Array.isArray(structured?.objectives) && structured.objectives.length) bodyText = `## ${sessionMessage('learning_objectives', 'Learning objectives')}\n\n` + structured.objectives.map(objective => `- ${objective}`).join('\n') + '\n\n' + bodyText;
+            SLMRender.setMarkdown(body, bodyText);
+        }
+        SLMRender.generationNotice(body, {...structured, source_selection: content.source_selection});
 }

@@ -1517,7 +1517,7 @@ window.viewContent = async function viewContent(id) {
         SLMRender.setMarkdown(document.getElementById('content-view-body'), bodyText);
         let receiptData = content.content_data;
         if (typeof receiptData === 'string') { try { receiptData = JSON.parse(receiptData); } catch { receiptData = null; } }
-        SLMRender.generationNotice(document.getElementById('content-view-body'), receiptData);
+        SLMRender.generationNotice(document.getElementById('content-view-body'), {...receiptData, source_selection: content.source_selection});
 
         // Show modal
         new bootstrap.Modal(document.getElementById('contentViewModal')).show();

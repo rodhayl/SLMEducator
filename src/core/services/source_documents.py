@@ -12,6 +12,34 @@ MAX_TEXT_CHARACTERS = 100000
 PROMPT_SOURCE_BUDGET = 6000
 
 
+def public_source_selection(data: dict) -> dict | None:
+    """Expose counts only; source excerpts, filenames and grading keys stay private."""
+    if not isinstance(data, dict):
+        return None
+    generation = data.get("generation")
+    if not isinstance(generation, dict):
+        return None
+    usage = generation.get("source_usage")
+    if not isinstance(usage, dict):
+        return None
+    total = usage.get("source_characters")
+    ranges = usage.get("ranges")
+    if type(total) is not int or not 0 <= total <= MAX_TEXT_CHARACTERS or not isinstance(ranges, list):
+        return None
+    supplied = 0
+    for span in ranges[:1000]:
+        if not isinstance(span, dict):
+            return None
+        start, end = span.get("start"), span.get("end")
+        if type(start) is not int or type(end) is not int or not 0 <= start <= end <= total:
+            return None
+        supplied += end - start
+    if supplied > total:
+        return None
+    return {"supplied_characters": supplied, "source_characters": total,
+            "use_coverage": "partial" if supplied < total else "complete"}
+
+
 class SourceSection(BaseModel):
     reference: str = Field(min_length=1, max_length=120)
     text: str = Field(max_length=MAX_TEXT_CHARACTERS)
