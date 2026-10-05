@@ -143,6 +143,12 @@ checkout from the script location, rather than the caller's working directory.
 Relative `--database` and `--output-dir` arguments to the batch wrapper resolve
 from that checkout; use absolute paths when selecting a database elsewhere.
 
+Use Python 3.13 for the verified Windows build. The builder checks Tcl/Tk before
+freezing and refuses Python installations using an unsupported zipfs layout
+(observed with Python 3.14); do not bypass this preflight. See the exact build,
+artifact hashes, acceptance results and remaining limits in
+[Windows candidate report](docs/PRODUCTION_READINESS_WINDOWS_20261005.md).
+
 ```powershell
 .\build_package.bat --help
 .\build_package.bat --prod
