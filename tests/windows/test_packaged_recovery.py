@@ -47,7 +47,7 @@ def test_frozen_backup_restore_reopens_accounts_content_and_progress(installatio
     # Actual frozen GUI launcher/API with no Python/venv/source paths in its env.
     payload = {**run.payload, "executable": str(executable)}
     state = _json_output(_run(environment, "-c", APPLICATION_DRIVER, payload=payload))
-    assert state["verified_accounts"] == ["learner_a", "learner_b", "teacher_a", "teacher_b"]
+    assert state["verified_accounts"] == ["admin", "learner_a", "learner_b", "teacher_a", "teacher_b"]
     # Repeat startup after the completed restoration; notes/history remain.
     payload["state"] = state
     payload["mode"] = "reopen-active"

@@ -286,7 +286,9 @@ def installation(tmp_path_factory):
             "--database", source, "--synthetic",
         ))
         payload = {"mode": "prepare", "state": {"plan_id": seeded["plan_id"]},
-                   "credentials": seeded["credentials"], "note": NOTE}
+                   "credentials": seeded["credentials"] + [
+                       {"username": "admin", "password": environment["SLM_INITIAL_ADMIN_PASSWORD"]}
+                   ], "note": NOTE}
         state = _json_output(_run(environment, "-c", APPLICATION_DRIVER, payload=payload))
         backup = root / "private.slmbackup"
         _run(environment, RECOVERY, "backup", "--database", source, "--output", backup)
@@ -320,7 +322,7 @@ def test_cli_restore_reopens_real_auth_imported_content_and_learning_session(ins
             values = connection.execute(f"SELECT {column} FROM {table} WHERE {column} IS NOT NULL").fetchall()
             assert values and all(value[0].startswith("gAAAA") for value in values)
     reopened = _json_output(_run(environment, "-c", APPLICATION_DRIVER, payload=run.payload))
-    assert reopened["verified_accounts"] == ["learner_a", "learner_b", "teacher_a", "teacher_b"]
+    assert reopened["verified_accounts"] == ["admin", "learner_a", "learner_b", "teacher_a", "teacher_b"]
     assert _logical_digest(run.source) == before
     assert not (Path(environment["HOME"]) / ".slm_educator").exists()
     assert not (Path(run.env["HOME"]) / ".slm_educator").exists()

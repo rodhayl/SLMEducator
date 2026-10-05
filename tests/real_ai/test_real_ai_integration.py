@@ -176,7 +176,10 @@ class TestRealAIIntegration:
         print(f"\n📤 Testing token tracking: {prompt}")
 
         # ACTUAL API CALL
-        response = real_ai_service._call_ai(prompt, max_tokens=100)
+        # Instruct models may spend tokens on reasoning before the visible count.
+        # This case measures a completed request, not truncation (covered by the
+        # transport boundary tests); 100 caused a real intermittent length stop.
+        response = real_ai_service._call_ai(prompt, max_tokens=1000)
 
         print(f"📥 Response received")
         print(f"   Tokens used: {response.tokens_used}")
@@ -187,6 +190,9 @@ class TestRealAIIntegration:
         assert response.tokens_used > 0, "Should track token usage"
         assert response.response_time > 0, "Should track response time"
         assert response.model is not None, "Should track model used"
+        assert all(str(number) in response.content for number in range(1, 6)), (
+            "A completed counting request must contain its requested output"
+        )
 
         print("✅ Real AI metrics tracked successfully")
 
