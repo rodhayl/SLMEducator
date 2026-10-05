@@ -13,6 +13,7 @@ Simplified to work without Phase 1-3 models.
 """
 
 import pytest
+import os
 
 
 class TestRealAIIntegration:
@@ -34,6 +35,9 @@ class TestRealAIIntegration:
         # Verify configuration
         assert real_ai_service.config.provider == real_ai_config["provider"]
         assert real_ai_service.config.model == real_ai_config["model"]
+        assert real_ai_service.config.temperature == real_ai_config["config"]["default_temperature"]
+        assert real_ai_service.config.max_tokens == real_ai_config["config"]["default_max_tokens"]
+        assert real_ai_service.config.reasoning_effort == os.environ.get("SLM_REAL_AI_REASONING_EFFORT")
 
         print(
             f"✅ Real AI Service initialized: {real_ai_config['provider']}/{real_ai_config['model']}"

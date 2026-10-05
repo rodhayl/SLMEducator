@@ -178,8 +178,8 @@ def real_ai_service(real_ai_config):
         model=real_ai_config["model"],
         api_key=real_ai_config["api_key"],
         endpoint=endpoint,
-        temperature=defaults.get("temperature"),
-        max_tokens=defaults.get("max_tokens"),
+        temperature=defaults.get("default_temperature"),
+        max_tokens=defaults.get("default_max_tokens"),
         reasoning_effort=reasoning,
     )
 
