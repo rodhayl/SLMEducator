@@ -1798,6 +1798,7 @@ window.toggleStudyPlanSelector = function () {
 };
 
 // Load study plans for the dropdown selector
+let phaseSelectionSequence = 0;
 async function loadStudyPlansForSelector() {
     try {
         const token = AuthService.getToken();
@@ -1818,6 +1819,31 @@ async function loadStudyPlansForSelector() {
             option.textContent = plan.title;
             select.appendChild(option);
         });
+        const phaseSelect = document.getElementById('phase-select');
+        const populatePhases = async () => {
+            if (!phaseSelect) return;
+            const sequence = ++phaseSelectionSequence;
+            const owner = SLMClient.account();
+            const planId = select.value;
+            phaseSelect.disabled = true;
+            phaseSelect.replaceChildren();
+            if (!planId) return;
+            try {
+                // Summary/detail responses omit phases; the authorized tree contains them.
+                const plan = await SLMClient.request(`/api/study-plans/${planId}/tree`);
+                if (sequence !== phaseSelectionSequence || owner !== SLMClient.account() || planId !== select.value) return;
+                const phases = Array.isArray(plan.phases) && plan.phases.length ? plan.phases : [{}];
+                phases.forEach((phase, index) => {
+                    const label = `${SLMClient.message('generation_phase', 'Phase')} ${index + 1}`;
+                    phaseSelect.append(new Option(phase.title || phase.name || label, String(index)));
+                });
+                phaseSelect.disabled = false;
+            } catch (err) {
+                if (sequence === phaseSelectionSequence && owner === SLMClient.account()) showToast(SLMClient.message('generation_phase_failed', 'Could not load course phases. Select the course again before generating.'), 'danger');
+            }
+        };
+        select.onchange = populatePhases;
+        populatePhases();
     } catch (err) {
         console.error('Failed to load study plans:', err);
     }
@@ -1887,6 +1913,10 @@ if (aiContentForm) {
                 const studyPlanId = document.getElementById('study-plan-select')?.value;
                 const phaseIndex = document.getElementById('phase-select')?.value;
                 if (studyPlanId) {
+                    if (document.getElementById('phase-select').disabled || phaseIndex === '') {
+                        showToast(SLMClient.message('generation_phase_failed', 'Could not load course phases. Select the course again before generating.'), 'danger');
+                        return;
+                    }
                     payload.study_plan_id = parseInt(studyPlanId);
                     payload.phase_index = parseInt(phaseIndex) || 0;
                 }
@@ -1969,21 +1999,21 @@ async function generateAIContent(endpoint, payload, mode) {
             if (topicNameBadge) topicNameBadge.textContent = payload.topic_name || I18n.t('content.generator.results.default_content_title');
 
             if (json.lesson) {
-                html += `<div class="card mb-2"><div class="card-header bg-primary text-white">📖 Lesson: ${json.lesson.title || 'Generated'}</div>
-                <div class="card-body"><p>${json.lesson.summary || 'Lesson generated successfully'}</p></div></div>`;
+                html += `<div class="card mb-2"><div class="card-header bg-primary text-white">📖 ${SLMClient.message('generation_lesson', 'Lesson')}: ${json.lesson.title || SLMClient.message('generation_generated', 'Generated')}</div>
+                <div class="card-body"><p>${json.lesson.summary || SLMClient.message('generation_lesson_ready', 'Lesson draft generated')}</p></div></div>`;
             }
             if (json.exercises?.length) {
-                html += `<div class="card mb-2"><div class="card-header bg-success text-white">🏋️ ${json.exercises.length} Exercise(s)</div>
+                html += `<div class="card mb-2"><div class="card-header bg-success text-white">🏋️ ${json.exercises.length} ${SLMClient.message('generation_exercises', 'Exercises')}</div>
                 <div class="card-body">${json.exercises.slice(0, 3).map((e, i) => `<p>${i + 1}. ${e.title || e.question || 'Exercise'}</p>`).join('')}</div></div>`;
             }
-            if (json.assessment_questions?.length) {
-                html += `<div class="card mb-2"><div class="card-header bg-info text-white">📝 ${json.assessment_questions.length} Assessment Question(s)</div>
-                <div class="card-body">${json.assessment_questions.slice(0, 3).map((q, i) => `<p>${i + 1}. ${q.question || q.question_text || 'Question'}</p>`).join('')}</div></div>`;
+            if ((json.assessment?.questions || json.assessment_questions)?.length) {
+                html += `<div class="card mb-2"><div class="card-header bg-info text-white">📝 ${(json.assessment?.questions || json.assessment_questions).length} ${SLMClient.message('generation_questions', 'Assessment questions')}</div>
+                <div class="card-body">${(json.assessment?.questions || json.assessment_questions).slice(0, 3).map((q, i) => `<p>${i + 1}. ${q.question || q.question_text || 'Question'}</p>`).join('')}</div></div>`;
             }
 
             // Show auto-save status if applicable
             if (payload.auto_save && json.saved_content_ids?.length) {
-                html += `<div class="alert alert-success mt-2">✅ Auto-saved ${json.saved_content_ids.length} item(s) to your library!</div>`;
+                html += `<div class="alert alert-success mt-2">✅ ${SLMClient.message('generation_saved', 'Saved draft items in your library')}: ${json.saved_content_ids.length}</div>`;
             }
         }
 
@@ -1992,7 +2022,7 @@ async function generateAIContent(endpoint, payload, mode) {
         SLMRender.generationNotice(itemsList, json.lesson || json.exercises?.[0] || json);
         resultDiv?.classList.remove('hidden');
     } catch (err) {
-        showToast('Generation failed: ' + err.message, 'danger');
+        showToast(SLMClient.message('generation_failed', 'Generation failed') + ': ' + err.message, 'danger');
     } finally {
         // Reset button text based on mode
         if (submitBtn) {
@@ -3698,7 +3728,7 @@ window.generateForPlan = async function (planId) {
         loadLibraryTree();
 
     } catch (err) {
-        showToast('Generation failed: ' + err.message, 'danger');
+        showToast(SLMClient.message('generation_failed', 'Generation failed') + ': ' + err.message, 'danger');
     }
 };
 

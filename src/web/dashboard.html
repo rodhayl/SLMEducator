@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - SLM Educator</title>
     <link href="/static/vendor/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/main.css?v=19">
+    <link rel="stylesheet" href="/static/css/main.css?v=20">
     <script src="/static/js/theme.js"></script>
     <script src="/static/js/i18n.js"></script>
     <script src="/static/js/toast.js"></script>
@@ -14,7 +14,7 @@
     <script src="/static/vendor/marked@15.0.12/marked.min.js"></script>
     <script src="/static/js/safe-render.js"></script>
     <script src="/static/js/learning-client.js"></script>
-    <script src="/static/js/practice.js?v=19"></script>
+    <script src="/static/js/practice.js?v=20"></script>
     <script src="/static/js/time-display.js?v=12"></script>
 </head>
 
@@ -709,10 +709,11 @@
                                             <select name="plan_grade_level" class="form-select"
                                                 aria-label="Study plan grade level">
                                                 <option value="9" data-i18n="profile.grade_9">Grade 9</option>
-                                                <option value="10" selected>Grade 10</option>
+                                                <option value="10" selected data-i18n="profile.grade_10">Grade 10</option>
                                                 <option value="11" data-i18n="profile.grade_11">Grade 11</option>
                                                 <option value="12" data-i18n="profile.grade_12">Grade 12</option>
                                                 <option value="university" data-i18n="profile.university">University</option>
+                                                <option value="Adult beginner" data-i18n="recovery.generation_adult_beginner">Adult beginner</option>
                                             </select>
                                         </div>
                                     </div>
@@ -786,10 +787,11 @@
                                                 <option value="7" data-i18n="profile.grade_7">Grade 7</option>
                                                 <option value="8" data-i18n="profile.grade_8">Grade 8</option>
                                                 <option value="9" data-i18n="profile.grade_9">Grade 9</option>
-                                                <option value="10" selected>Grade 10</option>
+                                                <option value="10" selected data-i18n="profile.grade_10">Grade 10</option>
                                                 <option value="11" data-i18n="profile.grade_11">Grade 11</option>
                                                 <option value="12" data-i18n="profile.grade_12">Grade 12</option>
                                                 <option value="university" data-i18n="profile.university">University</option>
+                                                <option value="Adult beginner" data-i18n="recovery.generation_adult_beginner">Adult beginner</option>
                                             </select>
                                         </div>
                                     </div>
@@ -1011,7 +1013,7 @@
                                                 data-i18n="create.ai.save_options.phase">Phase</label>
                                             <select name="phase_index" id="phase-select"
                                                 class="form-select form-select-sm" aria-label="Select phase">
-                                                <option value="0">Phase 1</option>
+                                                <option value="0" data-i18n="recovery.generation_first_phase">Phase 1</option>
                                             </select>
                                         </div>
                                     </div>
@@ -2014,7 +2016,7 @@
     <script src="/static/vendor/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script type="module" src="/static/js/auth.js?v=20260204"></script>
     <script src="/static/js/admin-accounts.js"></script>
-    <script type="module" src="/static/js/dashboard.js?v=19"></script>
+    <script type="module" src="/static/js/dashboard.js?v=20"></script>
     <script type="module" src="/static/js/modules/inbox.js"></script>
     <script type="module" src="/static/js/assessment.js"></script> <!-- Added Assessment Logic -->
     <script>

@@ -60,3 +60,15 @@ test('progressive hints restore with independent answers after interruption',asy
  assert.equal(host.querySelector('textarea').value,'My attempt');assert.match(host.textContent,/Count one group/);
  host.querySelector('button').click();assert.match(host.textContent,/Multiply/);assert.equal(host.querySelector('button').disabled,true);dom.window.close();
 });
+
+test('generator loads real course phases and keeps failed or stale selections disabled',async()=>{
+ const {dom,w}=await fixture('lesson',{body:'Valid work'});
+ const code=read('static/js/dashboard.js');w.eval(code.slice(code.indexOf('// Load study plans for the dropdown selector'),code.indexOf('// AI Content Generator Form Handler')));
+ let release;
+ w.fetch=async url=>({ok:true,status:200,json:async()=>url==='/api/study-plans/'?[{id:1,title:'First'},{id:2,title:'Second'}]:url.endsWith('/1/tree')?await new Promise(resolve=>{release=resolve;}):{phases:[{title:'Later course phase'}]}});
+ await w.loadStudyPlansForSelector();const plan=w.document.getElementById('study-plan-select');const phase=w.document.getElementById('phase-select');
+ plan.value='1';const first=plan.onchange();assert.equal(phase.disabled,true);
+ plan.value='2';await plan.onchange();assert.deepEqual([...phase.options].map(option=>option.textContent),['Later course phase']);
+ release({phases:[{title:'Stale phase'}]});await first;assert.equal(phase.options[0].textContent,'Later course phase');
+ w.fetch=async()=>({ok:false,status:503,json:async()=>({detail:'Synthetic outage'})});await plan.onchange();assert.equal(phase.disabled,true);assert.equal(phase.options.length,0);dom.window.close();
+});

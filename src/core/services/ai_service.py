@@ -1986,7 +1986,7 @@ class AIService:
 _ai_service: Optional[AIService] = None
 
 
-def init_ai_service(config: Optional[AIModelConfig] = None) -> AIService:
+def init_ai_service(config: Optional[AIModelConfig | RuntimeAIConfig] = None) -> AIService:
     """Initialize the global AI service instance."""
     global _ai_service
     from .logging import get_logger

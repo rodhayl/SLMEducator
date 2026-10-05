@@ -53,11 +53,21 @@ def test_frozen_backup_restore_reopens_accounts_content_and_progress(installatio
     payload["mode"] = "reopen-active"
     # An unrelated loopback listener must survive the launch and its cleanup.
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as occupant:
-        occupant.bind(("127.0.0.1", 8000))
+        # Occupy the next port the launcher would select. An existing app on
+        # 8000 is legitimate and must neither break this fixture nor be stopped.
+        occupied_port = 8000
+        while True:
+            try:
+                occupant.bind(("127.0.0.1", occupied_port))
+                break
+            except OSError:
+                occupied_port += 1
+                if occupied_port > 8100:
+                    raise
         occupant.listen()
         restarted = _json_output(_run(environment, "-c", APPLICATION_DRIVER, payload=payload))
-        assert occupant.getsockname() == ("127.0.0.1", 8000)
-        with socket.create_connection(("127.0.0.1", 8000), timeout=2):
+        assert occupant.getsockname() == ("127.0.0.1", occupied_port)
+        with socket.create_connection(("127.0.0.1", occupied_port), timeout=2):
             pass
     assert restarted["session_id"] == state["session_id"]
     invalid = destination.parent / "invalid.slmbackup"

@@ -1667,7 +1667,18 @@
     "lesson_independent_attempt": "Intento independiente",
     "lesson_feedback": "Comentarios",
     "lesson_delayed_review": "Repaso posterior",
-    "lesson_prerequisite_check": "Antes de empezar"
+    "lesson_prerequisite_check": "Antes de empezar",
+    "generation_phase": "Fase",
+    "generation_first_phase": "Fase 1",
+    "generation_adult_beginner": "Persona adulta principiante",
+    "generation_phase_failed": "No se pudieron cargar las fases. Vuelve a seleccionar el curso antes de generar.",
+    "generation_lesson": "Lección",
+    "generation_generated": "Generado",
+    "generation_lesson_ready": "Borrador de lección generado",
+    "generation_saved": "Borradores guardados en tu biblioteca",
+    "generation_exercises": "Ejercicios",
+    "generation_questions": "Preguntas de evaluación",
+    "generation_failed": "Error de generación"
   },
   "help_panel": {
     "tutor": "Tutor",

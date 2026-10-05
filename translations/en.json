@@ -1667,7 +1667,18 @@
     "lesson_independent_attempt": "Independent attempt",
     "lesson_feedback": "Feedback",
     "lesson_delayed_review": "Later review",
-    "lesson_prerequisite_check": "Before you start"
+    "lesson_prerequisite_check": "Before you start",
+    "generation_phase": "Phase",
+    "generation_first_phase": "Phase 1",
+    "generation_adult_beginner": "Adult beginner",
+    "generation_phase_failed": "Could not load course phases. Select the course again before generating.",
+    "generation_lesson": "Lesson",
+    "generation_generated": "Generated",
+    "generation_lesson_ready": "Lesson draft generated",
+    "generation_saved": "Saved draft items in your library",
+    "generation_exercises": "Exercises",
+    "generation_questions": "Assessment questions",
+    "generation_failed": "Generation failed"
   },
   "help_panel": {
     "tutor": "Tutor",

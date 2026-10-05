@@ -166,6 +166,8 @@ def test_keyboard_and_narrow_login_remain_usable(live_page, browser_world):
 
 def test_teacher_corrections_preserve_source_and_executable_practice(live_page, browser_world):
     page, world = live_page, browser_world
+    plan = world.api("POST", "/api/study-plans/", json={"title": "Synthetic authoring phases",
+        "phases": [{"name": "First editable phase", "content_ids": []}, {"name": "Second editable phase", "content_ids": []}]}).json()
     receipt = {"source_usage": {"source_document_id": "synthetic", "source_characters": 50,
                                "ranges": [{"start": 0, "end": 50}]}}
     lesson = world.api("POST", "/api/content/", json={"title": "Synthetic editable lesson", "content_type": "lesson",
@@ -175,6 +177,14 @@ def test_teacher_corrections_preserve_source_and_executable_practice(live_page, 
         "content_data": {"question": "Choose two", "type": "multiple_choice", "options": {"A": "One", "B": "Two"},
                          "correct_answer": "B", "hints": ["Count groups", "Count both"], "explanation": "Two groups."}}).json()
     login(page, world, "teacher_a")
+    page.locator('[data-view="create"]').click()
+    page.locator('#add-to-study-plan').check()
+    page.locator('#study-plan-select').select_option(str(plan['id']))
+    expect(page.locator('#phase-select')).to_be_enabled()
+    expect(page.locator('#phase-select option')).to_have_text(['First editable phase', 'Second editable phase'])
+    page.locator('#phase-select').select_option('1')
+    page.locator('[name="grade_level"]').select_option('Adult beginner')
+    expect(page.locator('[name="grade_level"]')).to_have_value('Adult beginner')
     page.evaluate("id => window.editContent(id)", lesson["id"])
     body = page.locator("#edit-content-body")
     assert "Explain the observation" in body.input_value()
