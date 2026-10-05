@@ -20,8 +20,9 @@ Set `SLM_DB_PATH` to this path before launching on `127.0.0.1`; never change a r
 installation's path accidentally. Matching encryption and JWT keys must be kept
 private in the installation's supported environment/key store.
 
-1. Teacher A inspects three lessons, reviews and publishes the course, then assigns
-   it to learner A. Publish the separate draft assessment after checking its answer.
+1. Teacher A inspects three lessons and checks the separate assessment's answer,
+   explicitly publishes that assessment first, then reviews/publishes the course
+   and assigns it to learner A. Linked draft assessments block course publication.
 2. Learner A studies, saves notes, refreshes/resumes, practices independently,
    submits the assessment and receives teacher-reviewed feedback.
 3. Teacher B and learner B must not read/relink that private course, grade its work
@@ -59,16 +60,26 @@ need educator agreement; a small percentage is not proof of learning efficacy.
 The tool never runs a model, pays a provider, transmits records or claims human
 acceptance. It reports `awaiting_human_evidence` for mock/incomplete results.
 
-## Still requires observation
+## Technical evidence and pending human observation
 
-- Native supported Windows build/start, password rotation, restart/shutdown and
-  restore from another working directory. Linux simulated freezing is not proof.
-- Actual browser keyboard path, focus return, non-drag controls, desktop/mobile
-  reflow/zoom, both themes/languages and assistive-technology checks toward WCAG 2.2 AA.
-- Authorized real-model/hardware evaluation: source correctness, helpfulness,
-  correction effort, latency/cancellation and provider failure. Record versions
-  and budget. The current automated contract tests use no real inference.
-- Real educator/learner task completion and data-lifecycle/institution review.
+The [Windows report](../PRODUCTION_READINESS_WINDOWS_20261005.md) records actual
+native builds, password preservation/restart, frozen restoration, Chromium
+keyboard/zoom/cache journeys and real native LM Studio inference. Ordinary DOM
+and browser fixtures remain explicitly synthetic; they do not certify AI quality.
+The strict real-model rubric retains four semantic failures (21/25 accepted).
+
+The configured synthetic pilot contains provider settings for all five accounts,
+Spanish source/course/drafts and four separate source-backed courses preserving
+those failures for review. No participant must configure or install libraries.
+The agent opens each relevant screen and changes accounts during an interactive
+pilot; this preparation does not constitute human approval or new inference for
+the imported failure examples.
+
+Still pending: educator source/definition/answer review and corrections, learner
+comprehension/attempts/progressive hints/pause/reload, subjective grading and
+feedback, final executable's native Tk X confirmation, assistive-technology and
+institution/data-lifecycle review where applicable. An operator usability check
+does not substitute for an educator or prove learning efficacy.
 
 Continue, adjust or stop from observed evidence. Do not expand to hosted schools,
 LMS integrations, additional providers or consequential automatic grading merely

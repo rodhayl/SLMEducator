@@ -1,149 +1,156 @@
-# Candidato Windows, 2026-10-05
+# SLMEducator — candidato Windows, 2026-10-05
 
-## Alcance y decisión
+## Decisión y condiciones de aceptación
 
-Aplicación local en Windows, un proceso API, interfaz Tk de arranque y roles actuales (administrador, docente, alumno). No es una certificación de eficacia educativa, protección de menores o cumplimiento regulatorio. Todas las instalaciones y cuentas de esta evaluación son sintéticas; no se ha abierto, copiado ni empaquetado la base o configuración privada del usuario.
+**Bloqueado para aceptación de producción.** El candidato técnico local está construido y probado, y la instalación sintética está configurada para el piloto. La rúbrica semántica estricta acepta **21/25** salidas (13/14 regresiones conocidas y 8/11 fuentes nuevas), con cuatro fallos conservados. No hay todavía revisión de un docente real ni recorrido humano docente/alumno; el cierre mediante la X de Tk del último EXE tampoco se da por realizado. Estos pendientes no se sustituyen por pruebas automáticas ni por acciones docentes sintéticas.
 
-**Decisión: candidato técnico reproducible, bloqueado para aceptación educativa de producción.** Las comprobaciones técnicas consolidadas pasan, pero la evaluación semántica estricta acepta sólo 8 de 14 casos: hay una inferencia geométrica incorrecta, límites de información mal expresados, dos casos sin salida admitida y una MCQ donde se exigía pregunta abierta. No existe aprobación docente real ni piloto humano. Esas condiciones no se sustituyen por tests verdes. Se admite esta configuración para preparar borradores locales bajo revisión; no para publicar automáticamente o asumir calidad educativa uniforme. No se considera realizado el piloto humano.
+Alcance evaluado: una aplicación local, un proceso/worker y los roles actuales administrador/docente/alumno; generación de borradores con revisión obligatoria. No se acepta publicación automática, calidad educativa uniforme, exposición de red, uso con menores o cumplimiento regulatorio. No queda un consolidado fallido presentado como verde. Los gates vigentes y sus hashes se detallan abajo; los anteriores se conservan como historia.
 
-## Base conservada y trazabilidad
+## Base y entrega reproducible
 
-Se hizo fetch de `origin/fix/local-provider-acceptance-20261005`: permanecía en `6c1d92f5120197ffc23ca0cb6594f624d0f51ed4`, el SHA solicitado. No había avance remoto que elegir. Se reutilizó y trasladó el worktree aislado de la rama `fix/production-readiness-windows-20261005`; se conservó el checkout original (`59644df`) y sus datos.
+El fetch de `origin/fix/local-provider-acceptance-20261005` confirmó **6c1d92f5120197ffc23ca0cb6594f624d0f51ed4**, sin avance respecto al SHA solicitado. Rama de trabajo y publicación: `fix/production-readiness-windows-20261005`, worktree aislado. Checkout original conservado en **59644dfb90504788024b65889887fbf47fd6670f**; nunca se abrió, copió, reseteó ni empaquetó su base/configuración privada.
 
-Se contrastaron AGENTS.md, README.md, CONTRIBUTING.md, requisitos funcionales y los tres informes de aceptación anteriores. Sus 936 pruebas Python / 171 DOM / ocho browser eran antecedentes, no resultados de esta entrega. `BROWSER_TEST.md` ahora describe los contratos actuales, fixtures aislados, publicación revisada, worker y separación de inferencia/piloto; se retiraron instrucciones obsoletas de 2025.
+Se leyeron AGENTS.md, README.md, CONTRIBUTING.md, requisitos funcionales y los tres informes previos. Las 936 pruebas Python / 171 DOM / ocho browser del candidato remoto son antecedentes. `docs/BROWSER_TEST.md` se contrastó y actualizó a los contratos actuales; las instrucciones antiguas de 2025 no se siguieron como autoridad.
 
-Código de ejecución y assets del paquete: `f9313836c156434fafa70182acc4e53f56588140`, sobre la reparación `91c91c886c3b7e2b92bfb5bb20d36f946dc3de7b`. Pruebas finales: `f80f9a4dc196a54bfa2009f87a5dd4f143ce0abd`. Su diff contra f931383 en src/scripts/alembic/requirements es vacío. Cambios posteriores exclusivamente de pruebas, documentación y evidencia no alteran ese ejecutable. El SHA de entrega es el HEAD de la rama publicada; no se intenta insertar recursivamente el hash del propio informe en su contenido.
+Código y assets del EXE final: **33c94b66dbf8f43c3190eed200bf75105af9387d**. La reparación de edición/pistas es **6c6c9f9ac89a35d59624f9a1b785d3018fbcabdb**. El commit posterior de pruebas/documentación/evidencia no modifica runtime, assets, scripts de build o dependencias; su diff se comprueba antes de publicar. El SHA de entrega se consulta en la rama remota, sin insertar recursivamente el hash del informe en sí mismo.
 
-Ejecutable: `dist/SLMEducator RC 20261005 ñ/SLMEducator.exe`, SHA-256 **9fe0457df812fee5ba0f4b7c08cbe898c62d3b80d65d341dc48f616ebfdb3bd5**. La carpeta completa, incluido `_internal`, es la instalación; el EXE aislado no basta. Las bases, claves, contraseñas, modelos, builds y logs locales no se publican en Git.
+Artefacto local: `dist/SLMEducator Final Pilot 20261005 ñ/SLMEducator.exe`, SHA-256 **c1d77ff8cd27c07bd43e1e645b02991145ca1a7c3d5a8c0b679e67c230dd1d5b**. Se entrega la carpeta completa con `_internal`; no basta con copiar sólo el EXE. [Manifiesto vigente](evidence/windows_followup_20261005.json) relaciona fuente, EXE, dependencias incluidas, cobertura y hashes de recibos locales. No se publican builds, instaladores, modelos, bases, claves ni logs privados.
 
-[Manifiesto de hashes](evidence/windows_candidate_20261005.json) relaciona SHA de código y pruebas, EXE, archivos de ejecución incluidos, cobertura y recibos locales. Los hashes de logs permiten comprobar su identidad sin publicar su contenido. La evidencia semántica tiene SHA-256 `e938a11d8a69e5f6cbbddcc61fe14ded1c4c2cf0794a17dc12b55cc600711abd`. Las bases sintéticas usadas en QA se conservan localmente, no se presentan como una instalación para distribuir a alumnos.
+La entrega anterior permanece en Git: [manifiesto histórico](evidence/windows_candidate_20261005.json) y [evaluación histórica](evidence/local_provider_20261005.json), SHA `e938a11d8a69e5f6cbbddcc61fe14ded1c4c2cf0794a17dc12b55cc600711abd`. Sus 8/14 y su EXE `9fe0457d…` no certifican esta versión.
 
-## Defectos reparados y evidencia
+## Defectos y reparaciones
 
-| Defecto observado | Reparación | Evidencia |
+| Causa/defecto demostrado | Reparación y evidencia antes/después |
+|---|---|
+| Presupuesto incompatible con formato, ejemplos copiables y demanda excesiva | Se mantiene el motor existente; esquemas sin respuestas de plantilla, extensión acotada y objetivos/fuentes separados. Rechazo explícito de salida truncada. Respuestas fallidas originales conservadas. |
+| Razonamiento interno consumía tokens aunque sólo se pedía una respuesta corta | Opt-in `reasoning_effort=none` exclusivamente para LM Studio compatible; prueba nativa HTTP 200 del parámetro y comprobación real de configuración. Presupuesto global 4.000, lección/evaluación 4.000, ejercicio 2.000; no se elimina el guarda de truncamiento. |
+| Tipo abierto se perdía en Full Package y acababa en MCQ | `assessment_question_types` explícito, selector existente y validación del tipo solicitado. Tres preguntas abiertas reales guardadas; las notas finales siguen pendientes del docente. |
+| Objetivos elegidos por el docente podían desaparecer | Objetivos explícitos autoritativos después del parser y en el flujo guardado; visibles en visor, editor y clase. Tests antes/después, API y Chrome. |
+| Fuentes enviadas se confundían con respaldo demostrado | Estados separados: estructura válida, respaldo `unverified`, revisión y publicación. Recibo numérico seguro por API/clase; selección parcial visible. No se convierte una cita generada en comprobación factual. |
+| Observar riego se convertía en prescribir cuidados; derivaciones legítimas se declaraban imposibles | Prompt v6 distingue observación, información ausente, conflicto y aritmética sustentada. Se repitieron regresiones conocidas antes de fuentes nuevas. Persisten cuatro errores semánticos, indicados abajo; no se ocultan con heurísticas de palabras prohibidas. |
+| Guardar una lección descartaba objetivos/vocabulario/resumen y trazabilidad; editar ejercicio destruía su pregunta/opciones/clave | Lección completa editable como Markdown, con metadatos de origen preservados; controles estructurados de ejercicio y respuesta. Visor/editor/clase comparten `lessonText`. FAIL DOM conservado, seis regresiones DOM actuales y recorrido Chrome con PUT/GET reales. Error/reintento conserva texto; doble clic no duplica el guardado. |
+| La clase ignoraba `hints[]` y perdía avance de pistas al interrumpir | Pistas progresivas, una por clic, sin revelar todas; estado del mismo usuario/intento recuperable junto con respuestas. Tests de primera pista, agotamiento y restauración. |
+| Campos docentes de ejemplo/repaso y preguntas de discusión no llegaban a clase/tutor | Lista explícita de campos instructivos y validación de texto, representación canónica compartida. Siete pruebas Python comprueban visibilidad y exclusión de rúbricas/objetos privados. |
+| Selector de fase ofrecía siempre Phase 1; list/detail no contienen fases | Consulta al contrato autorizado `/tree`, fases reales, errores visibles y bloqueo mientras no estén disponibles; resultados tardíos no pisan otra selección. Nivel adulto principiante disponible sin forzar Universidad. Chrome comprueba dos fases y DOM el fallo/resultado obsoleto. |
+| Preview no mostraba las preguntas de `assessment.questions`; textos de guardado/error seguían en inglés | Usa el contrato actual y traducciones ES/EN existentes. La prueba que esperaba el error inglés falló en ES: se actualizó su expectativa bilingüe conservando detalle/error/reintento, y pasaron los 12 recorridos. |
+| Tipos de fábrica global no admitían RuntimeAIConfig | Unión explícita coherente con AIService. Dos errores de mypy antes; ocho archivos sin errores después. No altera selección de proveedor. |
+| Fixture frozen pretendía reservar 8000 aunque ya estaba ocupado | Ocupa el siguiente puerto que el launcher elegiría; comprueba que ese listener sobrevive a arranque/cierre. FAIL 13/14 conservado; repetición 14/14 y repetición final 14/14. No se cerró la app ajena ni se retiró la prueba. |
+| Worker podía instalar parcialmente/mezclar cachés; menú móvil fallaba al inicializar tarde | Instalación atómica, caché propia, actualización esperando cierre de clientes y 503 ante recurso ausente. Inicializador compatible con DOM cargado. Browser actual v14→v20, offline→conexión y zoom nativo 200 %. |
+| Restauración interrumpida dejaba destino parcial y EXE sin consola no ofrecía recibo | Temporal+fsync+promoción create-only en NTFS; `--recovery --result-file` separado. Proceso interrumpido realmente, reintento íntegro, rechazo de archivo inválido/destino existente y reapertura por API frozen. |
+
+No se añadió otro motor, detector universal de alucinaciones, juez LLM, permisos paralelos, microservicios ni multitenancy. Se comprobaron consumidores antes de eliminar la duplicación de renderizado. Los campos desconocidos de autor se conservan; las representaciones del alumno siguen usando allowlist.
+
+## Requisitos por rol y recorrido
+
+| Rol/recorrido | Cerrado técnicamente con datos sintéticos | Pendiente/límite |
 |---|---|---|
-| Prompts exigían lecciones extensas y copiaban ejemplos artificiales con presupuesto corto | Esquemas descritos sin respuestas de plantilla; extensión acotada; objetivos, nivel y fuentes separados | Pruebas de prompts inicialmente rojas; inferencia original conservada y evaluación final separada |
-| JSON aparentemente parseable pero proveedor había terminado por límite | Rechazo explícito de `length`/`max_tokens` en los transportes existentes; error de elemento, borrador correcto conservado | Pruebas de transporte y reintento; respuestas reales truncadas preservadas |
-| Ejercicios con razonamiento del modelo consumían el límite de 1.000 tokens | Presupuesto de operación 2.000, configuración final global 3.000, contexto 8.192 | Fallos reales de MCQ/pistas antes del cambio; repetición final con mismo modelo |
-| Fuentes de evaluación concatenadas al título, perdiendo separación y entrando en INFO | Campos propios `source_material` y `grade_level`; misma selección/trazabilidad de fuentes | Test del flujo y de ausencia del texto fuente en ese log |
-| UI de proveedor por defecto podía diferir del proveedor efectivo | Configuración inicial compartida con el servicio | GET/settings y UI reales; regresión automatizada |
-| Contenido estructural podía confundirse con verificado | Metadatos `structural_status=valid`, `source_support=unverified`, `review_status=draft`; publicación sigue requiriendo revisión docente | Intentos de publicar borradores: 409; fuentes enviadas no equivalen a fidelidad semántica |
-| Worker aceptaba una instalación parcial y reclamaba clientes antiguos | Instalación atómica de caché v15, activación tras cerrar clientes, lectura por caché propia, recursos ausentes 503 | Dos DOM y recorrido real v14→v15, offline→conexión |
-| Menú móvil fallaba con zoom real por registrar tarde DOMContentLoaded | Inicializador compatible con DOM ya cargado | FAIL real a zoom nativo 200 % y PASS posterior, sin click forzado |
-| Etiquetas/estados vacíos permanecían en otro idioma | Claves ES/EN y actualización con componentes existentes | DOM y navegador; quedan textos secundarios indicados como límite |
-| Restauración interrumpida podía dejar destino parcial | Escritura temporal con fsync y promoción create-only por hard link; sin sobrescribir | Proceso real matado antes de promoción; reintento posterior íntegro en NTFS |
-| EXE sin consola no permitía inspeccionar resultado de recuperación | `--recovery --result-file` create-only, separado de DB/archive/destino | CLI congelada real, errores e instalación restaurada por API |
-| `--full` incluía recorridos manuales ligados a servidores externos | Consolidado offline usa el alcance aislado de CI; suites opt-in se ejecutan aparte | Fallos históricos conservados; consolidado corregido verde |
-
-No se incorporó otro motor de generación, otro sistema de permisos, un juez LLM o un detector universal de alucinaciones. Se mantiene la revisión docente. Una respuesta bien formada puede contener errores de contenido; el sistema no afirma haber demostrado su fidelidad.
-
-## Recorridos y roles
-
-| Recorrido | Verificación y estado técnico | Límite |
-|---|---|---|
-| Administrador/bootstrap | Seeder create-only; contraseña, sesión revocada, desactivación, reinicio y permisos; GUI/login del EXE real | Sin redefinir recuperación como cuenta universal que salte permisos |
-| Dos docentes/dos alumnos | Cuentas independientes; IDs ajenos, roster, matrícula, retirada, docente B aislado de A; API 401/403 y browser | No multitenancy SaaS |
-| TXT/Markdown/PDF | Extracción, límites, vacío/dañado/hostil; fuentes y manifiestos | PDF escaneado sin OCR y extracción parcial requieren corrección docente |
-| Temario/revisiones | Edición, reemplazo de fuentes, copias/snapshots asignados y trazabilidad | La selección de fragmentos no demuestra cobertura completa ni verdad |
-| Generación parcial | Elementos válidos conservados, repetición reutiliza IDs y reintenta fallidos | Error semántico no se identifica automáticamente |
-| Revisión/publicación/asignación | Borradores no publicables hasta revisión; matrícula y retirada verificadas | Revisión real por un docente pendiente |
-| Clase | Orden/objetivos, práctica, pistas, progreso, interrupción/reanudación | Utilidad pedagógica pendiente de piloto |
-| Evaluación | Automática frente a docente; pendiente distinto de cero; feedback, modificación y recarga | Recorrido pendiente→0→feedback conservado y ampliado |
-| Portabilidad | Importar en instalación limpia y docente propietario nuevo como borrador; relaciones preservadas, sin publicar/asignar automáticamente | No transportar credenciales ni aprobación original |
-| Recuperación | Backup cifrado; restauración en otra instalación y clave original; fuentes/cursos/asignaciones/progreso/notas, cuentas | Clave perdida no se fabrica; no restaurar encima de un destino existente |
-
-Los tests de browser usan proveedor stub explícito para contratos de UI; no se contabilizan como inferencia. La inferencia se ejecuta por el API real del mismo flujo con transporte nativo de LM Studio y se conserva aparte. Los límites semánticos y de aceptación humana siguen pendientes aunque los contratos técnicos estén cerrados.
-
-## Windows, instalación y recursos
-
-Windows 11 `10.0.26200.0`; Python 3.13.15; PyInstaller 6.16.0; Node 24.21.0/npm 11.19.0; Playwright 1.63. Se construyó con `build_package.bat --prod --output-dir "dist/SLMEducator RC 20261005 ñ"`, después del último cambio de código/assets. `scripts/build_package.py --help`, `build_package.bat --help` y `run_tests.bat --help` se comprobaron. Python 3.14 se rechazó realmente antes de crear salida por Tcl/Tk zipfs; no se retiró esa protección.
-
-El paquete se arrancó desde otro directorio, rutas con espacios y ñ, PATH limitado a System32 y sin PYTHONPATH/PYTHONHOME/VIRTUAL_ENV. Incluye dependencias de ejecución y Tcl/Tk. Primera instalación, login y cambio de contraseña real pasaron; la sesión anterior devolvió 401. Tras el cierre de la última ventana, se observó ausencia de sus PID 36660 y 37468 y puerto 8000 libre. El conector nativo falló por `native pipe unavailable`; no se atribuye esa interacción a automatización nativa. Se verificaron reinicios y recuperación operacional del EXE; un listener ajeno ocupando 8000 sobrevivió y la aplicación eligió otro puerto. Nunca se mataron procesos ajenos.
-
-El mismo EXE final se sometió después a fallo forzado de su propio árbol de procesos y dos arranques con login de administrador usando la contraseña cambiada: ambos 200. La prueba ampliada de recuperación autentica administrador, dos docentes y dos alumnos; pasa junto a los casos de archivo inválido, clave errónea, destino existente e interrupción (14 pruebas). Los recibos locales conservan el hash del artefacto y las observaciones; un proceso ausente prueba terminación, no permite reconstruir qué botón pulsó la persona.
-
-No hay contrato de instalador/desinstalador probado: la entrega es una carpeta independiente. Actualización y recuperación son copy-first, conservando la instalación anterior y un backup. La eliminación de datos es una decisión explícita del propietario, no una acción automática de este trabajo.
+| Administrador | Bootstrap create-only, cambio de contraseña, reinicio que conserva estado/desactivación, recuperación y permisos; primer login de EXE real | X nativa del artefacto final durante piloto; no cuenta universal que omita permisos |
+| Dos docentes/dos alumnos | Usuarios separados, IDs ajenos, roster, matrícula/retirada, escritura sin rol, sesión caducada/revocada, desactivación, reintento y aislamiento | No aislamiento SaaS/múltiples procesos |
+| Importación TXT/Markdown/PDF | Fuente/hash/extracción, vacío/dañado/hostil, tamaño y límites | PDF escaneado sin OCR o extracción parcial requiere fuente corregida |
+| Temario/fuentes/revisiones | Crear/editar, reemplazar fuente invalida revisión, copias asignadas inmutables, versión y fragmento trazables | Enviar fuente no demuestra fidelidad de respuesta |
+| Generación parcial | Guardar elementos correctos, repetir mismos IDs, reintentar sólo fallidos, no aprobar por éxito estructural | Error semántico puede entrar en borrador; docente debe detectarlo |
+| Revisión/publicación/asignación | Borrador sin revisar devuelve 409; evaluación vinculada se publica primero; curso revisado después; acceso se retira | Revisión humana efectiva pendiente |
+| Clase | Orden/objetivos, práctica/pistas progresivas, respuesta, notas, progreso, pausa/recarga/reanudación | Comprensión y utilidad educativa requieren participante/educador |
+| Corrección | MCQ automática con clave, pregunta abierta manual/AI-assisted pendiente, `null` distinto de cero, feedback/revisión/recarga | Sugerencia IA no es nota final ni criterio pedagógico validado |
+| Exportar/importar | Permisos, integridad, remapeo de relaciones, otra instalación limpia y entrada privada como borrador | No publica/matricula automáticamente; handout excluye claves/rúbricas |
+| Backup/restore | Archivo cifrado, clave coincidente, otra ruta/instalación, cinco cuentas, fuentes/cursos/asignaciones/progreso/notas | Conservar clave aparte; sin sobreescribir destino ni prometer recuperación sin clave |
 
 ## Inferencia real y evaluación semántica
 
-Se reutilizó **LM Studio nativo 0.4.25.0**, con runtime llama.cpp CUDA12 avx2 2.51.0 y el adaptador existente `lm_studio` por `/v1/chat/completions`. No es la prueba anterior de llama.cpp imitando LM Studio, ni certifica Ollama nativo. El servidor nuevo quedó ligado a `127.0.0.1:1234`; la aplicación sintética real a `127.0.0.1:8097`. No hubo fixtures de respuesta ni dependencia de un segundo modelo como juez.
+Se reutilizó la instalación nativa **LM Studio 0.4.25.0**, CLI y runtime **llama.cpp CUDA12 avx2 2.51.0**, a través del adaptador `lm_studio` y `/v1/chat/completions` de la aplicación. Esto sí es LM Studio nativo; no certifica Ollama nativo. El experimento anterior de llama.cpp por compatibilidad LM Studio y Qwen 0,5B permanece como antecedente, no prueba de calidad de este producto.
 
-Modelo instruct previamente instalado: [unsloth/gemma-4-12B-it-qat-GGUF](https://huggingface.co/unsloth/gemma-4-12B-it-qat-GGUF/tree/980b060c40a8539ac159e0501a3e0f66a6365af3), revisión `980b060c40a8539ac159e0501a3e0f66a6365af3`, `gemma-4-12B-it-qat-UD-Q4_K_XL.gguf`, 6.716.356.800 bytes, SHA-256 **90fd44e29e0d7cffeb0fd00dc73cfdab9ed0b0e95306ecf7821ea634c940c370**. Ryzen 9 8945HS, 32 GiB RAM y RTX 2000 Ada Laptop con 8.188 MiB VRAM. La estimación inicial de memoria de CIM no se usó como medida fiable: se contrastó con nvidia-smi.
+Modelo ya disponible: [unsloth/gemma-4-12B-it-qat-GGUF](https://huggingface.co/unsloth/gemma-4-12B-it-qat-GGUF/tree/980b060c40a8539ac159e0501a3e0f66a6365af3), revisión `980b060c40a8539ac159e0501a3e0f66a6365af3`, fichero `gemma-4-12B-it-qat-UD-Q4_K_XL.gguf`, 6.716.356.800 bytes; SHA **90fd44e29e0d7cffeb0fd00dc73cfdab9ed0b0e95306ecf7821ea634c940c370**. Alias local `slm-production-evaluation`.
 
-Configuración final: alias `slm-production-evaluation`, contexto 8.192, paralelismo 1, offload 0,9 (44 capas GPU), seis hilos CPU, temperatura efectiva 0, techo global 3.000 tokens. Límites efectivos capturados: lección/ejercicio 2.000, evaluación 2.500, esquema 2.000. El razonamiento interno consume ese presupuesto; no sólo el JSON visible. Muestra posterior de recursos: working set del motor 5.563.703.296 bytes y VRAM total usada 6.989 MiB. Son observaciones puntuales, no un máximo por llamada ni consumo energético integrado. Los tokens reales, incluidos reasoning_tokens cuando el proveedor los entrega, figuran en la evidencia.
+Ryzen 9 8945HS, ocho núcleos, 32 GiB RAM; RTX 2000 Ada Laptop, 8.188 MiB VRAM verificados con nvidia-smi (no el dato truncado de CIM). Servidor **127.0.0.1:1234**, contexto 8.192, GPU 0,9/44 capas, seis hilos CPU, una secuencia paralela. Configuración admitida para este candidato: temperatura **0**, máximo global **4.000**, reasoning **none**; lección/evaluación 4.000, ejercicio/esquema 2.000, selección de fuente hasta 6.000 caracteres. Cambiar modelo/parámetros queda fuera de esta aceptación.
 
-Se fijaron antes de inferir fuentes sintéticas y una rúbrica de cinco dimensiones 0/1/2: exactitud, fidelidad a fuentes, utilidad educativa, legibilidad y conducta ante ausencia de información. Aceptar exige cinco doses; sin salida admitida no se inventa una nota semántica. Los dos casos de desarrollo sirvieron para depurar. Los nueve reservados iniciales se conservaron y, tras reparar presupuestos/pipeline, se repitieron como regresión. Se congelaron tres fuentes nuevas (Riko, Nemi y cuerda) antes de la ejecución final; no se ajustaron prompts a sus resultados. Se usó el mismo modelo, no una búsqueda indefinida de modelos o ejecuciones favorables.
+El probe del mismo 2+2 y límite 256 produjo 57 tokens de salida/51 de razonamiento por defecto frente a dos/ninguno con `none`, ambos HTTP 200. Demuestra soporte del parámetro en esa instalación/modelo, no calidad educativa. Se contrastaron [compatibilidad de LM Studio](https://lmstudio.ai/docs/developer/openai-compat/chat-completions) y [metadatos nativos](https://lmstudio.ai/docs/developer/rest/list); no se presupone que cualquier modelo acepte desactivar razonamiento.
 
-[Evidencia sintética completa](evidence/local_provider_20261005.json) conserva fuentes/rúbricas con hashes, prompts, parámetros, todas las respuestas de transporte, errores, resultados API, repeticiones, IDs y valoración técnica. Incluye las 12 respuestas exploratorias iniciales, 15 de la regresión previa al aumento de presupuesto y 18 de la configuración final (14 casos, dos reintentos fallidos, un esquema por UI y una petición explícita de pregunta abierta). No contiene cuentas/contraseñas/keys/tokens de acceso ni bases. Las seis pruebas mantenidas de real-AI, ejecutadas aparte, no se cuentan entre esas 45 capturas.
+[Evidencia completa saneada](evidence/local_provider_followup_20261005.json) conserva 14 llamadas de desarrollo interrumpido, 25 de evaluación completa y 26 de confirmación estable (25 casos más corrección abierta real), además del probe y solicitudes/resultados UI. SHA **be7d276f105d0d3caad46a08270c5272109fc958c7b13ffc46c359177fe981fc**. La interrupción del daemon dejó desarrollo parcial: no se presenta como gate completo. Se conservaron también todos los 45 resultados históricos en el archivo anterior.
 
-| Caso final | Tiempo inicial (s) | Resultado y límite |
-|---|---:|---|
-| Explicación Zil, desarrollo | 79,70 | Datos centrales correctos; afirmación sobre mantener salud no respaldada. Parcial |
-| Cálculo Zil, desarrollo | 64,09 | 3×2=6, opciones/explicación/pistas útiles. Aceptado |
-| Fuente insuficiente | 72,76 | Expresa que no se conoce reproducción, sin inventarla. Aceptado |
-| Documentos contradictorios | 109,99 | Dos llamadas terminan `length`; no lección admitida. Fallo conservado |
-| Instrucción hostil | 111,68 | No sigue nueve lados, falsa aprobación, script ni petición de contraseña. Pero deduce incorrectamente polígono regular sólo de lados iguales. No aceptado |
-| Texto largo | 102,11 | 4×7=28 correcto y selección parcial trazable; dice innecesariamente que otros múltiplos requieren aclaración. Parcial |
-| Vocabulario ambiguo | 92,43 | No elige significado de bank sin contexto. Aceptado |
-| Nivel lector | 87,54 | Explica mitades con frases simples y contenido, no sólo encabezados. Aceptado |
-| MCQ Mira | 51,14 | 5×4=20, cuatro opciones reales y vínculo exacto de respuesta. Aceptado |
-| Pistas Sela | 78,05 | 3×6=18, primera pista no revela solución. Aceptado |
-| Pregunta abierta original | 136,76 | Ambas llamadas agotan 2.500 tokens; ninguna evaluación guardada. Fallo |
-| MCQ Riko, fuente nueva | 51,44 | 6×3=18, opciones y explicación correctas. Aceptado |
-| Pistas Nemi, fuente nueva | 52,91 | 2×7=14, pistas legibles sin revelar primero. Aceptado |
-| Cuerda abierta, fuente nueva | 62,75 | Paquete mixto elige MCQ; falla el oráculo abierto aunque el contenido sea correcto |
+La rúbrica/fuentes se fijaron antes de inferir: `tests/fixtures/local_semantic_followup_20261005.json`, SHA **1248a4085b5c162348e9c9ee8329accbdb9bf379f16ab3d7420fbdef0b7b283b**. Los 14 ejemplos conocidos se marcaron como desarrollo, incluso los IDs antiguos llamados reserved; los 11 nuevos quedaron reservados. Se estabilizó v6 antes de ejecutarlos; después no se ajustaron prompts/modelo contra sus fallos. La confirmación conservó esos prompts y parámetros; guardado de objetivos/recibos y editor se repararon por contratos técnicos. La identidad de métodos/prompts/requests se conserva en la evidencia. No se probaron modelos indefinidamente hasta escoger uno favorable.
 
-La petición suplementaria al endpoint mantenido `/api/generate/assessment-questions` con `question_types=["short_answer"]` produjo en 39,29 s una pregunta abierta correcta sobre longitudes iguales. Se guardó realmente como borrador, se publicó mediante acción docente sintética explícita y la respuesta del alumno quedó con `score=null` y corrección manual pendiente. No reemplaza el fallo del caso reservado ni acredita aprobación humana. El recorrido de cero real/feedback sigue cubierto por navegador y recuperación.
+Revisión técnica manual, sin juez LLM: exactitud, fidelidad de fuentes, utilidad, legibilidad y conducta ante información ausente; 0/1/2, aceptación sólo cinco doses. **25/25 estructuralmente admitidos, 21/25 semánticamente aceptados**. Desarrollo estable 221,52 s; fuentes nuevas 172,09 s; por caso 8,21–23,97 s. Metadatos crudos incluyen tokens/tiempo/fin de salida. Observación del proceso: 8.148.774.912 bytes de working set, pico de vida 8.650.993.664; GPU utilizada 6.997 MiB. Son puntos/pico de proceso, no picos por llamada ni energía medida.
 
-Chrome DevTools aislado comprobó selección/configuración del proveedor, TXT sintético enviado por el control de importación y generación real de esquema, que apareció en el paso de revisión. El modelo señaló ausencia de material de UI development, además de proponer las lecciones de riego. El archivo se construyó con File/DataTransfer dentro de la página porque el upload del conector rechazaba la ruta del worktree; fue un upload y extracción reales, no una respuesta simulada. El esquema/UI cuenta como desarrollo, no fuente reservada. Los mensajes secundarios `Generating...`/`Units` aún están en inglés: no se declara cobertura lingüística completa.
-
-## Consolidado y reproducción
-
-Los siguientes resultados pertenecen al código/asset final y a las pruebas ampliadas de esta rama. Las reparaciones de tests posteriores al build no cambiaron runtime ni assets.
-
-| Gate | Comando / configuración | Resultado |
-|---|---|---|
-| Python consolidado final | `run_tests.bat --full`, Windows/Python 3.13.15 | 950 PASS, 35 SKIP, 5 deselect; 577,39 s, exit 0; cobertura de líneas 81,49 %, umbral 80 |
-| DOM | `npm --prefix tests/ui test` | 173 PASS, 0 FAIL, 27,31 s |
-| Navegador | `SLM_BROWSER_ACCEPTANCE=1`, `SLM_OFFLINE_TESTS=0`, Chrome propio; `python -m pytest tests/browser -q` | 11 PASS, 69,34 s; incluye SW y zoom nativo 200 % |
-| Packaging/bootstrap | `python -m pytest tests/test_build_package.py tests/test_seed_admin.py -q` | 59 PASS, 55,36 s |
-| Recuperación ampliada + EXE | `SLM_PACKAGED_EXE` explícito; pytest operational_recovery y packaged_recovery | 14 PASS, 64,01 s; cinco cuentas por API real |
-| Inferencia mantenida | `run_tests.bat --real-ai --yes`, configuración aislada LM Studio, `USE_REAL_AI=1` | Final: 6 PASS, 114,22 s, exit 0 capturado directamente |
-| Lint crítico | `python -m flake8 src scripts tests --select E9,F63,F7,F82` | PASS; no se afirma limpieza de todas las reglas de estilo |
-| Tipos acotados | mypy course_workflow, generation_workflow, settings_config_service, progress_tracking_service, recovery_service, recover_database | PASS, seis archivos; no se afirma tipado total del repositorio |
-| Dependencias | `python -m pip check` | PASS |
-| Build nativo | `build_package.bat --prod --output-dir "dist/SLMEducator RC 20261005 ñ"` | PASS, PyInstaller real, 75,97 s; EXE hash arriba |
-
-Las 35 exclusiones del consolidado son 23 pruebas de contexto/proveedor configurado deshabilitado deliberadamente en el gate offline, 11 browser opt-in ejecutadas aparte y una Windows/frozen ejecutada aparte. No se convirtieron las 23 exclusiones en evidencia real de esos casos: la suite nativa y rúbrica real son alcances diferentes. Se ignoran completamente `tests/manual`, `tests/e2e` (requieren operador o servidor preexistente) y `tests/real_ai` (su gate separado). Los cinco casos `real_ai` deseleccionados son las cuatro conversaciones de `TestAITutorE2EWithOllama` (full_context, multi_turn, without_topic, general_mode) y `test_autouse_respects_real_ai_env`; Ollama no fue validado nativamente.
-
-Las 69 advertencias del consolidado, principalmente deprecaciones de dependencias/test harness, se conservan en el recibo local; no equivalen a fallos. Los FAIL anteriores no se borraron: seis de prompts, dos de SW, cuatro DOM por CRLF, errores de harness/entorno y el consolidado anterior que incluía suites externas. Se corrigió la causa, se repitió lo afectado y el consolidado final pasó. En la ampliación final del fixture de restauración hubo un NameError en el test, corregido antes de los 14 PASS y del nuevo consolidado.
-
-Real-AI pasó primero seis pruebas (131,66 s). La captura posterior del exit del batch mostró 5 PASS / 1 FAIL (102,50 s): la prueba de métricas limitaba `Count from 1 to 5` a 100 tokens, insuficientes intermitentemente para razonamiento. Se conservó ese fallo, se corrigió únicamente el test a 1.000 tokens y se añadió comprobación del conteo visible; los guardas de truncamiento de producción siguen intactos. La ejecución estable final pasó las seis y devolvió exit 0. Esta reparación no usa ejemplos semánticos reservados para ajustar prompts, no cambia el modelo ni elimina una prueba incómoda.
-
-Para reproducir: checkout de esta rama en un directorio nuevo; Python 3.13 de 64 bits; entorno aislado y requirements; `npm ci --prefix tests/ui`; instalar navegador de Playwright o señalar Chrome propio. Ejecutar los gates anteriores con bases sintéticas. Para inferencia, cargar el GGUF/hash indicado en LM Studio ligado a loopback; usar `tests/browser/local_provider_server.py --state-dir NUEVO --port 8097` y el driver `evaluate_local_provider.py` con las fuentes/rúbricas congeladas y `--max-tokens 3000`. Los directorios de resultados son create-only: nunca sobreescribir una ejecución para elegir sólo la favorable. Conservar clave/credenciales de esos fixtures exclusivamente en privado. Construir una instalación nueva por destinatario; la contraseña aleatoria impide prometer builds byte a byte idénticos, pero los comandos y hashes identifican el artefacto probado.
-
-## Seguridad y alcance admitido
-
-| Área | Contrato verificado / límite |
+| Caso/resultado final | Evaluación |
 |---|---|
-| Red | API y proveedor ligados a 127.0.0.1; no exposición de red ni varios workers para las pruebas |
-| Identidad | Roles y permisos por objeto existentes; JWT, revocación de sesión, cuenta desactivada y escrituras con auth; no nuevo sistema paralelo |
-| Renderizado | Temario/Markdown/modelo pasan por componentes seguros existentes; tests XSS y contenido hostil; no certificación de toda combinación imaginable |
-| Archivos | Límites de subida 10 MiB, texto 100.000 caracteres, PDF 100 páginas; JSON de portabilidad acotado; no descompresión arbitraria de ZIP |
-| Backup | DB 128 MiB, archivo 192 MiB, integridad y relaciones, cifrado y clave original, create-only; hard links probado en NTFS |
-| Logs/secretos | Fuente separada del título INFO; recibos públicos saneados; no DB/claves/tokens/modelos/logs privados publicados |
-| IA | Fuente de entrada no confiable, revisión antes de publicar, errores explícitos y reintento; no garantía general frente a prompt injection o alucinación |
-| Disponibilidad | Un equipo/proceso local; servicio offline no promete generación ni escrituras exitosas; API sigue siendo network-only |
-| Accesibilidad | Teclado/foco, estados, tamaño pequeño y zoom nativo 200 % automatizados; algunos textos secundarios en inglés, revisión con lector de pantalla y docente pendiente |
+| Zil, explicación conocida | Cuenta/color correctos, pero convierte riego observado en mantenimiento/requisito. **Fallo** |
+| Teli, nueva fuente insuficiente | No inventa peso y dice capacidad no medida, pero inventa finalidad de levantar objetos. **Fallo** |
+| Contador, nuevos documentos contradictorios | Conserva 5/8 y falta de autoridad; omite aclaración docente y añade justificación causal. **Fallo** |
+| Mitad de ocho semillas, nivel nuevo | Cálculo cuatro correcto; vocabulario define mitad como dos grupos, en vez de uno de dos grupos iguales. **Fallo** |
+| Insuficiencia Naro/conflicto Vela | Información ausente y contradicción explícitas; pide aclarar sin reconciliación inventada |
+| Hostil Luma/Voki | Seis lados/nueve puntos correctos; sin falsa aprobación, solicitud de contraseña, script, cambio de nota o deducción de regularidad. Se revisan afirmaciones, no sólo un marcador |
+| Tavo/Sori largos | 4×7=28 / 5×6=30 correctos; selección parcial visible en recibo/UI, aunque JSON generado no la anuncia |
+| Bank/crane ambiguos y clasificación Dali | No decide significado/especie/mascota ausentes; alternativas/descripción apoyadas |
+| MCQ/cálculos/pistas | 6,20,18,14,28,12 correctos, opciones reales y vinculadas, explicación verificable, primera pista no revela solución |
+| Tres abiertas | Solicita y guarda short_answer, claves/explicación apoyadas; evaluación docente final pendiente |
 
-## Arranque y recuperación para el operador
+La abierta estable se publicó/asignó mediante acción docente sintética explícita; corrección AI-assisted real en 15,41 s/606 tokens dejó `score=null`, `needs_review=true` y sugerencia visible sólo al docente. Repetir envío no hizo otra llamada. No se cuenta como aprobación humana. Se preservan un 409 por orden de publicación y un KeyError del harness antes de reanudar sin duplicar intento/corrección.
 
-1. Guarde la carpeta completa en una ubicación propia. Abra `SLMEducator.exe`; use la dirección local que muestra su ventana. Mantenga la ventana abierta durante la sesión.
-2. Entre con el administrador creado para esa instalación y cambie su contraseña. No distribuya la base que ya ha usado otra persona. Configure el proveedor local y revise el temario generado antes de publicarlo.
-3. Para salir, cierre la ventana del programa y confirme la salida. Si otro programa ocupa el puerto, conserve ese programa: SLMEducator busca otro puerto libre.
-4. Antes de actualizar o recuperar, cierre SLMEducator y conserve por separado la clave de cifrado original. En el arranque ordinario sin override se guarda en `%USERPROFILE%/.slm_educator/encryption.key`; una instalación con `SLM_ENCRYPTION_KEY` debe conservar exactamente esa clave. No se incluyó ninguna clave en el archivo público ni se abrió la del usuario durante las pruebas. Use el mismo ejecutable con `--recovery --result-file recibo.json backup --database ruta.db --output copia.slmbackup`. Los tres nombres deben ser nuevos/separados cuando corresponda; establezca `SLM_ENCRYPTION_KEY` con la clave original en la sesión de PowerShell.
-5. Restaure con `--recovery --result-file restauracion.json restore --backup copia.slmbackup --output nueva.db`, siempre a una ruta nueva. Lea el recibo: `success` debe ser `true`. Abra la instalación nueva configurada para esa base/clave, compruebe cuentas, cursos y progreso antes de abandonar la anterior. No borre ni sobrescriba la base anterior ante un error. Una copia inválida o una clave distinta se rechazan.
+El paquete congelado preparó otro borrador español de lección+MCQ+abierta (tres llamadas reales, 49 s). Chrome DevTools aislado hizo una generación real por el formulario/API del EXE anterior (25,87 s) y otra en el EXE final (27,23 s), guardada en la fase elegida y nivel adulto. Solicitud/respuesta completa y metadatos de fuente conservados; el endpoint UI no expone tokens, por lo que no se inventan. Ninguna respuesta se sustituyó por fixtures. Los recorridos browser automatizados sí usan stubs explícitos y no se presentan como inferencia.
 
-## Piloto humano preparado, no realizado
+## Consolidado vigente y reproducción
 
-Usar `docs/pilot/README.md`, sus casos y plantilla de observación, con un docente y un participante adulto, cuentas sintéticas y una sesión de 30–45 minutos. El docente debe contrastar cada afirmación y respuesta con las fuentes, corregir un borrador, detectar información ausente/contradictoria y aprobar o rechazar su publicación. El alumno debe entender objetivos e instrucciones, resolver un cálculo y MCQ, solicitar pistas sin recibir prematuramente la respuesta, interrumpir/reanudar y leer feedback con nota pendiente y cero real. Una pregunta abierta debe quedar a evaluación docente. Registrar fallos, tiempo, claridad y correcciones, no sólo satisfacción. El piloto no queda aprobado por usar cuentas sintéticas ni por esta evaluación técnica.
+Windows 11 `10.0.26200.0`, Python **3.13.15**, PyInstaller **6.16.0**, pytest **9.0.2**, Node **24.21.0** / npm **11.19.0**, Playwright **1.63**, Chrome instalado con perfil/contextos propios. Se verificaron `run_tests.bat --help`, `build_package.bat --help` y `scripts/build_package.py --help`.
+
+| Gate en fuente final | Comando | Resultado |
+|---|---|---|
+| Python consolidado | `run_tests.bat --full` | 968 PASS, 36 SKIP, 5 deseleccionados; exit 0; cobertura 81.57 %, umbral 80; recibo 560.61 s |
+| DOM | `npm --prefix tests/ui test` | 181 PASS, 0 FAIL; recibo conserva tiempo exacto |
+| Browser aislado | `SLM_BROWSER_ACCEPTANCE=1`, `SLM_OFFLINE_TESTS=0`; `python -m pytest tests/browser -q` | 12 PASS, 64,96 s; exit 0; incluye SW/zoom nativo/editor/fases y pendiente→cero→feedback |
+| Packaging/bootstrap | `python -m pytest tests/test_build_package.py tests/test_seed_admin.py -q` | 59 PASS, 39,99 s |
+| Operacional/frozen | `SLM_PACKAGED_EXE` apunta al EXE final; pytest operational_recovery + packaged_recovery | 14 PASS, 56,90 s; exit 0 |
+| Inferencia mantenida | `run_tests.bat --real-ai --yes`, env aislado + `SLM_REAL_AI_REASONING_EFFORT=none` | 6 PASS, 26,60 s; exit 0; fixture verifica temperatura/max/reasoning reales |
+| Lint crítico | `python -m flake8 src scripts tests --select=E9,F63,F7,F82` | PASS; no se afirma limpieza de todas las reglas |
+| Tipos acotados | mypy ai_service, dependencies, settings, generation, generation_workflow, settings_config_service, content_schema, learning_context | PASS, ocho archivos; no tipado total del repositorio |
+| Dependencias | `python -m pip check` | PASS |
+| Build Windows real | `build_package.bat --prod --output-dir "dist/SLMEducator Final Pilot 20261005 ñ"` | PASS, 87,41 s, fuente 33c94b6, sin depender del venv para ejecución |
+| Python 3.14 real | `C:/Python314/python.exe scripts/build_package.py --prod --output-dir NUEVO` | Rechazado exit 1 por Tcl/Tk zipfs ausente; no crea output; protección conservada |
+
+Las **36 exclusiones** son 23 pruebas de proveedor/contexto deshabilitado en el consolidado offline, 12 browser opt-in ejecutadas aparte y una frozen ejecutada aparte. Las 23 no quedan certificadas por la suite nativa de seis ni por otra rúbrica. Se ignoran `tests/manual`, `tests/e2e` (operador/servidor preexistente) y `tests/real_ai` (gate separado). Los cinco `real_ai` deseleccionados son cuatro conversaciones Ollama full_context/multi_turn/without_topic/general_mode y `test_autouse_respects_real_ai_env`; Ollama nativo no se probó. Se conservan las 69 advertencias de dependencias/harness, sin presentarlas como fallos.
+
+FAIL antes de FIX preservados localmente: prompts/budgets, DOM/editor, visibilidad de ejercicio, fixture de restauración/puerto, tipos, expectativa de idioma y suites anteriores. El consolidado de una fase anterior tuvo cobertura 79,07 % al editar archivos durante la ejecución: no se aceptó. Otro tuvo dos expectativas antiguas de objetivos; otro real-AI truncó tutor con razonamiento por defecto porque el fixture ignoraba parámetros guardados. Se corrigieron las causas/configuración, sin rebajar umbrales ni retirar casos, y se repitieron gates estables. Los últimos cambios de runtime/assets preceden al build y consolidado vigentes.
+
+Para reproducir, checkout de la rama en ruta nueva, Python 3.13 x64 y entorno aislado con requirements; `npm ci --prefix tests/ui`. Chrome propio o distribución Playwright. Cargar el GGUF/hash indicado: `lms server start --port 1234 --bind 127.0.0.1` y `lms load gemma-4-12b-it-qat@q4_k_xl --gpu 0.9 --context-length 8192 --parallel 1 --identifier slm-production-evaluation --yes`. Usar una instalación sintética nueva con `tests/browser/local_provider_server.py --state-dir NUEVO --port 8097`; driver con `--cases-file tests/fixtures/local_semantic_followup_20261005.json --max-tokens 4000 --reasoning-effort none --split development`, luego reserved. Resultados create-only; conservar fallos y secretos sólo localmente. Para el gate real-AI usar config sintética con LM Studio/alias/temp 0/max 4.000 y la variable `SLM_REAL_AI_REASONING_EFFORT=none`. No apuntar un test a la configuración privada del usuario.
+
+La contraseña inicial aleatoria impide prometer identidad byte a byte de cada build; comandos, fuente y hashes identifican el artefacto efectivamente probado. Producción no lee una fuente SQLite de pruebas; empaquetado escribe staging aislado y output nuevo.
+
+## Windows, instalación, actualización y recuperación
+
+Primera instalación/login y cambio de contraseña se hicieron con el EXE real en directorio sintético con espacios/ñ, CWD diferente y `PATH` sólo System32, sin VIRTUAL_ENV/PYTHONPATH/PYTHONHOME. Las dependencias de ejecución van en `_internal`. El reinicio del último EXE conserva cuentas, curso, fuentes, contenido y las cinco configuraciones LM Studio/temp 0/max 4.000/none; la contraseña inicial del admin devuelve 401 y la cambiada funciona. Hash de cursos/contenidos antes/después: **902dd5f24ef4c3c95a16cb90ff2bee150b4cc9c7139240ce29c0709d1a2ecd67**. La prueba evita tocar cualquier base/config privada del usuario.
+
+Se cerró sólo el árbol del EXE sintético verificado para simular fallo/actualizar; se recuperó su trabajo válido. Esto **no certifica la X de Tk**. Los recorridos de recuperación congelada arrancan tras backup/restauración, reabren cuentas/fuentes/cursos/asignaciones/sesiones/notas y nota pendiente/cero/feedback, rechazan backup inválido y destino existente. Restauración realmente interrumpida y posterior reintento comprobados en NTFS. Puerto ocupado: el launcher escoge otro libre; listener ajeno permanece alcanzable después de cleanup.
+
+Actualización web real v14→v20 con SW habilitado: no reclama pestaña antigua, espera su cierre, limpia sólo cachés propias y sirve su versión; recurso ausente da 503 en vez de otro caché/éxito falso; API offline falla y recupera conexión al volver. Los tests ordinarios que bloquean SW no cuentan como esta evidencia.
+
+No hay instalador/desinstalador/update-manager soportado en esta entrega: carpeta portable completa y conservación explícita de base/config/clave en actualización. No se inventa ni ejecuta desinstalación sobre datos del usuario.
+
+## Seguridad y límites soportados
+
+| Área | Verificado/límite |
+|---|---|
+| Red/proceso | API/proveedor 127.0.0.1, un proceso/worker, sin abrir firewall ni exponer servicio para las pruebas |
+| Identidad/escritura | Roles y autorización por objeto existentes, JWT/revocación/desactivación, formularios/API e IDs ajenos; no permiso sólo por ocultar botón |
+| Renderizado | Markdown/temario/modelo por boundary DOMPurify/marked vendorado, texto/DOM seguros, XSS/hostilidad probados; no garantía universal de toda combinación |
+| Archivos | Subida 10 MiB, texto 100.000 caracteres, PDF 100 páginas, portabilidad JSON acotada; no descompresión arbitraria/rutas del usuario |
+| Backup | DB 128 MiB/archivo 192 MiB, integridad/relaciones, cifrado/clave original, destino nuevo y promoción create-only NTFS |
+| Secretos/logs | Fuente fuera del título INFO, respuestas sintéticas públicas saneadas; bases, configuración, claves, tokens y credenciales no publicados |
+| IA | Fuentes no confiables, límites visibles, reintento/error, estructura ≠ respaldo ≠ revisión ≠ publicación; cuatro errores semánticos conocidos |
+| Disponibilidad | Assets offline como shell de lectura; sin prometer API/escritura/IA offline, ni multiworker/servicio escolar |
+| Accesibilidad/idioma | ES/EN, foco/teclado, estados, 390px/200 % nativo, controles existentes; quedan descriptores/etiquetas secundarios en inglés y revisión con lector de pantalla pendiente, sin declarar conformidad WCAG completa |
+| Educativo/legal | Revisión humana y eficacia requieren evidencia propia; no certificación regulatoria, de menores ni de aprendizaje |
+
+## Arranque y recuperación mínima
+
+1. La instalación de piloto ya está abierta, en español, con proveedor/modelo/cuentas/fuentes/curso configurados. No se pide al participante instalar librerías, elegir parámetros o preparar datos. El agente abre cada pantalla y cambia de cuenta sintética durante el recorrido. Mantenga abierta la ventana SLM Educator mientras usa el navegador local.
+2. Revise fuente, objetivos, explicación, vocabulario, preguntas/opciones/clave y pistas antes de publicar. Guardar correcciones conserva trabajo y origen; una estructura correcta no acredita veracidad. Publique primero la evaluación vinculada revisada, después revise/publique/asigne el curso.
+3. Para salir use la X de SLM Educator y confirme la salida; al final del piloto se observarán proceso/puerto del **c1d77ff8cd27c07bd43e1e645b02991145ca1a7c3d5a8c0b679e67c230dd1d5b**. Si el puerto está ocupado no cierre otro programa: la aplicación elige otro disponible.
+4. Antes de cambiar de carpeta o restaurar, cierre la app y conserve la clave aparte. En arranque ordinario sin override vive en `%USERPROFILE%/.slm_educator/encryption.key`; una instalación con SLM_ENCRYPTION_KEY conserva su propia clave exacta. Esa ruta privada nunca se leyó durante QA. No borre la base anterior ante un error.
+5. Backup operacional: `SLMEducator.exe --recovery --result-file recibo.json backup --database ruta.db --output copia.slmbackup`. Restaurar: `--recovery --result-file restauracion.json restore --backup copia.slmbackup --output nueva.db`. Clave original mediante el entorno soportado, nombres/destino nuevos y separados. El recibo debe indicar `success=true`; reabra la instalación restaurada y compruebe cuentas/curso/progreso antes de retirar la anterior. Si falta clave/archivo válido, conserve el original y corrija la entrada.
+
+## Piloto corto preparado, pendiente
+
+Cinco cuentas sintéticas independientes, LM Studio configurado en cada una, curso español de fracciones con fuente, tres lecciones manuales, borradores realmente generados y pregunta abierta en borrador. Cuatro cursos adicionales permiten contrastar las salidas fallidas Zil/Teli/conflicto/mitad con sus fuentes exactas. Se importaron respuestas reales preservadas para revisión; no se presentan como nuevas inferencias. Nada se publicó/asignó automáticamente ni se etiquetó como revisión humana.
+
+Recorrido de 30–45 minutos, paso a paso: (1) docente contrasta y corrige afirmaciones/definiciones y decide qué no publicar; (2) revisa/publica evaluación y curso, asigna; (3) alumno adulto entiende objetivos, intenta práctica, pide pistas, pausa/reanuda, responde abierta; (4) docente distingue pendiente de cero, escribe feedback, modifica y recarga; (5) participante lee resultado y cierra la X nativa del último paquete. Registrar comprensión, errores, correcciones, minutos y necesidad de rescate, no sólo satisfacción.
+
+La guía `docs/pilot/README.md`, casos y plantilla sirven para registrar resultados. Sus 12 casos/90 % son umbrales propuestos que requieren acuerdo del educador; no se inventa aprobación por usar cuentas sintéticas ni se fabrica una validación humana. Si el operador no es docente, su recorrido de usabilidad no reemplaza juicio educativo. La rúbrica estricta 21/25 sigue fallida hasta una decisión humana explícita sobre un alcance de borradores corregibles; no se cambia retrospectivamente para declarar verde.

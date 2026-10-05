@@ -40,6 +40,14 @@ accounts and encrypted recovery key, and records actual transport responses.
 application HTTP; run development first and reserve the other split until prompts
 are stable. Preserve every result. Never publish that installation or credentials.
 
+For the 2026-10-05 follow-up use
+`--cases-file tests/fixtures/local_semantic_followup_20261005.json --max-tokens 4000 --reasoning-effort none`.
+The 14 known cases are development regressions; 11 new cases were reserved before
+inference. Native LM Studio uses the pinned model/configuration in the production
+readiness report. For `run_tests.bat --real-ai --yes`, use an isolated config with
+temperature 0/max 4000 and `SLM_REAL_AI_REASONING_EFFORT=none`; the fixture verifies
+the actual service parameters. Other providers/configurations are separate scope.
+
 ## Manual GUI and direct API checks
 
 Use Chrome DevTools with `--isolated` and an independent free profile/context.
@@ -55,7 +63,7 @@ navigation and direct API writes.
 | Sources | TXT/Markdown/PDF, empty and unreadable PDF, oversized input, hostile text; visible extraction coverage/hash, saved source revision and exact generation fragment. |
 | Authoring | Create/edit ordered lessons, objectives and vocabulary; replace source and invalidate review; assigned copies remain immutable; revise into a new draft. |
 | Generation | Topic, Exercise and Full Package panels reachable by normal navigation; retain entered text when switching; double click/repetition reuses saved IDs; partial failure preserves good work, retry only failed items. |
-| Publication | Review content and linked assessment definitions, then explicitly publish, then assign. Schema validity/source submission does not imply factual support or teacher review. Import creates a private draft and remaps IDs; never publishes or assigns. |
+| Publication | Review content and linked assessment definitions; explicitly publish the linked assessment first, then review/publish the course and assign. Schema validity/source submission does not imply factual support or teacher review. Import creates a private draft and remaps IDs; never publishes or assigns. |
 | Learner A/B | Assigned course order/objectives, practice, progressive hints, pause/previous/resume and restart history; cannot retrieve another learner's notes/grades or teacher grading assets. |
 | Assessment | Pending subjective grade remains pending after reload; teacher can record an actual zero and feedback, revise it and reload; automatic objective scoring must match validated keys. Read feedback without creating a new attempt. |
 | Assistance | Strictest open-attempt policy; first hints do not reveal answers; missing/conflicting sources are explicit; cancellation/timeout/busy are never successful answers or final grades. |
