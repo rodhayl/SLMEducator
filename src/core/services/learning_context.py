@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 from .content_schema import normalize_content, learner_content, LESSON_EXTRA_TEXT
 
 CONTEXT_CHAR_LIMIT = 6000
-PROMPT_VERSION = "teacher-reviewed-v7-objective-first-evidence"
+PROMPT_VERSION = "teacher-reviewed-v8-objectives-are-not-evidence"
 SECTION_CHAR_LIMIT = 1800
 
 

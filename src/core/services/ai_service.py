@@ -347,6 +347,9 @@ class AIService:
         Write a concise educational draft that addresses these teacher objectives:
         {objectives_str}
 
+        Objectives are requests, not factual evidence about the subject. A word
+        in an objective does not establish a property, purpose or classification.
+
         Topic (navigation label, not evidence or an additional objective): {topic}
 
         Target Grade Level: {grade_level}
@@ -356,9 +359,12 @@ class AIService:
         First identify what the reference actually establishes for each objective.
         Explain those supported facts and any calculation from supplied premises.
         If an objective cannot be answered, say exactly what information is absent
-        or disputed and include a direct question to the teacher requesting it.
+        or disputed and include a direct question to the teacher requesting it
+        in the section content itself, not only in optional discussion questions.
         Do not substitute a guessed definition, purpose, care advice or general
         introduction for an objective that the reference cannot establish.
+        Sharing a property with a category does not establish membership in that
+        category. Keep that distinction when an objective asks for classification.
 
         Output one JSON object. Required fields: title (string), sections (array
         of objects with title and content strings), summary (string).
@@ -366,6 +372,9 @@ class AIService:
         discussion_questions (array of strings). Omit vocabulary unless a definition
         is supported by the reference and helps the requested objective. Optional
         fields are not a checklist to fill. Write actual explanations,
+        Discussion questions must be answerable from the supplied facts, or ask
+        the teacher specifically for missing evidence; do not ask learners for
+        unsupported generalizations about the fictional subject.
         not headings alone. Use at most three sections. Worked examples are
         optional: omit them when the source does not supply the needed premises.
         The entire JSON must fit within {budget} output tokens, including syntax.

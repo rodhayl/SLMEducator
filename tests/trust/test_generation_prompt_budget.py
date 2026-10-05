@@ -92,6 +92,9 @@ def test_lesson_task_prioritizes_objectives_over_topic_and_optional_expansion(se
     assert "direct question to the teacher" in prompt
     assert "Do not substitute" in prompt
     assert "Omit vocabulary" in prompt
+    assert "Objectives are requests, not factual evidence" in prompt
+    assert "section content itself" in prompt
+    assert "does not establish membership" in prompt
 
 
 def test_exercise_prompt_uses_types_instead_of_sample_answers(service):
