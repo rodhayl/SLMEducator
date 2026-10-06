@@ -43,8 +43,9 @@ usuario que eluda protecciones; si no se puede continuar con seguridad, se para.
 - Commit de construcción: `fe954cab4655969c357ec38208299a8af1563b1b`
   (árbol `c70acd13e4a39e7dbc8faf0740a8842c9c79ba64`), árbol limpio al construir.
 - Receta previa incluida en el mismo rango: `25e29101e24f…` (ver `REPORT.md`).
-- Cambios locales pendientes: ninguno; el último commit de la rama añade este
-  informe y el handoff.
+- Cambios pendientes: ninguno. El artefacto entregado se construyó en
+  `fe954cab4655` con el árbol limpio; los commits posteriores de la rama solo
+  añaden el informe, este handoff y el test opt-in del instalador.
 
 Comando de build reproducible (sin contraseñas; el operador aporta la suya por
 `SLM_INITIAL_ADMIN_PASSWORD` en el entorno del proceso):
