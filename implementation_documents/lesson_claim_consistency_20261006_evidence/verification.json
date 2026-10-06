@@ -1,0 +1,52 @@
+{
+  "source_commit": "a9d3760e541ae8a60b572b372d47f3e90b2e8894",
+  "semantic_acceptance": false,
+  "real_model_calls": 0,
+  "historical_scores_unchanged": {
+    "v9": "37/44",
+    "v10_regression": "35/44",
+    "v10_development": "8/12"
+  },
+  "checks": [
+    {
+      "command": "SLM_OFFLINE_TESTS=1 python -m pytest tests/trust/test_lesson_instruction_consistency.py tests/trust/test_generation_request_protocol.py tests/trust/test_generation_prompt_budget.py tests/trust/test_lesson_source_review.py tests/test_v10_evaluation_replay_guard.py tests/trust/test_ai_generation_boundaries.py tests/trust/test_generation_ingress_contract.py tests/trust/test_generation_sources.py tests/trust/test_source_documents.py tests/test_local_provider_server_isolation.py -q -p no:cacheprovider --basetemp=<new-synthetic-temp-dir>",
+      "author": "191 passed, 1 warning, 36.70s",
+      "independent": "191 passed, 1 warning, 39.91s"
+    },
+    {
+      "command": "python -m mypy src/core/services/ai_service.py src/core/services/learning_context.py src/core/services/generation_workflow.py tests/browser/evaluate_local_provider.py --follow-imports=silent --cache-dir=<isolated-cache>",
+      "result": "Success: no issues found in 4 source files"
+    },
+    {
+      "command": "python -m flake8 src/core/services/ai_service.py src/core/services/learning_context.py src/core/services/generation_workflow.py tests/trust/test_lesson_instruction_consistency.py tests/trust/test_generation_request_protocol.py tests/browser/evaluate_local_provider.py --jobs 1",
+      "result": "exit 0"
+    },
+    {
+      "command": "git diff --check",
+      "result": "exit 0"
+    }
+  ],
+  "supplemental_inverse_partial_cases": {
+    "versions": [
+      "v9",
+      "v10"
+    ],
+    "initial_failed_kind": [
+      "lesson",
+      "exercise",
+      "assessment"
+    ],
+    "result": "6 passed, 1 warning, 4.45s",
+    "scope": "Persisted identity/content/versions, new missing-item versions, source hash, no ready replay inference, publication gate; not semantic acceptance"
+  },
+  "no_new_dependencies": true,
+  "not_run": [
+    "real_model_evaluation",
+    "complete_suite_coverage",
+    "browser",
+    "Windows_binary",
+    "Actions",
+    "deployment",
+    "pilot"
+  ]
+}

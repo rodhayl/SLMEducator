@@ -1,0 +1,62 @@
+{
+  "baseline_commit": "ae42d5d6c46222ab5f318bfe97a6a843e8b94b08",
+  "baseline_tree": "64a1f5b7160be5d283be4f7b1ef86cb185cf336a",
+  "frozen_at_utc": "2026-10-06T15:21:26.415166+00:00",
+  "files": [
+    {
+      "path": "src/core/services/ai_service.py",
+      "bytes": 90349,
+      "sha256": "6f7eafb13f69510196b3c46bd1206bc23a2f908b966e7ff991b5aa2e63ba19f2",
+      "git_blob": "3b862d3daafb24cdbcafda8e30311c07e9b04bf8"
+    },
+    {
+      "path": "src/core/services/generation_workflow.py",
+      "bytes": 19975,
+      "sha256": "6d67f8f7b9b6e459603e7470616fe097e6ce01052a77499f342ceaae19d9538a",
+      "git_blob": "da6606f951e2031982476a9d4716d4b964711bb7"
+    },
+    {
+      "path": "src/core/services/learning_context.py",
+      "bytes": 6842,
+      "sha256": "6f8e3765156aee89aa5d248c33ea2459daa5d61dfceff81b4a65545676ca52ea",
+      "git_blob": "66df5d8e4fc233174fa3cefa692fca278ecf954f"
+    },
+    {
+      "path": "tests/browser/evaluate_local_provider.py",
+      "bytes": 4992,
+      "sha256": "84246a89b29274e0e9cd872c5bd99fa6e696405d497afa227293483d0e5c867b",
+      "git_blob": "7ca1a92f443c8ce3fb4837ca57df82e6bdac6bd9"
+    },
+    {
+      "path": "tests/fixtures/lesson_instruction_contract_pairs.json",
+      "bytes": 4291,
+      "sha256": "414966b9d9e9ec1eb1b81fadee16686988cf5064deb7a0e61ac2ba24a1f26299",
+      "git_blob": "911a124cc66c1cf764979e665ac36df1a9368505"
+    },
+    {
+      "path": "tests/fixtures/lesson_instruction_transport_baseline.json",
+      "bytes": 3313,
+      "sha256": "bf88a051be4217178e4c75ce7941c37e8a12e4c5b4373d930c1ac6c94a9e9449",
+      "git_blob": "6132e3c235887008fd9364b5a04fdf9662b5d9e2"
+    },
+    {
+      "path": "tests/trust/test_generation_request_protocol.py",
+      "bytes": 11686,
+      "sha256": "a48b927fd31ac81088ac88bf5b2823f2e6cf0f1e02447e6fe633bd5bdf30335f",
+      "git_blob": "a7e62ef8d293f74731c23d69a853f2b5efa504b8"
+    },
+    {
+      "path": "tests/trust/test_lesson_instruction_consistency.py",
+      "bytes": 5422,
+      "sha256": "ada0224323125e07187174ba68bff3d0db4ce964af6ed6ef1d56670734664e09",
+      "git_blob": "ac63030f9bdf65215b1f60e3490714842c55dbea"
+    }
+  ],
+  "patch_sha256": "67c3ca2fb9016eceb5548d2d084b8cd4c9c87680faae60d34114fca4fba89db4",
+  "typing_patch_sha256": "c425b112d4d79ec1162a0b47b5178d39b35aecafaf23f2b5f4a76e233e6cc31b",
+  "source_commit": "a9d3760e541ae8a60b572b372d47f3e90b2e8894",
+  "source_tree": "626c74ac1de70728bda97468c58cdc86737c84b5",
+  "src_tree": "359f6da21725cd361a72aa337874905870acae14",
+  "complete_baseline_blobs_verified": 401,
+  "unrelated_existing_blobs_preserved": 396
+}

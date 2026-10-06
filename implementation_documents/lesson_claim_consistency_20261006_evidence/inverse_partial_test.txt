@@ -1,0 +1,61 @@
+# Supplemental offline test source retained as evidence; not a repository test module.
+from copy import deepcopy
+from hashlib import sha256
+from unittest.mock import MagicMock
+import pytest
+from tests.conftest import db_service, test_db_path, test_data_dir, test_log_dir, setup_test_env, block_offline_http_transport
+from tests.trust.test_resource_contracts import scenario, synthetic_credentials
+from src.api.dependencies import get_ai_service_dependency
+from src.api.main import app
+from src.core.models import Content, StudentStudyPlan, StudyPlanContent
+from src.core.services import generation_workflow as workflow
+from src.core.services.ai_service import AIProvider
+from src.core.exceptions import AIResponseParseError
+
+@pytest.mark.parametrize('old_version', ['teacher-reviewed-v9-explicit-source-concerns','teacher-reviewed-v10-separated-lesson-request'])
+@pytest.mark.parametrize('failed_kind', ['lesson','exercise','assessment'])
+def test_inverse_partial_versions(scenario, monkeypatch, old_version, failed_kind):
+    client, db, users, selected, plan, _, _ = scenario
+    db.query(StudentStudyPlan).filter_by(study_plan_id=plan.id).delete()
+    db.commit()
+    selected[0] = users['teacher_a']
+    service = MagicMock(model='synthetic', provider=AIProvider.OLLAMA)
+    outputs = {'lesson': {'title': 'Measured', 'content': 'The item has three marks.'},
+               'exercise': {'question': 'How many marks?', 'type': 'short_answer', 'correct_answer': '3'},
+               'assessment': [{'question': 'How many marks?', 'type': 'short_answer', 'correct_answer': '3', 'points': 10}]}
+    methods = {'lesson':service.generate_lesson, 'exercise':service.generate_exercise, 'assessment':service.generate_assessment_questions}
+    for kind, method in methods.items():
+        method.side_effect = [AIResponseParseError('synthetic partial failure'), deepcopy(outputs[kind])] if kind == failed_kind else [deepcopy(outputs[kind])]
+    payload = {'subject':'Archive', 'topic_name':'Marks', 'grade_level':'adult beginner', 'learning_objectives':['Describe the marks'], 'source_material':'The item has three marks.', 'include_lesson':True, 'include_exercises':True, 'num_exercises':1, 'include_assessment':True, 'num_assessment_questions':1, 'assessment_question_types':['short_answer'], 'auto_save':True, 'study_plan_id':plan.id, 'phase_index':3}
+    target_lesson, target_other = workflow.LESSON_GENERATION_PROMPT_VERSION, workflow.GENERATION_PROMPT_VERSION
+    app.dependency_overrides[get_ai_service_dependency] = lambda:service
+    monkeypatch.setattr(workflow,'LESSON_GENERATION_PROMPT_VERSION',old_version)
+    monkeypatch.setattr(workflow,'GENERATION_PROMPT_VERSION',old_version)
+    first_response = client.post('/api/generate/full-topic-package',json=payload)
+    assert first_response.status_code == 200, first_response.text
+    first=first_response.json()
+    assert first['success'] is False
+    ready_ids=first['saved_content_ids']
+    saved={i:deepcopy(db.get(Content,i).decrypted_content_data) for i in ready_ids}
+    positions={i:db.query(StudyPlanContent).filter_by(content_id=i).one().order_index for i in ready_ids}
+    monkeypatch.setattr(workflow,'LESSON_GENERATION_PROMPT_VERSION',target_lesson)
+    monkeypatch.setattr(workflow,'GENERATION_PROMPT_VERSION',target_other)
+    second=client.post('/api/generate/full-topic-package',json=payload).json()
+    assert second['success'] is True, second
+    assert second['job_key'] == first['job_key']
+    for kind in methods:
+        before=first['exercises'][0] if kind=='exercise' and first['exercises'] else first.get(kind)
+        after=second['exercises'][0] if kind=='exercise' else second[kind]
+        expected=(target_lesson if kind=='lesson' else target_other) if kind==failed_kind else old_version
+        assert after['generation']['prompt_version']==expected
+        assert after['generation']['source_version']==sha256(payload['source_material'].encode()).hexdigest()
+        assert after['generation']['source_support']=='unverified'
+        if kind!=failed_kind and kind!='assessment': assert before==after
+        assert methods[kind].call_count==(2 if kind==failed_kind else 1)
+    assert all(db.query(StudyPlanContent).filter_by(content_id=i).one().order_index==positions[i] for i in ready_ids)
+    third=client.post('/api/generate/full-topic-package',json=payload).json()
+    assert third['saved_content_ids']==second['saved_content_ids']
+    assert third['lesson']==second['lesson'] and third['exercises']==second['exercises']
+    assert all(db.get(Content,i).decrypted_content_data==saved[i] for i in ready_ids)
+    assert all(methods[k].call_count==(2 if k==failed_kind else 1) for k in methods)
+    assert client.post(f'/api/study-plans/{plan.id}/workflow',json={'action':'publish'}).status_code==409
