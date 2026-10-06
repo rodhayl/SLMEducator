@@ -23,16 +23,17 @@ second packaging path, a migration framework or a shared bootstrap password.
 .\build_installer.bat --payload-dir "C:\builds\SLMEducator payload 20261006" --output-dir "C:\builds\SLMEducator setup 20261006" --version 2.0.0
 ```
 
-`--payload-dir` and `--output-dir` must be **new absolute** directories; existing
-paths are refused so an installed copy is never reused as a build source. The
+Use **new absolute** directories for `--payload-dir` and `--output-dir`; relative
+arguments are normalized to absolute paths, and existing paths are refused so an installed copy is never reused as a build source. The
 build id defaults to the current short source commit (`--build-id` overrides it).
 The output file is
 `SLMEducator-Setup-<version>-<build-id>.exe`.
 
-The initial administrator password is not printed by this script. Set
-`SLM_INITIAL_ADMIN_PASSWORD` to a unique password of at least 12 characters in
-the build process environment, or keep the one-time generated value printed by
-the seeder, and store it privately. Build the installer separately for each
+For the manual-test build, supply `SLM_INITIAL_ADMIN_PASSWORD` privately in the
+build process environment, using a unique password of at least 12 characters.
+Never copy it into chat, commands saved in reports, or logs. If it is omitted,
+the seeder generates and prints a one-time password through the wrapper; the
+build does not promise password-free output. Build the installer separately for each
 installation; a seeded package and its password hash must not be shared.
 
 ## What the recipe does
@@ -44,14 +45,18 @@ installation; a seeded package and its password hash must not be shared.
 - Compiles `installer/SLMEducator.iss` with the payload path, version, build id
   and output directory supplied as compiler defines.
 - Installs per user under `%LOCALAPPDATA%\Programs\SLMEducator` with
-  `PrivilegesRequired=lowest`: no administrator elevation and no service.
+  `PrivilegesRequired=lowest`: no elevation request and no service. Launch
+  non-elevated; this setting does not remove an already-elevated caller token.
 - Installs the complete `onedir` payload, never the executable alone.
 - Treats `slm_educator.db` and `env.properties` as user data: they are installed
   only when absent (`onlyifdoesntexist`) and are never removed by the
   uninstaller (`uninsneveruninstall`). There is no wildcard `[UninstallDelete]`.
 - Refuses to update an existing per-user installation in place and stops with a
-  clear message instead of improvising a migration. Uninstall first (data and
-  configuration are preserved) or use a new destination.
+  clear message instead of improvising a migration. A different destination does
+  not bypass the per-user registration guard. Uninstall first (data and
+  configuration are preserved). An unregistered portable directory is not
+  protected by that guard: select a genuinely fresh destination, never an
+  existing portable payload or its program files.
 - Asks the user to close locked applications (`CloseApplications=yes`) without
   restarting them automatically (`RestartApplications=no`) and without any
   generic process kill.
@@ -69,11 +74,27 @@ $env:SLM_INSTALLER_PAYLOAD_SHA256 = "<sha256 of the pristine payload SLMEducator
 python -m pytest tests/windows/test_installer_lifecycle.py -q
 ```
 
-It silently installs into a disposable pytest temporary directory, checks the
-program files, shortcuts and per-user uninstall entry, confirms that an in-place
-reinstall is refused without touching data, uninstalls, and reinstalls over the
-preserved data. It skips when another SLMEducator installation is registered for
-the current user, so it never touches an installation it does not own.
+Run non-elevated in a disposable Windows account, with no concurrent installer
+or uninstaller. The payload goes into a fresh pytest temporary directory, but
+Start Menu/Desktop shortcuts and HKCU registration use the real current profile.
+The test resolves both actual shell folders (including redirection) and skips on
+an existing target shortcut or exact current/legacy application registration.
+
+It checks the program files and owned registration, writes distinct valid
+synthetic SQLite/configuration content, then verifies preservation through a
+refused in-place install, uninstall and reinstall. A same-seed overwrite now
+fails. PowerShell `Start-Process -Wait` plus a fresh completion marker establishes
+tree completion before cleanup. An ordinary failed partial install is rolled
+back only through its owned uninstaller; the test never deletes registry keys.
+
+On timeout, missing completion marker, foreign state or cleanup failure, it
+fails closed and retains the target/uninstaller and logs. Descendants may still
+be running. Inspect only this invocation's processes and finish owned cleanup
+before deleting anything or rerunning; do not use a global process kill. Pytest
+temporary files are not permanent evidence, so preserve needed logs privately.
+The synthetic contracts can run separately with
+`python -m pytest tests/test_build_installer.py tests/test_installer_lifecycle_contract.py -q`.
+A Linux pass or opt-in skip is not native Windows validation.
 
 ## Limits
 

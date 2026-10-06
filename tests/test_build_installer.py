@@ -115,6 +115,7 @@ def test_build_reuses_the_maintained_production_builder(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """The installer payload must come from build_package.py --prod."""
+    monkeypatch.setattr(build_installer.sys, "platform", "win32")
     commands: list[list[str]] = []
 
     def fake_run(command, **kwargs):  # type: ignore[no-untyped-def]
@@ -155,7 +156,10 @@ def test_build_reuses_the_maintained_production_builder(
     assert code == 1
 
 
-def test_existing_payload_or_output_directory_is_refused(tmp_path: Path) -> None:
+def test_existing_payload_or_output_directory_is_refused(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(build_installer.sys, "platform", "win32")
     existing = tmp_path / "already-there"
     existing.mkdir()
     assert (
@@ -186,7 +190,10 @@ def test_existing_payload_or_output_directory_is_refused(tmp_path: Path) -> None
     )
 
 
-def test_missing_inno_compiler_reports_a_clear_blocker(tmp_path: Path) -> None:
+def test_missing_inno_compiler_reports_a_clear_blocker(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(build_installer.sys, "platform", "win32")
     code = build_installer.main(
         [
             "--payload-dir",
