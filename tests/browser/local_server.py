@@ -77,12 +77,22 @@ def main() -> None:
         )
 
     def synthetic_response(service, prompt, **kwargs):
+        # Explicit acceptance cases exercise the real parser/API/UI boundary.
+        # Match only the final question, never previous conversation history.
+        question = prompt.split("Student Question:", 1)[-1].splitlines()[0]
+        content = json.dumps({"explanation": "Synthetic browser-test hint: compare equal parts. This is not a real model answer."})
+        if "[acceptance:prose]" in question:
+            content = "Synthetic prose: compare **equal parts**. <img src=x onerror=window.acceptanceUnsafe=1>"
+        elif "[acceptance:structured]" in question:
+            content = json.dumps({"answer": "Synthetic structured: compare **equal parts**. <script>window.acceptanceUnsafe=1</script>"})
+        elif "[acceptance:format]" in question:
+            content = '{"answer": "unfinished'
+        elif "[acceptance:provider]" in question:
+            from src.core.exceptions import AIServiceError
+
+            raise AIServiceError("Synthetic provider unavailable")
         return AIResponse(
-            content=json.dumps(
-                {
-                    "explanation": "Synthetic browser-test hint: compare equal parts. This is not a real model answer."
-                }
-            ),
+            content=content,
             tokens_used=7,
             model="synthetic-browser-stub",
             provider=AIProvider.OLLAMA,
