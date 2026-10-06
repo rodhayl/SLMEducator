@@ -27,6 +27,9 @@ reutilizó, distribuyó ni ejecutó.
 - `scripts/build_installer.py` + `build_installer.bat`: invocación documentada;
   reutiliza `scripts/build_package.py --prod` y `scripts/seed_admin.py`.
 - `tests/test_build_installer.py`: 15 contratos de receta/orquestación.
+- `tests/windows/test_installer_lifecycle.py`: test opt-in del ciclo real
+  instalación → accesos → rechazo de reinstalación → desinstalación →
+  reinstalación sobre datos conservados.
 - `docs/WINDOWS_INSTALLER.md` y una sección en `README.md`.
 - Sin cambios de producto.
 
@@ -81,6 +84,7 @@ copia que entrega el instalador y comparte hash con el EXE del payload.
 | Rechazo de actualización in-place | PASS | Segunda ejecución del mismo instalador: salida 1 en 1 s; db/config/EXE idénticos antes y después; mensaje registrado en el log. |
 | Desinstalación conserva datos/configuración | PASS | `unins000.exe /VERYSILENT`: se eliminan EXE, `_internal` y archivos del desinstalador; `slm_educator.db`, `env.properties`, `logs/`, `api.log`, `starter_debug.log` y sidecars permanecen con hash idéntico. Sin `[UninstallDelete]` ni comodines. |
 | Reinstalación tras desinstalación conserva datos | PASS | Instalación de nuevo: programas restaurados; `slm_educator.db` y `env.properties` conservan el hash anterior (`onlyifdoesntexist`). |
+| Test opt-in del ciclo del instalador | PASS | `SLM_INSTALLER_SETUP` + `SLM_INSTALLER_PAYLOAD_SHA256`: mismo recorrido automatizado contra el instalador entregado; al terminar deja limpios registro HKCU, accesos y carpeta desechable. Se salta si ya existe una instalación registrada, para no tocar la de David. |
 | Credencial inicial privada verificada | PASS | El valor del archivo privado valida contra el hash del `admin` del payload prístino; no se imprimió. |
 | X nativa del launcher | NOT RUN | Paso humano reservado a `MANUAL_TEST2.md`. El smoke cerró con terminación por PID para poder reiniciar; eso no es evidencia de la X nativa. |
 | Firma digital | Ausente | El instalador no está firmado; Windows SmartScreen puede advertir. No se indica eludir protecciones y no se afirma confianza. |

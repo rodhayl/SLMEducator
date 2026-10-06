@@ -59,6 +59,22 @@ installation; a seeded package and its password hash must not be shared.
   installation. The only post-install action is the optional, user-visible
   launcher entry point, skipped in silent installs.
 
+## Verifying a built installer
+
+The lifecycle of a freshly built Setup can be checked with the opt-in test:
+
+```powershell
+$env:SLM_INSTALLER_SETUP = "C:\builds\SLMEducator setup\SLMEducator-Setup-2.0.0-<build>.exe"
+$env:SLM_INSTALLER_PAYLOAD_SHA256 = "<sha256 of the pristine payload SLMEducator.exe>"  # optional
+python -m pytest tests/windows/test_installer_lifecycle.py -q
+```
+
+It silently installs into a disposable pytest temporary directory, checks the
+program files, shortcuts and per-user uninstall entry, confirms that an in-place
+reinstall is refused without touching data, uninstalls, and reinstalls over the
+preserved data. It skips when another SLMEducator installation is registered for
+the current user, so it never touches an installation it does not own.
+
 ## Limits
 
 - The setup executable is not code-signed. Windows SmartScreen may warn; this
