@@ -27,7 +27,7 @@ from src.core.services.course_workflow import (
     invalidate_reviews,
     next_course_position,
 )
-from src.core.services.learning_context import GENERATION_PROMPT_VERSION
+from src.core.services.learning_context import GENERATION_PROMPT_VERSION, LESSON_GENERATION_PROMPT_VERSION
 from src.core.exceptions import AIResponseParseError, AIContentValidationError
 from src.core.services.source_documents import source_prompt, save_document
 
@@ -216,7 +216,7 @@ def _save_item(
     data["generation"] = {
         "model": service.model,
         "provider": service.provider.value,
-        "prompt_version": GENERATION_PROMPT_VERSION,
+        "prompt_version": LESSON_GENERATION_PROMPT_VERSION if kind == "lesson" else GENERATION_PROMPT_VERSION,
         "source_version": sha256((request.source_material or "").encode()).hexdigest(),
         "review_status": "draft",
         "structural_status": "valid",

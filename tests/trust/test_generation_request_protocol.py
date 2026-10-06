@@ -8,7 +8,7 @@ import pytest
 
 from src.core.services.ai_service import AIService, RuntimeAIConfig
 from src.core.services.source_documents import select_source, source_prompt
-from tests.trust.test_resource_contracts import scenario, synthetic_credentials
+from tests.trust.test_resource_contracts import scenario, synthetic_credentials  # noqa: F401 - pytest fixtures
 
 
 @pytest.mark.parametrize("source", [
@@ -78,7 +78,7 @@ def test_lesson_rules_and_literal_task_data_use_separate_transport_channels(monk
 
 
 @pytest.mark.parametrize("partial", [False, True])
-def test_upgrade_replays_old_items_and_versions_only_new_missing_items(scenario, monkeypatch, partial):
+def test_upgrade_replays_old_items_and_versions_only_new_missing_items(scenario, monkeypatch, partial):  # noqa: F811
     """Seed synthetic old receipts, then upgrade without changing job identity."""
     from src.api.dependencies import get_ai_service_dependency
     from src.api.main import app
@@ -101,10 +101,12 @@ def test_upgrade_replays_old_items_and_versions_only_new_missing_items(scenario,
                "include_lesson": True, "include_exercises": True, "num_exercises": 1, "include_assessment": False,
                "auto_save": True, "study_plan_id": plan.id, "phase_index": 3}
     new_version = generation_workflow.GENERATION_PROMPT_VERSION
+    new_lesson_version = generation_workflow.LESSON_GENERATION_PROMPT_VERSION
     old_version = "teacher-reviewed-v9-explicit-source-concerns"
     app.dependency_overrides[get_ai_service_dependency] = lambda: service
     try:
         monkeypatch.setattr(generation_workflow, "GENERATION_PROMPT_VERSION", old_version)
+        monkeypatch.setattr(generation_workflow, "LESSON_GENERATION_PROMPT_VERSION", old_version)
         first = client.post("/api/generate/full-topic-package", json=payload)
         assert first.status_code == 200, first.text
         initial = first.json()
@@ -117,6 +119,7 @@ def test_upgrade_replays_old_items_and_versions_only_new_missing_items(scenario,
         original = db.get(Content, lesson_id).decrypted_content_data
         position = db.query(StudyPlanContent).filter_by(content_id=lesson_id).one().order_index
         monkeypatch.setattr(generation_workflow, "GENERATION_PROMPT_VERSION", new_version)
+        monkeypatch.setattr(generation_workflow, "LESSON_GENERATION_PROMPT_VERSION", new_lesson_version)
         resumed = client.post("/api/generate/full-topic-package", json=payload)
         assert resumed.status_code == 200, resumed.text
         result = resumed.json()
@@ -137,5 +140,45 @@ def test_upgrade_replays_old_items_and_versions_only_new_missing_items(scenario,
         assert list(jobs) == [result["job_key"]]
         assert "prompt_version" not in jobs[result["job_key"]]
         assert client.post(f"/api/study-plans/{plan.id}/workflow", json={"action": "publish"}).status_code == 409
+    finally:
+        app.dependency_overrides.pop(get_ai_service_dependency, None)
+
+
+def test_only_new_lessons_receive_consolidated_prompt_version(scenario):  # noqa: F811
+    from src.api.dependencies import get_ai_service_dependency
+    from src.api.main import app
+    from src.core.models import StudentStudyPlan
+    from src.core.services import generation_workflow
+    from src.core.services.ai_service import AIProvider
+
+    client, db, users, selected, plan, _, _ = scenario
+    db.query(StudentStudyPlan).filter_by(study_plan_id=plan.id).delete()
+    db.commit()
+    selected[0] = users['teacher_a']
+    service = MagicMock()
+    service.model, service.provider = 'synthetic', AIProvider.OLLAMA
+    service.generate_lesson.return_value = {'title': 'Observation', 'content': 'A recorded mark.'}
+    service.generate_exercise.return_value = {'question': 'What was recorded?', 'type': 'short_answer', 'correct_answer': 'A mark'}
+    payload = {'subject': 'Archive', 'topic_name': 'Mark', 'grade_level': 'adult beginner',
+               'learning_objectives': ['Describe the mark'], 'source_material': 'A mark was recorded.',
+               'include_lesson': True, 'include_exercises': True, 'num_exercises': 1,
+               'include_assessment': False, 'auto_save': True, 'study_plan_id': plan.id, 'phase_index': 3}
+    app.dependency_overrides[get_ai_service_dependency] = lambda: service
+    try:
+        response = client.post('/api/generate/full-topic-package', json=payload)
+        assert response.status_code == 200, response.text
+        result = response.json()
+        assert result['success'] is True
+        assert result['lesson']['generation']['prompt_version'] == generation_workflow.LESSON_GENERATION_PROMPT_VERSION
+        assert result['exercises'][0]['generation']['prompt_version'] == generation_workflow.GENERATION_PROMPT_VERSION
+        for content in [result['lesson'], result['exercises'][0]]:
+            receipt = content['generation']
+            assert receipt['review_status'] == 'draft' and receipt['source_support'] == 'unverified'
+            assert 'A mark was recorded.' in receipt['source_usage']['fragment']
+        replay = client.post('/api/generate/full-topic-package', json=payload).json()
+        assert replay['saved_content_ids'] == result['saved_content_ids']
+        assert replay['lesson'] == result['lesson']
+        assert service.generate_lesson.call_count == service.generate_exercise.call_count == 1
+        assert client.post(f'/api/study-plans/{plan.id}/workflow', json={'action': 'publish'}).status_code == 409
     finally:
         app.dependency_overrides.pop(get_ai_service_dependency, None)

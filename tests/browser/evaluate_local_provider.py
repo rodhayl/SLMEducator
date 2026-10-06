@@ -28,7 +28,8 @@ def main() -> None:
     destination = args.state_dir / (args.split + "-results.json")
     if destination.exists():
         raise SystemExit("Results already exist; preserve them instead of cherry-picking another run")
-    results = {"rubric_sha256": sha256(cases_file.read_bytes()).hexdigest(), "cases": []}
+    case_results: list[dict[str, object]] = []
+    results = {"rubric_sha256": sha256(cases_file.read_bytes()).hexdigest(), "cases": case_results}
     with httpx.Client(base_url=args.base_url, trust_env=False, timeout=310) as client:
         teacher = next(row for row in fixture["credentials"] if row["username"] == "teacher_a")
         def authenticate():
@@ -62,7 +63,7 @@ def main() -> None:
             response = client.post("/api/generate/full-topic-package", json=payload)
             record = {"id": case["id"], "plan_id": plan_id, "seconds": time.monotonic() - start,
                       "http_status": response.status_code, "result": response.json()}
-            results["cases"].append(record)
+            case_results.append(record)
             destination.write_text(json.dumps(results, ensure_ascii=False, indent=2), encoding="utf-8")
             # Replay only complete ready results; never infer again for failed items.
             items = record["result"].get("items", [])

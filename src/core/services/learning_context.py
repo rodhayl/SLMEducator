@@ -12,6 +12,8 @@ PROMPT_VERSION = "teacher-reviewed-v9-explicit-source-concerns"
 # Generation changed its source framing and lesson instruction channel. Tutor
 # requests keep their existing version; historical generated items keep theirs.
 GENERATION_PROMPT_VERSION = "teacher-reviewed-v10-separated-lesson-request"
+# Only new lesson drafts use the consolidated instruction contract.
+LESSON_GENERATION_PROMPT_VERSION = "teacher-reviewed-v11-consistent-lesson-claims"
 SECTION_CHAR_LIMIT = 1800
 
 
