@@ -1,0 +1,72 @@
+{
+  "repository": "rodhayl/SLMEducator",
+  "base_commit": "5e839d2b0bc0bb89309f49eac648a6eee747cd79",
+  "source_head": "197764b3e792d42fb73227345e510f3718c46785",
+  "unchanged_build_commit": "fe954cab4655969c357ec38208299a8af1563b1b",
+  "changed_files": [
+    {
+      "path": "tests/test_build_installer.py",
+      "base_blob": "6b17493032fc5a3aa46f46cf778f48b6490c3f7d",
+      "candidate_blob": "a1a5590ce64c7a0ae9b6c9cb225a9433fb31ab62",
+      "sha256": "89f5c7482770cb3b95181f3c4449b94d527a3f38aabe47e07c5541b035c2f754"
+    },
+    {
+      "path": "tests/windows/test_installer_lifecycle.py",
+      "base_blob": "27bd80bb05046fe4916a9d782e35ae12186b95e9",
+      "candidate_blob": "4b00a472fc6bbd8a321711c68292ab2ac620d40c",
+      "sha256": "e9471814fd384ff8a301caef41bb9b2908b8ddc2538ab1a4f943a27cc7c095a2"
+    },
+    {
+      "path": "tests/test_installer_lifecycle_contract.py",
+      "base_blob": null,
+      "candidate_blob": "2e5b8adbd935e6eae03f81d5c02a66586fbc1cfa",
+      "sha256": "fc2eea769ee37681d4780c2142839335c957f7f22c9343204cfc1109af304bf2"
+    },
+    {
+      "path": "docs/WINDOWS_INSTALLER.md",
+      "base_blob": "288396126d4050a0548fe6e0dc0e51383953a2e8",
+      "candidate_blob": "9d9608384ae5f3e20b9089db20bbccfbaded119a",
+      "sha256": "3e2ac5aee008a870f7a4d0c8d9deef17ea75a8d0c368d272e83fecefe4a2db24"
+    },
+    {
+      "path": "implementation_documents/manual_windows_20261006/MANUAL_TEST_HANDOFF.md",
+      "base_blob": "3e09e2f14227a2b6327c3ec1c83e738da550cd03",
+      "candidate_blob": "02b389f73baf530003bfe57e6994f39d768676a5",
+      "sha256": "c613d2a9e77d4cd21a1b21c76f1770a40e77fe2c6680484df95672e3cf554bfd"
+    }
+  ],
+  "unchanged_source_files": [
+    {
+      "path": "README.md",
+      "blob": "acec8b41cf40f4dbfbf21ef26f2f9b6a739feef4"
+    },
+    {
+      "path": "build_installer.bat",
+      "blob": "5f91a7e7105b6ad4a65ff5355936e7c53ff23cd0"
+    },
+    {
+      "path": "implementation_documents/manual_windows_20261006/REPORT.md",
+      "blob": "bfa23c587185b0baac39f1ccad247af4c2eb4526"
+    },
+    {
+      "path": "installer/SLMEducator.iss",
+      "blob": "14bee5a9a285f16a8f2f6a823f9d9f83e521219b"
+    },
+    {
+      "path": "scripts/build_installer.py",
+      "blob": "692f906493db2cfbec5d65bc45fde3451dd8845f"
+    },
+    {
+      "path": "AGENTS.md",
+      "blob": "c2ea87849f51c5e3802742b6378a3f122eee30d5"
+    },
+    {
+      "path": "scripts/build_package.py",
+      "blob": "51f022d42494763807b30d8eb5f162905276e17d"
+    },
+    {
+      "path": "tests/windows/test_packaged_bootstrap.py",
+      "blob": "19c3ac05fe61c8e241ca2f74de86accbefb107c1"
+    }
+  ]
+}

@@ -1,30 +1,29 @@
-"""Opt-in installer lifecycle contract for a real, newly built Windows Setup.
+"""Opt-in lifecycle test for a real, newly built Windows Setup.
 
-Requires ``SLM_INSTALLER_SETUP`` to point at the maintained Inno Setup
-executable built by ``build_installer.bat``. The test:
+The payload uses a fresh temporary directory, but shortcuts and uninstall
+registration use the current Windows profile. Existing registrations or actual
+shell shortcut collisions cause a skip. Use a disposable, non-elevated account
+and do not run concurrent installations. No native PASS is implied by a skip.
 
-1. installs it silently into a disposable pytest temporary directory;
-2. checks the expected program files, shortcuts and the per-user uninstall
-   entry;
-3. confirms that an in-place reinstall is refused without touching user data;
-4. uninstalls and confirms that the database and configuration survive;
-5. reinstalls over the preserved data and confirms it is still untouched.
-
-Everything happens under pytest's temporary directory. If another SLMEducator
-installation already exists for this user, the test skips instead of interfering
-with it, because the installer refuses in-place updates by design. Optionally set
-``SLM_INSTALLER_PAYLOAD_SHA256`` to also pin the installed executable against the
-pristine payload hash.
+Set SLM_INSTALLER_SETUP to the maintained Setup executable. Optionally pin the
+installed executable with SLM_INSTALLER_PAYLOAD_SHA256. An uncertain process
+wait or cleanup failure retains the target and logs for manual inspection;
+never delete them while an installer descendant could still be running.
 """
 
 from __future__ import annotations
 
+import base64
+import configparser
+from contextlib import closing
+import ctypes
 import hashlib
 import os
 from pathlib import Path
 import shutil
+import sqlite3
 import subprocess
-import time
+import uuid
 
 import pytest
 
@@ -37,174 +36,274 @@ SILENT_SWITCHES = ("/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/LANG=engl
 PROGRAM_FILES = ("SLMEducator.exe",)
 USER_DATA = ("slm_educator.db", "env.properties")
 INSTALL_TIMEOUT = 300
+APP_ID = "{40301115-8D29-4D37-A067-F025278BCDC0}"
+
+
+class UnsafeCleanup(RuntimeError):
+    """The owned process tree or remaining installation cannot be verified."""
 
 
 def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def _slmeducator_uninstall_entry() -> str | None:
-    """Return the HKCU uninstall subkey for an existing SLMEducator install."""
+def _registrations() -> list[dict[str, str]]:
+    """Read exact current/legacy app keys in both registry views; never delete."""
     import winreg
 
-    try:
-        parent = winreg.OpenKey(
-            winreg.HKEY_CURRENT_USER,
-            r"Software\Microsoft\Windows\CurrentVersion\Uninstall",
-        )
-    except OSError:
-        return None
-    with parent:
-        index = 0
-        while True:
+    entries = []
+    parent = r"Software\Microsoft\Windows\CurrentVersion\Uninstall"
+    for view in (winreg.KEY_WOW64_64KEY, winreg.KEY_WOW64_32KEY):
+        for name in (APP_ID + "_is1", APP_ID):
             try:
-                name = winreg.EnumKey(parent, index)
-            except OSError:
-                return None
-            index += 1
-            try:
-                with winreg.OpenKey(parent, name) as entry:
-                    display, _ = winreg.QueryValueEx(entry, "DisplayName")
-            except OSError:
+                key = winreg.OpenKey(
+                    winreg.HKEY_CURRENT_USER,
+                    parent + "\\" + name,
+                    0,
+                    winreg.KEY_READ | view,
+                )
+            except FileNotFoundError:
                 continue
-            if str(display).startswith("SLMEducator"):
-                return name
-    return None
+            with key:
+                values = {"key": name}
+                for field in ("InstallLocation", "UninstallString"):
+                    try:
+                        values[field] = str(winreg.QueryValueEx(key, field)[0])
+                    except FileNotFoundError:
+                        values[field] = ""
+                entries.append(values)
+    return entries
+
+
+def _shell_directory(csidl: int) -> Path:
+    """Resolve actual per-user shell folders, including redirected locations."""
+    buffer = ctypes.create_unicode_buffer(260)
+    result = ctypes.windll.shell32.SHGetFolderPathW(None, csidl, None, 0, buffer)
+    if result != 0 or not buffer.value:
+        raise UnsafeCleanup(f"Cannot resolve Windows shell folder {csidl}")
+    return Path(buffer.value)
 
 
 def _shortcut_paths() -> tuple[Path, Path]:
-    start_menu = (
-        Path(os.environ["APPDATA"])
-        / "Microsoft"
-        / "Windows"
-        / "Start Menu"
-        / "Programs"
-        / "SLMEducator"
-        / "SLMEducator.lnk"
+    return (
+        _shell_directory(0x0002) / "SLMEducator" / "SLMEducator.lnk",
+        _shell_directory(0x0010) / "SLMEducator.lnk",
     )
-    desktop = _desktop_directory() / "SLMEducator.lnk"
-    return start_menu, desktop
 
 
-def _desktop_directory() -> Path:
-    """Resolve the redirection-aware desktop folder, falling back to the profile."""
-    import winreg
+def _ps_literal(value: str) -> str:
+    return "'" + value.replace("'", "''") + "'"
 
+
+def _run_owned(command: list[str]) -> subprocess.CompletedProcess[str]:
+    """Wait for this invocation and descendants using Windows PowerShell.
+
+    Start-Process -Wait waits for the entire process tree (unlike Wait-Process).
+    The fresh marker is written only after that wait. A timeout kills the shell
+    via subprocess.run, but does NOT prove descendants stopped: fail closed.
+    https://learn.microsoft.com/powershell/module/microsoft.powershell.management/start-process?view=powershell-5.1
+    """
+    marker = "SLM_TREE_DONE_" + uuid.uuid4().hex
+    arguments = _ps_literal(subprocess.list2cmdline(command[1:]))
+    script = (
+        "$ErrorActionPreference = 'Stop'; "
+        f"$p = Start-Process -FilePath {_ps_literal(command[0])} "
+        f"-ArgumentList {arguments} -Wait -PassThru; "
+        f"[Console]::Out.WriteLine('{marker}:' + $p.ExitCode); exit $p.ExitCode"
+    )
+    powershell = (
+        Path(os.environ["SystemRoot"])
+        / "System32"
+        / "WindowsPowerShell"
+        / "v1.0"
+        / "powershell.exe"
+    )
+    encoded = base64.b64encode(script.encode("utf-16-le")).decode("ascii")
     try:
-        with winreg.OpenKey(
-            winreg.HKEY_CURRENT_USER,
-            r"Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders",
-        ) as key:
-            value, _ = winreg.QueryValueEx(key, "Desktop")
-        return Path(os.path.expandvars(str(value)))
-    except OSError:
-        return Path(os.environ.get("USERPROFILE", str(Path.home()))) / "Desktop"
+        result = subprocess.run(
+            [
+                str(powershell),
+                "-NoProfile",
+                "-NonInteractive",
+                "-EncodedCommand",
+                encoded,
+            ],
+            capture_output=True,
+            text=True,
+            timeout=INSTALL_TIMEOUT,
+        )
+    except BaseException as error:
+        raise UnsafeCleanup(
+            "Installer process-tree completion is unverified; retain the target "
+            "and logs. Check owned processes before any manual cleanup."
+        ) from error
+    expected = f"{marker}:{result.returncode}"
+    if result.stdout.splitlines().count(expected) != 1:
+        raise UnsafeCleanup(
+            "Missing matching process-tree completion marker; retain the target "
+            "and logs. PowerShell or its descendant may not have finished."
+        )
+    return subprocess.CompletedProcess(
+        command,
+        result.returncode,
+        result.stdout.replace(expected, ""),
+        result.stderr,
+    )
 
 
-def _run_setup(setup: Path, target: Path, log: Path) -> subprocess.CompletedProcess:
-    return subprocess.run(
-        [str(setup), *SILENT_SWITCHES, f"/DIR={target}", f"/LOG={log}", "/MERGETASKS=desktopicon"],
-        capture_output=True,
-        text=True,
-        timeout=INSTALL_TIMEOUT,
+def _run_setup(
+    setup: Path, target: Path, log: Path
+) -> subprocess.CompletedProcess[str]:
+    return _run_owned(
+        [
+            str(setup),
+            *SILENT_SWITCHES,
+            f"/DIR={target}",
+            f"/LOG={log}",
+            "/MERGETASKS=desktopicon",
+        ]
     )
 
 
 def _uninstaller(target: Path) -> Path | None:
-    """Return the uninstaller Inno actually created (unins000, unins001, ...)."""
     candidates = sorted(target.glob("unins*.exe"))
+    if len(candidates) > 1:
+        raise UnsafeCleanup("Multiple uninstallers found; retain target for inspection")
     return candidates[0] if candidates else None
 
 
-def _uninstall(target: Path) -> None:
+def _assert_owned_registration(target: Path) -> None:
+    """Never execute an uninstall command read from the registry."""
     uninstaller = _uninstaller(target)
-    assert uninstaller is not None, "The installed uninstaller is missing"
-    completed = subprocess.run(
-        [str(uninstaller), "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART"],
-        capture_output=True,
-        text=True,
-        timeout=INSTALL_TIMEOUT,
-    )
-    assert completed.returncode == 0, completed.stdout + completed.stderr
-    # Inno's uninstaller copies itself to %TEMP% and removes its own
-    # unins*.exe/.dat last, so waiting for the executable or the registry key
-    # alone is not enough: a fast reinstall could otherwise create unins001.exe
-    # while the previous uninstaller is still finishing.
-    start_menu, desktop = _shortcut_paths()
-    deadline = time.monotonic() + 90
-    while time.monotonic() < deadline:
+    for entry in _registrations():
+        location = entry["InstallLocation"]
+        command = entry["UninstallString"]
         if (
-            _uninstaller(target) is None
-            and not (target / "SLMEducator.exe").exists()
-            and _slmeducator_uninstall_entry() is None
-            and not start_menu.exists()
-            and not desktop.exists()
+            not location
+            or Path(location).resolve() != target.resolve()
+            or uninstaller is None
+            or command not in (str(uninstaller), f'"{uninstaller}"')
         ):
-            return
-        time.sleep(0.25)
-    pytest.fail("The uninstaller did not finish removing its program state")
+            raise UnsafeCleanup("Uninstall registration is not owned by this target")
+
+
+def _assert_program_state_removed(target: Path) -> None:
+    remaining = [
+        path
+        for path in (
+            target / "SLMEducator.exe",
+            target / "_internal",
+            *_shortcut_paths(),
+            *target.glob("unins*"),
+        )
+        if path.exists() or path.is_symlink()
+    ]
+    if remaining or _registrations():
+        raise UnsafeCleanup("Program/profile state remains; retain target and logs")
+
+
+def _uninstall(target: Path) -> None:
+    _assert_owned_registration(target)
+    uninstaller = _uninstaller(target)
+    if uninstaller is None:
+        raise UnsafeCleanup("The owned uninstaller is missing; retain target and logs")
+    completed = _run_owned(
+        [
+            str(uninstaller),
+            "/VERYSILENT",
+            "/SUPPRESSMSGBOXES",
+            "/NORESTART",
+        ]
+    )
+    if completed.returncode != 0:
+        raise UnsafeCleanup(f"Owned uninstall failed with {completed.returncode}")
+    _assert_program_state_removed(target)
+
+
+def _write_distinct_user_data(target: Path) -> dict[str, str]:
+    """Write valid disposable user content so same-seed replacement is detected."""
+    original = {name: _sha256(target / name) for name in USER_DATA}
+    with closing(sqlite3.connect(target / USER_DATA[0])) as connection:
+        with connection:
+            connection.execute("CREATE TABLE installer_smoke_note (note TEXT NOT NULL)")
+            connection.execute(
+                "INSERT INTO installer_smoke_note VALUES (?)",
+                (uuid.uuid4().hex,),
+            )
+        assert connection.execute("PRAGMA quick_check").fetchall() == [("ok",)]
+    config = configparser.ConfigParser(interpolation=None)
+    with (target / USER_DATA[1]).open(encoding="utf-8") as source:
+        config.read_file(source)
+    if not config.has_section("ui"):
+        config.add_section("ui")
+    config.set(
+        "ui",
+        "language",
+        "es" if config.get("ui", "language", fallback="en") == "en" else "en",
+    )
+    with (target / USER_DATA[1]).open("w", encoding="utf-8") as output:
+        config.write(output)
+    changed = {name: _sha256(target / name) for name in USER_DATA}
+    assert all(changed[name] != original[name] for name in USER_DATA)
+    return changed
+
+
+def _cleanup(target: Path) -> None:
+    """Rollback partial installs only after a verified process-tree wait."""
+    _assert_owned_registration(target)
+    if _uninstaller(target) is not None:
+        _uninstall(target)
+    _assert_program_state_removed(target)
+    if target.exists():
+        shutil.rmtree(target)  # Never hide a cleanup failure or remove evidence first.
 
 
 def test_installer_lifecycle_preserves_user_data(tmp_path: Path) -> None:
-    setup = Path(os.environ["SLM_INSTALLER_SETUP"])
+    setup = Path(os.environ["SLM_INSTALLER_SETUP"]).resolve()
     if not setup.is_file():
         pytest.fail(f"SLM_INSTALLER_SETUP does not name an existing installer: {setup}")
-    existing = _slmeducator_uninstall_entry()
-    if existing is not None:
+    if _registrations():
         pytest.skip(
-            "An existing SLMEducator installation is registered for this user "
-            f"({existing}); this test refuses to touch it"
+            "An existing SLMEducator registration is present; refusing to touch it"
         )
+    start_menu, desktop = _shortcut_paths()
+    for path in (start_menu, desktop):
+        if path.exists() or path.is_symlink():
+            pytest.skip(f"An existing shortcut occupies {path}; refusing to touch it")
 
     target = tmp_path / "SLMEducator"
-    installed = False
+    assert not target.exists() and not target.is_symlink(), "A fresh target is required"
+    cleanup_safe = True
     try:
-        # 1. Fresh per-user installation without elevation.
         result = _run_setup(setup, target, tmp_path / "install.log")
-        assert result.returncode == 0, (
-            f"Silent install failed with {result.returncode}\n{result.stdout}{result.stderr}"
-        )
-        installed = True
+        assert result.returncode == 0, f"Silent install failed with {result.returncode}"
         for name in (*PROGRAM_FILES, *USER_DATA):
             assert (target / name).is_file(), name
         assert (target / "_internal").is_dir()
         assert _uninstaller(target) is not None
-        assert _slmeducator_uninstall_entry() is not None
-        start_menu, desktop = _shortcut_paths()
+        assert _registrations(), "The expected app registration is missing"
+        _assert_owned_registration(target)
         assert start_menu.is_file(), start_menu
         assert desktop.is_file(), desktop
-
         pinned = os.environ.get("SLM_INSTALLER_PAYLOAD_SHA256")
         if pinned:
             assert _sha256(target / "SLMEducator.exe") == pinned
 
-        # 2. An in-place reinstall is refused and changes nothing.
-        before = {name: _sha256(target / name) for name in USER_DATA}
+        before = _write_distinct_user_data(target)
         refused = _run_setup(setup, target, tmp_path / "reinstall.log")
         assert refused.returncode != 0, "An in-place reinstall must be refused"
         assert (target / "SLMEducator.exe").is_file()
         assert {name: _sha256(target / name) for name in USER_DATA} == before
 
-        # 3. Uninstall removes program files and shortcuts, not user data.
         _uninstall(target)
-        installed = False
-        assert not (target / "SLMEducator.exe").exists()
-        assert not (target / "_internal").exists()
-        assert not start_menu.is_file()
-        assert not desktop.is_file()
-        for name in USER_DATA:
-            assert (target / name).is_file(), name
         assert {name: _sha256(target / name) for name in USER_DATA} == before
-
-        # 4. Reinstalling over the preserved data keeps it untouched.
         result = _run_setup(setup, target, tmp_path / "reinstall-after-uninstall.log")
-        assert result.returncode == 0, (
-            f"Reinstall failed with {result.returncode}\n{result.stdout}{result.stderr}"
-        )
-        installed = True
+        assert result.returncode == 0, f"Reinstall failed with {result.returncode}"
         assert (target / "SLMEducator.exe").is_file()
         assert {name: _sha256(target / name) for name in USER_DATA} == before
+    except UnsafeCleanup:
+        cleanup_safe = False
+        raise
     finally:
-        if installed and _uninstaller(target) is not None:
-            _uninstall(target)
-        shutil.rmtree(target, ignore_errors=True)
+        if cleanup_safe:
+            _cleanup(target)

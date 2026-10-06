@@ -59,6 +59,13 @@ Requiere Windows nativo, Python 3.13 con PyInstaller 6.16.0 e Inno Setup 6
 
 ## 3. Destino propuesto para la prueba de David
 
+Antes de abrirlo, volver a comprobar el hash local del punto 1, ejecutar sin
+privilegios elevados y confirmar que no hay registro de instalación ni accesos
+SLMEducator preexistentes en las carpetas reales de Inicio/escritorio. La
+comprobación de carpeta vacía que sigue es histórica: hay que repetirla. No usar
+un destino portable existente; esta receta no lo protege si no está registrado.
+Un destino distinto tampoco evita el bloqueo de un registro HKCU existente.
+
 - Destino nuevo: `%LOCALAPPDATA%\Programs\SLMEducator` (por defecto del
   instalador). Se comprobó que esa carpeta **no existe** todavía, así que será
   una instalación nueva. Instalación por usuario, sin administrador.
@@ -87,6 +94,11 @@ Requiere Windows nativo, Python 3.13 con PyInstaller 6.16.0 e Inno Setup 6
   instalador entregado.
 
 ## 5. Resultado de la preparación (artefacto final)
+
+La tabla conserva los resultados nativos comunicados durante la preparación
+original. Las correcciones posteriores del smoke/static tests no recompilan ni
+cambian este instalador y todavía requieren una ejecución Windows propia; sus
+pruebas sintéticas no son un nuevo PASS nativo.
 
 | Control | Estado | Prueba realmente ejecutada |
 |---|---|---|
