@@ -1,6 +1,6 @@
 # Maintained functional contracts
 
-Updated 2026-10-04. The maintained stack is FastAPI, SQLAlchemy/SQLite, HTTPX and
+Updated 2026-10-06. The maintained stack is FastAPI, SQLAlchemy/SQLite, HTTPX and
 Bootstrap/vanilla JavaScript. Tkinter supplies the Windows launcher only. This
 replaces an obsolete desktop-UI inventory; old module paths and configuration
 flags are not supported just because historical documentation mentioned them.
@@ -70,9 +70,19 @@ Sources: `src/api/routes/learning.py`, `assessment.py`, `mastery.py`,
 
 ## Optional AI and source provenance
 
+- Assistance is best effort: students can use tutor/Q&A without a teacher being
+  online or a course selected. Existing assigned material remains usable without
+  simultaneous teacher presence. Structured course/lesson/exercise creation stays
+  teacher/administrator-only; this does not grant learners publication authority.
 - Supported providers are Ollama, LM Studio, OpenAI and OpenRouter. Unsupported
   saved providers require explicit repair. Retired preprocessing settings have
   compatibility warnings. Saved keys are never returned to the browser.
+- Model names and endpoints are configurable within those adapters. API parameters
+  and output contracts still need to be compatible; universal model compatibility
+  is not claimed. Tutor/Q&A accepts a nonempty answer in structured JSON or plain
+  prose without structural delimiters/code fences. This fallback does not rescue
+  malformed JSON, accept error envelopes, validate factual claims or relax
+  structured authoring/grading contracts.
 - PDF/TXT/Markdown extraction uses one bounded text budget and records hash,
   parser, sections/pages, omissions and coverage. Original binaries, external
   media and OCR are excluded. Unknown historical provenance stays unknown.
@@ -84,6 +94,9 @@ Sources: `src/api/routes/learning.py`, `assessment.py`, `mastery.py`,
   delivery. Context changes invalidate stale conversation work.
 - Responses are unverified suggestions. Source references do not prove correctness.
   Lessons, notes and teacher help remain usable if AI is unavailable.
+- Tutor failures show the returned explanation and retain the question for an
+  explicit retry; they do not count as usable instruction. Q&A displays the same
+  unverified-suggestion notice used by lesson help.
 - Tutor/Q&A permits one active request per account, 100 starts per UTC day and a
   90-second local delivery deadline. Cancelled/timed-out providers may continue
   working and charging; a busy slot remains until the call returns. Receipts report
@@ -129,8 +142,17 @@ Sources: `src/api/routes/portability.py`, `src/core/services/portability_service
   runs API/service checks and serial DOM regressions. Dependency installation
   still requires package-registry access.
 - Native Windows build/start/login/restart/recovery, live-browser keyboard/screen
-  reader/zoom/bilingual journeys, model quality and human pilot remain separate
-  acceptance gates. Linux freezer mocks and DOM emulation cannot close them.
+  reader/zoom/bilingual journeys and human-pilot evidence remain separate from
+  synthetic checks. Linux freezer mocks and DOM emulation cannot close them.
+- Model scores diagnose the provider/configuration tested. Preserve their original
+  rubric, results and failures; do not require perfect scores or start another
+  model campaign automatically to accept a best-effort application candidate.
+  Functional availability, honest errors and uncertainty, authorization, privacy,
+  review/publication and provisional-grading contracts remain required.
+- Loss of Internet can be compatible with a prepared local installation and local
+  model. Loss of access to the application server is different: the service
+  worker does not cache API responses. Reading exports does not imply offline
+  interactive tutoring or synchronization.
 - No shared-host deployment, multi-process quota guarantee or educational efficacy
   claim is part of this implementation.
 

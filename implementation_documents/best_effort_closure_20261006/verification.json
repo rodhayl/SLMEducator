@@ -1,0 +1,130 @@
+{
+  "base_commit": "6109c496c48cceb7482d921887be1cb604460a37",
+  "reviewed_patch_sha256": "880b6fb69de47e85a40631697720f83d4e4ff065860ab272c98117d8f9fb7399",
+  "candidate_files": [
+    {
+      "path": "docs/FUNCTIONAL_REQUIREMENTS.md",
+      "base_blob": "3b591a32baf9a43bd2eea6d00534f8e41a5ded79",
+      "candidate_blob": "c258105e524b4da314204bc88ee3afb264ad90ad",
+      "sha256": "595a10d207962cc3fc1de80e9ac2dcc4f9ceaae87e757b58a57dd57f478dca38"
+    },
+    {
+      "path": "README.md",
+      "base_blob": "5d27d503587e4a8db3e795cbb57d07b069c05c8c",
+      "candidate_blob": "f53abfa7c37cc550a3b18ca25d19ec5256bafa02",
+      "sha256": "c18ebdc754273390ee1ebd6675d596e9a72348ed0a946bf92e7f6a902e737f0c"
+    },
+    {
+      "path": "src/core/services/ai_service.py",
+      "base_blob": "3b862d3daafb24cdbcafda8e30311c07e9b04bf8",
+      "candidate_blob": "eeba28da1b7127472012ed1104533a257f7a88fa",
+      "sha256": "4ef6d29c78cb932f978431c04cdd19ab717ae1bfb474b6736121777d181af94e"
+    },
+    {
+      "path": "src/web/dashboard.html",
+      "base_blob": "0e4f4411f4c364dca3ef6c9d97521ce775e8eaa1",
+      "candidate_blob": "4bbba472b1870adb69a1f4071ffa6c5466540ec2",
+      "sha256": "3f96886c0119609c9cfca495b494d9be9e87d1097776e848377081d5ccc3d46f"
+    },
+    {
+      "path": "src/web/static/js/dashboard.js",
+      "base_blob": "c7c599696d22020170dd7fee7e34aabb25da8c57",
+      "candidate_blob": "5eb62d18abe45a4907dad3a8d891705feafaa4a6",
+      "sha256": "5d538f061c95c768b7ebf2469c8804cf4b6b4e6675c5909cd4047fed2430873a"
+    },
+    {
+      "path": "tests/trust/test_ai_generation_boundaries.py",
+      "base_blob": "aceb6e77232e678f23316076203c43f964f104fc",
+      "candidate_blob": "34a81fc471efad19efd0176e32b72d59917fd3ee",
+      "sha256": "526f7299f3244763f2f69ad09288308fa5d6e0b62de5590da2e3d866dc7b247d"
+    },
+    {
+      "path": "tests/ui/tutor_receipts_journey.test.cjs",
+      "base_blob": "0ae283ada99797c086bff63300f9632f363517fc",
+      "candidate_blob": "a890131950663752c4233a3c750c7962241fceef",
+      "sha256": "aa5810384ee7a6cae28eaf997403ddfb8fb484536a533d932b1301eaf1ef5b4a"
+    },
+    {
+      "path": "tests/trust/test_tutor_text_fallback.py",
+      "base_blob": null,
+      "candidate_blob": "a21038b098bc33f45d3df37dd7da3ace30b9aa3e",
+      "sha256": "4524f9b2e435425c76f86294e96655ffbab407f8c3c40c9aaf9554cf41ad46da"
+    }
+  ],
+  "results": {
+    "dom": {
+      "passed": 197,
+      "failed": 0
+    },
+    "python_affected": {
+      "passed": 216,
+      "failed": 0
+    },
+    "python_ui_source": {
+      "passed": 18,
+      "failed": 0
+    },
+    "flake8": "PASS",
+    "mypy_ai_service": "PASS",
+    "javascript_syntax": "PASS",
+    "diff_whitespace": "PASS",
+    "native_browser": "NOT RUN: Chromium startup blocked by EPERM before any smoke assertions",
+    "provider_inferences": 0,
+    "actions_calls": 0
+  },
+  "independent_review": {
+    "result": "No remaining blocking finding",
+    "python_passed": 153,
+    "additional_boundary_passed": 20,
+    "dom_passed": 87,
+    "report_sha256": "b8393403f3cc36754ed97b1ec1808570f757426e6a6174ac55b8d552c0dbc8df"
+  },
+  "historical_scores": {
+    "v11_historical": "30/44",
+    "v11_development": "10/12",
+    "native_traces": "61/61",
+    "changed": false
+  },
+  "local_validation_hashes": [
+    {
+      "artifact": "candidate-before-final-gate.patch",
+      "sha256": "880b6fb69de47e85a40631697720f83d4e4ff065860ab272c98117d8f9fb7399"
+    },
+    {
+      "artifact": "ui-final-gate.txt",
+      "sha256": "76ff8ba266d0dfa1fb0e7aeb16f722337a35cd3b1ab98fb93341d97e8cf66553"
+    },
+    {
+      "artifact": "ui-final.xml",
+      "sha256": "3f765735f898c3e98d35516a18f35712c2e71501dca68225c4456e26f3a05da3"
+    },
+    {
+      "artifact": "ui-final.exit",
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "artifact": "python-final-gate.txt",
+      "sha256": "321f6c47a7438aa4e9d2c8290cc767eeb4bbeb2bb45c6380bd0a25957f89ec7c"
+    },
+    {
+      "artifact": "python-final.xml",
+      "sha256": "c9ef593c8c726576bae9f94b76dc540513b8bc9997000d1ac56488db57bbc60f"
+    },
+    {
+      "artifact": "python-final.exit",
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "artifact": "ui-source-final-gate.txt",
+      "sha256": "bdf3f191bd1967efe77e18a0de91d6ef3d2e7e7a563a120d69e8126ef96dca22"
+    },
+    {
+      "artifact": "lint-final.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "artifact": "type-final.txt",
+      "sha256": "5d4b6d285b77932e3d08212c3b4974d0a803f98ec60408ac6ccf6a063fa6c19e"
+    }
+  ]
+}

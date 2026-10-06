@@ -2,7 +2,7 @@
 
 **Status:** Source-run application for local development and evaluation. The repository includes test suites and Windows packaging scripts; packaged GitHub releases are not currently provided.
 
-SLMEducator brings teacher and student workflows into a Python/FastAPI learning application. It combines study plans, lessons, exercises, tutoring and learning-session tracking with configurable local or cloud AI providers. The project explores how AI assistance can fit into structured educational workflows while keeping roles, progress and application data in a conventional web architecture.
+SLMEducator brings teacher and student workflows into a Python/FastAPI learning application. It combines study plans, lessons, exercises, tutoring and learning-session tracking with configurable local or cloud AI providers. Its goal is best-effort educational help, including when students cannot reach a teacher at the moment they need assistance. AI suggestions can be useful and still contain errors; the application does not promise perfect answers.
 
 ## What this project demonstrates
 
@@ -11,7 +11,7 @@ SLMEducator brings teacher and student workflows into a Python/FastAPI learning 
 - Provider integration separated from application services and persistence.
 - Source setup, automated tests, browser validation scenarios and Windows packaging.
 
-Use demonstration data for evaluation. Generated learning material needs teacher review, and provider selection determines whether inputs leave the machine. This repository does not establish improved learning outcomes, suitability for children or regulatory compliance in a particular deployment.
+Use demonstration data for evaluation. Students can ask the tutor or Q&A without a teacher being online, with or without selected course material. Previously assigned lessons and practice remain available independently of teacher presence. Creating structured courses, lessons and exercises remains a teacher/administrator workflow; shared publication and assignment require review, and subjective AI grades remain provisional. Provider selection determines whether inputs leave the machine. This repository does not establish improved learning outcomes, suitability for children or regulatory compliance in a particular deployment.
 
 ## Requirements
 
@@ -54,6 +54,22 @@ python -m venv venv
   - `.env`
   - `env.properties`
   - `settings.properties`
+
+AI settings accept a model name and endpoint through the Ollama, LM Studio,
+OpenAI and OpenRouter adapters. Choose a model compatible with the selected
+adapter's API and response requirements; this is not a guarantee that every
+model or API works. No second model is required. Tutor/Q&A accepts a JSON object
+containing a nonempty `answer`, `explanation` or `response`, or a nonempty plain
+prose reply. The prose fallback excludes structural delimiters and code fences;
+it does not rescue broken JSON or mark answers verified. Provider/protocol errors
+remain failures. Structured authoring and grading keep their validation contracts.
+
+Once the local application, dependencies, data and a local model are prepared,
+Internet access is not required for the local-provider path. Cloud providers need
+connectivity. The browser still needs the running application server: its static
+cache does not provide offline API data or inference. Exported learner handouts
+can be read separately. Hardware suitability and installation preparation remain
+deployment considerations.
 
 ## Initial Admin Account
 
@@ -152,8 +168,21 @@ artifact hashes, acceptance results and remaining limits in
 The subsequent [source-clarification contract candidate](docs/SOURCE_CLARIFICATION_CONTRACT_20261005.md)
 adds bounded lesson-output checks. The
 [Windows v9 semantic/GUI report](docs/reports/windows-v9-semantic-gui-20261006/REPORT.md)
-records 37/44 cases accepted strictly, with local GUI repairs. Rebuilding remains blocked
-by semantic acceptance; the earlier EXE does not contain those changes.
+records 37/44 cases accepted strictly, with local GUI repairs. The later
+[single-pass report](implementation_documents/lesson_claim_consistency_20261006_final_pass_report.md)
+preserves 30/44 historical and 10/12 development results, with 61/61 inference
+traces. These scores are diagnostics under their recorded strict rubric, not a
+requirement for perfect model output before building a best-effort candidate.
+Historical results and failures are unchanged. The earlier EXE does not contain
+subsequent source changes; a new package still needs native build/start/login
+verification before distribution.
+
+For future candidates, acceptance distinguishes application integrity from model
+quality: usable student workflows, explicit failure/retry behavior, visible
+uncertainty, data isolation and unchanged publication/grading boundaries are
+required. A safe error is a handled failure, not evidence that the student
+received useful instruction. Model quality observations remain visible without
+automatically triggering another model-selection or scoring campaign.
 
 ```powershell
 .\build_package.bat --help

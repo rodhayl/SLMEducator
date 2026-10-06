@@ -180,13 +180,17 @@ def invoke_generation(service, operation):
     ["plan", "exercise", "lesson", "topic", "questions", "outline", "tutor"],
 )
 @pytest.mark.parametrize("content", ["No structured answer is available.", "{broken JSON}"])
-def test_structured_generation_rejects_unparseable_model_output(
+def test_generation_format_contract_is_strict_except_plain_tutor_prose(
     generation_service, operation, content
 ):
     service, respond = generation_service
     respond(content)
-    with pytest.raises(AIResponseParseError):
-        invoke_generation(service, operation)
+    if operation == "tutor" and content == "No structured answer is available.":
+        # Tutor prose is a suggestion, not proof of useful or correct instruction.
+        assert invoke_generation(service, operation) == {"answer": content}
+    else:
+        with pytest.raises(AIResponseParseError):
+            invoke_generation(service, operation)
     assert service.last_response.content == content
 
 

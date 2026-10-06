@@ -2395,7 +2395,12 @@ if (chatForm) {
             const receipt = result?.receipt;
             if (receipt && (receipt.request_id !== pending.id || !['completed','failed','cancelled','timed_out'].includes(receipt.status))) throw new Error(SLMClient.message('ai_receipt_unconfirmed', 'The server did not confirm this request. Your question is kept; retry.'));
             pending.terminal = true; status.textContent = receipt ? tutorReceiptText(receipt) : SLMClient.message('ai_usage_unreported', 'Request usage was not reported. Cost is unknown.');
-            if ((receipt && receipt.status !== 'completed') || result.status !== 'suggestion') return;
+            if ((receipt && receipt.status !== 'completed') || result.status !== 'suggestion') {
+                const reason = typeof result.response === 'string' && result.response.trim() ? result.response :
+                    SLMClient.message('ai_unavailable', 'AI response unavailable. Try again or ask your teacher.');
+                status.textContent = reason + ' ' + status.textContent;
+                return;
+            }
             if (payload.source_version && result.source?.source_version !== payload.source_version) { tutorSourceReady = false; document.getElementById('tutor-source-status').textContent = SLMClient.message('source_changed', 'Source changed. Reload the source, review your sections, and retry.'); return; }
             if (result.assistance_policy) applyTutorPolicy(result.assistance_policy);
             appendTutorMessage(message, false); appendTutorMessage(result.response, true, result);

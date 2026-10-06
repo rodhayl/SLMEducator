@@ -1591,8 +1591,29 @@ class AIService:
         return len(text) // 4
 
     def _parse_tutoring_response(self, response: str) -> Dict[str, Any]:
-        """Require a usable structured suggestion; syntax failure is not success."""
-        data = self._parse_json_response(response, "tutoring")
+        """Accept plain tutor prose without salvaging broken structured output."""
+        try:
+            data = self._parse_json_response(response, "tutoring")
+        except AIResponseParseError:
+            text = response.strip()
+            # A tutor can display prose, but structural fragments stay failures.
+            # Authoring/grading continue using their existing strict parsers.
+            if (
+                not text
+                or any(marker in text for marker in ("{", "}", "[", "]", "```"))
+                or text.startswith(('"', "'"))
+            ):
+                raise
+            # JSON scalar tokens (including broken numeric forms) are not prose.
+            # Match the whole reply; ordinary sentences may contain these words.
+            tokens = [token for token in re.split(r"[\s,]+", text) if token]
+            if not tokens or all(
+                token in ("null", "true", "false")
+                or re.fullmatch(r"[+\-\d.][\d.eE+\-]*", token)
+                for token in tokens
+            ):
+                raise
+            return {"answer": text}
         if not isinstance(data, dict) or not any(
             isinstance(data.get(key), str) and data[key].strip()
             for key in ("answer", "explanation", "response")
