@@ -1,0 +1,29 @@
+{
+  "source_commit": "a9d3760e541ae8a60b572b372d47f3e90b2e8894",
+  "published_review_commit": "916753a2cc07f0472b7d1f5953234b1270238315",
+  "worktree": "new detached .v11-final-evaluation-worktree",
+  "python": "Existing sibling .production-worktree/venv/Scripts/python.exe; no dependency installation",
+  "preflight": ["Read-only lms ps --json", "LM Studio process product version 0.4.25.0", "Active llama-server process path ends nvidia-cuda12-avx2-2.51.0/llama-server.exe", "Get-FileHash SHA256 of the same loaded GGUF", "Read-only GET http://127.0.0.1:1234/api/v1/models"],
+  "capture": "python temp/v11-tools/native_capture.py; started before first case; timestamp gate and exact synthetic source/question filter; 61 events retained, process stopped after five grading calls",
+  "servers": [
+    "python tests/browser/local_provider_server.py --state-dir temp/v11-historical-objective --port 8121",
+    "python tests/browser/local_provider_server.py --state-dir temp/v11-historical-source-review --port 8122",
+    "python tests/browser/local_provider_server.py --state-dir temp/v11-development --port 8123"
+  ],
+  "generation_in_order": [
+    "python tests/browser/evaluate_local_provider.py --state-dir temp/v11-historical-objective --base-url http://127.0.0.1:8121 --cases-file tests/fixtures/local_semantic_objective_20261005.json --split development --max-tokens 4000 --reasoning-effort none",
+    "python tests/browser/evaluate_local_provider.py --state-dir temp/v11-historical-objective --base-url http://127.0.0.1:8121 --cases-file tests/fixtures/local_semantic_objective_20261005.json --split reserved --max-tokens 4000 --reasoning-effort none",
+    "python tests/browser/evaluate_local_provider.py --state-dir temp/v11-historical-source-review --base-url http://127.0.0.1:8122 --cases-file tests/fixtures/local_semantic_source_review_20261005.json --split reserved --max-tokens 4000 --reasoning-effort none",
+    "python tests/browser/evaluate_local_provider.py --state-dir temp/v11-development --base-url http://127.0.0.1:8123 --cases-file tests/fixtures/local_semantic_source_trust_development_20261006.json --split development --max-tokens 4000 --reasoning-effort none"
+  ],
+  "split_note": "The first file contains 25 prior development and 11 prior reserved cases; all 36 are historical regression here. Together with 8 source-review cases they form the unchanged 44, followed separately by the unchanged 12 development cases. No fresh holdout claim.",
+  "saved_audit": [
+    "python temp/v11-tools/saved_audit.py --state-dir temp/v11-historical-source-review --base-url http://127.0.0.1:8122 --label historical-source-review",
+    "python temp/v11-tools/saved_audit.py --state-dir temp/v11-historical-objective --base-url http://127.0.0.1:8121 --label historical-objective",
+    "python temp/v11-tools/saved_audit.py --state-dir temp/v11-development --base-url http://127.0.0.1:8123 --label development"
+  ],
+  "focused_lint": "python -m flake8 temp/v11-tools --select E9,F63,F7,F82 --jobs 1; exit 0",
+  "verification": ["git diff --check; exit 0", "git diff -- src tests/fixtures tests/browser; empty", "git diff HEAD^ HEAD -- <three frozen case files>; empty", "python temp/v11-tools/assemble.py; exit 0", "python temp/v11-tools/finish.py; exit 0"],
+  "preparation_errors_without_inference": ["Report path absent at candidate; read published review from follow-up documentation commit", "Two inline python -c probes failed due to PowerShell quotation; neither performed inference", "One helper patch failed to match; no file mutation", "Report verifier initially failed on PowerShell value/Count JSON wrapper; fixed evidence reader, no application changes or inference"],
+  "not_run": ["additional evaluation", "tokenizer investigation", "Actions", "main changes", "Windows EXE", "pilot", "deployment", "real-data operations"]
+}

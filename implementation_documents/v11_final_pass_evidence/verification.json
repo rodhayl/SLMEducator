@@ -1,0 +1,41 @@
+{
+  "candidate_sha": "a9d3760e541ae8a60b572b372d47f3e90b2e8894",
+  "source_tree": "626c74ac1de70728bda97468c58cdc86737c84b5",
+  "application_tree": "359f6da21725cd361a72aa337874905870acae14",
+  "application_prompts_fixtures_harness_unchanged": true,
+  "historical_v9": "37/44",
+  "historical_v10": "35/44 + 8/12",
+  "historical_cases": 44,
+  "development_cases": 12,
+  "new_characterization_pairs_scored": 0,
+  "first_responses_preserved": 56,
+  "generation_inferences": 56,
+  "grading_inferences": 5,
+  "probe_inferences": 0,
+  "total_inferences": 61,
+  "reasoning_tokens": 0,
+  "tokens": {
+    "prompt_tokens": 53583,
+    "completion_tokens": 15049,
+    "total_tokens": 68632
+  },
+  "generation_order_created_boundaries": [
+    [
+      1791302303,
+      1791302876
+    ],
+    [
+      1791302901,
+      1791303017
+    ],
+    [
+      1791303051,
+      1791303226
+    ]
+  ],
+  "native_events": 61,
+  "native_exact_generation_coverage": 56,
+  "native_exact_all_inference_coverage": 61,
+  "contract_violations": [],
+  "scoring": "Manual technical assessment of every visible field, including summary and questions; no LLM judge or human pedagogical acceptance."
+}

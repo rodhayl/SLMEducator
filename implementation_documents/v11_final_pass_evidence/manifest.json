@@ -1,0 +1,166 @@
+{
+  "source_commit": "a9d3760e541ae8a60b572b372d47f3e90b2e8894",
+  "written_at_utc": "2026-10-06T16:19:25.910356+00:00",
+  "files": [
+    {
+      "path": "implementation_documents/lesson_claim_consistency_20261006_final_pass_report.md",
+      "bytes": 21181,
+      "sha256": "ed8ceaa34402ec9c3ad75dc2da8771a9db5b26d1ed85566c73f273816aa767af"
+    },
+    {
+      "path": "implementation_documents/v11_final_pass_evidence/assemble.py",
+      "bytes": 8771,
+      "sha256": "3f729d714310fa5b0522d342c53d09056ee47c59acec32cc58e89df792db1303"
+    },
+    {
+      "path": "implementation_documents/v11_final_pass_evidence/candidate_review.md",
+      "bytes": 5384,
+      "sha256": "6caf621d3fd989763984f09df74a37a0afdb82de1d9d1ce68506102c96273108"
+    },
+    {
+      "path": "implementation_documents/v11_final_pass_evidence/capture_start.json",
+      "bytes": 242,
+      "sha256": "5dfb8814ee266987fa3bdb8bab136fcf4877fc6fe016e4ba059f189355a2504c"
+    },
+    {
+      "path": "implementation_documents/v11_final_pass_evidence/checks.json",
+      "bytes": 90298,
+      "sha256": "77bb71213dde7701fca8afa7dbad809d2dbecc966f4c66d84d0614030935c87b"
+    },
+    {
+      "path": "implementation_documents/v11_final_pass_evidence/cleanup.json",
+      "bytes": 2784,
+      "sha256": "c42f9548be714a3776ede42df260b054c99d0d0117e7d302ec36c7063ad5d6f2"
+    },
+    {
+      "path": "implementation_documents/v11_final_pass_evidence/commands.json",
+      "bytes": 3850,
+      "sha256": "79dbc0984c8f18e5ba560ee1f18fce89f07ec53b9daafd6619b458171afb4150"
+    },
+    {
+      "path": "implementation_documents/v11_final_pass_evidence/decisions.json",
+      "bytes": 10517,
+      "sha256": "17b7ac17fb8ec35e4dd09be354e9b08992f6f2ee3dbafdd8cf2f98684031d2d5"
+    },
+    {
+      "path": "implementation_documents/v11_final_pass_evidence/development-development-results.json",
+      "bytes": 106952,
+      "sha256": "b3a63beb9ed482f35041d0b3d8365754fb052747c026ae1fef02de6d398800a0"
+    },
+    {
+      "path": "implementation_documents/v11_final_pass_evidence/development-inference.jsonl",
+      "bytes": 79556,
+      "sha256": "742301b177c028c8a30cd4fae0ea72f88ea71116d176017fea7e5972338b6919"
+    },
+    {
+      "path": "implementation_documents/v11_final_pass_evidence/development-saved-audit.json",
+      "bytes": 88502,
+      "sha256": "6632d8ab88c07fb0def61d596741292c2dcc3c9ed66260682408b88e8cd2daaf"
+    },
+    {
+      "path": "implementation_documents/v11_final_pass_evidence/executed_harness.py",
+      "bytes": 5078,
+      "sha256": "92b2ca97bb03ef3573557ac468b87915e0293f9eb76e3f4797b3c83a7edacc86"
+    },
+    {
+      "path": "implementation_documents/v11_final_pass_evidence/finish.py",
+      "bytes": 13573,
+      "sha256": "f15d0f03e60a60923341bfcf8f08e3e42d047623dd37af60a6074b7d30a031a8"
+    },
+    {
+      "path": "implementation_documents/v11_final_pass_evidence/grading_visible_scores.json",
+      "bytes": 1448,
+      "sha256": "8a86cbd5538626d91b98290c56b1a015f16ab5525fd822ca55e5087fab7fee51"
+    },
+    {
+      "path": "implementation_documents/v11_final_pass_evidence/historical-objective-development-results.json",
+      "bytes": 246737,
+      "sha256": "6d83d229f36e19a724a530baedb446bcd24448fc22ac20877e9abf27960dd608"
+    },
+    {
+      "path": "implementation_documents/v11_final_pass_evidence/historical-objective-inference.jsonl",
+      "bytes": 235476,
+      "sha256": "d897a535df0fb9bf6de6beebdbc040f2225b5ece3fa19325f2f211709d57fed7"
+    },
+    {
+      "path": "implementation_documents/v11_final_pass_evidence/historical-objective-reserved-results.json",
+      "bytes": 111048,
+      "sha256": "b0b6d349edd9f3daf82a3d06b0f094e2df0cf0754ab6618b57ec3d864800cac9"
+    },
+    {
+      "path": "implementation_documents/v11_final_pass_evidence/historical-objective-saved-audit.json",
+      "bytes": 532034,
+      "sha256": "a08a17cbf29554d5292bbc11b032fd0a7e383cc43c740e9e3d64a3040256bd8c"
+    },
+    {
+      "path": "implementation_documents/v11_final_pass_evidence/historical-source-review-inference.jsonl",
+      "bytes": 55661,
+      "sha256": "1ef5981005f5c9e077fe67400d3dab7c13c45050e7cd772eaa8bc3ce496b898b"
+    },
+    {
+      "path": "implementation_documents/v11_final_pass_evidence/historical-source-review-reserved-results.json",
+      "bytes": 74177,
+      "sha256": "2b8963d0161e798381e79409a3b1c1bfe9b66e6dbb1479328a673c807a7bd19d"
+    },
+    {
+      "path": "implementation_documents/v11_final_pass_evidence/historical-source-review-saved-audit.json",
+      "bytes": 56303,
+      "sha256": "fe53be04140f832bf5c93c225bd0d62bc446435b766a49e93705f604e879b1de"
+    },
+    {
+      "path": "implementation_documents/v11_final_pass_evidence/historical-v10-scores.json",
+      "bytes": 37623,
+      "sha256": "5d98c92e93b29dc09844789d28b32a7cb0d8c70dc3ce8df37cd54352d1cb508f"
+    },
+    {
+      "path": "implementation_documents/v11_final_pass_evidence/historical-v9-scores.json",
+      "bytes": 26122,
+      "sha256": "c973398d49e264cd3b48a77247173c3cbf269471cc0e535fabe5003cf973abfe"
+    },
+    {
+      "path": "implementation_documents/v11_final_pass_evidence/native_capture.py",
+      "bytes": 2482,
+      "sha256": "2fbfc1cdd249cc9f51ab6102a27efa316ee82cc96a736b20f128da2c74d8f811"
+    },
+    {
+      "path": "implementation_documents/v11_final_pass_evidence/native_coverage.json",
+      "bytes": 13131,
+      "sha256": "630eeb59f3d3d761b707e351bf387618a35703b74f4515730c0fb90d580752d2"
+    },
+    {
+      "path": "implementation_documents/v11_final_pass_evidence/native_inputs.jsonl",
+      "bytes": 284448,
+      "sha256": "166f6a69c94efa8b7bf3d4e9513daaa38fa93f315ddd62fd29812d0d61c98645"
+    },
+    {
+      "path": "implementation_documents/v11_final_pass_evidence/preflight.json",
+      "bytes": 8418,
+      "sha256": "f82885691bc903250d1be12018df92d44a5940490a16ea06e85f773f64776c5e"
+    },
+    {
+      "path": "implementation_documents/v11_final_pass_evidence/read_grades.py",
+      "bytes": 456,
+      "sha256": "6841ae349a5689ead661f98e6c8adc245547137f837a71ad58d7737fdf7d63fb"
+    },
+    {
+      "path": "implementation_documents/v11_final_pass_evidence/read_results.py",
+      "bytes": 1029,
+      "sha256": "314f625a6f4536ba83fd5c14c5a31ac5b7364ce6821c5e20cb91d06d6c406a57"
+    },
+    {
+      "path": "implementation_documents/v11_final_pass_evidence/saved_audit.py",
+      "bytes": 5189,
+      "sha256": "5bcb0faa441aaa67a33eb1aa422ce3c6e2c4f0c2f696d3c81a360dc6a23dced3"
+    },
+    {
+      "path": "implementation_documents/v11_final_pass_evidence/scores.json",
+      "bytes": 39782,
+      "sha256": "1607541c42186a8084c38009c1dff6b97d66e464cb37a9265131f62ff511b96c"
+    },
+    {
+      "path": "implementation_documents/v11_final_pass_evidence/verification.json",
+      "bytes": 1200,
+      "sha256": "670a2b00792c12ef2c33313b1a342b7feb276fa6accb39af794721058a44e6e9"
+    }
+  ]
+}

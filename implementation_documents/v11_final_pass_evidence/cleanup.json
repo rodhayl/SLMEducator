@@ -1,0 +1,44 @@
+﻿{
+    "Trading_not_interrupted":  true,
+    "new_synthetic_states_retained_locally_in_git_ignored_temp":  true,
+    "loaded_model_after":  {
+                               "value":  [
+                                             {
+                                                 "type":  "llm",
+                                                 "modelKey":  "gemma-4-12b-it-qat@q4_k_xl",
+                                                 "format":  "gguf",
+                                                 "displayName":  "Gemma 4 12B Instruct QAT UD",
+                                                 "publisher":  "unsloth",
+                                                 "path":  "unsloth/gemma-4-12B-it-qat-GGUF/gemma-4-12B-it-qat-UD-Q4_K_XL.gguf",
+                                                 "sizeBytes":  6925879040,
+                                                 "indexedModelIdentifier":  "unsloth/gemma-4-12B-it-qat-GGUF/gemma-4-12B-it-qat-UD-Q4_K_XL.gguf",
+                                                 "deviceIdentifier":  null,
+                                                 "paramsString":  "12B",
+                                                 "architecture":  "gemma4",
+                                                 "quantization":  {
+                                                                      "name":  "Q4_K_XL",
+                                                                      "bits":  4
+                                                                  },
+                                                 "identifier":  "slm-production-evaluation",
+                                                 "ttlMs":  null,
+                                                 "lastUsedTime":  1791303343743,
+                                                 "vision":  true,
+                                                 "trainedForToolUse":  true,
+                                                 "maxContextLength":  262144,
+                                                 "contextLength":  8192,
+                                                 "status":  "idle",
+                                                 "queued":  0,
+                                                 "parallel":  1
+                                             }
+                                         ],
+                               "Count":  1
+                           },
+    "evaluation_servers_listening":  0,
+    "native_stream_process_exists":  false,
+    "own_tool_sessions_stopped":  [
+                                      15530,
+                                      25504,
+                                      74521,
+                                      80269
+                                  ]
+}

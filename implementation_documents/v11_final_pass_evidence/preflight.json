@@ -1,0 +1,109 @@
+﻿{
+    "native_models":  {
+                          "models":  [
+                                         {
+                                             "type":  "embedding",
+                                             "publisher":  "nomic-ai",
+                                             "key":  "text-embedding-nomic-embed-text-v1.5",
+                                             "display_name":  "Nomic Embed Text v1.5",
+                                             "quantization":  {
+                                                                  "name":  "Q4_K_M",
+                                                                  "bits_per_weight":  4
+                                                              },
+                                             "size_bytes":  84106624,
+                                             "params_string":  null,
+                                             "loaded_instances":  [
+
+                                                                  ],
+                                             "max_context_length":  2048,
+                                             "format":  "gguf"
+                                         },
+                                         {
+                                             "type":  "llm",
+                                             "publisher":  "unsloth",
+                                             "key":  "gemma-4-12b-it-qat@q4_k_xl",
+                                             "display_name":  "Gemma 4 12B Instruct QAT UD",
+                                             "architecture":  "gemma4",
+                                             "quantization":  {
+                                                                  "name":  "Q4_K_XL",
+                                                                  "bits_per_weight":  4
+                                                              },
+                                             "size_bytes":  6925879040,
+                                             "params_string":  "12B",
+                                             "loaded_instances":  [
+                                                                      {
+                                                                          "id":  "slm-production-evaluation",
+                                                                          "config":  {
+                                                                                         "context_length":  8192,
+                                                                                         "eval_batch_size":  2048,
+                                                                                         "physical_batch_size":  512,
+                                                                                         "parallel":  1,
+                                                                                         "flash_attention":  true,
+                                                                                         "context_checkpoints":  32,
+                                                                                         "reasoning_budget_message":  "",
+                                                                                         "speculative_draft_mtp":  false,
+                                                                                         "speculative_draft_simple":  false,
+                                                                                         "speculative_draft_model":  "",
+                                                                                         "speculative_draft_max_tokens":  3,
+                                                                                         "speculative_draft_min_tokens":  0,
+                                                                                         "speculative_draft_min_continue_probability":  0,
+                                                                                         "offload_kv_cache_to_gpu":  true
+                                                                                     }
+                                                                      }
+                                                                  ],
+                                             "max_context_length":  262144,
+                                             "format":  "gguf",
+                                             "capabilities":  {
+                                                                  "vision":  true,
+                                                                  "trained_for_tool_use":  true,
+                                                                  "reasoning":  {
+                                                                                    "allowed_options":  [
+                                                                                                            "off",
+                                                                                                            "on"
+                                                                                                        ],
+                                                                                    "default":  "on"
+                                                                                }
+                                                              },
+                                             "description":  null
+                                         }
+                                     ]
+                      },
+    "loaded_instances":  {
+                             "value":  [
+                                           {
+                                               "type":  "llm",
+                                               "modelKey":  "gemma-4-12b-it-qat@q4_k_xl",
+                                               "format":  "gguf",
+                                               "displayName":  "Gemma 4 12B Instruct QAT UD",
+                                               "publisher":  "unsloth",
+                                               "path":  "unsloth/gemma-4-12B-it-qat-GGUF/gemma-4-12B-it-qat-UD-Q4_K_XL.gguf",
+                                               "sizeBytes":  6925879040,
+                                               "indexedModelIdentifier":  "unsloth/gemma-4-12B-it-qat-GGUF/gemma-4-12B-it-qat-UD-Q4_K_XL.gguf",
+                                               "deviceIdentifier":  null,
+                                               "paramsString":  "12B",
+                                               "architecture":  "gemma4",
+                                               "quantization":  {
+                                                                    "name":  "Q4_K_XL",
+                                                                    "bits":  4
+                                                                },
+                                               "identifier":  "slm-production-evaluation",
+                                               "ttlMs":  null,
+                                               "lastUsedTime":  null,
+                                               "vision":  true,
+                                               "trainedForToolUse":  true,
+                                               "maxContextLength":  262144,
+                                               "contextLength":  8192,
+                                               "status":  "generating",
+                                               "queued":  0,
+                                               "parallel":  1
+                                           }
+                                       ],
+                             "Count":  1
+                         },
+    "source_tree":  "626c74ac1de70728bda97468c58cdc86737c84b5",
+    "model_sha256":  "90fd44e29e0d7cffeb0fd00dc73cfdab9ed0b0e95306ecf7821ea634c940c370",
+    "lm_studio_product_version":  "0.4.25.0",
+    "source_sha":  "a9d3760e541ae8a60b572b372d47f3e90b2e8894",
+    "runtime_path":  "%USERPROFILE%\\.lmstudio\\extensions\\backends\\llama.cpp-win-x86_64-nvidia-cuda12-avx2-2.51.0\\llama-server.exe",
+    "timestamp_utc":  "2026-10-06T15:58:32.8528660Z"
+}

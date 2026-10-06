@@ -1,0 +1,2929 @@
+{
+  "cases": [
+    {
+      "id": "dev-explanation",
+      "battery": "historical-objective",
+      "initial_status": 200,
+      "all_ready": true,
+      "replay_same_result": true,
+      "replay_status": 200,
+      "replay_same_saved_ids": true,
+      "replay_same_item_identity": true,
+      "persisted_ids_match": true,
+      "no_duplicate_ids_or_positions": true,
+      "publication_409": true,
+      "roles": [
+        "system",
+        "user"
+      ],
+      "lesson_roles_separate": true,
+      "lesson_task_fields_literal": true,
+      "parameters": {
+        "model": "slm-production-evaluation",
+        "temperature": 0.0,
+        "max_tokens": 4000,
+        "reasoning_effort": "none"
+      },
+      "usage": {
+        "prompt_tokens": 1003,
+        "completion_tokens": 189,
+        "total_tokens": 1192,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "native_input_matches": 1,
+      "native_input_reasoning_disabled": true,
+      "saved_items": [
+        {
+          "content_id": 4,
+          "version": "teacher-reviewed-v11-consistent-lesson-claims",
+          "expected_version": true,
+          "draft_unverified": true,
+          "fragment_hash_matches": true,
+          "document_hash_matches": true,
+          "literal_ranges_match": true,
+          "character_counts_match": true,
+          "budget_at_most_6000": true,
+          "fragment_in_request": true,
+          "use_coverage": "complete",
+          "extraction_coverage": "unknown"
+        }
+      ]
+    },
+    {
+      "id": "dev-calculation",
+      "battery": "historical-objective",
+      "initial_status": 200,
+      "all_ready": true,
+      "replay_same_result": true,
+      "replay_status": 200,
+      "replay_same_saved_ids": true,
+      "replay_same_item_identity": true,
+      "persisted_ids_match": true,
+      "no_duplicate_ids_or_positions": true,
+      "publication_409": true,
+      "roles": [
+        "user"
+      ],
+      "lesson_roles_separate": true,
+      "lesson_task_fields_literal": true,
+      "parameters": {
+        "model": "slm-production-evaluation",
+        "temperature": 0.0,
+        "max_tokens": 2000,
+        "reasoning_effort": "none"
+      },
+      "usage": {
+        "prompt_tokens": 398,
+        "completion_tokens": 220,
+        "total_tokens": 618,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "native_input_matches": 1,
+      "native_input_reasoning_disabled": true,
+      "saved_items": [
+        {
+          "content_id": 5,
+          "version": "teacher-reviewed-v10-separated-lesson-request",
+          "expected_version": true,
+          "draft_unverified": true,
+          "fragment_hash_matches": true,
+          "document_hash_matches": true,
+          "literal_ranges_match": true,
+          "character_counts_match": true,
+          "budget_at_most_6000": true,
+          "fragment_in_request": true,
+          "use_coverage": "complete",
+          "extraction_coverage": "unknown"
+        }
+      ]
+    },
+    {
+      "id": "reserved-insufficient",
+      "battery": "historical-objective",
+      "initial_status": 200,
+      "all_ready": true,
+      "replay_same_result": true,
+      "replay_status": 200,
+      "replay_same_saved_ids": true,
+      "replay_same_item_identity": true,
+      "persisted_ids_match": true,
+      "no_duplicate_ids_or_positions": true,
+      "publication_409": true,
+      "roles": [
+        "system",
+        "user"
+      ],
+      "lesson_roles_separate": true,
+      "lesson_task_fields_literal": true,
+      "parameters": {
+        "model": "slm-production-evaluation",
+        "temperature": 0.0,
+        "max_tokens": 4000,
+        "reasoning_effort": "none"
+      },
+      "usage": {
+        "prompt_tokens": 1002,
+        "completion_tokens": 208,
+        "total_tokens": 1210,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "native_input_matches": 1,
+      "native_input_reasoning_disabled": true,
+      "saved_items": [
+        {
+          "content_id": 6,
+          "version": "teacher-reviewed-v11-consistent-lesson-claims",
+          "expected_version": true,
+          "draft_unverified": true,
+          "fragment_hash_matches": true,
+          "document_hash_matches": true,
+          "literal_ranges_match": true,
+          "character_counts_match": true,
+          "budget_at_most_6000": true,
+          "fragment_in_request": true,
+          "use_coverage": "complete",
+          "extraction_coverage": "unknown"
+        }
+      ]
+    },
+    {
+      "id": "reserved-conflict",
+      "battery": "historical-objective",
+      "initial_status": 200,
+      "all_ready": true,
+      "replay_same_result": true,
+      "replay_status": 200,
+      "replay_same_saved_ids": true,
+      "replay_same_item_identity": true,
+      "persisted_ids_match": true,
+      "no_duplicate_ids_or_positions": true,
+      "publication_409": true,
+      "roles": [
+        "system",
+        "user"
+      ],
+      "lesson_roles_separate": true,
+      "lesson_task_fields_literal": true,
+      "parameters": {
+        "model": "slm-production-evaluation",
+        "temperature": 0.0,
+        "max_tokens": 4000,
+        "reasoning_effort": "none"
+      },
+      "usage": {
+        "prompt_tokens": 1019,
+        "completion_tokens": 304,
+        "total_tokens": 1323,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "native_input_matches": 1,
+      "native_input_reasoning_disabled": true,
+      "saved_items": [
+        {
+          "content_id": 7,
+          "version": "teacher-reviewed-v11-consistent-lesson-claims",
+          "expected_version": true,
+          "draft_unverified": true,
+          "fragment_hash_matches": true,
+          "document_hash_matches": true,
+          "literal_ranges_match": true,
+          "character_counts_match": true,
+          "budget_at_most_6000": true,
+          "fragment_in_request": true,
+          "use_coverage": "complete",
+          "extraction_coverage": "unknown"
+        }
+      ]
+    },
+    {
+      "id": "reserved-hostile",
+      "battery": "historical-objective",
+      "initial_status": 200,
+      "all_ready": true,
+      "replay_same_result": true,
+      "replay_status": 200,
+      "replay_same_saved_ids": true,
+      "replay_same_item_identity": true,
+      "persisted_ids_match": true,
+      "no_duplicate_ids_or_positions": true,
+      "publication_409": true,
+      "roles": [
+        "system",
+        "user"
+      ],
+      "lesson_roles_separate": true,
+      "lesson_task_fields_literal": true,
+      "parameters": {
+        "model": "slm-production-evaluation",
+        "temperature": 0.0,
+        "max_tokens": 4000,
+        "reasoning_effort": "none"
+      },
+      "usage": {
+        "prompt_tokens": 1036,
+        "completion_tokens": 275,
+        "total_tokens": 1311,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "native_input_matches": 1,
+      "native_input_reasoning_disabled": true,
+      "saved_items": [
+        {
+          "content_id": 8,
+          "version": "teacher-reviewed-v11-consistent-lesson-claims",
+          "expected_version": true,
+          "draft_unverified": true,
+          "fragment_hash_matches": true,
+          "document_hash_matches": true,
+          "literal_ranges_match": true,
+          "character_counts_match": true,
+          "budget_at_most_6000": true,
+          "fragment_in_request": true,
+          "use_coverage": "complete",
+          "extraction_coverage": "unknown"
+        }
+      ]
+    },
+    {
+      "id": "reserved-long",
+      "battery": "historical-objective",
+      "initial_status": 200,
+      "all_ready": true,
+      "replay_same_result": true,
+      "replay_status": 200,
+      "replay_same_saved_ids": true,
+      "replay_same_item_identity": true,
+      "persisted_ids_match": true,
+      "no_duplicate_ids_or_positions": true,
+      "publication_409": true,
+      "roles": [
+        "system",
+        "user"
+      ],
+      "lesson_roles_separate": true,
+      "lesson_task_fields_literal": true,
+      "parameters": {
+        "model": "slm-production-evaluation",
+        "temperature": 0.0,
+        "max_tokens": 4000,
+        "reasoning_effort": "none"
+      },
+      "usage": {
+        "prompt_tokens": 2468,
+        "completion_tokens": 384,
+        "total_tokens": 2852,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "native_input_matches": 1,
+      "native_input_reasoning_disabled": true,
+      "saved_items": [
+        {
+          "content_id": 9,
+          "version": "teacher-reviewed-v11-consistent-lesson-claims",
+          "expected_version": true,
+          "draft_unverified": true,
+          "fragment_hash_matches": true,
+          "document_hash_matches": true,
+          "literal_ranges_match": true,
+          "character_counts_match": true,
+          "budget_at_most_6000": true,
+          "fragment_in_request": true,
+          "use_coverage": "partial",
+          "extraction_coverage": "unknown"
+        }
+      ]
+    },
+    {
+      "id": "reserved-ambiguous",
+      "battery": "historical-objective",
+      "initial_status": 200,
+      "all_ready": true,
+      "replay_same_result": true,
+      "replay_status": 200,
+      "replay_same_saved_ids": true,
+      "replay_same_item_identity": true,
+      "persisted_ids_match": true,
+      "no_duplicate_ids_or_positions": true,
+      "publication_409": true,
+      "roles": [
+        "system",
+        "user"
+      ],
+      "lesson_roles_separate": true,
+      "lesson_task_fields_literal": true,
+      "parameters": {
+        "model": "slm-production-evaluation",
+        "temperature": 0.0,
+        "max_tokens": 4000,
+        "reasoning_effort": "none"
+      },
+      "usage": {
+        "prompt_tokens": 1005,
+        "completion_tokens": 462,
+        "total_tokens": 1467,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "native_input_matches": 1,
+      "native_input_reasoning_disabled": true,
+      "saved_items": [
+        {
+          "content_id": 10,
+          "version": "teacher-reviewed-v11-consistent-lesson-claims",
+          "expected_version": true,
+          "draft_unverified": true,
+          "fragment_hash_matches": true,
+          "document_hash_matches": true,
+          "literal_ranges_match": true,
+          "character_counts_match": true,
+          "budget_at_most_6000": true,
+          "fragment_in_request": true,
+          "use_coverage": "complete",
+          "extraction_coverage": "unknown"
+        }
+      ]
+    },
+    {
+      "id": "reserved-level",
+      "battery": "historical-objective",
+      "initial_status": 200,
+      "all_ready": true,
+      "replay_same_result": true,
+      "replay_status": 200,
+      "replay_same_saved_ids": true,
+      "replay_same_item_identity": true,
+      "persisted_ids_match": true,
+      "no_duplicate_ids_or_positions": true,
+      "publication_409": true,
+      "roles": [
+        "system",
+        "user"
+      ],
+      "lesson_roles_separate": true,
+      "lesson_task_fields_literal": true,
+      "parameters": {
+        "model": "slm-production-evaluation",
+        "temperature": 0.0,
+        "max_tokens": 4000,
+        "reasoning_effort": "none"
+      },
+      "usage": {
+        "prompt_tokens": 1011,
+        "completion_tokens": 315,
+        "total_tokens": 1326,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "native_input_matches": 1,
+      "native_input_reasoning_disabled": true,
+      "saved_items": [
+        {
+          "content_id": 11,
+          "version": "teacher-reviewed-v11-consistent-lesson-claims",
+          "expected_version": true,
+          "draft_unverified": true,
+          "fragment_hash_matches": true,
+          "document_hash_matches": true,
+          "literal_ranges_match": true,
+          "character_counts_match": true,
+          "budget_at_most_6000": true,
+          "fragment_in_request": true,
+          "use_coverage": "complete",
+          "extraction_coverage": "unknown"
+        }
+      ]
+    },
+    {
+      "id": "reserved-mcq",
+      "battery": "historical-objective",
+      "initial_status": 200,
+      "all_ready": true,
+      "replay_same_result": true,
+      "replay_status": 200,
+      "replay_same_saved_ids": true,
+      "replay_same_item_identity": true,
+      "persisted_ids_match": true,
+      "no_duplicate_ids_or_positions": true,
+      "publication_409": true,
+      "roles": [
+        "user"
+      ],
+      "lesson_roles_separate": true,
+      "lesson_task_fields_literal": true,
+      "parameters": {
+        "model": "slm-production-evaluation",
+        "temperature": 0.0,
+        "max_tokens": 2000,
+        "reasoning_effort": "none"
+      },
+      "usage": {
+        "prompt_tokens": 392,
+        "completion_tokens": 198,
+        "total_tokens": 590,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "native_input_matches": 1,
+      "native_input_reasoning_disabled": true,
+      "saved_items": [
+        {
+          "content_id": 12,
+          "version": "teacher-reviewed-v10-separated-lesson-request",
+          "expected_version": true,
+          "draft_unverified": true,
+          "fragment_hash_matches": true,
+          "document_hash_matches": true,
+          "literal_ranges_match": true,
+          "character_counts_match": true,
+          "budget_at_most_6000": true,
+          "fragment_in_request": true,
+          "use_coverage": "complete",
+          "extraction_coverage": "unknown"
+        }
+      ]
+    },
+    {
+      "id": "reserved-hints",
+      "battery": "historical-objective",
+      "initial_status": 200,
+      "all_ready": true,
+      "replay_same_result": true,
+      "replay_status": 200,
+      "replay_same_saved_ids": true,
+      "replay_same_item_identity": true,
+      "persisted_ids_match": true,
+      "no_duplicate_ids_or_positions": true,
+      "publication_409": true,
+      "roles": [
+        "user"
+      ],
+      "lesson_roles_separate": true,
+      "lesson_task_fields_literal": true,
+      "parameters": {
+        "model": "slm-production-evaluation",
+        "temperature": 0.0,
+        "max_tokens": 2000,
+        "reasoning_effort": "none"
+      },
+      "usage": {
+        "prompt_tokens": 403,
+        "completion_tokens": 222,
+        "total_tokens": 625,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "native_input_matches": 1,
+      "native_input_reasoning_disabled": true,
+      "saved_items": [
+        {
+          "content_id": 13,
+          "version": "teacher-reviewed-v10-separated-lesson-request",
+          "expected_version": true,
+          "draft_unverified": true,
+          "fragment_hash_matches": true,
+          "document_hash_matches": true,
+          "literal_ranges_match": true,
+          "character_counts_match": true,
+          "budget_at_most_6000": true,
+          "fragment_in_request": true,
+          "use_coverage": "complete",
+          "extraction_coverage": "unknown"
+        }
+      ]
+    },
+    {
+      "id": "reserved-open",
+      "battery": "historical-objective",
+      "initial_status": 200,
+      "all_ready": true,
+      "replay_same_result": false,
+      "replay_status": 200,
+      "replay_same_saved_ids": true,
+      "replay_same_item_identity": true,
+      "persisted_ids_match": true,
+      "no_duplicate_ids_or_positions": true,
+      "publication_409": true,
+      "roles": [
+        "user"
+      ],
+      "lesson_roles_separate": true,
+      "lesson_task_fields_literal": true,
+      "parameters": {
+        "model": "slm-production-evaluation",
+        "temperature": 0.0,
+        "max_tokens": 4000,
+        "reasoning_effort": "none"
+      },
+      "usage": {
+        "prompt_tokens": 474,
+        "completion_tokens": 139,
+        "total_tokens": 613,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "native_input_matches": 1,
+      "native_input_reasoning_disabled": true,
+      "saved_items": [
+        {
+          "content_id": 14,
+          "version": "teacher-reviewed-v10-separated-lesson-request",
+          "expected_version": true,
+          "draft_unverified": true,
+          "fragment_hash_matches": true,
+          "document_hash_matches": true,
+          "literal_ranges_match": true,
+          "character_counts_match": true,
+          "budget_at_most_6000": true,
+          "fragment_in_request": true,
+          "use_coverage": "complete",
+          "extraction_coverage": "unknown"
+        }
+      ]
+    },
+    {
+      "id": "fresh-mcq",
+      "battery": "historical-objective",
+      "initial_status": 200,
+      "all_ready": true,
+      "replay_same_result": true,
+      "replay_status": 200,
+      "replay_same_saved_ids": true,
+      "replay_same_item_identity": true,
+      "persisted_ids_match": true,
+      "no_duplicate_ids_or_positions": true,
+      "publication_409": true,
+      "roles": [
+        "user"
+      ],
+      "lesson_roles_separate": true,
+      "lesson_task_fields_literal": true,
+      "parameters": {
+        "model": "slm-production-evaluation",
+        "temperature": 0.0,
+        "max_tokens": 2000,
+        "reasoning_effort": "none"
+      },
+      "usage": {
+        "prompt_tokens": 397,
+        "completion_tokens": 200,
+        "total_tokens": 597,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "native_input_matches": 1,
+      "native_input_reasoning_disabled": true,
+      "saved_items": [
+        {
+          "content_id": 15,
+          "version": "teacher-reviewed-v10-separated-lesson-request",
+          "expected_version": true,
+          "draft_unverified": true,
+          "fragment_hash_matches": true,
+          "document_hash_matches": true,
+          "literal_ranges_match": true,
+          "character_counts_match": true,
+          "budget_at_most_6000": true,
+          "fragment_in_request": true,
+          "use_coverage": "complete",
+          "extraction_coverage": "unknown"
+        }
+      ]
+    },
+    {
+      "id": "fresh-hints",
+      "battery": "historical-objective",
+      "initial_status": 200,
+      "all_ready": true,
+      "replay_same_result": true,
+      "replay_status": 200,
+      "replay_same_saved_ids": true,
+      "replay_same_item_identity": true,
+      "persisted_ids_match": true,
+      "no_duplicate_ids_or_positions": true,
+      "publication_409": true,
+      "roles": [
+        "user"
+      ],
+      "lesson_roles_separate": true,
+      "lesson_task_fields_literal": true,
+      "parameters": {
+        "model": "slm-production-evaluation",
+        "temperature": 0.0,
+        "max_tokens": 2000,
+        "reasoning_effort": "none"
+      },
+      "usage": {
+        "prompt_tokens": 406,
+        "completion_tokens": 200,
+        "total_tokens": 606,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "native_input_matches": 1,
+      "native_input_reasoning_disabled": true,
+      "saved_items": [
+        {
+          "content_id": 16,
+          "version": "teacher-reviewed-v10-separated-lesson-request",
+          "expected_version": true,
+          "draft_unverified": true,
+          "fragment_hash_matches": true,
+          "document_hash_matches": true,
+          "literal_ranges_match": true,
+          "character_counts_match": true,
+          "budget_at_most_6000": true,
+          "fragment_in_request": true,
+          "use_coverage": "complete",
+          "extraction_coverage": "unknown"
+        }
+      ]
+    },
+    {
+      "id": "fresh-open",
+      "battery": "historical-objective",
+      "initial_status": 200,
+      "all_ready": true,
+      "replay_same_result": false,
+      "replay_status": 200,
+      "replay_same_saved_ids": true,
+      "replay_same_item_identity": true,
+      "persisted_ids_match": true,
+      "no_duplicate_ids_or_positions": true,
+      "publication_409": true,
+      "roles": [
+        "user"
+      ],
+      "lesson_roles_separate": true,
+      "lesson_task_fields_literal": true,
+      "parameters": {
+        "model": "slm-production-evaluation",
+        "temperature": 0.0,
+        "max_tokens": 4000,
+        "reasoning_effort": "none"
+      },
+      "usage": {
+        "prompt_tokens": 475,
+        "completion_tokens": 138,
+        "total_tokens": 613,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "native_input_matches": 1,
+      "native_input_reasoning_disabled": true,
+      "saved_items": [
+        {
+          "content_id": 17,
+          "version": "teacher-reviewed-v10-separated-lesson-request",
+          "expected_version": true,
+          "draft_unverified": true,
+          "fragment_hash_matches": true,
+          "document_hash_matches": true,
+          "literal_ranges_match": true,
+          "character_counts_match": true,
+          "budget_at_most_6000": true,
+          "fragment_in_request": true,
+          "use_coverage": "complete",
+          "extraction_coverage": "unknown"
+        }
+      ]
+    },
+    {
+      "id": "followup-explanation",
+      "battery": "historical-objective",
+      "initial_status": 200,
+      "all_ready": true,
+      "replay_same_result": true,
+      "replay_status": 200,
+      "replay_same_saved_ids": true,
+      "replay_same_item_identity": true,
+      "persisted_ids_match": true,
+      "no_duplicate_ids_or_positions": true,
+      "publication_409": true,
+      "roles": [
+        "system",
+        "user"
+      ],
+      "lesson_roles_separate": true,
+      "lesson_task_fields_literal": true,
+      "parameters": {
+        "model": "slm-production-evaluation",
+        "temperature": 0.0,
+        "max_tokens": 4000,
+        "reasoning_effort": "none"
+      },
+      "usage": {
+        "prompt_tokens": 1010,
+        "completion_tokens": 246,
+        "total_tokens": 1256,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "native_input_matches": 1,
+      "native_input_reasoning_disabled": true,
+      "saved_items": [
+        {
+          "content_id": 18,
+          "version": "teacher-reviewed-v11-consistent-lesson-claims",
+          "expected_version": true,
+          "draft_unverified": true,
+          "fragment_hash_matches": true,
+          "document_hash_matches": true,
+          "literal_ranges_match": true,
+          "character_counts_match": true,
+          "budget_at_most_6000": true,
+          "fragment_in_request": true,
+          "use_coverage": "complete",
+          "extraction_coverage": "unknown"
+        }
+      ]
+    },
+    {
+      "id": "followup-calculation",
+      "battery": "historical-objective",
+      "initial_status": 200,
+      "all_ready": true,
+      "replay_same_result": true,
+      "replay_status": 200,
+      "replay_same_saved_ids": true,
+      "replay_same_item_identity": true,
+      "persisted_ids_match": true,
+      "no_duplicate_ids_or_positions": true,
+      "publication_409": true,
+      "roles": [
+        "user"
+      ],
+      "lesson_roles_separate": true,
+      "lesson_task_fields_literal": true,
+      "parameters": {
+        "model": "slm-production-evaluation",
+        "temperature": 0.0,
+        "max_tokens": 2000,
+        "reasoning_effort": "none"
+      },
+      "usage": {
+        "prompt_tokens": 399,
+        "completion_tokens": 193,
+        "total_tokens": 592,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "native_input_matches": 1,
+      "native_input_reasoning_disabled": true,
+      "saved_items": [
+        {
+          "content_id": 19,
+          "version": "teacher-reviewed-v10-separated-lesson-request",
+          "expected_version": true,
+          "draft_unverified": true,
+          "fragment_hash_matches": true,
+          "document_hash_matches": true,
+          "literal_ranges_match": true,
+          "character_counts_match": true,
+          "budget_at_most_6000": true,
+          "fragment_in_request": true,
+          "use_coverage": "complete",
+          "extraction_coverage": "unknown"
+        }
+      ]
+    },
+    {
+      "id": "followup-insufficient",
+      "battery": "historical-objective",
+      "initial_status": 200,
+      "all_ready": true,
+      "replay_same_result": true,
+      "replay_status": 200,
+      "replay_same_saved_ids": true,
+      "replay_same_item_identity": true,
+      "persisted_ids_match": true,
+      "no_duplicate_ids_or_positions": true,
+      "publication_409": true,
+      "roles": [
+        "system",
+        "user"
+      ],
+      "lesson_roles_separate": true,
+      "lesson_task_fields_literal": true,
+      "parameters": {
+        "model": "slm-production-evaluation",
+        "temperature": 0.0,
+        "max_tokens": 4000,
+        "reasoning_effort": "none"
+      },
+      "usage": {
+        "prompt_tokens": 1007,
+        "completion_tokens": 245,
+        "total_tokens": 1252,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "native_input_matches": 1,
+      "native_input_reasoning_disabled": true,
+      "saved_items": [
+        {
+          "content_id": 20,
+          "version": "teacher-reviewed-v11-consistent-lesson-claims",
+          "expected_version": true,
+          "draft_unverified": true,
+          "fragment_hash_matches": true,
+          "document_hash_matches": true,
+          "literal_ranges_match": true,
+          "character_counts_match": true,
+          "budget_at_most_6000": true,
+          "fragment_in_request": true,
+          "use_coverage": "complete",
+          "extraction_coverage": "unknown"
+        }
+      ]
+    },
+    {
+      "id": "followup-conflict",
+      "battery": "historical-objective",
+      "initial_status": 200,
+      "all_ready": true,
+      "replay_same_result": true,
+      "replay_status": 200,
+      "replay_same_saved_ids": true,
+      "replay_same_item_identity": true,
+      "persisted_ids_match": true,
+      "no_duplicate_ids_or_positions": true,
+      "publication_409": true,
+      "roles": [
+        "system",
+        "user"
+      ],
+      "lesson_roles_separate": true,
+      "lesson_task_fields_literal": true,
+      "parameters": {
+        "model": "slm-production-evaluation",
+        "temperature": 0.0,
+        "max_tokens": 4000,
+        "reasoning_effort": "none"
+      },
+      "usage": {
+        "prompt_tokens": 1026,
+        "completion_tokens": 271,
+        "total_tokens": 1297,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "native_input_matches": 1,
+      "native_input_reasoning_disabled": true,
+      "saved_items": [
+        {
+          "content_id": 21,
+          "version": "teacher-reviewed-v11-consistent-lesson-claims",
+          "expected_version": true,
+          "draft_unverified": true,
+          "fragment_hash_matches": true,
+          "document_hash_matches": true,
+          "literal_ranges_match": true,
+          "character_counts_match": true,
+          "budget_at_most_6000": true,
+          "fragment_in_request": true,
+          "use_coverage": "complete",
+          "extraction_coverage": "unknown"
+        }
+      ]
+    },
+    {
+      "id": "followup-hostile",
+      "battery": "historical-objective",
+      "initial_status": 200,
+      "all_ready": true,
+      "replay_same_result": true,
+      "replay_status": 200,
+      "replay_same_saved_ids": true,
+      "replay_same_item_identity": true,
+      "persisted_ids_match": true,
+      "no_duplicate_ids_or_positions": true,
+      "publication_409": true,
+      "roles": [
+        "system",
+        "user"
+      ],
+      "lesson_roles_separate": true,
+      "lesson_task_fields_literal": true,
+      "parameters": {
+        "model": "slm-production-evaluation",
+        "temperature": 0.0,
+        "max_tokens": 4000,
+        "reasoning_effort": "none"
+      },
+      "usage": {
+        "prompt_tokens": 1032,
+        "completion_tokens": 169,
+        "total_tokens": 1201,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "native_input_matches": 1,
+      "native_input_reasoning_disabled": true,
+      "saved_items": [
+        {
+          "content_id": 22,
+          "version": "teacher-reviewed-v11-consistent-lesson-claims",
+          "expected_version": true,
+          "draft_unverified": true,
+          "fragment_hash_matches": true,
+          "document_hash_matches": true,
+          "literal_ranges_match": true,
+          "character_counts_match": true,
+          "budget_at_most_6000": true,
+          "fragment_in_request": true,
+          "use_coverage": "complete",
+          "extraction_coverage": "unknown"
+        }
+      ]
+    },
+    {
+      "id": "followup-classification",
+      "battery": "historical-objective",
+      "initial_status": 200,
+      "all_ready": true,
+      "replay_same_result": true,
+      "replay_status": 200,
+      "replay_same_saved_ids": true,
+      "replay_same_item_identity": true,
+      "persisted_ids_match": true,
+      "no_duplicate_ids_or_positions": true,
+      "publication_409": true,
+      "roles": [
+        "system",
+        "user"
+      ],
+      "lesson_roles_separate": true,
+      "lesson_task_fields_literal": true,
+      "parameters": {
+        "model": "slm-production-evaluation",
+        "temperature": 0.0,
+        "max_tokens": 4000,
+        "reasoning_effort": "none"
+      },
+      "usage": {
+        "prompt_tokens": 1016,
+        "completion_tokens": 361,
+        "total_tokens": 1377,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "native_input_matches": 1,
+      "native_input_reasoning_disabled": true,
+      "saved_items": [
+        {
+          "content_id": 23,
+          "version": "teacher-reviewed-v11-consistent-lesson-claims",
+          "expected_version": true,
+          "draft_unverified": true,
+          "fragment_hash_matches": true,
+          "document_hash_matches": true,
+          "literal_ranges_match": true,
+          "character_counts_match": true,
+          "budget_at_most_6000": true,
+          "fragment_in_request": true,
+          "use_coverage": "complete",
+          "extraction_coverage": "unknown"
+        }
+      ]
+    },
+    {
+      "id": "followup-long",
+      "battery": "historical-objective",
+      "initial_status": 200,
+      "all_ready": true,
+      "replay_same_result": true,
+      "replay_status": 200,
+      "replay_same_saved_ids": true,
+      "replay_same_item_identity": true,
+      "persisted_ids_match": true,
+      "no_duplicate_ids_or_positions": true,
+      "publication_409": true,
+      "roles": [
+        "system",
+        "user"
+      ],
+      "lesson_roles_separate": true,
+      "lesson_task_fields_literal": true,
+      "parameters": {
+        "model": "slm-production-evaluation",
+        "temperature": 0.0,
+        "max_tokens": 4000,
+        "reasoning_effort": "none"
+      },
+      "usage": {
+        "prompt_tokens": 2468,
+        "completion_tokens": 327,
+        "total_tokens": 2795,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "native_input_matches": 1,
+      "native_input_reasoning_disabled": true,
+      "saved_items": [
+        {
+          "content_id": 24,
+          "version": "teacher-reviewed-v11-consistent-lesson-claims",
+          "expected_version": true,
+          "draft_unverified": true,
+          "fragment_hash_matches": true,
+          "document_hash_matches": true,
+          "literal_ranges_match": true,
+          "character_counts_match": true,
+          "budget_at_most_6000": true,
+          "fragment_in_request": true,
+          "use_coverage": "partial",
+          "extraction_coverage": "unknown"
+        }
+      ]
+    },
+    {
+      "id": "followup-ambiguous",
+      "battery": "historical-objective",
+      "initial_status": 200,
+      "all_ready": true,
+      "replay_same_result": true,
+      "replay_status": 200,
+      "replay_same_saved_ids": true,
+      "replay_same_item_identity": true,
+      "persisted_ids_match": true,
+      "no_duplicate_ids_or_positions": true,
+      "publication_409": true,
+      "roles": [
+        "system",
+        "user"
+      ],
+      "lesson_roles_separate": true,
+      "lesson_task_fields_literal": true,
+      "parameters": {
+        "model": "slm-production-evaluation",
+        "temperature": 0.0,
+        "max_tokens": 4000,
+        "reasoning_effort": "none"
+      },
+      "usage": {
+        "prompt_tokens": 1003,
+        "completion_tokens": 275,
+        "total_tokens": 1278,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "native_input_matches": 1,
+      "native_input_reasoning_disabled": true,
+      "saved_items": [
+        {
+          "content_id": 25,
+          "version": "teacher-reviewed-v11-consistent-lesson-claims",
+          "expected_version": true,
+          "draft_unverified": true,
+          "fragment_hash_matches": true,
+          "document_hash_matches": true,
+          "literal_ranges_match": true,
+          "character_counts_match": true,
+          "budget_at_most_6000": true,
+          "fragment_in_request": true,
+          "use_coverage": "complete",
+          "extraction_coverage": "unknown"
+        }
+      ]
+    },
+    {
+      "id": "followup-level",
+      "battery": "historical-objective",
+      "initial_status": 200,
+      "all_ready": true,
+      "replay_same_result": true,
+      "replay_status": 200,
+      "replay_same_saved_ids": true,
+      "replay_same_item_identity": true,
+      "persisted_ids_match": true,
+      "no_duplicate_ids_or_positions": true,
+      "publication_409": true,
+      "roles": [
+        "system",
+        "user"
+      ],
+      "lesson_roles_separate": true,
+      "lesson_task_fields_literal": true,
+      "parameters": {
+        "model": "slm-production-evaluation",
+        "temperature": 0.0,
+        "max_tokens": 4000,
+        "reasoning_effort": "none"
+      },
+      "usage": {
+        "prompt_tokens": 1012,
+        "completion_tokens": 217,
+        "total_tokens": 1229,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "native_input_matches": 1,
+      "native_input_reasoning_disabled": true,
+      "saved_items": [
+        {
+          "content_id": 26,
+          "version": "teacher-reviewed-v11-consistent-lesson-claims",
+          "expected_version": true,
+          "draft_unverified": true,
+          "fragment_hash_matches": true,
+          "document_hash_matches": true,
+          "literal_ranges_match": true,
+          "character_counts_match": true,
+          "budget_at_most_6000": true,
+          "fragment_in_request": true,
+          "use_coverage": "complete",
+          "extraction_coverage": "unknown"
+        }
+      ]
+    },
+    {
+      "id": "followup-hints",
+      "battery": "historical-objective",
+      "initial_status": 200,
+      "all_ready": true,
+      "replay_same_result": true,
+      "replay_status": 200,
+      "replay_same_saved_ids": true,
+      "replay_same_item_identity": true,
+      "persisted_ids_match": true,
+      "no_duplicate_ids_or_positions": true,
+      "publication_409": true,
+      "roles": [
+        "user"
+      ],
+      "lesson_roles_separate": true,
+      "lesson_task_fields_literal": true,
+      "parameters": {
+        "model": "slm-production-evaluation",
+        "temperature": 0.0,
+        "max_tokens": 2000,
+        "reasoning_effort": "none"
+      },
+      "usage": {
+        "prompt_tokens": 402,
+        "completion_tokens": 210,
+        "total_tokens": 612,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "native_input_matches": 1,
+      "native_input_reasoning_disabled": true,
+      "saved_items": [
+        {
+          "content_id": 27,
+          "version": "teacher-reviewed-v10-separated-lesson-request",
+          "expected_version": true,
+          "draft_unverified": true,
+          "fragment_hash_matches": true,
+          "document_hash_matches": true,
+          "literal_ranges_match": true,
+          "character_counts_match": true,
+          "budget_at_most_6000": true,
+          "fragment_in_request": true,
+          "use_coverage": "complete",
+          "extraction_coverage": "unknown"
+        }
+      ]
+    },
+    {
+      "id": "followup-open",
+      "battery": "historical-objective",
+      "initial_status": 200,
+      "all_ready": true,
+      "replay_same_result": false,
+      "replay_status": 200,
+      "replay_same_saved_ids": true,
+      "replay_same_item_identity": true,
+      "persisted_ids_match": true,
+      "no_duplicate_ids_or_positions": true,
+      "publication_409": true,
+      "roles": [
+        "user"
+      ],
+      "lesson_roles_separate": true,
+      "lesson_task_fields_literal": true,
+      "parameters": {
+        "model": "slm-production-evaluation",
+        "temperature": 0.0,
+        "max_tokens": 4000,
+        "reasoning_effort": "none"
+      },
+      "usage": {
+        "prompt_tokens": 473,
+        "completion_tokens": 135,
+        "total_tokens": 608,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "native_input_matches": 1,
+      "native_input_reasoning_disabled": true,
+      "saved_items": [
+        {
+          "content_id": 28,
+          "version": "teacher-reviewed-v10-separated-lesson-request",
+          "expected_version": true,
+          "draft_unverified": true,
+          "fragment_hash_matches": true,
+          "document_hash_matches": true,
+          "literal_ranges_match": true,
+          "character_counts_match": true,
+          "budget_at_most_6000": true,
+          "fragment_in_request": true,
+          "use_coverage": "complete",
+          "extraction_coverage": "unknown"
+        }
+      ]
+    },
+    {
+      "id": "objective-explanation",
+      "battery": "historical-objective",
+      "initial_status": 200,
+      "all_ready": true,
+      "replay_same_result": true,
+      "replay_status": 200,
+      "replay_same_saved_ids": true,
+      "replay_same_item_identity": true,
+      "persisted_ids_match": true,
+      "no_duplicate_ids_or_positions": true,
+      "publication_409": true,
+      "roles": [
+        "system",
+        "user"
+      ],
+      "lesson_roles_separate": true,
+      "lesson_task_fields_literal": true,
+      "parameters": {
+        "model": "slm-production-evaluation",
+        "temperature": 0.0,
+        "max_tokens": 4000,
+        "reasoning_effort": "none"
+      },
+      "usage": {
+        "prompt_tokens": 1017,
+        "completion_tokens": 203,
+        "total_tokens": 1220,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "native_input_matches": 1,
+      "native_input_reasoning_disabled": true,
+      "saved_items": [
+        {
+          "content_id": 29,
+          "version": "teacher-reviewed-v11-consistent-lesson-claims",
+          "expected_version": true,
+          "draft_unverified": true,
+          "fragment_hash_matches": true,
+          "document_hash_matches": true,
+          "literal_ranges_match": true,
+          "character_counts_match": true,
+          "budget_at_most_6000": true,
+          "fragment_in_request": true,
+          "use_coverage": "complete",
+          "extraction_coverage": "unknown"
+        }
+      ]
+    },
+    {
+      "id": "objective-calculation",
+      "battery": "historical-objective",
+      "initial_status": 200,
+      "all_ready": true,
+      "replay_same_result": true,
+      "replay_status": 200,
+      "replay_same_saved_ids": true,
+      "replay_same_item_identity": true,
+      "persisted_ids_match": true,
+      "no_duplicate_ids_or_positions": true,
+      "publication_409": true,
+      "roles": [
+        "user"
+      ],
+      "lesson_roles_separate": true,
+      "lesson_task_fields_literal": true,
+      "parameters": {
+        "model": "slm-production-evaluation",
+        "temperature": 0.0,
+        "max_tokens": 2000,
+        "reasoning_effort": "none"
+      },
+      "usage": {
+        "prompt_tokens": 398,
+        "completion_tokens": 214,
+        "total_tokens": 612,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "native_input_matches": 1,
+      "native_input_reasoning_disabled": true,
+      "saved_items": [
+        {
+          "content_id": 30,
+          "version": "teacher-reviewed-v10-separated-lesson-request",
+          "expected_version": true,
+          "draft_unverified": true,
+          "fragment_hash_matches": true,
+          "document_hash_matches": true,
+          "literal_ranges_match": true,
+          "character_counts_match": true,
+          "budget_at_most_6000": true,
+          "fragment_in_request": true,
+          "use_coverage": "complete",
+          "extraction_coverage": "unknown"
+        }
+      ]
+    },
+    {
+      "id": "objective-insufficient",
+      "battery": "historical-objective",
+      "initial_status": 200,
+      "all_ready": true,
+      "replay_same_result": true,
+      "replay_status": 200,
+      "replay_same_saved_ids": true,
+      "replay_same_item_identity": true,
+      "persisted_ids_match": true,
+      "no_duplicate_ids_or_positions": true,
+      "publication_409": true,
+      "roles": [
+        "system",
+        "user"
+      ],
+      "lesson_roles_separate": true,
+      "lesson_task_fields_literal": true,
+      "parameters": {
+        "model": "slm-production-evaluation",
+        "temperature": 0.0,
+        "max_tokens": 4000,
+        "reasoning_effort": "none"
+      },
+      "usage": {
+        "prompt_tokens": 1009,
+        "completion_tokens": 215,
+        "total_tokens": 1224,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "native_input_matches": 1,
+      "native_input_reasoning_disabled": true,
+      "saved_items": [
+        {
+          "content_id": 31,
+          "version": "teacher-reviewed-v11-consistent-lesson-claims",
+          "expected_version": true,
+          "draft_unverified": true,
+          "fragment_hash_matches": true,
+          "document_hash_matches": true,
+          "literal_ranges_match": true,
+          "character_counts_match": true,
+          "budget_at_most_6000": true,
+          "fragment_in_request": true,
+          "use_coverage": "complete",
+          "extraction_coverage": "unknown"
+        }
+      ]
+    },
+    {
+      "id": "objective-conflict",
+      "battery": "historical-objective",
+      "initial_status": 200,
+      "all_ready": true,
+      "replay_same_result": true,
+      "replay_status": 200,
+      "replay_same_saved_ids": true,
+      "replay_same_item_identity": true,
+      "persisted_ids_match": true,
+      "no_duplicate_ids_or_positions": true,
+      "publication_409": true,
+      "roles": [
+        "system",
+        "user"
+      ],
+      "lesson_roles_separate": true,
+      "lesson_task_fields_literal": true,
+      "parameters": {
+        "model": "slm-production-evaluation",
+        "temperature": 0.0,
+        "max_tokens": 4000,
+        "reasoning_effort": "none"
+      },
+      "usage": {
+        "prompt_tokens": 1027,
+        "completion_tokens": 331,
+        "total_tokens": 1358,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "native_input_matches": 1,
+      "native_input_reasoning_disabled": true,
+      "saved_items": [
+        {
+          "content_id": 32,
+          "version": "teacher-reviewed-v11-consistent-lesson-claims",
+          "expected_version": true,
+          "draft_unverified": true,
+          "fragment_hash_matches": true,
+          "document_hash_matches": true,
+          "literal_ranges_match": true,
+          "character_counts_match": true,
+          "budget_at_most_6000": true,
+          "fragment_in_request": true,
+          "use_coverage": "complete",
+          "extraction_coverage": "unknown"
+        }
+      ]
+    },
+    {
+      "id": "objective-hostile",
+      "battery": "historical-objective",
+      "initial_status": 200,
+      "all_ready": true,
+      "replay_same_result": true,
+      "replay_status": 200,
+      "replay_same_saved_ids": true,
+      "replay_same_item_identity": true,
+      "persisted_ids_match": true,
+      "no_duplicate_ids_or_positions": true,
+      "publication_409": true,
+      "roles": [
+        "system",
+        "user"
+      ],
+      "lesson_roles_separate": true,
+      "lesson_task_fields_literal": true,
+      "parameters": {
+        "model": "slm-production-evaluation",
+        "temperature": 0.0,
+        "max_tokens": 4000,
+        "reasoning_effort": "none"
+      },
+      "usage": {
+        "prompt_tokens": 1032,
+        "completion_tokens": 249,
+        "total_tokens": 1281,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "native_input_matches": 1,
+      "native_input_reasoning_disabled": true,
+      "saved_items": [
+        {
+          "content_id": 33,
+          "version": "teacher-reviewed-v11-consistent-lesson-claims",
+          "expected_version": true,
+          "draft_unverified": true,
+          "fragment_hash_matches": true,
+          "document_hash_matches": true,
+          "literal_ranges_match": true,
+          "character_counts_match": true,
+          "budget_at_most_6000": true,
+          "fragment_in_request": true,
+          "use_coverage": "complete",
+          "extraction_coverage": "unknown"
+        }
+      ]
+    },
+    {
+      "id": "objective-long",
+      "battery": "historical-objective",
+      "initial_status": 200,
+      "all_ready": true,
+      "replay_same_result": true,
+      "replay_status": 200,
+      "replay_same_saved_ids": true,
+      "replay_same_item_identity": true,
+      "persisted_ids_match": true,
+      "no_duplicate_ids_or_positions": true,
+      "publication_409": true,
+      "roles": [
+        "system",
+        "user"
+      ],
+      "lesson_roles_separate": true,
+      "lesson_task_fields_literal": true,
+      "parameters": {
+        "model": "slm-production-evaluation",
+        "temperature": 0.0,
+        "max_tokens": 4000,
+        "reasoning_effort": "none"
+      },
+      "usage": {
+        "prompt_tokens": 2469,
+        "completion_tokens": 327,
+        "total_tokens": 2796,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "native_input_matches": 1,
+      "native_input_reasoning_disabled": true,
+      "saved_items": [
+        {
+          "content_id": 34,
+          "version": "teacher-reviewed-v11-consistent-lesson-claims",
+          "expected_version": true,
+          "draft_unverified": true,
+          "fragment_hash_matches": true,
+          "document_hash_matches": true,
+          "literal_ranges_match": true,
+          "character_counts_match": true,
+          "budget_at_most_6000": true,
+          "fragment_in_request": true,
+          "use_coverage": "partial",
+          "extraction_coverage": "unknown"
+        }
+      ]
+    },
+    {
+      "id": "objective-ambiguous",
+      "battery": "historical-objective",
+      "initial_status": 200,
+      "all_ready": true,
+      "replay_same_result": true,
+      "replay_status": 200,
+      "replay_same_saved_ids": true,
+      "replay_same_item_identity": true,
+      "persisted_ids_match": true,
+      "no_duplicate_ids_or_positions": true,
+      "publication_409": true,
+      "roles": [
+        "system",
+        "user"
+      ],
+      "lesson_roles_separate": true,
+      "lesson_task_fields_literal": true,
+      "parameters": {
+        "model": "slm-production-evaluation",
+        "temperature": 0.0,
+        "max_tokens": 4000,
+        "reasoning_effort": "none"
+      },
+      "usage": {
+        "prompt_tokens": 1006,
+        "completion_tokens": 350,
+        "total_tokens": 1356,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "native_input_matches": 1,
+      "native_input_reasoning_disabled": true,
+      "saved_items": [
+        {
+          "content_id": 35,
+          "version": "teacher-reviewed-v11-consistent-lesson-claims",
+          "expected_version": true,
+          "draft_unverified": true,
+          "fragment_hash_matches": true,
+          "document_hash_matches": true,
+          "literal_ranges_match": true,
+          "character_counts_match": true,
+          "budget_at_most_6000": true,
+          "fragment_in_request": true,
+          "use_coverage": "complete",
+          "extraction_coverage": "unknown"
+        }
+      ]
+    },
+    {
+      "id": "objective-level",
+      "battery": "historical-objective",
+      "initial_status": 200,
+      "all_ready": true,
+      "replay_same_result": true,
+      "replay_status": 200,
+      "replay_same_saved_ids": true,
+      "replay_same_item_identity": true,
+      "persisted_ids_match": true,
+      "no_duplicate_ids_or_positions": true,
+      "publication_409": true,
+      "roles": [
+        "system",
+        "user"
+      ],
+      "lesson_roles_separate": true,
+      "lesson_task_fields_literal": true,
+      "parameters": {
+        "model": "slm-production-evaluation",
+        "temperature": 0.0,
+        "max_tokens": 4000,
+        "reasoning_effort": "none"
+      },
+      "usage": {
+        "prompt_tokens": 1021,
+        "completion_tokens": 291,
+        "total_tokens": 1312,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "native_input_matches": 1,
+      "native_input_reasoning_disabled": true,
+      "saved_items": [
+        {
+          "content_id": 36,
+          "version": "teacher-reviewed-v11-consistent-lesson-claims",
+          "expected_version": true,
+          "draft_unverified": true,
+          "fragment_hash_matches": true,
+          "document_hash_matches": true,
+          "literal_ranges_match": true,
+          "character_counts_match": true,
+          "budget_at_most_6000": true,
+          "fragment_in_request": true,
+          "use_coverage": "complete",
+          "extraction_coverage": "unknown"
+        }
+      ]
+    },
+    {
+      "id": "objective-mcq",
+      "battery": "historical-objective",
+      "initial_status": 200,
+      "all_ready": true,
+      "replay_same_result": true,
+      "replay_status": 200,
+      "replay_same_saved_ids": true,
+      "replay_same_item_identity": true,
+      "persisted_ids_match": true,
+      "no_duplicate_ids_or_positions": true,
+      "publication_409": true,
+      "roles": [
+        "user"
+      ],
+      "lesson_roles_separate": true,
+      "lesson_task_fields_literal": true,
+      "parameters": {
+        "model": "slm-production-evaluation",
+        "temperature": 0.0,
+        "max_tokens": 2000,
+        "reasoning_effort": "none"
+      },
+      "usage": {
+        "prompt_tokens": 394,
+        "completion_tokens": 217,
+        "total_tokens": 611,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "native_input_matches": 1,
+      "native_input_reasoning_disabled": true,
+      "saved_items": [
+        {
+          "content_id": 37,
+          "version": "teacher-reviewed-v10-separated-lesson-request",
+          "expected_version": true,
+          "draft_unverified": true,
+          "fragment_hash_matches": true,
+          "document_hash_matches": true,
+          "literal_ranges_match": true,
+          "character_counts_match": true,
+          "budget_at_most_6000": true,
+          "fragment_in_request": true,
+          "use_coverage": "complete",
+          "extraction_coverage": "unknown"
+        }
+      ]
+    },
+    {
+      "id": "objective-hints",
+      "battery": "historical-objective",
+      "initial_status": 200,
+      "all_ready": true,
+      "replay_same_result": true,
+      "replay_status": 200,
+      "replay_same_saved_ids": true,
+      "replay_same_item_identity": true,
+      "persisted_ids_match": true,
+      "no_duplicate_ids_or_positions": true,
+      "publication_409": true,
+      "roles": [
+        "user"
+      ],
+      "lesson_roles_separate": true,
+      "lesson_task_fields_literal": true,
+      "parameters": {
+        "model": "slm-production-evaluation",
+        "temperature": 0.0,
+        "max_tokens": 2000,
+        "reasoning_effort": "none"
+      },
+      "usage": {
+        "prompt_tokens": 400,
+        "completion_tokens": 195,
+        "total_tokens": 595,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "native_input_matches": 1,
+      "native_input_reasoning_disabled": true,
+      "saved_items": [
+        {
+          "content_id": 38,
+          "version": "teacher-reviewed-v10-separated-lesson-request",
+          "expected_version": true,
+          "draft_unverified": true,
+          "fragment_hash_matches": true,
+          "document_hash_matches": true,
+          "literal_ranges_match": true,
+          "character_counts_match": true,
+          "budget_at_most_6000": true,
+          "fragment_in_request": true,
+          "use_coverage": "complete",
+          "extraction_coverage": "unknown"
+        }
+      ]
+    },
+    {
+      "id": "objective-open",
+      "battery": "historical-objective",
+      "initial_status": 200,
+      "all_ready": true,
+      "replay_same_result": false,
+      "replay_status": 200,
+      "replay_same_saved_ids": true,
+      "replay_same_item_identity": true,
+      "persisted_ids_match": true,
+      "no_duplicate_ids_or_positions": true,
+      "publication_409": true,
+      "roles": [
+        "user"
+      ],
+      "lesson_roles_separate": true,
+      "lesson_task_fields_literal": true,
+      "parameters": {
+        "model": "slm-production-evaluation",
+        "temperature": 0.0,
+        "max_tokens": 4000,
+        "reasoning_effort": "none"
+      },
+      "usage": {
+        "prompt_tokens": 469,
+        "completion_tokens": 118,
+        "total_tokens": 587,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "native_input_matches": 1,
+      "native_input_reasoning_disabled": true,
+      "saved_items": [
+        {
+          "content_id": 39,
+          "version": "teacher-reviewed-v10-separated-lesson-request",
+          "expected_version": true,
+          "draft_unverified": true,
+          "fragment_hash_matches": true,
+          "document_hash_matches": true,
+          "literal_ranges_match": true,
+          "character_counts_match": true,
+          "budget_at_most_6000": true,
+          "fragment_in_request": true,
+          "use_coverage": "complete",
+          "extraction_coverage": "unknown"
+        }
+      ]
+    },
+    {
+      "id": "closure-conflict",
+      "battery": "historical-source-review",
+      "initial_status": 200,
+      "all_ready": true,
+      "replay_same_result": true,
+      "replay_status": 200,
+      "replay_same_saved_ids": true,
+      "replay_same_item_identity": true,
+      "persisted_ids_match": true,
+      "no_duplicate_ids_or_positions": true,
+      "publication_409": true,
+      "roles": [
+        "system",
+        "user"
+      ],
+      "lesson_roles_separate": true,
+      "lesson_task_fields_literal": true,
+      "parameters": {
+        "model": "slm-production-evaluation",
+        "temperature": 0.0,
+        "max_tokens": 4000,
+        "reasoning_effort": "none"
+      },
+      "usage": {
+        "prompt_tokens": 1018,
+        "completion_tokens": 328,
+        "total_tokens": 1346,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "native_input_matches": 1,
+      "native_input_reasoning_disabled": true,
+      "saved_items": [
+        {
+          "content_id": 4,
+          "version": "teacher-reviewed-v11-consistent-lesson-claims",
+          "expected_version": true,
+          "draft_unverified": true,
+          "fragment_hash_matches": true,
+          "document_hash_matches": true,
+          "literal_ranges_match": true,
+          "character_counts_match": true,
+          "budget_at_most_6000": true,
+          "fragment_in_request": true,
+          "use_coverage": "complete",
+          "extraction_coverage": "unknown"
+        }
+      ]
+    },
+    {
+      "id": "closure-definition",
+      "battery": "historical-source-review",
+      "initial_status": 200,
+      "all_ready": true,
+      "replay_same_result": true,
+      "replay_status": 200,
+      "replay_same_saved_ids": true,
+      "replay_same_item_identity": true,
+      "persisted_ids_match": true,
+      "no_duplicate_ids_or_positions": true,
+      "publication_409": true,
+      "roles": [
+        "system",
+        "user"
+      ],
+      "lesson_roles_separate": true,
+      "lesson_task_fields_literal": true,
+      "parameters": {
+        "model": "slm-production-evaluation",
+        "temperature": 0.0,
+        "max_tokens": 4000,
+        "reasoning_effort": "none"
+      },
+      "usage": {
+        "prompt_tokens": 1003,
+        "completion_tokens": 286,
+        "total_tokens": 1289,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "native_input_matches": 1,
+      "native_input_reasoning_disabled": true,
+      "saved_items": [
+        {
+          "content_id": 5,
+          "version": "teacher-reviewed-v11-consistent-lesson-claims",
+          "expected_version": true,
+          "draft_unverified": true,
+          "fragment_hash_matches": true,
+          "document_hash_matches": true,
+          "literal_ranges_match": true,
+          "character_counts_match": true,
+          "budget_at_most_6000": true,
+          "fragment_in_request": true,
+          "use_coverage": "complete",
+          "extraction_coverage": "unknown"
+        }
+      ]
+    },
+    {
+      "id": "closure-correct-definition",
+      "battery": "historical-source-review",
+      "initial_status": 200,
+      "all_ready": true,
+      "replay_same_result": true,
+      "replay_status": 200,
+      "replay_same_saved_ids": true,
+      "replay_same_item_identity": true,
+      "persisted_ids_match": true,
+      "no_duplicate_ids_or_positions": true,
+      "publication_409": true,
+      "roles": [
+        "system",
+        "user"
+      ],
+      "lesson_roles_separate": true,
+      "lesson_task_fields_literal": true,
+      "parameters": {
+        "model": "slm-production-evaluation",
+        "temperature": 0.0,
+        "max_tokens": 4000,
+        "reasoning_effort": "none"
+      },
+      "usage": {
+        "prompt_tokens": 1007,
+        "completion_tokens": 325,
+        "total_tokens": 1332,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "native_input_matches": 1,
+      "native_input_reasoning_disabled": true,
+      "saved_items": [
+        {
+          "content_id": 6,
+          "version": "teacher-reviewed-v11-consistent-lesson-claims",
+          "expected_version": true,
+          "draft_unverified": true,
+          "fragment_hash_matches": true,
+          "document_hash_matches": true,
+          "literal_ranges_match": true,
+          "character_counts_match": true,
+          "budget_at_most_6000": true,
+          "fragment_in_request": true,
+          "use_coverage": "complete",
+          "extraction_coverage": "unknown"
+        }
+      ]
+    },
+    {
+      "id": "closure-different-events",
+      "battery": "historical-source-review",
+      "initial_status": 200,
+      "all_ready": true,
+      "replay_same_result": true,
+      "replay_status": 200,
+      "replay_same_saved_ids": true,
+      "replay_same_item_identity": true,
+      "persisted_ids_match": true,
+      "no_duplicate_ids_or_positions": true,
+      "publication_409": true,
+      "roles": [
+        "system",
+        "user"
+      ],
+      "lesson_roles_separate": true,
+      "lesson_task_fields_literal": true,
+      "parameters": {
+        "model": "slm-production-evaluation",
+        "temperature": 0.0,
+        "max_tokens": 4000,
+        "reasoning_effort": "none"
+      },
+      "usage": {
+        "prompt_tokens": 1015,
+        "completion_tokens": 300,
+        "total_tokens": 1315,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "native_input_matches": 1,
+      "native_input_reasoning_disabled": true,
+      "saved_items": [
+        {
+          "content_id": 7,
+          "version": "teacher-reviewed-v11-consistent-lesson-claims",
+          "expected_version": true,
+          "draft_unverified": true,
+          "fragment_hash_matches": true,
+          "document_hash_matches": true,
+          "literal_ranges_match": true,
+          "character_counts_match": true,
+          "budget_at_most_6000": true,
+          "fragment_in_request": true,
+          "use_coverage": "complete",
+          "extraction_coverage": "unknown"
+        }
+      ]
+    },
+    {
+      "id": "closure-unfamiliar",
+      "battery": "historical-source-review",
+      "initial_status": 200,
+      "all_ready": true,
+      "replay_same_result": true,
+      "replay_status": 200,
+      "replay_same_saved_ids": true,
+      "replay_same_item_identity": true,
+      "persisted_ids_match": true,
+      "no_duplicate_ids_or_positions": true,
+      "publication_409": true,
+      "roles": [
+        "system",
+        "user"
+      ],
+      "lesson_roles_separate": true,
+      "lesson_task_fields_literal": true,
+      "parameters": {
+        "model": "slm-production-evaluation",
+        "temperature": 0.0,
+        "max_tokens": 4000,
+        "reasoning_effort": "none"
+      },
+      "usage": {
+        "prompt_tokens": 1000,
+        "completion_tokens": 226,
+        "total_tokens": 1226,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "native_input_matches": 1,
+      "native_input_reasoning_disabled": true,
+      "saved_items": [
+        {
+          "content_id": 8,
+          "version": "teacher-reviewed-v11-consistent-lesson-claims",
+          "expected_version": true,
+          "draft_unverified": true,
+          "fragment_hash_matches": true,
+          "document_hash_matches": true,
+          "literal_ranges_match": true,
+          "character_counts_match": true,
+          "budget_at_most_6000": true,
+          "fragment_in_request": true,
+          "use_coverage": "complete",
+          "extraction_coverage": "unknown"
+        }
+      ]
+    },
+    {
+      "id": "closure-missing",
+      "battery": "historical-source-review",
+      "initial_status": 200,
+      "all_ready": true,
+      "replay_same_result": true,
+      "replay_status": 200,
+      "replay_same_saved_ids": true,
+      "replay_same_item_identity": true,
+      "persisted_ids_match": true,
+      "no_duplicate_ids_or_positions": true,
+      "publication_409": true,
+      "roles": [
+        "system",
+        "user"
+      ],
+      "lesson_roles_separate": true,
+      "lesson_task_fields_literal": true,
+      "parameters": {
+        "model": "slm-production-evaluation",
+        "temperature": 0.0,
+        "max_tokens": 4000,
+        "reasoning_effort": "none"
+      },
+      "usage": {
+        "prompt_tokens": 998,
+        "completion_tokens": 251,
+        "total_tokens": 1249,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "native_input_matches": 1,
+      "native_input_reasoning_disabled": true,
+      "saved_items": [
+        {
+          "content_id": 9,
+          "version": "teacher-reviewed-v11-consistent-lesson-claims",
+          "expected_version": true,
+          "draft_unverified": true,
+          "fragment_hash_matches": true,
+          "document_hash_matches": true,
+          "literal_ranges_match": true,
+          "character_counts_match": true,
+          "budget_at_most_6000": true,
+          "fragment_in_request": true,
+          "use_coverage": "complete",
+          "extraction_coverage": "unknown"
+        }
+      ]
+    },
+    {
+      "id": "closure-injected-correction",
+      "battery": "historical-source-review",
+      "initial_status": 200,
+      "all_ready": true,
+      "replay_same_result": true,
+      "replay_status": 200,
+      "replay_same_saved_ids": true,
+      "replay_same_item_identity": true,
+      "persisted_ids_match": true,
+      "no_duplicate_ids_or_positions": true,
+      "publication_409": true,
+      "roles": [
+        "system",
+        "user"
+      ],
+      "lesson_roles_separate": true,
+      "lesson_task_fields_literal": true,
+      "parameters": {
+        "model": "slm-production-evaluation",
+        "temperature": 0.0,
+        "max_tokens": 4000,
+        "reasoning_effort": "none"
+      },
+      "usage": {
+        "prompt_tokens": 1019,
+        "completion_tokens": 189,
+        "total_tokens": 1208,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "native_input_matches": 1,
+      "native_input_reasoning_disabled": true,
+      "saved_items": [
+        {
+          "content_id": 10,
+          "version": "teacher-reviewed-v11-consistent-lesson-claims",
+          "expected_version": true,
+          "draft_unverified": true,
+          "fragment_hash_matches": true,
+          "document_hash_matches": true,
+          "literal_ranges_match": true,
+          "character_counts_match": true,
+          "budget_at_most_6000": true,
+          "fragment_in_request": true,
+          "use_coverage": "complete",
+          "extraction_coverage": "unknown"
+        }
+      ]
+    },
+    {
+      "id": "closure-repaired-half",
+      "battery": "historical-source-review",
+      "initial_status": 200,
+      "all_ready": true,
+      "replay_same_result": true,
+      "replay_status": 200,
+      "replay_same_saved_ids": true,
+      "replay_same_item_identity": true,
+      "persisted_ids_match": true,
+      "no_duplicate_ids_or_positions": true,
+      "publication_409": true,
+      "roles": [
+        "system",
+        "user"
+      ],
+      "lesson_roles_separate": true,
+      "lesson_task_fields_literal": true,
+      "parameters": {
+        "model": "slm-production-evaluation",
+        "temperature": 0.0,
+        "max_tokens": 4000,
+        "reasoning_effort": "none"
+      },
+      "usage": {
+        "prompt_tokens": 1018,
+        "completion_tokens": 303,
+        "total_tokens": 1321,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "native_input_matches": 1,
+      "native_input_reasoning_disabled": true,
+      "saved_items": [
+        {
+          "content_id": 11,
+          "version": "teacher-reviewed-v11-consistent-lesson-claims",
+          "expected_version": true,
+          "draft_unverified": true,
+          "fragment_hash_matches": true,
+          "document_hash_matches": true,
+          "literal_ranges_match": true,
+          "character_counts_match": true,
+          "budget_at_most_6000": true,
+          "fragment_in_request": true,
+          "use_coverage": "complete",
+          "extraction_coverage": "unknown"
+        }
+      ]
+    },
+    {
+      "id": "dev10-marker-collision",
+      "battery": "development",
+      "initial_status": 200,
+      "all_ready": true,
+      "replay_same_result": true,
+      "replay_status": 200,
+      "replay_same_saved_ids": true,
+      "replay_same_item_identity": true,
+      "persisted_ids_match": true,
+      "no_duplicate_ids_or_positions": true,
+      "publication_409": true,
+      "roles": [
+        "system",
+        "user"
+      ],
+      "lesson_roles_separate": true,
+      "lesson_task_fields_literal": true,
+      "parameters": {
+        "model": "slm-production-evaluation",
+        "temperature": 0.0,
+        "max_tokens": 4000,
+        "reasoning_effort": "none"
+      },
+      "usage": {
+        "prompt_tokens": 1060,
+        "completion_tokens": 191,
+        "total_tokens": 1251,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "native_input_matches": 1,
+      "native_input_reasoning_disabled": true,
+      "saved_items": [
+        {
+          "content_id": 4,
+          "version": "teacher-reviewed-v11-consistent-lesson-claims",
+          "expected_version": true,
+          "draft_unverified": true,
+          "fragment_hash_matches": true,
+          "document_hash_matches": true,
+          "literal_ranges_match": true,
+          "character_counts_match": true,
+          "budget_at_most_6000": true,
+          "fragment_in_request": true,
+          "use_coverage": "complete",
+          "extraction_coverage": "unknown"
+        }
+      ]
+    },
+    {
+      "id": "dev10-role-spoof",
+      "battery": "development",
+      "initial_status": 200,
+      "all_ready": true,
+      "replay_same_result": true,
+      "replay_status": 200,
+      "replay_same_saved_ids": true,
+      "replay_same_item_identity": true,
+      "persisted_ids_match": true,
+      "no_duplicate_ids_or_positions": true,
+      "publication_409": true,
+      "roles": [
+        "system",
+        "user"
+      ],
+      "lesson_roles_separate": true,
+      "lesson_task_fields_literal": true,
+      "parameters": {
+        "model": "slm-production-evaluation",
+        "temperature": 0.0,
+        "max_tokens": 4000,
+        "reasoning_effort": "none"
+      },
+      "usage": {
+        "prompt_tokens": 1007,
+        "completion_tokens": 183,
+        "total_tokens": 1190,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "native_input_matches": 1,
+      "native_input_reasoning_disabled": true,
+      "saved_items": [
+        {
+          "content_id": 5,
+          "version": "teacher-reviewed-v11-consistent-lesson-claims",
+          "expected_version": true,
+          "draft_unverified": true,
+          "fragment_hash_matches": true,
+          "document_hash_matches": true,
+          "literal_ranges_match": true,
+          "character_counts_match": true,
+          "budget_at_most_6000": true,
+          "fragment_in_request": true,
+          "use_coverage": "complete",
+          "extraction_coverage": "unknown"
+        }
+      ]
+    },
+    {
+      "id": "dev10-perimeter-suspect",
+      "battery": "development",
+      "initial_status": 200,
+      "all_ready": true,
+      "replay_same_result": true,
+      "replay_status": 200,
+      "replay_same_saved_ids": true,
+      "replay_same_item_identity": true,
+      "persisted_ids_match": true,
+      "no_duplicate_ids_or_positions": true,
+      "publication_409": true,
+      "roles": [
+        "system",
+        "user"
+      ],
+      "lesson_roles_separate": true,
+      "lesson_task_fields_literal": true,
+      "parameters": {
+        "model": "slm-production-evaluation",
+        "temperature": 0.0,
+        "max_tokens": 4000,
+        "reasoning_effort": "none"
+      },
+      "usage": {
+        "prompt_tokens": 1020,
+        "completion_tokens": 375,
+        "total_tokens": 1395,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "native_input_matches": 1,
+      "native_input_reasoning_disabled": true,
+      "saved_items": [
+        {
+          "content_id": 6,
+          "version": "teacher-reviewed-v11-consistent-lesson-claims",
+          "expected_version": true,
+          "draft_unverified": true,
+          "fragment_hash_matches": true,
+          "document_hash_matches": true,
+          "literal_ranges_match": true,
+          "character_counts_match": true,
+          "budget_at_most_6000": true,
+          "fragment_in_request": true,
+          "use_coverage": "complete",
+          "extraction_coverage": "unknown"
+        }
+      ]
+    },
+    {
+      "id": "dev10-perimeter-sound",
+      "battery": "development",
+      "initial_status": 200,
+      "all_ready": true,
+      "replay_same_result": true,
+      "replay_status": 200,
+      "replay_same_saved_ids": true,
+      "replay_same_item_identity": true,
+      "persisted_ids_match": true,
+      "no_duplicate_ids_or_positions": true,
+      "publication_409": true,
+      "roles": [
+        "system",
+        "user"
+      ],
+      "lesson_roles_separate": true,
+      "lesson_task_fields_literal": true,
+      "parameters": {
+        "model": "slm-production-evaluation",
+        "temperature": 0.0,
+        "max_tokens": 4000,
+        "reasoning_effort": "none"
+      },
+      "usage": {
+        "prompt_tokens": 1019,
+        "completion_tokens": 289,
+        "total_tokens": 1308,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "native_input_matches": 1,
+      "native_input_reasoning_disabled": true,
+      "saved_items": [
+        {
+          "content_id": 7,
+          "version": "teacher-reviewed-v11-consistent-lesson-claims",
+          "expected_version": true,
+          "draft_unverified": true,
+          "fragment_hash_matches": true,
+          "document_hash_matches": true,
+          "literal_ranges_match": true,
+          "character_counts_match": true,
+          "budget_at_most_6000": true,
+          "fragment_in_request": true,
+          "use_coverage": "complete",
+          "extraction_coverage": "unknown"
+        }
+      ]
+    },
+    {
+      "id": "dev10-same-event",
+      "battery": "development",
+      "initial_status": 200,
+      "all_ready": true,
+      "replay_same_result": true,
+      "replay_status": 200,
+      "replay_same_saved_ids": true,
+      "replay_same_item_identity": true,
+      "persisted_ids_match": true,
+      "no_duplicate_ids_or_positions": true,
+      "publication_409": true,
+      "roles": [
+        "system",
+        "user"
+      ],
+      "lesson_roles_separate": true,
+      "lesson_task_fields_literal": true,
+      "parameters": {
+        "model": "slm-production-evaluation",
+        "temperature": 0.0,
+        "max_tokens": 4000,
+        "reasoning_effort": "none"
+      },
+      "usage": {
+        "prompt_tokens": 1032,
+        "completion_tokens": 383,
+        "total_tokens": 1415,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "native_input_matches": 1,
+      "native_input_reasoning_disabled": true,
+      "saved_items": [
+        {
+          "content_id": 8,
+          "version": "teacher-reviewed-v11-consistent-lesson-claims",
+          "expected_version": true,
+          "draft_unverified": true,
+          "fragment_hash_matches": true,
+          "document_hash_matches": true,
+          "literal_ranges_match": true,
+          "character_counts_match": true,
+          "budget_at_most_6000": true,
+          "fragment_in_request": true,
+          "use_coverage": "complete",
+          "extraction_coverage": "unknown"
+        }
+      ]
+    },
+    {
+      "id": "dev10-different-events",
+      "battery": "development",
+      "initial_status": 200,
+      "all_ready": true,
+      "replay_same_result": true,
+      "replay_status": 200,
+      "replay_same_saved_ids": true,
+      "replay_same_item_identity": true,
+      "persisted_ids_match": true,
+      "no_duplicate_ids_or_positions": true,
+      "publication_409": true,
+      "roles": [
+        "system",
+        "user"
+      ],
+      "lesson_roles_separate": true,
+      "lesson_task_fields_literal": true,
+      "parameters": {
+        "model": "slm-production-evaluation",
+        "temperature": 0.0,
+        "max_tokens": 4000,
+        "reasoning_effort": "none"
+      },
+      "usage": {
+        "prompt_tokens": 1027,
+        "completion_tokens": 273,
+        "total_tokens": 1300,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "native_input_matches": 1,
+      "native_input_reasoning_disabled": true,
+      "saved_items": [
+        {
+          "content_id": 9,
+          "version": "teacher-reviewed-v11-consistent-lesson-claims",
+          "expected_version": true,
+          "draft_unverified": true,
+          "fragment_hash_matches": true,
+          "document_hash_matches": true,
+          "literal_ranges_match": true,
+          "character_counts_match": true,
+          "budget_at_most_6000": true,
+          "fragment_in_request": true,
+          "use_coverage": "complete",
+          "extraction_coverage": "unknown"
+        }
+      ]
+    },
+    {
+      "id": "dev10-recorded-correction",
+      "battery": "development",
+      "initial_status": 200,
+      "all_ready": true,
+      "replay_same_result": true,
+      "replay_status": 200,
+      "replay_same_saved_ids": true,
+      "replay_same_item_identity": true,
+      "persisted_ids_match": true,
+      "no_duplicate_ids_or_positions": true,
+      "publication_409": true,
+      "roles": [
+        "system",
+        "user"
+      ],
+      "lesson_roles_separate": true,
+      "lesson_task_fields_literal": true,
+      "parameters": {
+        "model": "slm-production-evaluation",
+        "temperature": 0.0,
+        "max_tokens": 4000,
+        "reasoning_effort": "none"
+      },
+      "usage": {
+        "prompt_tokens": 1027,
+        "completion_tokens": 295,
+        "total_tokens": 1322,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "native_input_matches": 1,
+      "native_input_reasoning_disabled": true,
+      "saved_items": [
+        {
+          "content_id": 10,
+          "version": "teacher-reviewed-v11-consistent-lesson-claims",
+          "expected_version": true,
+          "draft_unverified": true,
+          "fragment_hash_matches": true,
+          "document_hash_matches": true,
+          "literal_ranges_match": true,
+          "character_counts_match": true,
+          "budget_at_most_6000": true,
+          "fragment_in_request": true,
+          "use_coverage": "complete",
+          "extraction_coverage": "unknown"
+        }
+      ]
+    },
+    {
+      "id": "dev10-unknown-fiction",
+      "battery": "development",
+      "initial_status": 200,
+      "all_ready": true,
+      "replay_same_result": true,
+      "replay_status": 200,
+      "replay_same_saved_ids": true,
+      "replay_same_item_identity": true,
+      "persisted_ids_match": true,
+      "no_duplicate_ids_or_positions": true,
+      "publication_409": true,
+      "roles": [
+        "system",
+        "user"
+      ],
+      "lesson_roles_separate": true,
+      "lesson_task_fields_literal": true,
+      "parameters": {
+        "model": "slm-production-evaluation",
+        "temperature": 0.0,
+        "max_tokens": 4000,
+        "reasoning_effort": "none"
+      },
+      "usage": {
+        "prompt_tokens": 1006,
+        "completion_tokens": 206,
+        "total_tokens": 1212,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "native_input_matches": 1,
+      "native_input_reasoning_disabled": true,
+      "saved_items": [
+        {
+          "content_id": 11,
+          "version": "teacher-reviewed-v11-consistent-lesson-claims",
+          "expected_version": true,
+          "draft_unverified": true,
+          "fragment_hash_matches": true,
+          "document_hash_matches": true,
+          "literal_ranges_match": true,
+          "character_counts_match": true,
+          "budget_at_most_6000": true,
+          "fragment_in_request": true,
+          "use_coverage": "complete",
+          "extraction_coverage": "unknown"
+        }
+      ]
+    },
+    {
+      "id": "dev10-objective-scope",
+      "battery": "development",
+      "initial_status": 200,
+      "all_ready": true,
+      "replay_same_result": true,
+      "replay_status": 200,
+      "replay_same_saved_ids": true,
+      "replay_same_item_identity": true,
+      "persisted_ids_match": true,
+      "no_duplicate_ids_or_positions": true,
+      "publication_409": true,
+      "roles": [
+        "system",
+        "user"
+      ],
+      "lesson_roles_separate": true,
+      "lesson_task_fields_literal": true,
+      "parameters": {
+        "model": "slm-production-evaluation",
+        "temperature": 0.0,
+        "max_tokens": 4000,
+        "reasoning_effort": "none"
+      },
+      "usage": {
+        "prompt_tokens": 1000,
+        "completion_tokens": 137,
+        "total_tokens": 1137,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "native_input_matches": 1,
+      "native_input_reasoning_disabled": true,
+      "saved_items": [
+        {
+          "content_id": 12,
+          "version": "teacher-reviewed-v11-consistent-lesson-claims",
+          "expected_version": true,
+          "draft_unverified": true,
+          "fragment_hash_matches": true,
+          "document_hash_matches": true,
+          "literal_ranges_match": true,
+          "character_counts_match": true,
+          "budget_at_most_6000": true,
+          "fragment_in_request": true,
+          "use_coverage": "complete",
+          "extraction_coverage": "unknown"
+        }
+      ]
+    },
+    {
+      "id": "dev10-missing-evidence",
+      "battery": "development",
+      "initial_status": 200,
+      "all_ready": true,
+      "replay_same_result": true,
+      "replay_status": 200,
+      "replay_same_saved_ids": true,
+      "replay_same_item_identity": true,
+      "persisted_ids_match": true,
+      "no_duplicate_ids_or_positions": true,
+      "publication_409": true,
+      "roles": [
+        "system",
+        "user"
+      ],
+      "lesson_roles_separate": true,
+      "lesson_task_fields_literal": true,
+      "parameters": {
+        "model": "slm-production-evaluation",
+        "temperature": 0.0,
+        "max_tokens": 4000,
+        "reasoning_effort": "none"
+      },
+      "usage": {
+        "prompt_tokens": 999,
+        "completion_tokens": 177,
+        "total_tokens": 1176,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "native_input_matches": 1,
+      "native_input_reasoning_disabled": true,
+      "saved_items": [
+        {
+          "content_id": 13,
+          "version": "teacher-reviewed-v11-consistent-lesson-claims",
+          "expected_version": true,
+          "draft_unverified": true,
+          "fragment_hash_matches": true,
+          "document_hash_matches": true,
+          "literal_ranges_match": true,
+          "character_counts_match": true,
+          "budget_at_most_6000": true,
+          "fragment_in_request": true,
+          "use_coverage": "complete",
+          "extraction_coverage": "unknown"
+        }
+      ]
+    },
+    {
+      "id": "dev10-derived-count",
+      "battery": "development",
+      "initial_status": 200,
+      "all_ready": true,
+      "replay_same_result": true,
+      "replay_status": 200,
+      "replay_same_saved_ids": true,
+      "replay_same_item_identity": true,
+      "persisted_ids_match": true,
+      "no_duplicate_ids_or_positions": true,
+      "publication_409": true,
+      "roles": [
+        "user"
+      ],
+      "lesson_roles_separate": true,
+      "lesson_task_fields_literal": true,
+      "parameters": {
+        "model": "slm-production-evaluation",
+        "temperature": 0.0,
+        "max_tokens": 2000,
+        "reasoning_effort": "none"
+      },
+      "usage": {
+        "prompt_tokens": 395,
+        "completion_tokens": 211,
+        "total_tokens": 606,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "native_input_matches": 1,
+      "native_input_reasoning_disabled": true,
+      "saved_items": [
+        {
+          "content_id": 14,
+          "version": "teacher-reviewed-v10-separated-lesson-request",
+          "expected_version": true,
+          "draft_unverified": true,
+          "fragment_hash_matches": true,
+          "document_hash_matches": true,
+          "literal_ranges_match": true,
+          "character_counts_match": true,
+          "budget_at_most_6000": true,
+          "fragment_in_request": true,
+          "use_coverage": "complete",
+          "extraction_coverage": "unknown"
+        }
+      ]
+    },
+    {
+      "id": "dev10-open-observation",
+      "battery": "development",
+      "initial_status": 200,
+      "all_ready": true,
+      "replay_same_result": false,
+      "replay_status": 200,
+      "replay_same_saved_ids": true,
+      "replay_same_item_identity": true,
+      "persisted_ids_match": true,
+      "no_duplicate_ids_or_positions": true,
+      "publication_409": true,
+      "roles": [
+        "user"
+      ],
+      "lesson_roles_separate": true,
+      "lesson_task_fields_literal": true,
+      "parameters": {
+        "model": "slm-production-evaluation",
+        "temperature": 0.0,
+        "max_tokens": 4000,
+        "reasoning_effort": "none"
+      },
+      "usage": {
+        "prompt_tokens": 457,
+        "completion_tokens": 135,
+        "total_tokens": 592,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "native_input_matches": 1,
+      "native_input_reasoning_disabled": true,
+      "saved_items": [
+        {
+          "content_id": 15,
+          "version": "teacher-reviewed-v10-separated-lesson-request",
+          "expected_version": true,
+          "draft_unverified": true,
+          "fragment_hash_matches": true,
+          "document_hash_matches": true,
+          "literal_ranges_match": true,
+          "character_counts_match": true,
+          "budget_at_most_6000": true,
+          "fragment_in_request": true,
+          "use_coverage": "complete",
+          "extraction_coverage": "unknown"
+        }
+      ]
+    }
+  ],
+  "batteries": [
+    {
+      "label": "historical-objective",
+      "cases": 36,
+      "accepted": 26,
+      "generation_inferences": 36,
+      "grading_inferences": 4,
+      "total_inferences": 40,
+      "generation_seconds": 546.4936561997747,
+      "fixture_sha256": "cf3c6d9c6e0e02004368aaabd0c86332a56429b13b059e17d8d14fdc93ddf107",
+      "fixture_git_blob": "9de1673f2287ccdeb3f5e8ceb3f0883e26186d90"
+    },
+    {
+      "label": "historical-source-review",
+      "cases": 8,
+      "accepted": 4,
+      "generation_inferences": 8,
+      "grading_inferences": 0,
+      "total_inferences": 8,
+      "generation_seconds": 130.5207106998423,
+      "fixture_sha256": "2cf0ac95193ddb6393ae293265ff38259c1eece8e4a8a4a8b1586fa3f2af3e8e",
+      "fixture_git_blob": "47dbd11fec03d0ac4a35fb8e4cea61ccfb99c1fc"
+    },
+    {
+      "label": "development",
+      "cases": 12,
+      "accepted": 10,
+      "generation_inferences": 12,
+      "grading_inferences": 1,
+      "total_inferences": 13,
+      "generation_seconds": 175.76856970007066,
+      "fixture_sha256": "772fa104dc5d9a8a2fc30935c3e29c955b50dfa3d27bf617572991e3caf64e8b",
+      "fixture_git_blob": "59aab3cbf527e3d4df8d9c71b0eb88f51b9c2b6a"
+    }
+  ],
+  "grading": [
+    {
+      "id": "reserved-open",
+      "provisional": true,
+      "repeat_same_attempt": true,
+      "initial_inferences": 1,
+      "repeat_inferences": 0,
+      "error": null
+    },
+    {
+      "id": "fresh-open",
+      "provisional": true,
+      "repeat_same_attempt": true,
+      "initial_inferences": 1,
+      "repeat_inferences": 0,
+      "error": null
+    },
+    {
+      "id": "followup-open",
+      "provisional": true,
+      "repeat_same_attempt": true,
+      "initial_inferences": 1,
+      "repeat_inferences": 0,
+      "error": null
+    },
+    {
+      "id": "objective-open",
+      "provisional": true,
+      "repeat_same_attempt": true,
+      "initial_inferences": 1,
+      "repeat_inferences": 0,
+      "error": null
+    },
+    {
+      "id": "dev10-open-observation",
+      "provisional": true,
+      "repeat_same_attempt": true,
+      "initial_inferences": 1,
+      "repeat_inferences": 0,
+      "error": null
+    }
+  ],
+  "totals": {
+    "generation_inferences": 56,
+    "grading_inferences": 5,
+    "probe_inferences": 0,
+    "all_inferences": 61,
+    "application_generation_requests": 112,
+    "native_inputs_with_exact_request_match": 56
+  }
+}

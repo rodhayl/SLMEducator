@@ -1,0 +1,10 @@
+{
+  "scope": "Revisión manual de todos los campos visibles de las cinco correcciones ya autorizadas; no son casos nuevos ni alteran las 56 notas de generación o los históricos. Dimensiones originales A/F/U/L/I; notas sugeridas siempre provisionales.",
+  "cases": [
+    {"id":"reserved-open","scores":[2,1,1,2,2],"reason":"5/5 y clave iguales correctos; feedback y explicación mantienen reparto igual, pero improvements propone compartir según necesidad/proporcionalidad, concepto ajeno al criterio fijado por esta fuente, aunque presentado como extensión hipotética."},
+    {"id":"fresh-open","scores":[2,2,2,2,2],"reason":"5/5, igualdad de longitud correcta; explicación y sugerencia simbólica total/3 consistentes con tres porciones iguales; fortalezas y ausencia de errores coherentes."},
+    {"id":"followup-open","scores":[2,2,2,2,2],"reason":"5/5, igualdad de cantidad correcta; ejemplo 16/4 explícitamente hipotético y aritméticamente correcto, sin atribuirlo a esta historia; feedback y fortalezas coherentes."},
+    {"id":"objective-open","scores":[2,2,2,2,2],"reason":"5/5, todos reciben misma cantidad; explicación y mejora cuatro discos son derivables de 20/5; feedback y fortalezas coherentes."},
+    {"id":"dev10-open-observation","scores":[2,2,2,2,2],"reason":"5/5, causa no investigada; feedback, explicación y sugerencia de citar texto mantienen límite evidencial sin inventar origen; fortalezas coherentes."}
+  ]
+}

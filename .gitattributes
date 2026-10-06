@@ -4,6 +4,8 @@ src/web/static/vendor/** -text
 src/web/static/vendor/sortablejs@1.15.0/LICENSE -text whitespace=cr-at-eol
 # Preserve the single-pass evaluation's published byte hashes on Windows.
 implementation_documents/v10_single_pass_evidence/** -text whitespace=cr-at-eol
+implementation_documents/v11_final_pass_evidence/** -text whitespace=cr-at-eol
+implementation_documents/lesson_claim_consistency_20261006_final_pass_report.md -text whitespace=cr-at-eol
 implementation_documents/v10_*.py -text whitespace=cr-at-eol
 implementation_documents/source_trust_20261006_single_pass_report.md -text whitespace=cr-at-eol
 implementation_documents/v10_single_pass_evidence/harness_guard.diff -text whitespace=-blank-at-eol,-blank-at-eof,cr-at-eol
