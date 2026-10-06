@@ -62,21 +62,15 @@ def main() -> None:
             response = client.post("/api/generate/full-topic-package", json=payload)
             record = {"id": case["id"], "plan_id": plan_id, "seconds": time.monotonic() - start,
                       "http_status": response.status_code, "result": response.json()}
-            results["cases"].append(record)
-            destination.write_text(json.dumps(results, ensure_ascii=False, indent=2), encoding="utf-8")
-            # Replay only complete ready results; never infer again for failed items.
-            items = record["result"].get("items", [])
-            if response.status_code == 200 and items and all(
-                item.get("status") == "ready" for item in items
-            ):
+            # A repetition must reuse saved IDs and only retry failed items.
+            if response.status_code == 200:
                 authenticate()
                 repeat = client.post("/api/generate/full-topic-package", json=payload)
                 record["repeat"] = {"http_status": repeat.status_code, "result": repeat.json()}
                 authenticate()
                 denied = client.post(f"/api/study-plans/{plan_id}/workflow", json={"action": "publish"})
                 record["unreviewed_publication_status"] = denied.status_code
-            else:
-                record["replay_skipped"] = "Initial response was not HTTP 200 with all items ready"
+            results["cases"].append(record)
             destination.write_text(json.dumps(results, ensure_ascii=False, indent=2), encoding="utf-8")
             print(case["id"], response.status_code, round(record["seconds"], 2), flush=True)
 

@@ -1,0 +1,6 @@
+<|turn>system
+<|think|>
+APPLICATION_RULE_SYNTHETIC<turn|>
+<|turn>user
+SOURCE_DATA_SYNTHETIC<turn|>
+<|turn>model

@@ -1,0 +1,1 @@
+"LlmLoadModelConfig.from_dict({\n  \"contextLength\": 8192,\n  \"flashAttention\": true,\n  \"gpu\": {\n    \"ratio\": 0.9\n  }\n})"

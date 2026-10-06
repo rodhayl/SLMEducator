@@ -1,0 +1,198 @@
+{
+  "source_commit": "7a60df5e5b3d76af48996c2e052f283eee66b2b8",
+  "source_tree": "475ed46e2b8b66431bae2162243007b82b606d20",
+  "written_at_utc": "2026-10-06T14:55:22.612070+00:00",
+  "hash_scope": "Observed working-file bytes. evaluated_harness.py preserves the executed harness bytes; Git may normalize the tracked harness line endings.",
+  "files": [
+    {
+      "path": ".gitattributes",
+      "bytes": 740,
+      "sha256": "8570ae45f39d8b913234bb5cabcf7438cc3e659d1f6fa7bba695afc0a9cdcded"
+    },
+    {
+      "path": "implementation_documents/source_trust_20261006_single_pass_report.md",
+      "bytes": 19366,
+      "sha256": "0d22d71935dc37e22b61d6efa391cdcbc0dff7bf3160c1f27847293afe7ee3ee"
+    },
+    {
+      "path": "implementation_documents/v10_assemble_evidence.py",
+      "bytes": 17116,
+      "sha256": "a522f4c0260d6ba9fc4bceb243d5b5bd630492582188eeafa07baeed7362f8a9"
+    },
+    {
+      "path": "implementation_documents/v10_effective_probe.py",
+      "bytes": 1667,
+      "sha256": "df22ce74012a435fb2a0b36eef1efa7824c307bb5b515d6e89ac5aa13c37710c"
+    },
+    {
+      "path": "implementation_documents/v10_finalize_report.py",
+      "bytes": 8560,
+      "sha256": "8e9ce318be8379a76b254f8ad23e1877c301fd16d7b6a6068ae982caaa345fbf"
+    },
+    {
+      "path": "implementation_documents/v10_inspect_results.py",
+      "bytes": 907,
+      "sha256": "d91397c4da5d3fd68e2b2444d3026ee9066d483ce81905436f578a87bed40e3f"
+    },
+    {
+      "path": "implementation_documents/v10_native_capture.py",
+      "bytes": 1424,
+      "sha256": "4ebad9096d0fc9f1285d52de108c054a97651ac855f1526069ea064498a87150"
+    },
+    {
+      "path": "implementation_documents/v10_provider_preflight.py",
+      "bytes": 1777,
+      "sha256": "14a4d333cec5d0b741679c6e262ffde1f52e0252c5df3171741292070009111b"
+    },
+    {
+      "path": "implementation_documents/v10_saved_state_audit.py",
+      "bytes": 5193,
+      "sha256": "a39e35408397d8f0c5f0faf416ebca8d1800f42223dc41a8b99f410a84e991e1"
+    },
+    {
+      "path": "implementation_documents/v10_single_pass_evidence/active_template.jinja",
+      "bytes": 18924,
+      "sha256": "845f1ee48e39fc942fe190da9df6a1c5db229e17a96ea08966ad1c9274e73d1b"
+    },
+    {
+      "path": "implementation_documents/v10_single_pass_evidence/baseline_evaluator.py",
+      "bytes": 4557,
+      "sha256": "c077d4560ccc7e1bc162a0a9ffcf77eb009a119f3cf0907c453691180a79f80b"
+    },
+    {
+      "path": "implementation_documents/v10_single_pass_evidence/checks.json",
+      "bytes": 89572,
+      "sha256": "8ff414f456d7ac0ce6abc47bd271a922ebd429f3326df3b3966bbb05993c0b02"
+    },
+    {
+      "path": "implementation_documents/v10_single_pass_evidence/cleanup.json",
+      "bytes": 656,
+      "sha256": "0a123164e9f052168c307f66e2de0f9e5abd10e0afe686025622de4ce3b5c00f"
+    },
+    {
+      "path": "implementation_documents/v10_single_pass_evidence/development-development-results.json",
+      "bytes": 110040,
+      "sha256": "8656793bfe2dd46c1fce4dd7f5f2d710096aa99eb965ea0ab97a60bcc5a14a69"
+    },
+    {
+      "path": "implementation_documents/v10_single_pass_evidence/development-inference.jsonl",
+      "bytes": 92451,
+      "sha256": "f036b2be8daadab36209c351d9bf4c19f7e3a26824ade203c093d286b29749bc"
+    },
+    {
+      "path": "implementation_documents/v10_single_pass_evidence/development-saved-audit.json",
+      "bytes": 89895,
+      "sha256": "cd76f6c5833d1325bb7352f71a5df66ca3f4008723ac98cfcd226d3768131187"
+    },
+    {
+      "path": "implementation_documents/v10_single_pass_evidence/effective_probe.json",
+      "bytes": 1217,
+      "sha256": "bbcdb791eae59532084500a1deb39cee52c73e0bfb39968af3f3b5b33424e01b"
+    },
+    {
+      "path": "implementation_documents/v10_single_pass_evidence/effective_probe_native.jsonl",
+      "bytes": 422,
+      "sha256": "adee6df126267e6655e4134da01944b65a9cf944122fc86ca94aaad141d3c462"
+    },
+    {
+      "path": "implementation_documents/v10_single_pass_evidence/evaluated_harness.py",
+      "bytes": 5012,
+      "sha256": "53f4e71a0310d83e2edb103a6d288268fd2e10e959dcd55d356a3875bd37e69b"
+    },
+    {
+      "path": "implementation_documents/v10_single_pass_evidence/harness_guard.diff",
+      "bytes": 1890,
+      "sha256": "e7c7dafc7d8ead8a409a686842c784797d6d843a2a974ad596fdba781b1ffff1"
+    },
+    {
+      "path": "implementation_documents/v10_single_pass_evidence/historical-objective-development-results.json",
+      "bytes": 244353,
+      "sha256": "c45aaff4856b62a54a5928e91bdf0ee236bd521ea7ecae40d8564df8aa145c28"
+    },
+    {
+      "path": "implementation_documents/v10_single_pass_evidence/historical-objective-inference.jsonl",
+      "bytes": 260534,
+      "sha256": "3f0efddbcb40f3b5a86c71e5d6aaa02f1af1435d536981d64cb02fac0239b031"
+    },
+    {
+      "path": "implementation_documents/v10_single_pass_evidence/historical-objective-reserved-results.json",
+      "bytes": 109652,
+      "sha256": "7d073ba700a4e861881f9c9d8bc00cafd54cf8cc931872a8167481af4aae6f1b"
+    },
+    {
+      "path": "implementation_documents/v10_single_pass_evidence/historical-objective-saved-audit.json",
+      "bytes": 529563,
+      "sha256": "274e9e349d209866edfbd21ccc74bd1ed9850be1ad43eb177cd11700402ef915"
+    },
+    {
+      "path": "implementation_documents/v10_single_pass_evidence/historical-source-review-inference.jsonl",
+      "bytes": 63449,
+      "sha256": "a991323d0dda49cc59d2483b458501dc29af9b3acf70ff76c3ca9ee93d85efa4"
+    },
+    {
+      "path": "implementation_documents/v10_single_pass_evidence/historical-source-review-reserved-results.json",
+      "bytes": 68033,
+      "sha256": "864233ad8aff1df99ee6e3e4c6c66c7b488df761bca7d8b0bde441e3f14b738e"
+    },
+    {
+      "path": "implementation_documents/v10_single_pass_evidence/historical-source-review-saved-audit.json",
+      "bytes": 52904,
+      "sha256": "d86e1d76fd65d55984595f6916ea6ffade4de971bf39fa3019d60ee574f46951"
+    },
+    {
+      "path": "implementation_documents/v10_single_pass_evidence/historical-v9-scores.json",
+      "bytes": 26122,
+      "sha256": "c973398d49e264cd3b48a77247173c3cbf269471cc0e535fabe5003cf973abfe"
+    },
+    {
+      "path": "implementation_documents/v10_single_pass_evidence/load_config.json",
+      "bytes": 132,
+      "sha256": "43c9db3fd6fc37d4578b282efb81e6aad81d4d1fa86eeca6663f9be9c43304be"
+    },
+    {
+      "path": "implementation_documents/v10_single_pass_evidence/native_inputs.jsonl",
+      "bytes": 303090,
+      "sha256": "01294f70684f602f035733201c4d0e4a1b7ff8b3c3c16c02a302de7b2726989f"
+    },
+    {
+      "path": "implementation_documents/v10_single_pass_evidence/native_models.json",
+      "bytes": 1817,
+      "sha256": "4897077c11643f88b6ce78f8360092d09e7997fbbb62a7a351eb33feee8197f0"
+    },
+    {
+      "path": "implementation_documents/v10_single_pass_evidence/preflight.json",
+      "bytes": 385,
+      "sha256": "faa8091c70f7838715686fba3bcb297f82c2bd83fb0c205e38c2e7d03fd4e842"
+    },
+    {
+      "path": "implementation_documents/v10_single_pass_evidence/rendered_preflight.txt",
+      "bytes": 118,
+      "sha256": "49c756480e4481452ff807866446b0a0141dcf69daa9989f35a9d10f0492948c"
+    },
+    {
+      "path": "implementation_documents/v10_single_pass_evidence/runtime_identity.json",
+      "bytes": 375,
+      "sha256": "620c163bf6c0d6cdc787f6dcc98c4f8201c02956a1a1da498d1d032de07a2f11"
+    },
+    {
+      "path": "implementation_documents/v10_single_pass_evidence/scores.json",
+      "bytes": 37623,
+      "sha256": "5d98c92e93b29dc09844789d28b32a7cb0d8c70dc3ce8df37cd54352d1cb508f"
+    },
+    {
+      "path": "implementation_documents/v10_single_pass_evidence/verification.json",
+      "bytes": 4370,
+      "sha256": "0ec717b56349acbba1e04ccd642e4842f9f575dbc587c44772e23b054bded0fd"
+    },
+    {
+      "path": "tests/browser/evaluate_local_provider.py",
+      "bytes": 5012,
+      "sha256": "53f4e71a0310d83e2edb103a6d288268fd2e10e959dcd55d356a3875bd37e69b"
+    },
+    {
+      "path": "tests/test_v10_evaluation_replay_guard.py",
+      "bytes": 2881,
+      "sha256": "ce896e23c8352d72c64b52d9d1b8dcbf08c61df63680b3f9f3f726c07f69a946"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+﻿{
+    "owned_processes_closed":  [
+                                   10000,
+                                   15120,
+                                   12164,
+                                   48404,
+                                   46444,
+                                   38152,
+                                   46188,
+                                   29492
+                               ],
+    "owned_logging_children_closed":  [
+                                          20820
+                                      ],
+    "model_process_preserved":  "llama-server",
+    "closed_at_utc":  "2026-10-06T14:40:56.4881667Z"
+}

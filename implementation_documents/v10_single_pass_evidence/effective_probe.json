@@ -1,0 +1,50 @@
+{
+  "request": {
+    "model": "slm-production-evaluation",
+    "messages": [
+      {
+        "role": "system",
+        "content": "SLM_V10_PREFLIGHT_20261006_SINGLE_PASS system rule: respond OK."
+      },
+      {
+        "role": "user",
+        "content": "SLM_V10_PREFLIGHT_20261006_SINGLE_PASS synthetic user data."
+      }
+    ],
+    "temperature": 0,
+    "max_tokens": 4,
+    "reasoning_effort": "none"
+  },
+  "response": {
+    "id": "chatcmpl-e8tg9fhmpe3lgi2ydnc6r",
+    "object": "chat.completion",
+    "created": 1791296045,
+    "model": "slm-production-evaluation",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "OK",
+          "reasoning_content": "",
+          "tool_calls": []
+        },
+        "logprobs": null,
+        "finish_reason": "stop"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 74,
+      "completion_tokens": 2,
+      "total_tokens": 76,
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      }
+    },
+    "stats": {},
+    "system_fingerprint": "slm-production-evaluation"
+  },
+  "status": 200,
+  "seconds": 3.550571700092405,
+  "inferences": 1
+}

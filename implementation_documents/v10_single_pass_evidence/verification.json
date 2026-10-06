@@ -1,0 +1,76 @@
+{
+  "python": "..\\.production-worktree\\venv\\Scripts\\python.exe",
+  "commands": [
+    {
+      "command": "python -m pytest tests/test_local_provider_server_isolation.py tests/trust/test_ai_generation_boundaries.py -q --basetemp=.evaluation-state/focused-validation -p no:cacheprovider",
+      "result": "70 passed in 11.30s"
+    },
+    {
+      "command": "python -m pytest tests/test_v10_evaluation_replay_guard.py -q -p no:cacheprovider --basetemp=.evaluation-state/replay-guard-tests",
+      "result": "5 passed in 0.72s"
+    },
+    {
+      "command": "python -m flake8 tests/browser/evaluate_local_provider.py --select E9,F63,F7,F82 --jobs 1",
+      "result": "exit 0"
+    },
+    {
+      "command": "python -m mypy tests/browser/evaluate_local_provider.py --follow-imports=silent --cache-dir=.evaluation-state/mypy",
+      "result": "exit 1, line 65: Sequence[str] has no attribute append"
+    },
+    {
+      "command": "python -m mypy implementation_documents/v10_single_pass_evidence/baseline_evaluator.py --follow-imports=silent --cache-dir=.evaluation-state/mypy-baseline",
+      "result": "exit 1, original pinned bytes line 73: same Sequence[str] append error"
+    },
+    {
+      "command": "python tests/browser/local_provider_server.py --state-dir .evaluation-state/v10-historical-objective --port 8111",
+      "result": "NEW synthetic state created"
+    },
+    {
+      "command": "python tests/browser/evaluate_local_provider.py --state-dir .evaluation-state/v10-historical-objective --base-url http://127.0.0.1:8111 --cases-file tests/fixtures/local_semantic_objective_20261005.json --split development --max-tokens 4000 --reasoning-effort none",
+      "result": "exit 0; see preserved first responses and replays"
+    },
+    {
+      "command": "python tests/browser/evaluate_local_provider.py --state-dir .evaluation-state/v10-historical-objective --base-url http://127.0.0.1:8111 --cases-file tests/fixtures/local_semantic_objective_20261005.json --split reserved --max-tokens 4000 --reasoning-effort none",
+      "result": "exit 0; see preserved first responses and replays"
+    },
+    {
+      "command": "python tests/browser/local_provider_server.py --state-dir .evaluation-state/v10-historical-source-review --port 8112",
+      "result": "NEW synthetic state created"
+    },
+    {
+      "command": "python tests/browser/evaluate_local_provider.py --state-dir .evaluation-state/v10-historical-source-review --base-url http://127.0.0.1:8112 --cases-file tests/fixtures/local_semantic_source_review_20261005.json --split reserved --max-tokens 4000 --reasoning-effort none",
+      "result": "exit 0; see preserved first responses and replays"
+    },
+    {
+      "command": "python tests/browser/local_provider_server.py --state-dir .evaluation-state/v10-development --port 8113",
+      "result": "NEW synthetic state created"
+    },
+    {
+      "command": "python tests/browser/evaluate_local_provider.py --state-dir .evaluation-state/v10-development --base-url http://127.0.0.1:8113 --cases-file tests/fixtures/local_semantic_source_trust_development_20261006.json --split development --max-tokens 4000 --reasoning-effort none",
+      "result": "exit 0; see preserved first responses and replays"
+    }
+  ],
+  "preparation_errors": [
+    "Initial pytest named a nonexistent tests/test_source_prompt_boundaries.py; zero tests ran.",
+    "Initial inline report-table helper had SyntaxError; no report write or inference occurred."
+  ],
+  "requirements_audit": {
+    "pinned_source": true,
+    "new_synthetic_states": 3,
+    "frozen_fixture_blobs_unchanged": true,
+    "application_and_prompts_diff_empty": true,
+    "historical_cases_once": 44,
+    "development_cases_once_after_historical": 12,
+    "explicit_five_dimensional_scores": 56,
+    "historical_v9_preserved": true,
+    "ready_only_replay_guard_verified": true,
+    "first_response_durable_verified": true,
+    "per_content_v10_receipts_verified": 56,
+    "lesson_role_and_task_fields_verified": 40,
+    "publication_409": 56,
+    "provisional_open_grades": 5,
+    "real_inference_accounting_verified": 62,
+    "native_render_coverage": 52
+  },
+  "limitation": "Four generation calls lack a matching native rendered-input trace; all HTTP provider requests/responses are preserved. No repeat to fill missing traces."
+}
