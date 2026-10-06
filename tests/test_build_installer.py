@@ -54,6 +54,8 @@ def test_recipe_has_no_external_calls_and_blocks_in_place_updates(recipe: str) -
     assert "RegQueryStringValue" in recipe
     assert "InitializeSetup" in recipe
     assert "ExistingInstallBlocked" in recipe
+    # /SUPPRESSMSGBOXES must dismiss the block box in silent installs.
+    assert "SuppressibleMsgBox" in recipe
 
 
 def test_recipe_asks_to_close_locked_applications_without_restarting_them(

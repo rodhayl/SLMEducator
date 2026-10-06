@@ -108,6 +108,8 @@ Name: "{userdesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; WorkingDi
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#MyAppName}}"; Flags: nowait postinstall skipifsilent
 
 [Code]
+// SuppressibleMsgBox respects /SUPPRESSMSGBOXES so a silent install aborts
+// immediately instead of waiting on a message box that /VERYSILENT cannot close.
 function PreviousInstallDetected(): Boolean;
 var
   Existing: String;
@@ -123,7 +125,7 @@ begin
   Result := True;
   if PreviousInstallDetected() then
   begin
-    MsgBox(ExpandConstant('{cm:ExistingInstallBlocked}'), mbError, MB_OK);
+    SuppressibleMsgBox(ExpandConstant('{cm:ExistingInstallBlocked}'), mbError, MB_OK, IDOK);
     Result := False;
   end;
 end;
