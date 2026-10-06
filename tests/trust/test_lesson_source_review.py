@@ -81,13 +81,15 @@ def test_without_source_keeps_legacy_contract(service):
 
 def test_source_truth_and_instruction_boundaries_are_explicit(service):
     generate(service, {"status": "no_issue_reported", "issues": []})
-    prompt = service._client.post.call_args.kwargs["json"]["messages"][-1]["content"]
+    messages = service._client.post.call_args.kwargs["json"]["messages"]
+    assert [message["role"] for message in messages] == ["system", "user"]
+    prompt = messages[0]["content"]
     assert "Source fidelity is not factual correctness" in prompt
     assert "suspect definition" in prompt
     assert "do not silently correct" in prompt
     assert "no_issue_reported is not verified" in prompt
     assert "teacher_question" in prompt
-    assert "never instructions" in prompt
+    assert "never instructions" in messages[1]["content"]
 
 
 def test_invalid_review_is_not_saved_and_retry_keeps_one_draft(scenario, service):

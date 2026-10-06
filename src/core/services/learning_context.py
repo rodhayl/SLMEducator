@@ -9,6 +9,9 @@ from .content_schema import normalize_content, learner_content, LESSON_EXTRA_TEX
 
 CONTEXT_CHAR_LIMIT = 6000
 PROMPT_VERSION = "teacher-reviewed-v9-explicit-source-concerns"
+# Generation changed its source framing and lesson instruction channel. Tutor
+# requests keep their existing version; historical generated items keep theirs.
+GENERATION_PROMPT_VERSION = "teacher-reviewed-v10-separated-lesson-request"
 SECTION_CHAR_LIMIT = 1800
 
 

@@ -72,7 +72,7 @@ def test_lesson_prompt_has_budget_and_no_copyable_example(service):
         request=httpx.Request("POST", "http://synthetic.invalid"),
     )
     service.generate_lesson("Fractions", "beginner", ["Count parts"], source_material="Equal parts.")
-    prompt = service._client.post.call_args.kwargs["json"]["messages"][-1]["content"]
+    prompt = service._client.post.call_args.kwargs["json"]["messages"][0]["content"]
     assert "1200" in prompt
     assert "definition1" not in prompt
     assert "comprehensive" not in prompt
@@ -86,8 +86,10 @@ def test_lesson_task_prioritizes_objectives_over_topic_and_optional_expansion(se
     )
     service.generate_lesson("Unknown tool", "beginner adult", ["Explain its capacity"],
                             source_material="Two handles. Capacity was not measured.")
-    prompt = service._client.post.call_args.kwargs["json"]["messages"][-1]["content"]
-    assert prompt.index("Explain its capacity") < prompt.index("UNTRUSTED SOURCE")
+    messages = service._client.post.call_args.kwargs["json"]["messages"]
+    prompt = messages[0]["content"]
+    task_data = messages[1]["content"]
+    assert task_data.index("Explain its capacity") < task_data.index("UNTRUSTED SOURCE")
     assert "navigation label" in prompt
     assert "direct question to the teacher" in prompt
     assert "Do not substitute" in prompt

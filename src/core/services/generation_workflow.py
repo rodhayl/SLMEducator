@@ -27,7 +27,7 @@ from src.core.services.course_workflow import (
     invalidate_reviews,
     next_course_position,
 )
-from src.core.services.learning_context import PROMPT_VERSION
+from src.core.services.learning_context import GENERATION_PROMPT_VERSION
 from src.core.exceptions import AIResponseParseError, AIContentValidationError
 from src.core.services.source_documents import source_prompt, save_document
 
@@ -41,6 +41,9 @@ def _plan_lock(plan_id: int) -> Lock:
 
 
 def _fingerprint(request) -> str:
+    # This identifies a teacher's resumable request, not its prompt protocol.
+    # Preserve ready IDs/edits across upgrades. Newly generated missing items
+    # record their own protocol in _save_item; do not relabel earlier items.
     fields = request.model_dump(exclude={"auto_save"})
     # Preserve the identity of pre-selector mixed requests and their ready items.
     if fields.get("assessment_question_types") is None:
@@ -213,7 +216,7 @@ def _save_item(
     data["generation"] = {
         "model": service.model,
         "provider": service.provider.value,
-        "prompt_version": PROMPT_VERSION,
+        "prompt_version": GENERATION_PROMPT_VERSION,
         "source_version": sha256((request.source_material or "").encode()).hexdigest(),
         "review_status": "draft",
         "structural_status": "valid",
