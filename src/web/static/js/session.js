@@ -19,7 +19,7 @@ let sessionEnded = false;
 let completionSaved = false;
 let annotationSaving = false;
 let sessionHelp = null;
-const t = (key) => window.I18n?.t?.(key) || key;
+const t = (key, params = {}) => window.I18n?.t?.(key, params) || key;
 const sessionMessage = (key, fallback) => SLMClient.message(key, fallback);
 
 function saveNotesDraft(notes) {
@@ -576,16 +576,31 @@ function renderPlanSidebar() {
         `;
     }).join('');
 
-    // Update progress text
-    const completed = completedContentIds.length;
-    document.getElementById('completed-count').textContent = `${completed}/${planContents.length} completed`;
+    updatePlanCounterText();
 }
+
+function updatePlanCounterText() {
+    const total = planContents.length;
+    const completed = completedContentIds.length;
+    const current = total ? currentContentIndex + 1 : 0;
+    for (const [id, key, params, fallback] of [
+        ['completed-count', 'session_player.plan_sidebar.progress', {completed, total}, `${completed}/${total}`],
+        ['content-position', 'session_player.navigation.position', {current, total}, `${current}/${total}`]
+    ]) {
+        const element = document.getElementById(id);
+        if (!element) continue;
+        const translated = t(key, params);
+        element.textContent = translated === key ? fallback : translated;
+    }
+}
+
+document.addEventListener('i18n-loaded', updatePlanCounterText);
+document.addEventListener('i18n-language-changed', updatePlanCounterText);
 
 // Update prev/next button states
 function updateNavigationButtons() {
     const prevBtn = document.getElementById('prev-content-btn');
     const nextBtn = document.getElementById('next-content-btn');
-    const positionText = document.getElementById('content-position');
 
     prevBtn.disabled = currentContentIndex <= 0;
     nextBtn.disabled = planContents.length === 0;
@@ -599,7 +614,7 @@ function updateNavigationButtons() {
         nextBtn.textContent = sessionMessage('complete_next', 'Complete and next →');
     }
 
-    positionText.textContent = `${currentContentIndex + 1} of ${planContents.length}`;
+    updatePlanCounterText();
 }
 
 // Navigation changes progress only after the server accepts the transition.

@@ -26,7 +26,7 @@ def test_previous_worker_waits_for_tabs_and_offline_cache_is_scoped(live_browser
         }""")
         page.wait_for_function("navigator.serviceWorker.getRegistration().then(r => r.waiting !== null)")
         # A live previous-version page must not be claimed by the update.
-        assert page.evaluate("caches.keys()") == ['slm-educator-v14-practice-options', 'slm-educator-v21-source-clarification']
+        assert page.evaluate("caches.keys()") == ['slm-educator-v14-practice-options', 'slm-educator-v22-session-locale']
         page.close()
         page = context.new_page()
         # Closing the last controlled client schedules activation asynchronously.

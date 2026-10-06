@@ -1,0 +1,338 @@
+{
+  "scope": "Synthetic local Windows evaluation. Technical agent scoring; no human educational acceptance. No new EXE.",
+  "base_commit": "a7ebe09de1feddd373cfceee4c6349bc94ffef00",
+  "semantic_evaluation_src_tree": "18fa8d463a512b4ba5ab06c5d97fce32077bc515",
+  "prompt_version": "teacher-reviewed-v9-explicit-source-concerns",
+  "branch": "test/windows-v9-semantic-gui-20261006",
+  "model": {
+    "lm_studio_product_version": "0.4.25.0",
+    "live_runtime": "llama.cpp-win-x86_64-nvidia-cuda12-avx2@2.51.0",
+    "gguf": "gemma-4-12B-it-qat-UD-Q4_K_XL.gguf",
+    "gguf_bytes": 6716356800,
+    "gguf_sha256": "90fd44e29e0d7cffeb0fd00dc73cfdab9ed0b0e95306ecf7821ea634c940c370",
+    "identifier": "slm-production-evaluation",
+    "endpoint": "http://127.0.0.1:1234",
+    "context": 8192,
+    "parallel": 1,
+    "gpu_ratio": 0.9,
+    "cpu_threads_effective_probe": 6,
+    "physical_44_layer_count": "not directly observed; historical report only",
+    "temperature": 0,
+    "global_max_tokens": 4000,
+    "exercise_max_tokens": 2000,
+    "reasoning_effort": "none",
+    "gpu_sample": "RTX 2000 Ada Laptop: 8188 MiB total, 6993 MiB used, 58% utilization"
+  },
+  "environment": {
+    "python": "3.13.15",
+    "playwright": "1.63.0",
+    "pytest": "9.0.2",
+    "node": "24.21.0",
+    "flake8": "7.3.0",
+    "mypy": "1.19.1"
+  },
+  "results": {
+    "baseline": {
+      "accepted": 37,
+      "cases": 44,
+      "groups": {
+        "local_semantic_objective_20261005.json:development": {
+          "accepted": 22,
+          "cases": 25
+        },
+        "local_semantic_objective_20261005.json:reserved": {
+          "accepted": 10,
+          "cases": 11
+        },
+        "local_semantic_source_review_20261005.json:reserved": {
+          "accepted": 5,
+          "cases": 8
+        }
+      }
+    },
+    "final": {
+      "accepted": 37,
+      "cases": 44,
+      "groups": {
+        "local_semantic_objective_20261005.json:development": {
+          "accepted": 22,
+          "cases": 25
+        },
+        "local_semantic_objective_20261005.json:reserved": {
+          "accepted": 10,
+          "cases": 11
+        },
+        "local_semantic_source_review_20261005.json:reserved": {
+          "accepted": 5,
+          "cases": 8
+        }
+      }
+    }
+  },
+  "generation_native_calls": {
+    "baseline": 44,
+    "final": 44
+  },
+  "native_short_answer_grading": {
+    "cases": 4,
+    "native_calls": 4,
+    "pending_score_null": 4,
+    "replay_extra_calls": 0
+  },
+  "configuration_probe_native_calls": 1,
+  "identity_and_replay": {
+    "same_saved_ids_per_tanda": 44,
+    "unreviewed_409_per_tanda": 44,
+    "generation_http_posts_per_tanda": 88,
+    "all_44_native_requests_and_message_contents_identical_between_tandas": true
+  },
+  "checks": {
+    "python_bootstrap_and_focused": {
+      "passed": 113,
+      "seconds": 55.98,
+      "scope": "test_local_provider_server_isolation, trust/test_lesson_source_review, test_lesson_generation_contract, ui/test_frontend_safety, test_build_package, test_seed_admin"
+    },
+    "python_sources_recovery": {
+      "passed": 38,
+      "seconds": 32.74,
+      "scope": "trust/test_source_documents, integration/test_operational_recovery, integration/test_portability_recovery"
+    },
+    "python_after_gui": {
+      "passed": 64,
+      "seconds": 12.0,
+      "scope": "test_local_provider_server_isolation, trust/test_lesson_source_review, test_lesson_generation_contract, ui/test_frontend_safety, ui/test_style_standardization"
+    },
+    "dom": {
+      "passed": 194,
+      "seconds": 13.6913729,
+      "command": "node --test --test-concurrency=1 tests/ui/*.test.cjs"
+    },
+    "browser": {
+      "passed": 13,
+      "seconds": 72.49,
+      "command": "SLM_BROWSER_ACCEPTANCE=1 PW_EXPERIMENTAL_SERVICE_WORKER_NETWORK_EVENTS=1 PLAYWRIGHT_BROWSERS_PATH=existing_bundle python -m pytest tests/browser -q --basetemp=NEW",
+      "provider": "declared synthetic stub"
+    },
+    "critical_lint": {
+      "exit": 0,
+      "command": "python -m flake8 src scripts tests --select E9,F63,F7,F82 --jobs 1"
+    },
+    "types_new_regressions": {
+      "exit": 0,
+      "command": "python -m mypy tests/browser/test_source_clarification_journey.py tests/test_local_provider_server_isolation.py --follow-imports=silent"
+    },
+    "whole_python_coverage": {
+      "passed": 1008,
+      "skipped": 37,
+      "deselected": 5,
+      "warnings": 69,
+      "seconds": 575.96,
+      "coverage_percent": 81.62,
+      "required_percent": 80,
+      "environment": "SLM_OFFLINE_TESTS=1 USE_REAL_AI=0",
+      "command": "python -m pytest tests -q -ra --strict-markers --ignore=tests/manual --ignore=tests/e2e --ignore=tests/real_ai -m 'not real_ai' --cov=src --cov-report=term --cov-fail-under=80 --basetemp=NEW"
+    },
+    "native_X": "not run: unavailable native pipe",
+    "native_windows_exe": "not built: semantic acceptance blocked",
+    "teacher_pilot": "deferred; not requested"
+  },
+  "before_fix": {
+    "configuration": "valid regression FAIL: new state configuration absent; unrelated synthetic fallback bytes unchanged",
+    "counter_locale": "valid regression: ES FAIL, EN PASS"
+  },
+  "failed_or_superseded_attempts": {
+    "sandbox_pytest": "basetemp access denied, no product evidence",
+    "default_browser_path": "1 pass, 1 fail, 10 errors: matching Chromium absent from default directory; repeat with existing bundle",
+    "first_config_regression": "test HTTP transport blocked by offline gate; corrected without changing product before valid red",
+    "first_two_counter_regressions": "jsdom lexical state setup incorrect, then renderer missing; corrected before valid red",
+    "typing_auxiliary_server": "pre-existing dynamic method replacement yields method-assign; no whole-repository type pass claimed",
+    "initial_native_grading_setup": "PowerShell stripped inline Python f-string quotes after publishing first synthetic assessment; no grading call or semantic receipt changed. File-backed probe then completed all four; receipt preserves prepublished flag."
+  },
+  "runtime_files": {
+    "src/core/services/ai_service.py": {
+      "working_windows_sha256": "a66fe88de8bdbe9df5c0f932f8459aa6023978736e6187edf10130b910a25254",
+      "lf_sha256": "bda368d7725397aa73b99091c3c425b1f1a18e7df870d26e09f58d8f720ddf12",
+      "matches_base_lf": true
+    },
+    "src/core/services/content_schema.py": {
+      "working_windows_sha256": "16d570a7eef741c188ad9d6e690ade374cf5cb716e3900a9f73cb4e4dcabd773",
+      "lf_sha256": "f5ac37fa4b101bdf4d57ba8c3ec46fef3ac5a7a1994b6487f45b189d2a5aea10",
+      "matches_base_lf": true
+    },
+    "src/core/services/learning_context.py": {
+      "working_windows_sha256": "ef7a8089f042f898419a916e37bee42c994c1b9d1867b073658b991fac3bc482",
+      "lf_sha256": "fedabf146dbbcf148005e49d38fe35c47a85426f3896fb4f0c220b76e2d697a8",
+      "matches_base_lf": true
+    },
+    "src/core/services/generation_workflow.py": {
+      "working_windows_sha256": "695ea88b308f7bbfefc8f7f59b74e8f5f4ed527940925ce6f95c7bacc9299b06",
+      "lf_sha256": "f29c25d6e8bac5dcb289b8c7ce0a2a7afd1cbae5ac18a16a4653a246d24b3835",
+      "matches_base_lf": true
+    },
+    "src/api/routes/generation.py": {
+      "working_windows_sha256": "21545d2130121e22d44290fb0e3ab66e905601cb620a48d3789e9ad4adde4d5b",
+      "lf_sha256": "411d34e079c6b66b4e4acec8128b57b562a3ee0f2fdba98b87ce1eb1427c79b5",
+      "matches_base_lf": true
+    },
+    "src/web/static/js/session.js": {
+      "working_windows_sha256": "22df28f5692a20d404b15dc4d93429f41636efad7e8be3dafb4dce82090ec464",
+      "lf_sha256": "f6457b709df073559e56bd096dcb670529494d14c7e40cf50df090b1db38b390",
+      "matches_base_lf": false
+    },
+    "src/web/session_player.html": {
+      "working_windows_sha256": "dcf87ee132ace7427cba7cd539592049fdb55d5b0538285844386acfd2d25dde",
+      "lf_sha256": "b9aae85ec9615a8e8f6992bc84880c0ebab9abb7a77c6c635f2e7eb4f1b56314",
+      "matches_base_lf": false
+    },
+    "src/web/sw.js": {
+      "working_windows_sha256": "efa2ca9cc2786cfddc9d2253615e160f4a7cd5f31557a4b2386c0f19d5d987a0",
+      "lf_sha256": "c103e0b7bc03ac6bca14313113d05dafd2b1e549d68fe87c54b5815943d6889f",
+      "matches_base_lf": false
+    },
+    "src/web/dashboard.html": {
+      "working_windows_sha256": "20fed410a771ae98678272e8235063cf1629e1850e70fbc329e62076f5873cf4",
+      "lf_sha256": "4d21eeaf71959b309990a0bd988cea7bdbac444d85e6fe6f46bd90e9066a674f",
+      "matches_base_lf": false
+    },
+    "tests/browser/local_provider_server.py": {
+      "working_windows_sha256": "9895b47bce4dd9017f146b54c704c42e28c82479ce513e951dd4af7c33610d71",
+      "lf_sha256": "f64b8b4713ce69701255bfe4e312749b75a53dd84adbdf4746ef592276a8f5ed",
+      "matches_base_lf": false
+    },
+    "tests/browser/evaluate_local_provider.py": {
+      "working_windows_sha256": "22471223a50f8bb2d5cd71ff0600b6ae97ef1853738381237383f2f563e1aeab",
+      "lf_sha256": "c077d4560ccc7e1bc162a0a9ffcf77eb009a119f3cf0907c453691180a79f80b",
+      "matches_base_lf": true
+    },
+    "tests/browser/test_source_clarification_journey.py": {
+      "working_windows_sha256": "e97bc30b3f8d76fe32ce7e3191ead2b26963a2e7420147fa6c6e06721dcfef9b",
+      "lf_sha256": "e97bc30b3f8d76fe32ce7e3191ead2b26963a2e7420147fa6c6e06721dcfef9b",
+      "matches_base_lf": false
+    },
+    "tests/test_local_provider_server_isolation.py": {
+      "working_windows_sha256": "2de72d6296e2f94b7b7c7214273b27a57465586cbb474a35be1f2f280ef97a48",
+      "lf_sha256": "2de72d6296e2f94b7b7c7214273b27a57465586cbb474a35be1f2f280ef97a48",
+      "matches_base_lf": false
+    },
+    "tests/ui/session_progress_locale.test.cjs": {
+      "working_windows_sha256": "9ee93d9c5940c45751c9f7ddf5050bed9e1365887fc8d21496fb948cd01cd353",
+      "lf_sha256": "9ee93d9c5940c45751c9f7ddf5050bed9e1365887fc8d21496fb948cd01cd353",
+      "matches_base_lf": false
+    }
+  },
+  "published_evidence_and_screenshots": {
+    ".gitattributes": {
+      "bytes": 272,
+      "sha256": "9efdea95adfe4cc7129cab967e11882ecc2ff52ec8a9983855da4817085b2436"
+    },
+    "evidence/baseline-development-results.json": {
+      "bytes": 246512,
+      "sha256": "906fc3358726fa2380a735a7084d97737507148157d959ea70dc6dde008d18ae"
+    },
+    "evidence/baseline-objective-inference.jsonl": {
+      "bytes": 239842,
+      "sha256": "64aef915ffc2cb21fc7b3666f42fb6415f6ee7f91c98c4a0d82a0e23aa234f3e"
+    },
+    "evidence/baseline-reserved-results.json": {
+      "bytes": 109437,
+      "sha256": "a3efc50e0c8314bccb14e34130c0f3b314a31abb919454c3c8a53ca448052e4c"
+    },
+    "evidence/baseline-scores.json": {
+      "bytes": 26011,
+      "sha256": "01c1a6716224954611085d50c5ac15aa34aa68dc8f116ab69b0bef86c47c038c"
+    },
+    "evidence/baseline-source-review-inference.jsonl": {
+      "bytes": 62449,
+      "sha256": "f7fa83d8eb014d6645ac0ae18cbc4b41d94b138e3f0af17fe70c7148c497e3c4"
+    },
+    "evidence/baseline-source-review-results.json": {
+      "bytes": 72929,
+      "sha256": "2988f5d1bc8432d046bf6ed09cd6c675a80d7eae33c1ca89b2fb1b9e6e2d5ff9"
+    },
+    "evidence/final-development-results.json": {
+      "bytes": 246509,
+      "sha256": "e36799c355689d1a8fc11a48fbbfc9186a52c03866e4aed3f2b29e6803f96dc8"
+    },
+    "evidence/final-objective-inference.jsonl": {
+      "bytes": 239846,
+      "sha256": "76c2aa6dd6b174335777722718cd06ee38cb7d53fd58b7a9f7e22a8783dd1b5a"
+    },
+    "evidence/final-reserved-results.json": {
+      "bytes": 109439,
+      "sha256": "5baba7c144c581ba96f2baf9a0dacf7524d2df2a3983612072faa7c5ee0b2410"
+    },
+    "evidence/final-scores.json": {
+      "bytes": 26122,
+      "sha256": "c973398d49e264cd3b48a77247173c3cbf269471cc0e535fabe5003cf973abfe"
+    },
+    "evidence/final-source-review-inference.jsonl": {
+      "bytes": 62451,
+      "sha256": "80674ca643eb76e0b717874ca1c2b6ee7bb1a47feaf09a81c43d5c9324f5c907"
+    },
+    "evidence/final-source-review-results.json": {
+      "bytes": 72929,
+      "sha256": "0ba8d2df6124100e6583f37b85909831156d9fc6f7ee8b979b15fc0e12fb268a"
+    },
+    "evidence/native-grading-inference.jsonl": {
+      "bytes": 14428,
+      "sha256": "83f9f04b57bac807360a1cc8741bc74618e5a0d94b1f2f2104c09613899d0193"
+    },
+    "evidence/native-grading-results.json": {
+      "bytes": 3647,
+      "sha256": "35c2bb97b9d1acddd65c4e62568162a328e1fe4e5f7bbfb9e171e601fc6f1814"
+    },
+    "screenshots/before-session-counters.png": {
+      "bytes": 57350,
+      "sha256": "8e28583f319e500a9338c4e8288b5c673e365bb9c2a7532c2852bd8f7278a602"
+    },
+    "screenshots/dashboard-profile-unavailable.png": {
+      "bytes": 64050,
+      "sha256": "0bddd405551eb70106c01e782228c2acbdc4ec216c2a74b0aec266032528fc73"
+    },
+    "screenshots/login-narrow-keyboard.png": {
+      "bytes": 13568,
+      "sha256": "c828fdfa719b21a61facd9225a92b220e281389b9b0ed82113b6121fe8e5a3f7"
+    },
+    "screenshots/v9-clarification-imported-question.png": {
+      "bytes": 65600,
+      "sha256": "89563539e73125135a6d6c5d622c22003e5e157d585e229554f3328428f28657"
+    },
+    "screenshots/v9-clarification-learner-reloaded.png": {
+      "bytes": 57634,
+      "sha256": "f78765c7153d29076df3b7438a386801b1e783aea0299a2985388422fac6118b"
+    },
+    "screenshots/v9-clarification-saved-viewer.png": {
+      "bytes": 65520,
+      "sha256": "c48c33724a24349303b5fb883444adf1097bb20dacf7f842b579f96fc09007e4"
+    }
+  },
+  "local_log_sha256_not_published": {
+    "browser-run.txt": "9a1327c19216bbca0793da06bf04e1bf5bd3d1175793f9978f229e49ce682da7",
+    "browser-run-02.txt": "a782857a4ab74f4a8ae7445c61216855ddabc49496fb8d1d0281e4df2d1e52e4",
+    "browser-run-03.txt": "180b2798c25b2a7ae3bd219adf440f1a47ee0cc6fc399d3a9fb6f9be2e5c6632",
+    "browser-final.txt": "098bc84254aa4d62805f542e3d225df9c64ac31b7afdf001e68c56b6ece3d1a8",
+    "browser-stable.txt": "8a7216794df70a109310dde260ab5f598bcf5d15229b2fbf649cc3384e4cdd54",
+    "browser-delivery.txt": "b165387be08928428dbff2d78b410983b9f9df4308977ee945b9e9e250d06840",
+    "dom-run.txt": "6f26ce8105d9abf859d3127d784bfd681817c78cda8a42552271529facd1a0df",
+    "dom-run-02.txt": "0ab617b1d316cadac4c183ffe83e6fef5fa9973baf0b24909d78154bcce87d73",
+    "dom-final.txt": "074b01f1a697c5d62344d1fa1f7afa52823e77d4be5390c75dbf47af9d37a3e0",
+    "config-red.txt": "7099a48b99b899e12e0c535cc3f5882f40e8792329507a5a7a4de46b7c8cb0a8",
+    "config-red-02.txt": "ef87edd8134e5dc4b7f4e97351b7f20065f23088301470e17e45c8fcdac0cc80",
+    "final-focused.txt": "4149498dd06dbe265e7cdac1a5026bea2689d2dda3ab9bdfdb4f26cb95a0ba85",
+    "python-stable.txt": "c4d8b1c39db7468e1c93f886fe3eb0051969cbe847e622dc160aebd3d635ef90",
+    "python-ui-delivery.txt": "8489d197185b2c657d55fb33b6c09375cce01923835c44b56e7b064469ab6d98",
+    "source-recovery.txt": "2abecd9ecc6124ad1302e805f4984a410cab9b6342ce276dd36fb721085860e6",
+    "locale-red.txt": "a32604ac54beb05e3243be5ae13fc91ca3b185ad13fbd8a088e75c0bf88d6c50",
+    "locale-red-02.txt": "0f608206b0e999bc9194b8ca03568ad05f77a6c4fb60ff1b36f50b0fd58cf52e",
+    "locale-red-03.txt": "f29647ce1497f74cd0adc83b20e129c931806323801c3c579cc163a7dcbd9955",
+    "python-full-final.txt": "94c5c605aecee4ea12875b80aed20d0ee0a3bad31b5f3f866ee864c8acf4a2d1"
+  },
+  "publication_constraints": {
+    "skip_ci": true,
+    "merge": false,
+    "release": false,
+    "deployment": false,
+    "workflow_dispatch": false,
+    "models_or_databases_or_credentials_published": false
+  }
+}

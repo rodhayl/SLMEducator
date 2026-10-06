@@ -150,8 +150,10 @@ artifact hashes, acceptance results and remaining limits in
 [Windows candidate report](docs/PRODUCTION_READINESS_WINDOWS_20261005.md).
 
 The subsequent [source-clarification contract candidate](docs/SOURCE_CLARIFICATION_CONTRACT_20261005.md)
-adds bounded lesson-output checks. Its exact-model semantic rerun and rebuilt
-Windows artifact remain pending; the earlier EXE does not contain that change.
+adds bounded lesson-output checks. The
+[Windows v9 semantic/GUI report](docs/reports/windows-v9-semantic-gui-20261006/REPORT.md)
+records 37/44 cases accepted strictly, with local GUI repairs. Rebuilding remains blocked
+by semantic acceptance; the earlier EXE does not contain those changes.
 
 ```powershell
 .\build_package.bat --help

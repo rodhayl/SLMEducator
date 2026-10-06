@@ -1,0 +1,129 @@
+{
+  "scope": "Actual native-generated short_answer assessments. Automatic synthetic setup is not human teacher review. Product grading suggestions are not semantic rubric judging.",
+  "cases": [
+    {
+      "id": "reserved-open",
+      "assessment_id": 2,
+      "prepublished_by_partial_probe": true,
+      "seconds": 19.92254259996116,
+      "native_grading_calls": 1,
+      "result": {
+        "id": 1,
+        "timing_provenance": "utc",
+        "time_spent_minutes": 0,
+        "submission_id": 1,
+        "score": null,
+        "total_points": 5,
+        "status": "ai_graded",
+        "grading_mode": "ai_assisted",
+        "ai_graded_questions": 1,
+        "needs_review": true
+      },
+      "repeat": {
+        "id": 1,
+        "timing_provenance": "utc",
+        "time_spent_minutes": 0,
+        "submission_id": 1,
+        "score": null,
+        "total_points": 5,
+        "status": "ai_graded",
+        "grading_mode": "ai_assisted",
+        "ai_graded_questions": 1,
+        "needs_review": true
+      }
+    },
+    {
+      "id": "fresh-open",
+      "assessment_id": 3,
+      "prepublished_by_partial_probe": false,
+      "seconds": 13.682067099958658,
+      "native_grading_calls": 1,
+      "result": {
+        "id": 2,
+        "timing_provenance": "utc",
+        "time_spent_minutes": 0,
+        "submission_id": 2,
+        "score": null,
+        "total_points": 5,
+        "status": "ai_graded",
+        "grading_mode": "ai_assisted",
+        "ai_graded_questions": 1,
+        "needs_review": true
+      },
+      "repeat": {
+        "id": 2,
+        "timing_provenance": "utc",
+        "time_spent_minutes": 0,
+        "submission_id": 2,
+        "score": null,
+        "total_points": 5,
+        "status": "ai_graded",
+        "grading_mode": "ai_assisted",
+        "ai_graded_questions": 1,
+        "needs_review": true
+      }
+    },
+    {
+      "id": "followup-open",
+      "assessment_id": 4,
+      "prepublished_by_partial_probe": false,
+      "seconds": 15.723024299950339,
+      "native_grading_calls": 1,
+      "result": {
+        "id": 3,
+        "timing_provenance": "utc",
+        "time_spent_minutes": 0,
+        "submission_id": 3,
+        "score": null,
+        "total_points": 5,
+        "status": "ai_graded",
+        "grading_mode": "ai_assisted",
+        "ai_graded_questions": 1,
+        "needs_review": true
+      },
+      "repeat": {
+        "id": 3,
+        "timing_provenance": "utc",
+        "time_spent_minutes": 0,
+        "submission_id": 3,
+        "score": null,
+        "total_points": 5,
+        "status": "ai_graded",
+        "grading_mode": "ai_assisted",
+        "ai_graded_questions": 1,
+        "needs_review": true
+      }
+    },
+    {
+      "id": "objective-open",
+      "assessment_id": 5,
+      "prepublished_by_partial_probe": false,
+      "seconds": 12.352645399980247,
+      "native_grading_calls": 1,
+      "result": {
+        "id": 4,
+        "timing_provenance": "utc",
+        "time_spent_minutes": 0,
+        "submission_id": 4,
+        "score": null,
+        "total_points": 5,
+        "status": "ai_graded",
+        "grading_mode": "ai_assisted",
+        "ai_graded_questions": 1,
+        "needs_review": true
+      },
+      "repeat": {
+        "id": 4,
+        "timing_provenance": "utc",
+        "time_spent_minutes": 0,
+        "submission_id": 4,
+        "score": null,
+        "total_points": 5,
+        "status": "ai_graded",
+        "grading_mode": "ai_assisted",
+        "ai_graded_questions": 1,
+        "needs_review": true
+      }
+    }
+  ]
+}

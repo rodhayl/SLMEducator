@@ -38,7 +38,9 @@ def main() -> None:
     # Keep a recovery key separately from archives. Never publish this directory.
     (directory / "recovery.key").write_text(os.environ["SLM_ENCRYPTION_KEY"], encoding="utf-8")
     from src.core.services.settings_config_service import get_settings_service
-    settings = get_settings_service()
+    # The environment resolver accepts only existing overrides. Pass this new
+    # path directly so first-run defaults cannot write a fallback configuration.
+    settings = get_settings_service(str(directory / "env.properties"))
     settings.set("ai", "default_provider", "lm_studio")
     settings.set("ai", "default_model", "slm-production-evaluation")
     settings.set("ai", "lm_studio.url", "http://127.0.0.1:1234")
