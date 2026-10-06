@@ -1,0 +1,119 @@
+{
+  "application_commit": "e7152b3a801a003158261b87c7ecadc23a7fd2f7",
+  "application_tree": "4e2a5afa5985eb7ec72142c9b512789343ef20b7",
+  "tested_commit": "3fdfe5bfa53dfc56b846df4e25d6e01a72ba6335",
+  "tested_tree": "669e81ffd66053a6b44b6a231b694e8cc0d0f7a0",
+  "branch": "test/windows-best-effort-20261006",
+  "environment": {
+    "windows": "11 10.0.26200",
+    "python": "3.13.15",
+    "pyinstaller": "6.16.0",
+    "playwright": "1.63.0",
+    "node": "24.21.0",
+    "npm": "11.19.0"
+  },
+  "affected_paths": [
+    "tests/trust/test_tutor_text_fallback.py",
+    "tests/trust/test_ai_generation_boundaries.py",
+    "tests/trust/test_ai_request_lifecycle.py",
+    "tests/trust/test_assistance_policy.py",
+    "tests/trust/test_product_privacy_contracts.py",
+    "tests/trust/test_provider_transport_contract.py",
+    "tests/trust/test_resource_contracts.py",
+    "tests/trust/test_course_workflow.py",
+    "tests/trust/test_observed_review.py",
+    "tests/unit/test_grading_modes.py",
+    "tests/test_lesson_generation_contract.py",
+    "tests/test_practice_option_contract.py",
+    "tests/test_build_package.py",
+    "tests/test_seed_admin.py"
+  ],
+  "results": {
+    "python_final": {
+      "tests": "291",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "78.111"
+    },
+    "browser_en_es": {
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "16.831"
+    },
+    "packaged_initial_login_restart": {
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "8.926"
+    },
+    "dom_final": {
+      "tests": 197,
+      "failures": 0,
+      "time_seconds": 12.5674542
+    },
+    "flake8_critical": "PASS",
+    "mypy_ai_service": "PASS",
+    "javascript_syntax": "PASS",
+    "diff_check": "PASS",
+    "pip_check": "PASS",
+    "native_build": "PASS"
+  },
+  "initial_events": [
+    "sandbox Node spawn EPERM before tests",
+    "sandbox ensurepip failure before dependencies",
+    "sandbox flake8 multiprocessing WinError 5 before lint",
+    "EN harness locale mismatch; corrected server-side synthetic account preference; no product change"
+  ],
+  "provider_inferences": 0,
+  "model_downloads": 0,
+  "actions_calls": 0,
+  "artifacts": [
+    {
+      "path": "C:\\Users\\dhays\\Github\\SLMEducator\\.windows-best-effort-worktree\\dist\\SLMEducator Best Effort Windows 20261006.zip",
+      "bytes": 37140055,
+      "sha256": "87a5d1f08bc324b49c7a93ab6a92c94ea7763df7725c29287ad2d39f65b4004e"
+    },
+    {
+      "path": "C:\\Users\\dhays\\Github\\SLMEducator\\.windows-best-effort-worktree\\dist\\SLMEducator Best Effort Windows 20261006\\SLMEducator.exe",
+      "bytes": 15960120,
+      "sha256": "d04e76ebd8a4807c69d9a0ff883eeb2b9e14509d0be8860a5275f578357f066c"
+    }
+  ],
+  "screenshots": [
+    {
+      "path": "screenshots/best-effort-qa-en.png",
+      "sha256": "8f5b6874f9fe8cefefd5abc10cbdc5584a72069a577c1d344985faa1e330cae4"
+    },
+    {
+      "path": "screenshots/best-effort-qa-es.png",
+      "sha256": "d318147ebcc72ac69257e8c84d6084ecaa97ed969b1f2ead885ec29ce01f426b"
+    },
+    {
+      "path": "screenshots/best-effort-tutor-format-en.png",
+      "sha256": "e866b42d930456aad7a6e65d906c57aae0223b1ca277ad4f5865ef7a1731ed99"
+    },
+    {
+      "path": "screenshots/best-effort-tutor-format-es.png",
+      "sha256": "9bf16301aa3c70b2c127c29a46814df0e616c91bbf4e5a91fcb5518e9f071585"
+    },
+    {
+      "path": "screenshots/best-effort-tutor-provider-en.png",
+      "sha256": "7f03355989237f939efb7c495ae1fc459c43dba43d81c731bfaa53dbc115b070"
+    },
+    {
+      "path": "screenshots/best-effort-tutor-provider-es.png",
+      "sha256": "d088f03b6d4914468359d2cfb6e5fa4c82ee1fa88e0c231f3b843ca9bcd26a1e"
+    }
+  ],
+  "limits": [
+    "synthetic functional acceptance only",
+    "native X not run; prior pending retained",
+    "no pedagogical acceptance",
+    "no universal model or platform certification",
+    "package archive is local synthetic post-smoke artifact; no binary published"
+  ]
+}
