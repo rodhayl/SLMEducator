@@ -5,6 +5,7 @@ No Windows executable, real registry or real user profile is accessed here.
 
 import base64
 import configparser
+from contextlib import closing
 import importlib.util
 import os
 from pathlib import Path
@@ -36,9 +37,10 @@ def installation(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, smoke):  # typ
     target = root / "SLMEducator"
     shortcuts = (tmp_path / "redirected-menu.lnk", tmp_path / "redirected-desktop.lnk")
     seed = tmp_path / "seed.db"
-    with sqlite3.connect(seed) as connection:
-        connection.execute("CREATE TABLE example_user_data (note TEXT)")
-        connection.execute("INSERT INTO example_user_data VALUES ('seed')")
+    with closing(sqlite3.connect(seed)) as connection:
+        with connection:
+            connection.execute("CREATE TABLE example_user_data (note TEXT)")
+            connection.execute("INSERT INTO example_user_data VALUES ('seed')")
     state = SimpleNamespace(
         setup_calls=0,
         uninstall_calls=0,
@@ -203,12 +205,19 @@ def test_mutated_database_and_config_are_valid(smoke, installation):  # type: ig
         installation.root / "install.log",
     )
     hashes = smoke._write_distinct_user_data(installation.target)
-    with sqlite3.connect(installation.target / "slm_educator.db") as connection:
-        assert connection.execute("PRAGMA quick_check").fetchone() == ("ok",)
-        assert connection.execute("SELECT note FROM installer_smoke_note").fetchone()[0]
-        assert connection.execute("SELECT note FROM example_user_data").fetchone() == (
-            "seed",
-        )
+    # sqlite3's context manager commits but never closes; on Windows an open
+    # connection blocks the disposable cleanup rmtree below (WinError 32).
+    with closing(sqlite3.connect(installation.target / "slm_educator.db")) as connection:
+        with connection:
+            assert connection.execute("PRAGMA quick_check").fetchone() == ("ok",)
+            assert connection.execute(
+                "SELECT note FROM installer_smoke_note"
+            ).fetchone()[0]
+            assert connection.execute(
+                "SELECT note FROM example_user_data"
+            ).fetchone() == (
+                "seed",
+            )
     config = configparser.ConfigParser()
     config.read(installation.target / "env.properties")
     assert config["ui"]["language"] == "es"

@@ -96,9 +96,14 @@ Un destino distinto tampoco evita el bloqueo de un registro HKCU existente.
 ## 5. Resultado de la preparación (artefacto final)
 
 La tabla conserva los resultados nativos comunicados durante la preparación
-original. Las correcciones posteriores del smoke/static tests no recompilan ni
-cambian este instalador y todavía requieren una ejecución Windows propia; sus
-pruebas sintéticas no son un nuevo PASS nativo.
+original. El smoke endurecido (`e1e46d8`, incorporado como `1562190`) recibió
+el 2026-10-07 su ejecución nativa desechable en Windows: 38 tests
+sintéticos/estáticos pasan y el ciclo real instalar → rechazo in-place →
+desinstalar → reinstalar pasó en 19,04 s reutilizando este mismo instalador
+(tamaño y SHA-256 del punto 1 re-verificados antes y después del smoke; sin
+recompilación). Detalles y rutas verificadas en
+`../installer_smoke_safety_20261006/REPORT.md`. El cierre con la X del
+launcher sigue siendo un paso humano pendiente.
 
 | Control | Estado | Prueba realmente ejecutada |
 |---|---|---|

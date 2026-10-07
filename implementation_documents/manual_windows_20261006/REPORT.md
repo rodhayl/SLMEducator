@@ -120,3 +120,38 @@ conservan. Los datos ficticios del smoke no vuelven al payload.
   cumplimiento normativo, calidad de modelo, ni funcionamiento en otros
   proveedores/hardware/plataformas. La validación pedagógica y el piloto humano
   siguen pendientes.
+
+## Validación nativa del smoke endurecido (2026-10-07)
+
+Las correcciones de seguridad del smoke (`e1e46d8`, rama
+`work/slm-installer-smoke-safety-20261006`) se incorporaron a esta rama como
+commit `1562190` (cherry-pick sobre `197764b3`, sin conflictos). Tras el
+cherry-pick hizo falta una única corrección propia de Windows en
+`tests/test_installer_lifecycle_contract.py`: la conexión SQLite abierta con
+`with sqlite3.connect(...)` nunca se cierra, y en Windows el `rmtree` de la
+limpieza desechable fallaba con `WinError 32` (en Linux pasó porque se permite
+borrar archivos abiertos). Ambas conexiones usan ahora el patrón `closing()`
+que ya empleaba el propio smoke. Detalle completo en
+`../installer_smoke_safety_20261006/REPORT.md`.
+
+Resultados reales en Windows 11 10.0.26200 (Python 3.13.15, pytest 9.0.2 del
+venv del worktree):
+
+- `tests/test_build_installer.py` + `tests/test_installer_lifecycle_contract.py`:
+  **38 passed** (3,96 s). flake8 y mypy enfocados sobre los tres ficheros
+  Python tocados: limpios.
+- Smoke nativo endurecido (opt-in), reutilizando el instalador entregado sin
+  reconstruir: instalar → rechazo in-place → desinstalar → reinstalar, con la
+  base/configuración sintética modificada antes de medir conservación por hash:
+  **1 passed en 19,04 s**. Instalador verificado antes y después: 31.456.307
+  bytes, SHA-256 `c02c79e21e6d04d327ed11223203c85ef95fd5b796fbc6a2c771ed5f952a1531`;
+  hashes del EXE, base y config del payload intactos tras el smoke.
+- Aislamiento: comprobación en solo lectura antes del smoke (sin registro HKCU
+  `{40301115-8D29-4D37-A067-F025278BCDC0}` en ninguna vista, sin accesos de
+  Inicio/escritorio) y después (registro, accesos y procesos limpios). El
+  `--basetemp` desechable `C:\tmp\slm-installer-lifecycle-20261007-9f0c3af4`
+  se eliminó tras el PASS.
+
+Sigue pendiente el cierre con la X del launcher (paso humano de
+`MANUAL_TEST2.md`); nada de lo anterior acredita inferencia real ni eficacia
+educativa.
