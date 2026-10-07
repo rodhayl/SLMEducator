@@ -1,0 +1,11 @@
+import { describe,it,expect } from 'vitest';
+import { render,screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { AppearanceProvider,useAppearance,type ReadingSize,type Theme } from '@/app/AppearanceProvider';
+function Controls(){const appearance=useAppearance();return <><button onClick={()=>appearance.setAnimations(false)}>Reduce motion</button><label>Theme<select value={appearance.theme} onChange={event=>appearance.setTheme(event.target.value as Theme)}><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></label><label>Reading size<select value={appearance.readingSize} onChange={event=>appearance.setReadingSize(Number(event.target.value) as ReadingSize)}>{[16,18,20,24].map(size=><option key={size} value={size}>{size}</option>)}</select></label></>;}
+describe('shared appearance preferences',()=>{
+ it('applies one theme owner and persists only a non-private setting',async()=>{render(<AppearanceProvider><Controls/></AppearanceProvider>);await userEvent.selectOptions(screen.getByLabelText('Theme'),'dark');expect(document.documentElement.dataset.theme).toBe('dark');expect(localStorage.getItem('slm-theme')).toBe('dark');});
+ it('adjusts reading size in rem, independent of browser zoom',async()=>{render(<AppearanceProvider><Controls/></AppearanceProvider>);await userEvent.selectOptions(screen.getByLabelText('Reading size'),'24');expect(document.documentElement.style.getPropertyValue('--reading-size')).toBe('1.5rem');expect(localStorage.getItem('slm-reading-size')).toBe('24');});
+ it('applies confirmed animation preference without a second persistent settings store',async()=>{render(<AppearanceProvider><Controls/></AppearanceProvider>);await userEvent.click(screen.getByRole('button',{name:'Reduce motion'}));expect(document.documentElement.dataset.motion).toBe('reduced');expect(localStorage.getItem('slm-animations')).toBeNull();});
+ it('rejects corrupt persisted preferences and uses declared defaults',()=>{localStorage.setItem('slm-reading-size','999');localStorage.setItem('slm-theme','unknown');render(<AppearanceProvider><Controls/></AppearanceProvider>);expect(screen.getByLabelText('Reading size')).toHaveValue('18');expect(screen.getByLabelText('Theme')).toHaveValue('system');});
+});

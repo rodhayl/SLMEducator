@@ -1,0 +1,15 @@
+import { useEffect } from 'react';
+import { Link } from 'react-router';
+import { useTranslation } from 'react-i18next';
+import { useAuth } from '@/app/AuthProvider';
+import { useOperation, useResource } from '@/lib/query';
+import { Badge, Button, Card, ErrorState, LoadingState } from '@/components/ui';
+import { isJobs, record, responseError, type GenerationItem } from './contracts';
+export function GenerationItems({items}: {items:GenerationItem[]}) {const {t}=useTranslation('authoring');return <ul className="list">{items.map(item=><li key={item.key}><div className="cluster"><span>{item.key==='lesson'?t('lesson'):item.key==='assessment'?t('assessment'):t('exerciseNumber',{number:Number(item.key.slice(9))+1})}</span><Badge>{t(`itemStatus.${item.status}`)}</Badge>{item.content_id&&<Link to={`/materiales/${item.content_id}/editar`}>{t('reviewItem',{id:item.content_id})}</Link>}{item.assessment_id&&<Link to={`/evaluaciones/${item.assessment_id}/editar`}>{t('openAssessment')}</Link>}{item.error_code&&<span>{t(`generationError.${['saved_content_unavailable','content_validation','parse_failure','provider_failure','cancelled'].includes(item.error_code)?item.error_code:'unknown'}`)}</span>}</div></li>)}</ul>;}
+export function GenerationJobs({planId,running}:{planId:number;running:boolean}) {
+ const {api,status}=useAuth(),{t}=useTranslation('authoring'),jobs=useResource<unknown>(['authoring','jobs',planId],`/api/generate/courses/${planId}/jobs`);
+ const cancel=useOperation(async(key:string)=>{if(!isJobs(jobs.data)||!Object.hasOwn(jobs.data.jobs,key))throw responseError();const result=await api.post<unknown>(`/api/generate/courses/${planId}/jobs/${key}/cancel`);if(!record(result)||result.status!=='cancellation_requested'||result.in_flight_call_may_finish!==true)throw responseError(true);},async()=>{await jobs.refetch();});
+ const refetch=jobs.refetch;
+ useEffect(()=>{if(!running||status!=='authenticated')return;const timer=window.setInterval(()=>{void refetch();},2500);return()=>window.clearInterval(timer);},[running,status,refetch]);
+ return <section className="stack"><div className="cluster"><h2>{t('savedJobs')}</h2><Button variant="secondary" disabled={jobs.isFetching} onClick={()=>{void jobs.refetch();}}>{t('refreshJobs')}</Button></div><p>{t('jobsHint')}</p>{jobs.isPending?<LoadingState/>:jobs.error?<ErrorState error={jobs.error}/>:!isJobs(jobs.data)?<ErrorState error={responseError()}/>:Object.entries(jobs.data.jobs).length===0?<p>{t('noJobs')}</p>:Object.entries(jobs.data.jobs).map(([key,job])=><Card key={key}><div className="stack"><p>{t('jobId',{id:key.slice(0,12)})}</p>{job.obsolete_source&&<p>{t('obsoleteSource')}</p>}{job.cancel_requested&&<p role="status">{t('cancelRequested')}</p>}<GenerationItems items={Object.entries(job.items).map(([itemKey,item])=>({...item,key:itemKey}))}/>{Object.values(job.items).some(item=>item.status==='running')&&!job.cancel_requested&&<Button variant="secondary" disabled={cancel.isPending} onClick={()=>cancel.mutate(key)}>{t('requestStop')}</Button>}</div></Card>)}{cancel.error&&<ErrorState error={cancel.error}/>}<p className="muted">{t('cancelTruth')}</p></section>;
+}

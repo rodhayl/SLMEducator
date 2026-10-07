@@ -29,12 +29,12 @@ jobs:
         with:
           node-version: "22"
           cache: npm
-          cache-dependency-path: tests/ui/package-lock.json
+          cache-dependency-path: src/frontend/package-lock.json
       - name: Install pinned test tools
         run: |
           python -m pip install -r requirements-dev.txt
           python -m pip check
-          npm ci --ignore-scripts --prefix tests/ui
+          npm ci --ignore-scripts --prefix src/frontend
       - name: Check critical Python syntax and names
         run: python -m flake8 src scripts tests --select E9,F63,F7,F82
       - name: Type-check audited domain contracts
@@ -43,12 +43,12 @@ jobs:
           src/core/services/generation_workflow.py
           src/core/services/settings_config_service.py
           src/core/services/progress_tracking_service.py
+      - name: Check React frontend and build verified assets
+        run: npm run check --prefix src/frontend
       - name: Run synthetic API, service and packaging checks
         run: >-
           python -m pytest tests -q -ra --strict-markers
-          --ignore=tests/manual --ignore=tests/e2e --ignore=tests/real_ai
+          --ignore=tests/manual --ignore=tests/real_ai
           -m "not real_ai"
           --cov=src --cov-report=term --cov-fail-under=80
           --basetemp="${RUNNER_TEMP}/slm-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
-      - name: Run serial DOM regressions
-        run: npm test --prefix tests/ui

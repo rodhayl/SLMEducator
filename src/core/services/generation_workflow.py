@@ -7,6 +7,8 @@ state. Restarted calls reuse ready item IDs and retry only unfinished items.
 
 from hashlib import sha256
 import json
+import math
+from decimal import Decimal
 from threading import Lock
 
 from src.core.models import (
@@ -112,6 +114,69 @@ def _generate(service, request, kind: str, index: int) -> dict:
     return result if kind == "assessment" else normalize_content(kind, result)
 
 
+def _generated_answer_text(answer: object) -> str:
+    """Keep fresh JSON scalar answers consistent with the browser boundary."""
+    if isinstance(answer, str):
+        return answer
+    if isinstance(answer, bool):
+        return "true" if answer else "false"
+    if not isinstance(answer, (int, float)):
+        # Provider data errors use the workflow's content-validation retry path.
+        raise ValueError("Generated multiple-choice questions need an answer key")  # noqa: TRY004
+    try:
+        number = float(answer)
+    except OverflowError as error:
+        raise ValueError("Generated answer numbers must be finite") from error
+    if not math.isfinite(number):
+        raise ValueError("Generated answer numbers must be finite")
+    if number == 0:
+        return "0"
+    # JavaScript displays finite numbers in fixed notation in this range.
+    if 1e-6 <= abs(number) < 1e21:
+        value = format(Decimal(repr(number)), "f")
+        return value.rstrip("0").rstrip(".") if "." in value else value
+    mantissa, exponent = repr(number).split("e")
+    return f"{mantissa.removesuffix('.0')}e{int(exponent):+d}"
+
+
+def _generated_choices(options: object, answer: object) -> tuple[dict, str]:
+    """Give only fresh provider choices explicit values without guessing a key.
+
+    Historical rows keep their displayed-text answer semantics. Fresh outputs
+    may supply either a value or a label, but conflicting interpretations must
+    be reviewed/regenerated rather than silently picking one.
+    """
+    if isinstance(options, dict) and "choices" in options:
+        options = options["choices"]
+    if isinstance(options, list):
+        options = {str(index + 1): label for index, label in enumerate(options)}
+    if not isinstance(options, dict) or len(options) < 2:
+        raise ValueError("Generated multiple-choice questions need at least two choices")
+    if any(
+        not isinstance(key, str) or not key.strip()
+        or not isinstance(label, str) or not label.strip()
+        for key, label in options.items()
+    ):
+        raise ValueError("Generated choices need nonempty text values and labels")
+    # Match the fresh frontend boundary's conservative Unicode alias check.
+    # Two upper/lower rounds also collapse capital sharp S through ß to ss.
+    values = [key.strip().upper().lower().upper().lower() for key in options]
+    scoring_values = [key.strip().casefold() for key in options]
+    if len(set(values)) != len(values) or len(set(scoring_values)) != len(values):
+        raise ValueError("Generated choice values must be distinct")
+    answer_text = _generated_answer_text(answer)
+    if not answer_text.strip():
+        raise ValueError("Generated multiple-choice questions need an answer key")
+    normalized_answer = answer_text.strip().lower()
+    matches = [
+        key for key, label in options.items()
+        if normalized_answer in {key.strip().lower(), label.strip().lower()}
+    ]
+    if len(matches) != 1:
+        raise ValueError("Generated answer must identify exactly one choice")
+    return {"choices": dict(options)}, matches[0]
+
+
 def _draft_assessment(db, user, request, data: dict) -> Assessment:
     questions = data.get("questions")
     if not isinstance(questions, list) or not questions:
@@ -142,7 +207,10 @@ def _draft_assessment(db, user, request, data: dict) -> Assessment:
             item.get("question_type") or item.get("type") or "short_answer"
         )
         options = item.get("options")
-        if isinstance(options, list):
+        answer = item.get("correct_answer")
+        if kind == QuestionType.MULTIPLE_CHOICE:
+            options, answer = _generated_choices(options, answer)
+        elif isinstance(options, list):
             options = {str(i + 1): value for i, value in enumerate(options)}
         question = AssessmentQuestion(
             assessment_id=assessment.id,
@@ -156,8 +224,8 @@ def _draft_assessment(db, user, request, data: dict) -> Assessment:
                 "hints": item.get("hints"),
             },
         )
-        if item.get("correct_answer") is not None:
-            question.set_encrypted_correct_answer(str(item["correct_answer"]))
+        if answer is not None:
+            question.set_encrypted_correct_answer(str(answer))
         db.add(question)
         db.flush()
         rubric_data = item.get("rubric")

@@ -4,12 +4,13 @@ Tests ALL requirements from implementation plan with edge cases
 """
 
 import sys
-import os
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from datetime import datetime
 
-sys.path.insert(0, os.getcwd())
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from src.core.services.database import DatabaseService
+from tests.fixtures.synthetic_database import new_synthetic_database
 from src.core.models import (
     User,
     StudyPlan,
@@ -21,23 +22,14 @@ from src.core.models import (
 
 
 class ComprehensiveTestSuite:
-    def __init__(self):
-        self._cleanup_db_files()
-        self.db = DatabaseService("test_comprehensive.db")
+    def __init__(self, db_path: Path):
+        """Initialize a new test database at the explicitly supplied path."""
+        self.db = new_synthetic_database(db_path)
         self.test_results = {"passed": [], "failed": [], "total": 0}
 
-    def _cleanup_db_files(self):
-        db_path = "test_comprehensive.db"
-        for ext in ["", "-shm", "-wal"]:
-            file_path = db_path + ext
-            if os.path.exists(file_path):
-                try:
-                    os.remove(file_path)
-                except BaseException:
-                    pass
-
     def cleanup(self):
-        self._cleanup_db_files()
+        """Close handles; the temporary-directory owner removes its own files."""
+        self.db.close()
 
     def log_test(self, test_name, passed, message=""):
         self.test_results["total"] += 1
@@ -555,6 +547,7 @@ class ComprehensiveTestSuite:
 
 
 if __name__ == "__main__":
-    suite = ComprehensiveTestSuite()
-    success = suite.run_all_tests()
+    with TemporaryDirectory(prefix="slm-comprehensive-") as directory:
+        suite = ComprehensiveTestSuite(Path(directory) / "synthetic.sqlite3")
+        success = suite.run_all_tests()
     exit(0 if success else 1)

@@ -113,5 +113,10 @@ docs/testing/UNIFIED_TEST_SCENARIOS.md
 docs/reports/TEST_REPORT_2025-01-07.md
 
 # Versioned, pinned browser distributions are application assets.
-!src/web/static/vendor/**/dist/
-!src/web/static/vendor/**/dist/**
+
+# React GUI development/build artifacts; runtime package includes only verified dist.
+**/node_modules/
+/src/frontend/dist/
+/src/frontend/.vite/
+/src/frontend/coverage/
+/src/frontend/*.tsbuildinfo

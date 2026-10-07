@@ -1,6 +1,6 @@
 # Windows installer recipe (Inno Setup)
 
-Updated 2026-10-06. This is the minimal maintained recipe that wraps a freshly
+Updated 2026-10-07. This is the minimal maintained recipe that wraps a freshly
 built PyInstaller `onedir` payload in a real Windows installer. It reuses the
 existing production builder and the create-only seeder; it does not introduce a
 second packaging path, a migration framework or a shared bootstrap password.
@@ -8,6 +8,8 @@ second packaging path, a migration framework or a shared bootstrap password.
 ## Requirements
 
 - Windows 10/11 (the installer must be compiled on Windows).
+- Node 22.22+ and the explicitly prepared React frontend build described below.
+  Node is a build tool; it is not required on the installed application's host.
 - Python 3.13 with `requirements.txt`, `requirements-dev.txt` and
   `pyinstaller==6.16.0` installed in the same environment (the verified
   combination). The builder refuses a Python whose Tcl/Tk uses the `zipfs`
@@ -18,6 +20,24 @@ second packaging path, a migration framework or a shared bootstrap password.
   Do not bypass operating-system permissions or security prompts to install it.
 
 ## Invocation
+
+From the repository root, prepare and verify the frontend before packaging:
+
+```powershell
+cd src/frontend
+npm ci --ignore-scripts
+npm run check
+cd ../..
+```
+
+`npm run check` includes TypeScript, lint, synthetic frontend tests and the
+production build. To rebuild already-checked sources, explicitly run
+`npm run build` from `src/frontend`. The package builder requires
+the verified, source-matching `src/frontend/dist` output; it never installs
+frontend dependencies or builds missing/stale assets automatically. See the
+[React frontend build requirements](../README.md#react-frontend-build).
+
+Then invoke the installer builder:
 
 ```powershell
 .\build_installer.bat --payload-dir "C:\builds\SLMEducator payload 20261006" --output-dir "C:\builds\SLMEducator setup 20261006" --version 2.0.0

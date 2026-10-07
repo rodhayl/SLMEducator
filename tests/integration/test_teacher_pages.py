@@ -17,8 +17,10 @@ def test_teacher_pages_served():
         "/grading.html",
     ]
     for page in pages:
-        resp = client.get(page)
-        assert resp.status_code == 200, f"Failed to serve {page}"
+        resp = client.get(page, follow_redirects=False)
+        assert resp.status_code == 307, f"Failed to migrate {page}"
+        assert resp.headers["location"].startswith("/")
+        assert not resp.headers["location"].startswith("//")
 
 
 def test_teacher_api_endpoints_exist():

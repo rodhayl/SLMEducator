@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional, List
 from fastapi.security import OAuth2PasswordRequestForm
@@ -8,7 +8,7 @@ from src.core.services.temporal_service import utc_now
 
 from src.core.services.auth import get_auth_service, AuthService, AuthenticationError
 from src.core.models import UserRole, User
-from src.api.policies import teacher_student_ids
+from src.api.policies import can_manage_student, teacher_student_ids
 from src.api.security import (
     get_current_user,
     get_optional_current_user,
@@ -244,6 +244,41 @@ async def list_users(
             )
             for u in users
         ]
+
+
+@router.get("/users/{user_id}", response_model=UserListResponse)
+def read_user_detail(
+    user_id: int = Path(gt=0, le=2**63 - 1),
+    current_user: User = Depends(require_roles(UserRole.TEACHER, UserRole.ADMIN)),
+    db: Session = Depends(get_db),
+) -> UserListResponse:
+    """Resolve an authorized account without depending on the bounded directory.
+
+    Administrators can read the same active/inactive records as their directory.
+    Teachers can read only active students in their existing management scope.
+    Missing and inaccessible records deliberately have the same response.
+    """
+    user = db.get(User, user_id)
+    if not user or (
+        current_user.role != UserRole.ADMIN
+        and (not user.active or not can_manage_student(db, current_user, user))
+    ):
+        raise HTTPException(status_code=404, detail="Account not available")
+    return UserListResponse(
+        id=user.id,
+        username=user.username,
+        email=user.email,
+        role=user_role_str(user),
+        first_name=user.first_name or "",
+        last_name=user.last_name or "",
+        grade_level=user.grade_level,
+        active=bool(user.active),
+        xp=int(user.xp or 0),
+        level=int(user.level or 1),
+        current_streak=int(user.current_streak or 0),
+        longest_streak=int(user.longest_streak or 0),
+        teacher_id=user.teacher_id,
+    )
 
 
 class PasswordChange(BaseModel):

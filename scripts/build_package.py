@@ -9,16 +9,31 @@ SQLite source and is captured with SQLite's online backup API.
 from __future__ import annotations
 
 import argparse
+from hashlib import sha256
 from contextlib import closing
 import os
 from pathlib import Path
 import shutil
 import sqlite3
-import stat
 import subprocess
 import sys
 import tempfile
 import time
+
+# Allow direct invocation from any working directory without importing API state.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from src.frontend_delivery import is_link, validate_frontend_dist
+
+# Explicit runtime inputs: never recursively copy src/frontend or legacy src/web.
+RUNTIME_FILES = (
+    "src/__init__.py", "src/starter.py", "src/starter_headless.py",
+    "src/startup_utils.py", "src/frontend_delivery.py",
+    "alembic.ini", "scripts/seed_admin.py", "scripts/recover_database.py",
+)
+RUNTIME_TREES = {
+    "src/api": {".py"}, "src/core": {".py"}, "translations": {".json"},
+    "alembic": {".py", ".mako"},
+}
 
 HIDDEN_IMPORTS = (
     "tkinter",
@@ -116,48 +131,55 @@ def snapshot_database(source: Path, destination: Path) -> None:
                 raise ValueError("The SQLite snapshot failed its integrity check.")
 
 
-def _is_link(path: Path) -> bool:
-    """Reject symlinks and Windows junctions without following them."""
-    attributes = getattr(path.lstat(), "st_file_attributes", 0)
-    return path.is_symlink() or bool(attributes & stat.FILE_ATTRIBUTE_REPARSE_POINT)
+def _require_unlinked(project_root: Path, relative: Path) -> Path:
+    """Check only components of included inputs, not excluded developer trees."""
+    path = project_root
+    for component in relative.parts:
+        path /= component
+        if is_link(path):
+            raise ValueError(f"Symlinked package input is not supported: {relative}")
+    return path
+
+
+def _copy_file(project_root: Path, staging: Path, relative: Path) -> None:
+    source = _require_unlinked(project_root, relative)
+    if not source.is_file():
+        raise ValueError(f"Package input must be a regular file: {relative}")
+    target = staging / relative
+    target.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(source, target)
+
+
+def _copy_runtime_tree(project_root: Path, staging: Path, name: str, suffixes: set[str]) -> None:
+    """Copy allowed runtime code/resources while ignoring all other paths."""
+    root = _require_unlinked(project_root, Path(name))
+    for directory, folders, filenames in os.walk(root, followlinks=False):
+        # A link with a runtime-looking name must not silently hide code. Excluded
+        # developer/cache/runtime directories are never traversed or validated.
+        folders[:] = [folder for folder in folders if folder not in {
+            "__pycache__", "node_modules", "tests", "logs", "data", "exports", "imports", "temp"
+        } and not folder.startswith(".")]
+        for folder in folders:
+            _require_unlinked(project_root, (Path(directory) / folder).relative_to(project_root))
+        for filename in filenames:
+            if Path(filename).suffix in suffixes and not filename.startswith("."):
+                _copy_file(project_root, staging, (Path(directory) / filename).relative_to(project_root))
 
 
 def _copy_inputs(project_root: Path, staging: Path) -> None:
-    """Copy application resources, excluding runtime data and local settings."""
-    ignore = shutil.ignore_patterns(
-        "__pycache__",
-        "*.pyc",
-        "*.pyo",
-        "*.db*",
-        "*.sqlite*",
-        ".env*",
-        "*.properties*",
-        "*.log",
-        "*.bak",
-        "*.tmp",
-        "*.key",
-        "*.secret",
-        "logs",
-        "data",
-        "exports",
-        "imports",
-    )
-    for name in ("src", "translations", "alembic"):
-        source = project_root / name
-        # Avoid dereferencing links into unrelated/private files while copying.
-        if _is_link(source) or any(_is_link(path) for path in source.rglob("*")):
-            raise ValueError(f"Symlinked package input is not supported: {name}")
-        shutil.copytree(source, staging / name, ignore=ignore)
-    for name in ("alembic.ini", "scripts", "scripts/seed_admin.py", "scripts/recover_database.py"):
-        if _is_link(project_root / name):
-            raise ValueError(f"Symlinked package input is not supported: {name}")
-    shutil.copyfile(project_root / "alembic.ini", staging / "alembic.ini")
-    (staging / "scripts").mkdir()
-    shutil.copyfile(
-        project_root / "scripts" / "seed_admin.py",
-        staging / "scripts" / "seed_admin.py",
-    )
-    shutil.copyfile(project_root / "scripts/recover_database.py", staging / "scripts/recover_database.py")
+    """Copy the allowlisted runtime and exactly one verified frontend artifact."""
+    frontend = Path("src/frontend/dist")
+    root = _require_unlinked(project_root, frontend)
+    lockfile = _require_unlinked(project_root, Path("src/frontend/package-lock.json"))
+    records = validate_frontend_dist(root, lockfile=lockfile, source_root=root.parent)
+    for name in RUNTIME_FILES:
+        _copy_file(project_root, staging, Path(name))
+    for name, suffixes in RUNTIME_TREES.items():
+        _copy_runtime_tree(project_root, staging, name, suffixes)
+    for name in ["build-manifest.json", *records]:
+        _copy_file(project_root, staging, frontend / name)
+    # Detect stale/torn output while staging; source may be rebuilding in parallel.
+    validate_frontend_dist(staging / frontend, lockfile=lockfile, source_root=root.parent)
 
 
 def _build_environment(staging: Path) -> dict[str, str]:
@@ -283,6 +305,16 @@ def build_package(
             raise RuntimeError(
                 "PyInstaller did not produce the expected Windows executable."
             )
+        packaged_frontend = package / "_internal/src/frontend/dist"
+        validate_frontend_dist(packaged_frontend)
+        if {path.name for path in packaged_frontend.parent.iterdir()} != {"dist"}:
+            raise RuntimeError("Frozen package unexpectedly contains frontend source or tooling.")
+        if sha256((packaged_frontend / "build-manifest.json").read_bytes()).digest() != sha256(
+            (staging / "src/frontend/dist/build-manifest.json").read_bytes()
+        ).digest():
+            raise RuntimeError("Frozen frontend does not match the verified staged build.")
+        if (package / "_internal/src/web").exists():
+            raise RuntimeError("Frozen package unexpectedly contains legacy frontend files.")
         snapshot_database(staging / "slm_educator.db", package / "slm_educator.db")
         shutil.copyfile(staging / "env.properties", package / "env.properties")
         # mkdir is exclusive even if another build creates the target meanwhile.

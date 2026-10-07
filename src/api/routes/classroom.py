@@ -122,6 +122,12 @@ class HelpRequestResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class HelpResolutionInput(BaseModel):
+    """Optional resolution notes; omission/null preserves existing notes."""
+
+    notes: Optional[str] = None
+
+
 # --- Routes ---
 
 
@@ -148,6 +154,12 @@ async def list_users_for_messaging(
         User.active == True, User.id != current_user.id  # Exclude self
     )
 
+    # Apply the existing contact policy before search and the result window.
+    # Reuse the policy so legacy enrollment and explicit unassignment remain
+    # identical to message-send authorization.
+    authorized_ids = [u.id for u in query.all() if can_message(db, current_user, u)]
+    query = query.filter(User.id.in_(authorized_ids))
+
     # Filter by role if specified
     if role:
         try:
@@ -171,7 +183,7 @@ async def list_users_for_messaging(
         )
 
     # Order by name and limit
-    users = query.order_by(User.first_name, User.last_name).limit(limit).all()
+    users = query.order_by(User.first_name, User.last_name, User.id).limit(limit).all()
 
     return [
         UserListItem(
@@ -181,7 +193,6 @@ async def list_users_for_messaging(
             role=role_str(u),
         )
         for u in users
-        if can_message(db, current_user, u)
     ]
 
 
@@ -751,11 +762,12 @@ async def create_help_request(
 @router.post("/help/{request_id}/resolve")
 async def resolve_help_request(
     request_id: int,
-    notes: Optional[str] = None,
+    resolution: Optional[HelpResolutionInput] = None,
+    notes: Optional[str] = Query(None, deprecated=True),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Teacher resolves a help request."""
+    """Resolve with JSON notes, retaining the legacy optional query contract."""
     if not is_teacher_or_admin(current_user):
         raise HTTPException(
             status_code=403, detail="Only teachers/admins can resolve help requests"
@@ -769,8 +781,9 @@ async def resolve_help_request(
     req.status = "resolved"
     req.resolved_by_id = current_user.id
     req.resolved_at = utc_now()
-    if notes:
-        req.resolution_notes = notes
+    selected_notes = resolution.notes if resolution is not None else notes
+    if selected_notes is not None:
+        req.resolution_notes = selected_notes
 
     db.commit()
 

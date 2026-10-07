@@ -24,12 +24,21 @@ jobs:
           python-version: '3.12'
           cache: pip
           cache-dependency-path: requirements*.txt
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: src/frontend/package-lock.json
+      - name: Build verified React assets
+        run: |
+          npm ci --ignore-scripts --prefix src/frontend
+          npm run build --prefix src/frontend
       - name: Install official browser test dependencies
         run: |
           python -m pip install -r requirements-dev.txt
           python -m playwright install --with-deps chromium
       - name: Run isolated real Chromium journeys
-        run: SLM_BROWSER_ARTIFACTS="${RUNNER_TEMP}/slm-browser-artifacts" python -m pytest tests/browser -q --strict-markers --basetemp="${RUNNER_TEMP}/slm-browser-${GITHUB_RUN_ID}"
+        run: SLM_BROWSER_ARTIFACTS="${RUNNER_TEMP}/slm-browser-artifacts" xvfb-run -a python -m pytest tests/browser -q --strict-markers --basetemp="${RUNNER_TEMP}/slm-browser-${GITHUB_RUN_ID}"
       - name: Preserve synthetic screenshots only
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

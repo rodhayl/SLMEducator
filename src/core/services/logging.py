@@ -14,8 +14,8 @@ class LoggingService:
     """Structured logging service"""
 
     def __init__(self):
-        self.log_dir = Path("logs")
-        self.log_dir.mkdir(exist_ok=True)
+        self.log_dir = Path(os.environ.get("SLM_LOG_DIR") or "logs")
+        self.log_dir.mkdir(parents=True, exist_ok=True)
 
         # Configure structlog
         structlog.configure(

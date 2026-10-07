@@ -4,41 +4,27 @@ Tests teacher and student workflows using the same backend calls as the GUI
 """
 
 import sys
-import os
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from datetime import datetime
 
 # Setup path
-sys.path.insert(0, os.getcwd())
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from src.core.services.database import DatabaseService
+from tests.fixtures.synthetic_database import new_synthetic_database
 from src.core.models import User, StudyPlan, Content, ContentType, UserRole
+from src.core.security import hash_password
 
 
 class WorkflowTester:
-    def __init__(self):
-        """Initialize with fresh test database"""
-        # Clean up any existing test database first
-        self._cleanup_db_files()
-        self.db = DatabaseService("test_workflow.db")
+    def __init__(self, db_path: Path):
+        """Initialize a new test database at the explicitly supplied path."""
+        self.db = new_synthetic_database(db_path)
         print("✓ Database initialized")
 
-    def _cleanup_db_files(self):
-        """Remove test database files if they exist"""
-        import os
-
-        db_path = "test_workflow.db"
-        for ext in ["", "-shm", "-wal"]:
-            file_path = db_path + ext
-            if os.path.exists(file_path):
-                try:
-                    os.remove(file_path)
-                except BaseException:
-                    pass
-
     def cleanup(self):
-        """Clean up test database"""
-        self._cleanup_db_files()
-        print("✓ Cleaned up test database")
+        """Close handles; the temporary-directory owner removes its own files."""
+        self.db.close()
 
     def test_teacher_workflow(self):
         """
@@ -63,7 +49,7 @@ class WorkflowTester:
             first_name="Ms",
             last_name="Jones",
         )
-        teacher.set_password("secure123")
+        teacher.password_hash = hash_password("secure123")
         teacher = self.db.create_user(teacher)
         print(f"✓ Created teacher: {teacher.full_name} (ID: {teacher.id})")
 
@@ -196,7 +182,9 @@ class WorkflowTester:
         update_data = {
             "description": "A comprehensive 3-week program to master Python basics - Updated with new content!"
         }
-        updated_plan = self.db.update_study_plan(plan.id, update_data)
+        assert self.db.update_study_plan(plan.id, update_data) is True
+        updated_plan = self.db.get_study_plan_by_id(plan.id)
+        assert updated_plan.description == update_data["description"]
         print(f"✓ Updated plan description")
         print(f"  New description: {updated_plan.description[:60]}...")
 
@@ -228,7 +216,7 @@ class WorkflowTester:
             first_name="Alex",
             last_name="Smith",
         )
-        student.set_password("student123")
+        student.password_hash = hash_password("student123")
         student = self.db.create_user(student)
         print(f"✓ Created student: {student.full_name} (ID: {student.id})")
 
@@ -236,7 +224,9 @@ class WorkflowTester:
         print("\n[2] Assigning study plan to student...")
         assignment = self.db.assign_study_plan_to_student(student.id, plan.id)
         print(f"✓ Assigned plan '{plan.title}' to {student.full_name}")
-        print(f"  Assignment ID: {assignment.id}")
+        assert assignment.student_id == student.id
+        assert assignment.study_plan_id == plan.id
+        print(f"  Assignment: student={assignment.student_id}, plan={assignment.study_plan_id}")
         print(f"  Assigned at: {assignment.assigned_at}")
 
         # Step 3: View study plan (as student would in GUI)
@@ -306,16 +296,20 @@ class WorkflowTester:
             print(f"  - Assigned plan to student")
             print(f"\n✅ Backend and workflows are functioning correctly!")
             print(f"✅ GUI should handle these results properly!\n")
+            return True
 
         except Exception as e:
             print(f"\n❌ TEST FAILED: {e}")
             import traceback
 
             traceback.print_exc()
+            return False
         finally:
             self.cleanup()
 
 
 if __name__ == "__main__":
-    tester = WorkflowTester()
-    tester.run_all_tests()
+    with TemporaryDirectory(prefix="slm-workflows-") as directory:
+        tester = WorkflowTester(Path(directory) / "synthetic.sqlite3")
+        success = tester.run_all_tests()
+    exit(0 if success else 1)

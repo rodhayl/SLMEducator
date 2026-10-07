@@ -1,16 +1,21 @@
 #!/usr/bin/env python3
 """
 SLMEducator - Launcher with GUI Control Window
-Manages application lifecycle with a system tray style control window.
+Manages application lifecycle with a small native control window.
 """
+
+from __future__ import annotations
 
 import sys
 import time
-import socket
+import locale
+import queue
+import threading
 import webbrowser
 import multiprocessing
 import traceback
 from pathlib import Path
+from typing import Callable
 
 # Setup frozen environment BEFORE importing other modules
 if getattr(sys, "frozen", False):
@@ -28,19 +33,25 @@ from src.startup_utils import (
     setup_frozen_logging,
     setup_frozen_working_directory,
     find_free_port,
+    check_port_available,
+    LauncherLifecycle,
+    OwnedProcess,
+    check_server_ready,
+    stop_owned_process,
+    wait_for_server,
 )
 
 # GUI imports
 try:
     import tkinter as tk
-    from tkinter import ttk, messagebox
+    from tkinter import ttk, messagebox, font as tkfont
 
     GUI_AVAILABLE = True
 except ImportError:
     GUI_AVAILABLE = False
 
 
-def log_message(msg):
+def log_message(msg: str) -> None:
     """Log to file for debugging."""
     try:
         exe_dir = (
@@ -56,7 +67,7 @@ def log_message(msg):
         pass
 
 
-def setup_frozen_modules():
+def setup_frozen_modules() -> None:
     """Setup module namespace for frozen environment."""
     if getattr(sys, "frozen", False):
         import types
@@ -157,7 +168,7 @@ def setup_frozen_modules():
                     sys.modules[f"src.core.{subdir}"] = sub_module
 
 
-def run_server(port):
+def run_server(port: int) -> None:
     """Run Uvicorn server (target for subprocess)."""
     setup_frozen_working_directory()
     setup_frozen_logging()
@@ -192,304 +203,487 @@ def run_server(port):
         raise
 
 
+# Native launcher strings live together and do not depend on a frontend build.
+TEXT = {
+    "en": {
+        "title": "SLMEducator · Local application", "subtitle": "Your space to teach and learn",
+        "language": "Language", "status": "LOCAL APPLICATION", "open": "Open SLMEducator",
+        "start": "Start", "stop": "Stop", "exit": "Close", "copy": "Copy link",
+        "address": "Local address", "logs": "Recent activity", "hide_logs": "Hide activity",
+        "footer": "Keep this window open while using SLMEducator.",
+        "keys": "Ctrl+O: open · Ctrl+L: select link · Ctrl+Q: close",
+        "starting": "Starting your application", "slow": "Startup is taking longer",
+        "ready": "Ready to open", "error": "Needs attention", "stopping": "Stopping…",
+        "stopped": "Application stopped",
+        "starting_detail": "Preparing the local server. This can take a moment.",
+        "slow_detail": "Still waiting for the application to respond. You can stop it safely.",
+        "ready_detail": "The local server is responding. Open SLMEducator in your browser.",
+        "stopping_detail": "Waiting for this window's server to stop. Other applications are untouched.",
+        "stopped_detail": "Choose Start to return. Your saved data remains on this computer.",
+        "timeout_detail": "No valid response after 30 seconds. Stop the server, then try again. See api.log for details.",
+        "start_failed_detail": "The server could not start. Check available ports and api.log, then try again.",
+        "exited_detail": "The server process exited. Check api.log, then choose Start to try again.",
+        "unavailable_detail": "The server is no longer responding correctly. Checking again; opening is disabled.",
+        "stop_failed_detail": "The server has not stopped. Try Stop again. This window will stay open.",
+        "confirm_stop": "Stop the local application? Save your work in the browser first. Open tabs will lose their connection.",
+        "confirm_exit": "Stop the local application and close this window? Save your work in the browser first.",
+        "browser_failed": "The browser could not be opened. Copy the local address and paste it into your browser.",
+        "browser_opened": "The link was sent to your browser.", "copied": "Local address copied.",
+        "copy_failed": "The clipboard is unavailable. Select the address and copy it with Ctrl+C.",
+        "port_log": "Starting local server on port {port}.", "exit_log": "Child process exit code: {code}.",
+        "console": "SLMEducator · Console mode", "waiting": "Waiting for a valid local API response…",
+        "console_ready": "Local server ready: {url}", "ctrl_c": "Press Ctrl+C to stop.",
+        "headless": "Running headless; no browser will be opened.",
+    },
+    "es": {
+        "title": "SLMEducator · Aplicación local", "subtitle": "Tu espacio para enseñar y aprender",
+        "language": "Idioma", "status": "APLICACIÓN LOCAL", "open": "Abrir SLMEducator",
+        "start": "Iniciar", "stop": "Detener", "exit": "Cerrar", "copy": "Copiar enlace",
+        "address": "Dirección local", "logs": "Actividad reciente", "hide_logs": "Ocultar actividad",
+        "footer": "Mantén esta ventana abierta mientras usas SLMEducator.",
+        "keys": "Ctrl+O: abrir · Ctrl+L: seleccionar enlace · Ctrl+Q: cerrar",
+        "starting": "Iniciando tu aplicación", "slow": "El inicio está tardando más",
+        "ready": "Lista para abrir", "error": "Requiere atención", "stopping": "Deteniendo…",
+        "stopped": "Aplicación detenida",
+        "starting_detail": "Preparando el servidor local. Puede tardar un momento.",
+        "slow_detail": "Seguimos esperando la respuesta de la aplicación. Puedes detenerla de forma segura.",
+        "ready_detail": "El servidor local responde. Abre SLMEducator en tu navegador.",
+        "stopping_detail": "Esperando a que se detenga el servidor de esta ventana. No se alteran otras aplicaciones.",
+        "stopped_detail": "Elige Iniciar para volver. Tus datos guardados permanecen en este equipo.",
+        "timeout_detail": "Sin respuesta válida tras 30 segundos. Detén el servidor e inténtalo de nuevo. Consulta api.log.",
+        "start_failed_detail": "No se pudo iniciar el servidor. Revisa los puertos disponibles y api.log e inténtalo de nuevo.",
+        "exited_detail": "El proceso del servidor terminó. Consulta api.log y elige Iniciar para volver a intentarlo.",
+        "unavailable_detail": "El servidor ya no responde correctamente. Seguimos comprobándolo; no se puede abrir todavía.",
+        "stop_failed_detail": "El servidor no se ha detenido. Pulsa Detener otra vez. Esta ventana seguirá abierta.",
+        "confirm_stop": ("¿Detener la aplicación local? Guarda primero tu trabajo en el navegador. "
+                         "Las pestañas abiertas perderán la conexión."),
+        "confirm_exit": "¿Detener la aplicación local y cerrar esta ventana? Guarda primero tu trabajo en el navegador.",
+        "browser_failed": "No se pudo abrir el navegador. Copia la dirección local y pégala en tu navegador.",
+        "browser_opened": "Se ha enviado el enlace a tu navegador.", "copied": "Dirección local copiada.",
+        "copy_failed": "El portapapeles no está disponible. Selecciona la dirección y cópiala con Ctrl+C.",
+        "port_log": "Iniciando el servidor local en el puerto {port}.", "exit_log": "Código de salida del proceso: {code}.",
+        "console": "SLMEducator · Modo consola", "waiting": "Esperando una respuesta válida de la API local…",
+        "console_ready": "Servidor local listo: {url}", "ctrl_c": "Pulsa Ctrl+C para detener.",
+        "headless": "Modo sin interfaz; no se abrirá el navegador.",
+    },
+}
+
+
+def default_language() -> str:
+    """Use the OS language when available without writing application settings."""
+    try:
+        return "es" if (locale.getlocale()[0] or "").lower().startswith("es") else "en"
+    except (ValueError, TypeError):
+        return "en"
+
+
 class ServerControlWindow:
-    """GUI window for controlling the SLM Educator server."""
+    """Resizable native launcher with asynchronous readiness and truthful states."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.root = tk.Tk()
-        self.root.title("SLM Educator - Server Control")
-        self.root.geometry("500x400")
-        self.root.resizable(False, False)
-
-        # Server process
-        self.server_process = None
-        self.port = None
-        self.server_running = False
-
-        # Setup UI
+        self.lifecycle = LauncherLifecycle()
+        self.language = default_language()
+        self.events: queue.Queue[tuple[str, int, bool]] = queue.Queue()
+        self.probe_generation: int | None = None
+        self.next_probe = 0.0
+        self.browser_opening = False
+        self.auto_opened_generation: int | None = None
+        self.exit_when_stopped = False
+        self.closed = False
+        self.activity: list[tuple[str, str, dict[str, object]]] = []
+        self.notice = ""
+        self.previous_status: tuple[str, str] | None = None
         self._setup_ui()
+        self._render()
+        self.root.after(150, self.start_server)
+        self.root.after(200, self._poll)
 
-        # Start server automatically
-        self.root.after(1000, self.start_server)
+    def _text(self, key: str, **values: object) -> str:
+        return TEXT[self.language][key].format(**values)
 
-        # Update status periodically
-        self._schedule_status_update()
+    def _setup_style(self) -> None:
+        # Point-sized system fonts and Tk's native display scaling avoid fixed
+        # pixel typography. Native 200% DPI still needs Windows acceptance.
+        family = tkfont.nametofont("TkDefaultFont").actual("family")
+        style = ttk.Style(self.root)
+        style.theme_use("clam")
+        style.configure("TFrame", background="#f3f5ef")
+        style.configure("TLabel", background="#f3f5ef", foreground="#193432", font=(family, 11))
+        style.configure("Muted.TLabel", foreground="#50625d", font=(family, 10))
+        style.configure("Title.TLabel", font=(family, 24, "bold"))
+        style.configure("Status.TLabel", background="#fffef9", font=(family, 18, "bold"))
+        style.configure("Card.TFrame", background="#fffef9", borderwidth=1, relief="solid")
+        style.configure("Card.TLabel", background="#fffef9", foreground="#50625d")
+        style.configure("TButton", font=(family, 11), padding=(14, 10), foreground="#193432",
+                        background="#e7ede5", focusthickness=2, focuscolor="#17635f")
+        style.map("TButton", background=[("active", "#d4dfd7")], foreground=[("disabled", "#50625d")])
+        style.configure("Primary.TButton", background="#17635f", foreground="#ffffff",
+                        padding=(18, 13), focuscolor="#ffffff")
+        style.map("Primary.TButton", background=[("disabled", "#e7ede5"), ("active", "#124e4b")],
+                  foreground=[("disabled", "#50625d"), ("!disabled", "#ffffff")])
+        style.configure("TEntry", font=(family, 11), padding=9)
+        style.map("TEntry", fieldbackground=[("readonly", "#fffef9")])
+        style.configure("TCombobox", font=(family, 10), padding=5)
+        self.root.configure(background="#f3f5ef")
 
-    def _setup_ui(self):
-        """Setup the user interface."""
-        # Main frame
-        main_frame = ttk.Frame(self.root, padding="20")
-        main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
-
-        # Title
-        title_label = ttk.Label(
-            main_frame, text="SLM Educator Server", font=("Arial", 16, "bold")
-        )
-        title_label.grid(row=0, column=0, columnspan=2, pady=(0, 20))
-
-        # Status section
-        status_frame = ttk.LabelFrame(main_frame, text="Server Status", padding="10")
-        status_frame.grid(
-            row=1, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 10)
-        )
-
-        self.status_var = tk.StringVar(value="Starting...")
-        status_label = ttk.Label(
-            status_frame, textvariable=self.status_var, font=("Arial", 11)
-        )
-        status_label.grid(row=0, column=0, sticky=tk.W)
-
-        self.port_var = tk.StringVar(value="Port: -")
-        port_label = ttk.Label(
-            status_frame, textvariable=self.port_var, font=("Arial", 10)
-        )
-        port_label.grid(row=1, column=0, sticky=tk.W, pady=(5, 0))
-
-        # URL section
-        url_frame = ttk.LabelFrame(main_frame, text="Access URL", padding="10")
-        url_frame.grid(row=2, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=(0, 10))
-
-        self.url_var = tk.StringVar(value="Not started")
-        url_label = ttk.Label(
-            url_frame,
-            textvariable=self.url_var,
-            font=("Arial", 10, "underline"),
-            foreground="blue",
-            cursor="hand2",
-        )
-        url_label.grid(row=0, column=0, sticky=tk.W)
-        url_label.bind("<Button-1>", self._on_url_click)
-
-        # Buttons
-        button_frame = ttk.Frame(main_frame)
-        button_frame.grid(row=3, column=0, columnspan=2, pady=(10, 0))
-
-        self.start_btn = ttk.Button(
-            button_frame, text="Start Server", command=self.start_server
-        )
-        self.start_btn.grid(row=0, column=0, padx=5)
-
-        self.stop_btn = ttk.Button(
-            button_frame, text="Stop Server", command=self.stop_server, state="disabled"
-        )
-        self.stop_btn.grid(row=0, column=1, padx=5)
-
-        self.browser_btn = ttk.Button(
-            button_frame,
-            text="Open Browser",
-            command=self.open_browser,
-            state="disabled",
-        )
-        self.browser_btn.grid(row=0, column=2, padx=5)
-
-        # Log section
-        log_frame = ttk.LabelFrame(main_frame, text="Recent Log", padding="10")
-        log_frame.grid(
-            row=4, column=0, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(10, 0)
-        )
-
-        self.log_text = tk.Text(
-            log_frame, height=8, width=50, state="disabled", wrap=tk.WORD
-        )
-        self.log_text.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
-
-        scrollbar = ttk.Scrollbar(
-            log_frame, orient="vertical", command=self.log_text.yview
-        )
-        scrollbar.grid(row=0, column=1, sticky=(tk.N, tk.S))
-        self.log_text["yscrollcommand"] = scrollbar.set
-
-        # Exit button
-        exit_btn = ttk.Button(main_frame, text="Exit Application", command=self.on_exit)
-        exit_btn.grid(row=5, column=0, columnspan=2, pady=(20, 0))
-
-        # Configure grid weights
-        main_frame.columnconfigure(0, weight=1)
-        main_frame.rowconfigure(4, weight=1)
-
-        # Protocol for window close
+    def _setup_ui(self) -> None:
+        self._setup_style()
+        self.root.resizable(True, True)
+        self.root.columnconfigure(0, weight=1)
+        self.root.rowconfigure(0, weight=1)
+        self.main = ttk.Frame(self.root, padding=24)
+        self.main.grid(sticky="nsew")
+        self.main.columnconfigure(0, weight=1)
+        self._setup_heading()
+        self._setup_status()
+        self._setup_actions()
+        self._setup_activity()
         self.root.protocol("WM_DELETE_WINDOW", self.on_exit)
+        self.root.bind("<Control-o>", self.open_browser)
+        self.root.bind("<Control-l>", self.select_url)
+        self.root.bind("<Control-q>", self.on_exit)
+        self.root.bind("<Configure>", self._resize_text)
+        self._render()
+        self.root.update_idletasks()
+        # Let requested font metrics determine minimum size rather than freezing
+        # a 500x400 layout; the address and diagnostics grow with the window.
+        self.root.minsize(self.root.winfo_reqwidth(), self.root.winfo_reqheight())
 
-    def _schedule_status_update(self):
-        """Schedule periodic status updates."""
-        self.update_status()
-        self.root.after(2000, self._schedule_status_update)
+    def _setup_heading(self) -> None:
+        heading = ttk.Frame(self.main)
+        heading.grid(row=0, column=0, sticky="ew", pady=(0, 20))
+        heading.columnconfigure(0, weight=1)
+        ttk.Label(heading, text="SLMEducator", style="Title.TLabel").grid(row=0, column=0, sticky="w")
+        self.subtitle = ttk.Label(heading, style="Muted.TLabel")
+        self.subtitle.grid(row=1, column=0, sticky="w", pady=(4, 0))
+        self.language_label = ttk.Label(heading, style="Muted.TLabel")
+        self.language_label.grid(row=0, column=1, sticky="w", padx=(16, 0))
+        self.language_var = tk.StringVar(value="Español" if self.language == "es" else "English")
+        self.language_select = ttk.Combobox(heading, textvariable=self.language_var,
+                                           values=("Español", "English"), state="readonly", width=9)
+        self.language_select.grid(row=1, column=1, padx=(16, 0))
+        self.language_select.bind("<<ComboboxSelected>>", self._change_language)
 
-    def update_status(self):
-        """Update server status display."""
-        if self.server_process and self.server_process.is_alive():
-            self.server_running = True
-            self.status_var.set("Running ✓")
-            self.start_btn.config(state="disabled")
-            self.stop_btn.config(state="normal")
-            self.browser_btn.config(state="normal")
-            if self.port:
-                self.port_var.set(f"Port: {self.port}")
-                self.url_var.set(f"http://localhost:{self.port}")
-        else:
-            if self.server_running:
-                self.server_running = False
-                self.status_var.set("Stopped ✗")
-                self.start_btn.config(state="normal")
-                self.stop_btn.config(state="disabled")
-                self.browser_btn.config(state="disabled")
-                self.port_var.set("Port: -")
-                self.url_var.set("Not started")
-                self._add_log("Server stopped")
+    def _setup_status(self) -> None:
+        card = ttk.Frame(self.main, style="Card.TFrame", padding=20)
+        card.grid(row=1, column=0, sticky="ew")
+        card.columnconfigure(0, weight=1)
+        self.status_caption = ttk.Label(card, style="Card.TLabel")
+        self.status_caption.grid(row=0, column=0, sticky="w")
+        self.status_label = ttk.Label(card, style="Status.TLabel")
+        self.status_label.grid(row=1, column=0, sticky="w", pady=(10, 8))
+        self.detail_label = ttk.Label(card, style="Card.TLabel", wraplength=440, justify="left")
+        self.detail_label.grid(row=2, column=0, sticky="ew")
+        self.browser_btn = ttk.Button(card, style="Primary.TButton", command=self.open_browser)
+        self.browser_btn.grid(row=3, column=0, sticky="ew", pady=(18, 0))
+        self.address_label = ttk.Label(self.main, style="Muted.TLabel")
+        self.address_label.grid(row=2, column=0, sticky="w", pady=(18, 6))
+        address = ttk.Frame(self.main)
+        address.grid(row=3, column=0, sticky="ew")
+        address.columnconfigure(0, weight=1)
+        self.url_var = tk.StringVar()
+        self.url_entry = ttk.Entry(address, textvariable=self.url_var, state="readonly", width=30, takefocus=True)
+        self.url_entry.grid(row=0, column=0, sticky="ew")
+        self.url_entry.bind("<Return>", self.open_browser)
+        self.copy_btn = ttk.Button(address, command=self.copy_url)
+        self.copy_btn.grid(row=0, column=1, padx=(8, 0))
+        self.notice_label = ttk.Label(self.main, style="Muted.TLabel", wraplength=480, justify="left")
+        self.notice_label.grid(row=4, column=0, sticky="ew", pady=(6, 0))
 
-    def start_server(self):
-        """Start the server."""
-        if self.server_process and self.server_process.is_alive():
+    def _setup_actions(self) -> None:
+        actions = ttk.Frame(self.main)
+        actions.grid(row=5, column=0, sticky="ew", pady=(12, 0))
+        actions.columnconfigure(2, weight=1)
+        self.start_btn = ttk.Button(actions, command=self.start_server)
+        self.start_btn.grid(row=0, column=0, padx=(0, 8))
+        self.stop_btn = ttk.Button(actions, command=self.stop_server)
+        self.stop_btn.grid(row=0, column=1)
+        self.exit_btn = ttk.Button(actions, command=self.on_exit)
+        self.exit_btn.grid(row=0, column=3, sticky="e")
+        self.footer = ttk.Label(self.main, style="Muted.TLabel", wraplength=480)
+        self.footer.grid(row=6, column=0, sticky="w", pady=(18, 4))
+        self.keys_label = ttk.Label(self.main, style="Muted.TLabel", wraplength=480)
+        self.keys_label.grid(row=7, column=0, sticky="w")
+
+    def _setup_activity(self) -> None:
+        self.logs_visible = False
+        self.logs_btn = ttk.Button(self.main, command=self.toggle_activity)
+        self.logs_btn.grid(row=8, column=0, sticky="w", pady=(18, 0))
+        self.log_frame = ttk.Frame(self.main)
+        self.log_frame.grid(row=9, column=0, sticky="nsew", pady=(8, 0))
+        self.log_frame.columnconfigure(0, weight=1)
+        self.log_frame.rowconfigure(0, weight=1)
+        self.main.rowconfigure(9, weight=1)
+        self.log_text = tk.Text(self.log_frame, height=6, width=40, state="disabled", wrap=tk.WORD,
+                                background="#fffef9", foreground="#193432", relief="flat", padx=10, pady=10)
+        self.log_text.grid(row=0, column=0, sticky="nsew")
+        scrollbar = ttk.Scrollbar(self.log_frame, orient="vertical", command=self.log_text.yview)
+        scrollbar.grid(row=0, column=1, sticky="ns")
+        self.log_text["yscrollcommand"] = scrollbar.set
+        self.log_frame.grid_remove()
+
+    def _resize_text(self, event: tk.Event) -> None:
+        if event.widget is self.root:
+            width = max(260, event.width - 100)
+            self.detail_label.configure(wraplength=width)
+            self.notice_label.configure(wraplength=width)
+            self.footer.configure(wraplength=width)
+            self.keys_label.configure(wraplength=width)
+
+    def _change_language(self, event: tk.Event | None = None) -> None:
+        self.language = "es" if self.language_var.get() == "Español" else "en"
+        self._render()
+        self._render_activity()
+
+    def _render(self) -> None:
+        model = self.lifecycle
+        self.root.title(self._text("title"))
+        for widget, key in ((self.subtitle, "subtitle"), (self.language_label, "language"),
+                            (self.status_caption, "status"), (self.browser_btn, "open"),
+                            (self.address_label, "address"), (self.copy_btn, "copy"),
+                            (self.start_btn, "start"), (self.stop_btn, "stop"), (self.exit_btn, "exit"),
+                            (self.footer, "footer"), (self.keys_label, "keys")):
+            widget.configure(text=self._text(key))
+        self.status_label.configure(text=self._text(model.state),
+                                    foreground={"ready": "#27643e", "error": "#983c34", "slow": "#76500a"}.get(model.state, "#193432"))
+        self.detail_label.configure(text=self._text(f"{model.reason}_detail"))
+        if self.url_var.get() != model.url:
+            self.url_var.set(model.url)
+        self.browser_btn.configure(state="normal" if model.can_open and not self.browser_opening else "disabled")
+        self.start_btn.configure(state="disabled" if model.alive or model.state == "stopping" else "normal")
+        self.stop_btn.configure(state="normal" if model.alive and model.state != "stopping" else "disabled")
+        self.copy_btn.configure(state="normal" if model.url else "disabled")
+        self.notice_label.configure(text=self._text(self.notice) if self.notice else "")
+        self.logs_btn.configure(text=self._text("hide_logs" if self.logs_visible else "logs"))
+        status = (model.state, model.reason)
+        if status != self.previous_status:
+            self.previous_status = status
+            self._add_log(f"{model.reason}_detail")
+            if model.reason == "exited" and model.process is not None:
+                self._add_log("exit_log", code=model.process.exitcode)
+
+    def start_server(self) -> None:
+        """Start one child only; retain existing frozen/bootstrap behavior."""
+        if self.lifecycle.alive or self.lifecycle.state == "stopping" or self.closed:
             return
-
+        self.notice = ""
         try:
-            # Find free port
-            self.port = self._find_free_port(8000)
+            port = find_free_port(8000)
+            process = multiprocessing.Process(target=run_server, args=(port,))
+            process.start()
+            self.lifecycle.attach(process, port)
+            self._add_log("port_log", port=port)
+            self.next_probe = 0.0
+        except (OSError, RuntimeError, ValueError):
+            self.lifecycle.fail_start()
+        self._render()
 
-            self._add_log(f"Starting server on port {self.port}...")
-
-            # Start server in subprocess
-            self.server_process = multiprocessing.Process(
-                target=run_server, args=(self.port,)
-            )
-            self.server_process.start()
-
-            # Wait for server to be ready
-            self.root.after(1000, self._check_server_ready)
-
-        except Exception as e:
-            self._add_log(f"Error starting server: {e}")
-            messagebox.showerror("Error", f"Failed to start server:\n{e}")
-
-    def _check_server_ready(self):
-        """Check if server is ready."""
-        if not self.server_process or not self.server_process.is_alive():
-            self._add_log("Server failed to start")
+    def _poll(self) -> None:
+        if self.closed:
             return
+        self.lifecycle.tick()
+        self._consume_events()
+        if self.exit_when_stopped:
+            if self.lifecycle.state == "stopped":
+                self._close()
+                return
+            if self.lifecycle.reason == "stop_failed":
+                self.exit_when_stopped = False
+        if (self.lifecycle.should_probe and self.probe_generation is None
+                and time.monotonic() >= self.next_probe):
+            self.probe_generation = self.lifecycle.generation
+            threading.Thread(target=self._probe, args=(self.lifecycle.process, self.lifecycle.port,
+                             self.probe_generation), daemon=True).start()
+        self._render()
+        self.root.after(200, self._poll)
 
-        try:
-            with socket.create_connection(("127.0.0.1", self.port), timeout=0.5):
-                self._add_log(f"Server ready at http://localhost:{self.port}")
-                self.update_status()
-                # Auto-open browser
-                if "--no-browser" not in sys.argv:
-                    self.open_browser()
-        except OSError:
-            # Try again in 1 second
-            self.root.after(1000, self._check_server_ready)
+    def _probe(self, process: OwnedProcess, port: int, generation: int) -> None:
+        ready = check_server_ready(process, port)
+        self.events.put(("probe", generation, ready))
 
-    def stop_server(self):
-        """Stop the server."""
-        if self.server_process and self.server_process.is_alive():
-            self._add_log("Stopping server...")
-            self.server_process.terminate()
-            self.server_process.join(timeout=5)
-            if self.server_process.is_alive():
-                self.server_process.kill()
-                self.server_process.join()
-            self._add_log("Server stopped")
-            self.update_status()
-
-    def open_browser(self):
-        """Open browser to the application."""
-        if self.port:
-            url = f"http://localhost:{self.port}"
+    def _consume_events(self) -> None:
+        while True:
             try:
-                webbrowser.open(url)
-                self._add_log(f"Opened browser: {url}")
-            except Exception as e:
-                self._add_log(f"Failed to open browser: {e}")
-                messagebox.showerror(
-                    "Error",
-                    f"Could not open browser.\nPlease manually navigate to:\n{url}",
-                )
+                kind, generation, result = self.events.get_nowait()
+            except queue.Empty:
+                return
+            if kind == "probe":
+                self.probe_generation = None
+                self.next_probe = time.monotonic() + 1.0
+                self.lifecycle.apply_probe(generation, result)
+                if (self.lifecycle.can_open and self.auto_opened_generation != self.lifecycle.generation
+                        and "--no-browser" not in sys.argv):
+                    self.auto_opened_generation = self.lifecycle.generation
+                    self.open_browser()
+            elif kind == "browser":
+                self.browser_opening = False
+                if generation == self.lifecycle.generation:
+                    self.notice = "browser_opened" if result else "browser_failed"
+                    self._add_log(self.notice)
 
-    def on_exit(self):
-        """Handle application exit."""
-        if messagebox.askyesno("Exit", "Stop the server and exit?"):
-            self.stop_server()
-            self.root.destroy()
-            sys.exit(0)
+    def stop_server(self) -> None:
+        """Confirm browser-work impact and asynchronously stop only our child."""
+        if self.lifecycle.state == "stopping" or not self.lifecycle.alive:
+            return
+        if messagebox.askyesno(self._text("stop"), self._text("confirm_stop"), parent=self.root):
+            self.notice = ""
+            self.lifecycle.begin_stop()
+            self._render()
 
-    def _find_free_port(self, start_port):
-        """Find a free port (delegates to shared utility)."""
-        return find_free_port(start_port)
+    def open_browser(self, event: tk.Event | None = None) -> str:
+        """Open only after readiness; failed browser launch keeps a copyable URL."""
+        if not self.lifecycle.can_open or self.browser_opening:
+            return "break"
+        self.browser_opening = True
+        self.notice = ""
+        threading.Thread(target=self._launch_browser,
+                         args=(self.lifecycle.url, self.lifecycle.generation), daemon=True).start()
+        self._render()
+        return "break"
 
-    def _add_log(self, message):
-        """Add a message to the log display."""
-        timestamp = time.strftime("%H:%M:%S")
-        self.log_text.config(state="normal")
-        self.log_text.insert(tk.END, f"[{timestamp}] {message}\n")
+    def _launch_browser(self, url: str, generation: int) -> None:
+        if generation != self.lifecycle.generation or not self.lifecycle.can_open:
+            self.events.put(("browser", generation, False))
+            return
+        try:
+            opened = bool(webbrowser.open(url))
+        except Exception:
+            opened = False
+        self.events.put(("browser", generation, opened))
+
+    def select_url(self, event: tk.Event | None = None) -> str:
+        """Expose the local URL to normal keyboard selection and copy shortcuts."""
+        self.url_entry.focus_set()
+        self.url_entry.selection_range(0, tk.END)
+        return "break"
+
+    def copy_url(self) -> None:
+        """Copy the address without making readiness claims."""
+        if not self.lifecycle.url:
+            return
+        try:
+            self.root.clipboard_clear()
+            self.root.clipboard_append(self.lifecycle.url)
+            self.notice = "copied"
+        except tk.TclError:
+            self.notice = "copy_failed"
+        self._render()
+
+    def toggle_activity(self) -> None:
+        """Keep bounded diagnostics secondary and keyboard accessible."""
+        self.logs_visible = not self.logs_visible
+        if self.logs_visible:
+            self.log_frame.grid()
+        else:
+            self.log_frame.grid_remove()
+        self._render()
+
+    def _add_log(self, key: str, **values: object) -> None:
+        self.activity.append((time.strftime("%H:%M:%S"), key, values))
+        self.activity = self.activity[-80:]
+        self._render_activity()
+        log_message(self._text(key, **values))
+
+    def _render_activity(self) -> None:
+        self.log_text.configure(state="normal")
+        self.log_text.delete("1.0", tk.END)
+        for stamp, key, values in self.activity:
+            self.log_text.insert(tk.END, f"[{stamp}] {self._text(key, **values)}\n")
         self.log_text.see(tk.END)
-        self.log_text.config(state="disabled")
-        log_message(message)
+        self.log_text.configure(state="disabled")
 
-    def _on_url_click(self, event):
-        """Handle URL click."""
-        self.open_browser()
+    def on_exit(self, event: tk.Event | None = None) -> str:
+        """Keep the window open until its owned process is confirmed stopped."""
+        if self.lifecycle.state == "stopping":
+            return "break"
+        if not self.lifecycle.alive:
+            self._close()
+        elif messagebox.askyesno(self._text("exit"), self._text("confirm_exit"), parent=self.root):
+            self.exit_when_stopped = True
+            self.notice = ""
+            self.lifecycle.begin_stop()
+            self._render()
+        return "break"
 
-    def run(self):
+    def _close(self) -> None:
+        self.closed = True
+        self.root.destroy()
+
+    def run(self) -> None:
         """Run the GUI application."""
         self.root.mainloop()
 
 
-def main():
-    """Main entry point."""
+def run_console(
+    server_target: Callable[[int], None] = run_server, port: int | None = None, *, no_browser: bool = False
+) -> int:
+    """Run the same readiness/shutdown contract without a native window."""
+    strings = TEXT[default_language()]
+    print(strings["console"])
+    try:
+        if port is None:
+            port = find_free_port(8000)
+        elif not check_port_available(port):
+            raise OSError("The requested local server port is occupied")
+        process = multiprocessing.Process(target=server_target, args=(port,))
+        process.start()
+    except (OSError, RuntimeError, ValueError):
+        print(strings["start_failed_detail"])
+        return 1
+    result = 0
+    try:
+        print(strings["waiting"])
+        if not wait_for_server(process, port):
+            print(strings["timeout_detail"] if process.is_alive() else strings["exited_detail"])
+            return 1
+        if not process.is_alive():
+            print(strings["exited_detail"])
+            return 1
+        url = f"http://127.0.0.1:{port}"
+        print(strings["console_ready"].format(url=url))
+        if no_browser or "--no-browser" in sys.argv:
+            print(strings["headless"])
+        else:
+            try:
+                if not webbrowser.open(url):
+                    print(strings["browser_failed"])
+            except Exception:
+                print(strings["browser_failed"])
+        print(strings["ctrl_c"])
+        while process.is_alive():
+            time.sleep(0.5)
+        print(strings["exited_detail"])
+        result = 1
+    except KeyboardInterrupt:
+        print(strings["stopping"])
+    finally:
+        if stop_owned_process(process):
+            print(strings["stopped"])
+        else:
+            print(strings["stop_failed_detail"])
+            result = 1
+    return result
+
+
+def main() -> int:
+    """Preserve recovery dispatch and frozen multiprocessing in every mode."""
     setup_frozen_working_directory()
+    setup_frozen_logging()
+    multiprocessing.freeze_support()
     if len(sys.argv) > 1 and sys.argv[1] == "--recovery":
         from scripts.recover_database import main as recover_database
 
         return recover_database(sys.argv[2:])
     log_message("=== SLM Educator Starting ===")
-
     if not GUI_AVAILABLE:
-        # Fallback to console mode if GUI not available
-        log_message("GUI not available, running in console mode")
-        print("SLM Educator - Starting in console mode...")
-        print("(Install tkinter for GUI control window)")
-
-        # Find port
-        port = 8000
-        while True:
-            try:
-                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                    s.bind(("127.0.0.1", port))
-                    break
-            except OSError:
-                port += 1
-
-        print(f"Starting server on port {port}...")
-
-        # Start server
-        server_process = multiprocessing.Process(target=run_server, args=(port,))
-        server_process.start()
-
-        # Wait for ready
-        print("Waiting for server...")
-        for _ in range(30):
-            try:
-                with socket.create_connection(("127.0.0.1", port), timeout=0.5):
-                    print(f"Server ready at http://localhost:{port}")
-                    webbrowser.open(f"http://localhost:{port}")
-                    break
-            except OSError:
-                time.sleep(0.5)
-
-        print("\nPress Ctrl+C to stop")
-        try:
-            while server_process.is_alive():
-                time.sleep(1)
-        except KeyboardInterrupt:
-            pass
-        finally:
-            server_process.terminate()
-            server_process.join()
-        return
-
-    # Start GUI
-    multiprocessing.freeze_support()
-    app = ServerControlWindow()
+        return run_console()
+    try:
+        app = ServerControlWindow()
+    except tk.TclError:
+        return run_console()
     app.run()
+    return 0
 
 
 if __name__ == "__main__":

@@ -1,0 +1,69 @@
+import { useState } from 'react';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
+import { useTranslation } from 'react-i18next';
+import { useAuth } from '@/app/AuthProvider';
+import { useInvalidate, useOperation } from '@/lib/query';
+import { positiveId } from '@/lib/ids';
+import { ApiError } from '@/lib/api';
+import { Badge, Button, Card, ConfirmDialog, EmptyState, ErrorState, Field, Input, LoadingState, PageHeader, Select } from '@/components/ui';
+import { ContentRenderer } from '@/components/content/ContentRenderer';
+import { useContinuation } from '@/features/authoring/MaterialEditor';
+import { confirmStart, invalidResponse, isAssessment, isAssessmentList, isPolicy, isStats, isSubmission, isSubmissionList, record, unavailable, type Assessment, type Stats, type SubmissionSummary } from './model';
+import { QuestionPreview, SubmissionBadge, SubmissionReading, Timestamp, useValidated } from './shared';
+
+export function AssessmentListPage() {
+ const { user } = useAuth(); const { t } = useTranslation('assessments'); const [params, setParams] = useSearchParams();
+ const list = useValidated(['assessments'], '/api/assessments/', isAssessmentList); const search = params.get('q') || ''; const state = params.get('state') || 'all';
+ const items = list.data?.filter(item => item.title.toLocaleLowerCase().includes(search.toLocaleLowerCase()) && (state === 'all' || item.is_published === (state === 'published')));
+ function filter(key: string, value: string) { const next = new URLSearchParams(params); next.set(key, value); setParams(next, { replace: true }); }
+ return <div className="stack"><PageHeader title={t('assessments')} description={t('assessmentDescription')} actions={user?.role === 'student' ? <Link to="/evaluaciones/historial">{t('myHistory')}</Link> : <Link to="/evaluaciones/nueva">{t('create')}</Link>}/><Card><div className="toolbar"><Field label={t('search')}><Input type="search" value={search} onChange={event => filter('q', event.target.value)}/></Field>{user?.role !== 'student' && <Field label={t('queueFilter')}><Select value={state} onChange={event => filter('state', event.target.value)}><option value="all">{t('all')}</option><option value="published">{t('published')}</option><option value="draft">{t('draft')}</option></Select></Field>}</div></Card>{list.isPending && <LoadingState/>}<ErrorState error={list.error} retry={() => void list.refetch()}/>{items && !list.error && (items.length ? <div className="grid">{items.map(item => <Card key={item.id}><div className="cluster"><Badge tone={item.is_published ? 'success' : 'neutral'}>{t(item.is_published ? 'published' : 'draft')}</Badge><span>{t('questionsCount', { count: item.question_count })}</span></div><h2><Link to={`/evaluaciones/${item.id}`}>{item.title}</Link></h2>{item.description && <p>{item.description}</p>}<div className="cluster"><Link to={`/evaluaciones/${item.id}`}>{t(user?.role === 'student' ? 'open' : 'preview')}</Link>{user?.role !== 'student' && item.can_manage && <Link to={`/evaluaciones/${item.id}/editar`}>{t('edit')}</Link>}</div></Card>)}</div> : <EmptyState title={t('empty')}/>)}</div>;
+}
+export function AssessmentPreviewPage() {
+ const { assessmentId } = useParams(); const id = positiveId(assessmentId); const { scope } = useAuth();
+ return id ? <AssessmentPreview key={`${scope}:${id}`} id={id}/> : <ErrorState error={unavailable()}/>;
+}
+function AssessmentPreview({ id }: { id: number }) {
+ const { user, api } = useAuth(); const { t } = useTranslation('assessments'); const navigate = useNavigate(); const current = useContinuation(); const invalidate = useInvalidate(); const [confirm, setConfirm] = useState(false); const [checked, setChecked] = useState(false);
+ const assessment = useValidated(['assessment', id], `/api/assessments/${id}`, value => isAssessment(value, id));
+ const policy = useValidated(['assessment-policy', id], `/api/assessments/${id}/assistance-policy`, value => isPolicy(value, id));
+ const history = useValidated(['submissions'], user?.role === 'student' ? '/api/assessments/submissions' : null, value => isSubmissionList(value, user?.id));
+ const start = useOperation(async () => confirmStart(await api.post(`/api/assessments/${id}/start`)), async submissionId => { if (current()) { setConfirm(false); navigate(`/intentos/${submissionId}`); } await invalidate(['submissions']); });
+ if (assessment.isPending) return <LoadingState/>;
+ if (assessment.error || !assessment.data) return <ErrorState error={assessment.error || unavailable()} retry={() => void assessment.refetch()}/>;
+ const data = assessment.data; const attempts = history.data?.filter(item => item.assessment_id === id); const active = attempts?.find(item => item.status === 'draft'); const staff = user?.role !== 'student';
+ return <div className="stack"><Link to="/evaluaciones">{t('back')}</Link><PageHeader title={data.title} description={t(staff ? 'previewNotice' : 'reviewFirst')} actions={staff && data.can_manage && <Link to={`/evaluaciones/${id}/editar`}>{t('edit')}</Link>}/><Card><Badge tone={data.is_published ? 'success' : 'neutral'}>{t(data.is_published ? 'published' : 'draft')}</Badge>{data.description && <ContentRenderer value={data.description}/>}<dl className="form-grid"><div><dt>{t('timeLimit')}</dt><dd>{data.time_limit_minutes ? t('minutes', { count: data.time_limit_minutes }) : t('noLimit')}</dd></div><div><dt>{t('attempts')}</dt><dd>{data.max_attempts}</dd></div><div><dt>{t('totalPoints')}</dt><dd>{data.total_points}</dd></div><div><dt>{t('passingScore')}</dt><dd>{data.passing_score}%</dd></div></dl></Card><Card><h2>{t('assistance')}</h2>{policy.isPending && <LoadingState/>}<ErrorState error={policy.error} retry={() => void policy.refetch()}/>{policy.data && <><p>{t(policy.data.mode)}</p><p className="muted">{t('assistanceNotice')}</p></>}</Card>
+ {data.questions.some(question => !question.options_supported) && <p role="alert">{t('unsupportedOptions')}</p>}
+ {!staff && <Card><h2>{t('history')}</h2>{history.isPending && <LoadingState/>}<ErrorState error={history.error} retry={() => void history.refetch()}/>{attempts && <><p>{t('attemptsUsed', { used: attempts.length, maximum: data.max_attempts })}</p><div className="cluster">{active ? <Link to={`/intentos/${active.id}`}>{t('resume')}</Link> : <Button disabled={!data.is_published || !policy.data || !!policy.error || !data.questions.length || data.questions.some(question => !question.options_supported) || attempts.length >= data.max_attempts || !!start.error?.uncertain && !checked} busy={start.isPending} onClick={() => setConfirm(true)}>{t('start')}</Button>}<Link to={`/evaluaciones/${id}/historial`}>{t('history')}</Link></div>{!active && attempts.length >= data.max_attempts && <p>{t('limitReached')}</p>}</>}<ErrorState error={start.error}/>{start.error?.uncertain && <><p>{t('mutationUncertain')}</p><Button variant="secondary" onClick={() => { void history.refetch().then(result => { if (result.isSuccess && current()) setChecked(true); }); }}>{t('refresh')}</Button></>}</Card>}
+ {staff && <><h2>{t('preview')}</h2>{!data.questions.length && <EmptyState title={t('noQuestions')}/>} {data.questions.map((question, index) => <QuestionPreview key={question.id} question={question} number={index + 1} showKey={data.can_manage}/>) }{data.can_manage ? <AssessmentActions assessment={data} onDeleted={() => { if (current()) navigate('/evaluaciones'); }}/> : <p>{t('manageOnly')}</p>}</>}
+ <ConfirmDialog open={confirm} onOpenChange={setConfirm} title={t('startTitle')} description={t('startDescription')} confirmLabel={t('begin')} busy={start.isPending} onConfirm={() => { setConfirm(false); setChecked(false); start.mutate(undefined); }}/></div>;
+}
+// The preview owns navigation because refreshing a deleted detail can remove this panel.
+function AssessmentActions({ assessment, onDeleted }: { assessment: Assessment; onDeleted: () => void }) {
+ const { t } = useTranslation('assessments'); const { api } = useAuth(); const invalidate = useInvalidate(); const current = useContinuation(); const [action, setAction] = useState<'delete' | 'unpublish' | null>(null); const [showStats, setShowStats] = useState(false);
+ const stats = useValidated<Stats>(['assessment-stats', assessment.id], showStats ? `/api/assessments/${assessment.id}/stats` : null, value => isStats(value, assessment.id));
+ const operation = useOperation(async (kind: 'delete' | 'unpublish') => { const path = `/api/assessments/${assessment.id}`; const result = kind === 'delete' ? await api.delete<unknown>(path) : await api.put<unknown>(path, { is_published: false }); if (!record(result) || (kind === 'delete' ? result.success !== true : result.id !== assessment.id || result.is_published !== false)) throw invalidResponse(true); return kind; }, async kind => { if (current()) setAction(null); await invalidate(); if (kind === 'delete') onDeleted(); });
+ return <Card><div className="cluster"><Button variant="secondary" onClick={() => setShowStats(value => !value)} aria-expanded={showStats}>{t('stats')}</Button><Link to={`/evaluaciones/nueva?copy=${assessment.id}`}>{t('copy')}</Link>{assessment.is_published && <Button variant="secondary" disabled={!!operation.error?.uncertain || operation.isPending} onClick={() => setAction('unpublish')}>{t('unpublish')}</Button>}<Button variant="danger" disabled={!!operation.error?.uncertain || operation.isPending} onClick={() => setAction('delete')}>{t('delete')}</Button></div><ErrorState error={operation.error}/>{showStats && <><h2>{t('stats')}</h2>{stats.isPending && <LoadingState/>}<ErrorState error={stats.error} retry={() => void stats.refetch()}/>{stats.data && <dl className="form-grid">{([['totalSubmissions', stats.data.total_submissions], ['average', stats.data.average_score], ['highest', stats.data.highest_score], ['lowest', stats.data.lowest_score], ['passRate', stats.data.pass_rate]] as const).map(([label, value]) => <div key={label}><dt>{t(label)}</dt><dd>{value === null ? '—' : label === 'totalSubmissions' ? value : `${value.toFixed(1)}%`}</dd></div>)}</dl>}</>}<ConfirmDialog open={action !== null} onOpenChange={open => { if (!open) setAction(null); }} title={t(action || 'delete')} description={t(action === 'unpublish' ? 'unpublishDescription' : 'deleteDescription')} confirmLabel={t(action || 'delete')} destructive busy={operation.isPending} onConfirm={() => { if (action && !operation.error?.uncertain) { const input = action; setAction(null); operation.mutate(input); } }}/></Card>;
+}
+export function SubmissionHistoryPage() {
+ const { user, scope } = useAuth(); const params = useParams(); const [query] = useSearchParams(); const rawId = params.assessmentId || query.get('assessment_id'); const assessmentId = rawId ? positiveId(rawId) : null;
+ return user?.role === 'student' && (!rawId || assessmentId) ? <SubmissionHistory key={`${scope}:${assessmentId}`} assessmentId={assessmentId} ownerId={user.id}/> : <ErrorState error={unavailable()}/>;
+}
+function SubmissionHistory({ assessmentId, ownerId }: { assessmentId: number | null; ownerId: number }) {
+ const { t } = useTranslation('assessments'); const data = useValidated(['submissions'], '/api/assessments/submissions', value => isSubmissionList(value, ownerId));
+ const items = data.data?.filter(item => !assessmentId || item.assessment_id === assessmentId);
+ return <div className="stack"><Link to={assessmentId ? `/evaluaciones/${assessmentId}` : '/evaluaciones'}>{t('back')}</Link><PageHeader title={t('myHistory')} description={t('resultDescription')} actions={<Button variant="secondary" onClick={() => void data.refetch()}>{t('refresh')}</Button>}/>{data.isPending && <LoadingState/>}<ErrorState error={data.error} retry={() => void data.refetch()}/>{items && !data.error && <SubmissionList items={items}/>}</div>;
+}
+export function SubmissionList({ items, staff = false, filter = 'pending' }: { items: SubmissionSummary[]; staff?: boolean; filter?: string }) {
+ const { t } = useTranslation('assessments');
+ return items.length ? <div className="list">{items.map(item => <Card key={item.id}><div className="cluster"><SubmissionBadge status={item.status}/><span>#{item.id}</span></div><h2><Link to={staff ? `/correcciones/${item.id}?filter=${filter}` : `/envios/${item.id}`}>{item.assessment_title}{staff ? ` · ${item.student_name}` : ''}</Link></h2><p><Timestamp value={item.submitted_at}/></p>{item.status === 'graded' && item.score !== null && <p>{t('finalScore')}: {item.score} / {item.total_points ?? '—'}</p>}</Card>)}</div> : <EmptyState title={t('noSubmissions')}/>;
+}
+export function SubmissionDetailPage() {
+ const { user, scope } = useAuth(); const { submissionId } = useParams(); const id = positiveId(submissionId);
+ return user?.role === 'student' && id ? <SubmissionDetail key={`${scope}:${id}`} id={id} ownerId={user.id}/> : <ErrorState error={unavailable()}/>;
+}
+function SubmissionDetail({ id, ownerId }: { id: number; ownerId: number }) {
+ const { t } = useTranslation('assessments'); const submission = useValidated(['submission', id], `/api/assessments/submissions/${id}`, value => isSubmission(value, id, ownerId));
+ if (submission.isPending) return <LoadingState/>;
+ if (submission.error || !submission.data) return <ErrorState error={submission.error || new ApiError()} retry={() => void submission.refetch()}/>;
+ return <div className="stack"><Link to={`/evaluaciones/${submission.data.assessment_id}/historial`}>{t('history')}</Link><PageHeader title={submission.data.assessment_title} description={t('resultDescription')} actions={<Button variant="secondary" onClick={() => void submission.refetch()}>{t('refresh')}</Button>}/>{submission.data.status === 'draft' && <Link to={`/intentos/${id}`}>{t('resume')}</Link>}<SubmissionReading submission={submission.data}/></div>;
+}

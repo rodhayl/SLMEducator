@@ -238,11 +238,9 @@ async def fetch_models(
             .first()
         )
 
-        # Determine which provider to use
-        target_provider = provider or (config.provider if config else "ollama")
-
-        # Get AI service instance
-        ai_service = get_ai_service_dependency(current_user, db)
+        if not config:
+            config = default_ai_configuration(current_user.id)
+        target_provider = provider or config.provider
 
         # Fetch models from the provider
         try:
@@ -261,7 +259,16 @@ async def fetch_models(
                 status_code=422,
                 detail="Unsupported provider; choose a supported provider in settings",
             )
-        models = ai_service.fetch_available_models(provider=target_enum)
+        if target_provider != config.provider:
+            raise HTTPException(
+                status_code=409,
+                detail="Save the requested provider and its endpoint in AI settings before fetching models",
+            )
+        ai_service = get_ai_service_dependency(current_user, db)
+        try:
+            models = ai_service.fetch_available_models(provider=target_enum)
+        finally:
+            ai_service.close()
 
         return ModelsResponse(models=models, provider=target_provider)
 

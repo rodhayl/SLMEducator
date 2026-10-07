@@ -10,7 +10,6 @@ from src.api.routes import timezone as timezone_routes
 from src.api.routes.dashboard import _format_relative_time
 from src.core import temporal
 from src.core.models import AuthAttempt, LearningSession, MasteryNode, Submission, User
-from src.core.services.ai_cache_service import AICacheService
 from src.core.services.auth import AuthService, AuthenticationError
 from tests.integration.test_trustworthy_scoring_sessions import (
     world,
@@ -299,22 +298,6 @@ def test_legacy_auth_attempts_are_not_assumed_expired(world):
             username=world.learner.username,
             ip_address=None,
         )
-
-
-def test_cache_unknown_expiry_is_miss_without_deleting_legacy_row(tmp_path):
-    cache = AICacheService(f"sqlite:///{tmp_path / 'synthetic-cache.db'}")
-    try:
-        cache.set("synthetic", "answer", "stub")
-        assert cache.get("synthetic", "stub") == "answer"
-        with cache.engine.begin() as connection:
-            connection.exec_driver_sql(
-                "UPDATE ai_response_cache SET expires_at='2099-01-01 00:00:00'"
-            )
-        assert cache.get("synthetic", "stub") is None
-        assert cache.clear_expired() == 0
-        assert cache.get_stats()["unknown_expiry_entries"] == 1
-    finally:
-        cache.engine.dispose()
 
 
 def test_unknown_relative_time_is_not_invented():

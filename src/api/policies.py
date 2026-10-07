@@ -20,8 +20,10 @@ from src.core.models import (
 from src.core.roles import is_admin, is_student, is_teacher
 
 
-def teacher_student_ids(db: Session, teacher_id: int) -> list[int]:
+def teacher_student_ids(db: Session, teacher_id: int | None) -> list[int]:
     """Return explicitly enrolled learners, including legacy unclaimed assignments."""
+    if teacher_id is None:
+        return []
     enrolled = {
         row[0]
         for row in db.query(User.id)

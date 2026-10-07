@@ -1,0 +1,7 @@
+{
+  "src/api/routes/assessment.py": "765472c994c64f54644b8a5ef7e021b4a16ce26112adad6745c906f3acd34e68",
+  "src/api/routes/classroom.py": "8ddac54d3be80d9d5c960406d696e855c7961eaee8815ce1f5e65426af826aac",
+  "src/api/routes/dashboard.py": "f1cc2809aadbce1de429842e829f3eb523dd256502e8cd31252749304811d978",
+  "src/api/routes/study_plans.py": "05db80c3d016892778aa0f41393557a6cbc5df397718bc2d1b93f9cc19cfcd49",
+  "tests/trust/test_gui_api_contracts.py": "7580bfa45be56f522744f724bd484175338b3d13d4fe03f3a26f948b40e08264"
+}

@@ -3,27 +3,19 @@ Test content ordering functionality
 """
 
 import sys
-import os
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from datetime import datetime
 
-sys.path.insert(0, os.getcwd())
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from src.core.services.database import DatabaseService
+from tests.fixtures.synthetic_database import new_synthetic_database
 from src.core.models import User, StudyPlan, Content, ContentType, UserRole
 
 
-def test_content_ordering():
-    """Test the content ordering feature"""
-    # Clean up
-    for ext in ["", "-shm", "-wal"]:
-        file_path = "test_ordering.db" + ext
-        if os.path.exists(file_path):
-            try:
-                os.remove(file_path)
-            except BaseException:
-                pass
-
-    db = DatabaseService("test_ordering.db")
+def test_content_ordering(tmp_path):
+    """Test the content ordering feature on a new disposable database."""
+    db = new_synthetic_database(tmp_path / "ordering.sqlite3")
 
     try:
         print("\n🧪 Testing Content Ordering Feature...")
@@ -113,16 +105,9 @@ def test_content_ordering():
         print("=" * 60)
 
     finally:
-        # Clean up
         db.close()
-        for ext in ["", "-shm", "-wal"]:
-            file_path = "test_ordering.db" + ext
-            if os.path.exists(file_path):
-                try:
-                    os.remove(file_path)
-                except BaseException:
-                    pass
 
 
 if __name__ == "__main__":
-    test_content_ordering()
+    with TemporaryDirectory(prefix="slm-ordering-") as directory:
+        test_content_ordering(Path(directory))

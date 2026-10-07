@@ -85,7 +85,9 @@ if not exist "venv\Scripts\activate.bat" (
         echo Exiting without running tests.
         exit /b 1
     )
-    goto :install_dependencies
+    if errorlevel 1 goto :install_dependencies
+    echo Dependency installation was not confirmed.
+    exit /b 1
 )
 
 :activate_environment
@@ -98,7 +100,7 @@ if errorlevel 1 (
 python -c "import pytest" >nul 2>&1
 if errorlevel 1 (
     echo ERROR: pytest is not installed in the active environment.
-    echo Run install_dependencies.bat and try again.
+    echo Run install_dependencies.bat --dev and try again.
     exit /b 1
 )
 
@@ -106,6 +108,12 @@ set "PYTEST_BASE=-v --tb=short -ra"
 if defined MAXFAIL (
     set "PYTEST_BASE=%PYTEST_BASE% --maxfail=%MAXFAIL%"
 )
+
+rem Only the confirmed real-AI branch may enable provider calls.
+set "SLM_OFFLINE_TESTS=1"
+set "USE_REAL_AI=0"
+set "NO_MOCKS_ALLOWED="
+set "SYNTHETIC_SCOPE=--strict-markers --ignore=tests/manual --ignore=tests/real_ai -m "not real_ai""
 
 if /i "%MODE%"=="full" goto :run_full
 if /i "%MODE%"=="quick" goto :run_quick
@@ -117,7 +125,7 @@ echo ERROR: Unsupported mode: %MODE%
 exit /b 1
 
 :install_dependencies
-call install_dependencies.bat
+call install_dependencies.bat --dev
 if errorlevel 1 (
     echo ERROR: Dependency installation failed.
     exit /b 1
@@ -129,15 +137,14 @@ if not exist "venv\Scripts\activate.bat" (
 goto :activate_environment
 
 :run_full
-echo Running full isolated synthetic suite. Manual, existing-server E2E and real-provider suites are separate opt-in gates.
+echo Running full isolated synthetic suite. Manual, isolated browser and real-provider suites are separate opt-in gates.
 set "SLM_OFFLINE_TESTS=1"
 set "USE_REAL_AI=0"
 set "PYTHONUTF8=1"
-set "FULL_SCOPE=--strict-markers --ignore=tests/manual --ignore=tests/e2e --ignore=tests/real_ai -m "not real_ai""
 if "%NO_COVERAGE%"=="1" (
-    python -m pytest tests/ %PYTEST_BASE% %FULL_SCOPE%
+    python -m pytest tests/ %PYTEST_BASE% %SYNTHETIC_SCOPE%
 ) else (
-    python -m pytest tests/ %PYTEST_BASE% %FULL_SCOPE% --cov=src --cov-fail-under=80 --cov-report=term-missing --cov-report=html:htmlcov
+    python -m pytest tests/ %PYTEST_BASE% %SYNTHETIC_SCOPE% --cov=src --cov-fail-under=80 --cov-report=term-missing --cov-report=html:htmlcov
 )
 set "TEST_EXIT_CODE=%ERRORLEVEL%"
 goto :finish
@@ -145,16 +152,16 @@ goto :finish
 :run_quick
 echo Running quick test suite...
 if not defined MAXFAIL (
-    pytest tests/ %PYTEST_BASE% --maxfail=3
+    python -m pytest tests/ %PYTEST_BASE% %SYNTHETIC_SCOPE% --maxfail=3
 ) else (
-    pytest tests/ %PYTEST_BASE%
+    python -m pytest tests/ %PYTEST_BASE% %SYNTHETIC_SCOPE%
 )
 set "TEST_EXIT_CODE=%ERRORLEVEL%"
 goto :finish
 
 :run_ai
 echo Running AI test suite...
-pytest tests/ai %PYTEST_BASE% -s
+python -m pytest tests/ai %PYTEST_BASE% -s
 set "TEST_EXIT_CODE=%ERRORLEVEL%"
 goto :finish
 
@@ -171,17 +178,20 @@ goto :finish
 
 :run_real_ai
 echo WARNING: Real AI tests make external API calls and may incur cost.
-if not "%ASSUME_YES%"=="1" (
-    set /p CONFIRM=Continue with real AI tests? Type YES to continue: 
-    if /i not "%CONFIRM%"=="YES" (
-        echo Real AI test run cancelled.
-        exit /b 0
-    )
-)
+if "%ASSUME_YES%"=="1" goto :run_real_ai_confirmed
+choice /C YN /N /M "Allow real AI calls and possible cost [Y/N]: "
+if errorlevel 2 goto :real_ai_cancelled
+if errorlevel 1 goto :run_real_ai_confirmed
 
+:real_ai_cancelled
+echo Real AI test run cancelled.
+exit /b 0
+
+:run_real_ai_confirmed
+set "SLM_OFFLINE_TESTS=0"
 set USE_REAL_AI=1
 set NO_MOCKS_ALLOWED=1
-pytest tests/real_ai/ %PYTEST_BASE% --capture=no -s --strict-markers
+python -m pytest tests/real_ai/ %PYTEST_BASE% --capture=no -s --strict-markers
 set "TEST_EXIT_CODE=%ERRORLEVEL%"
 goto :finish
 
@@ -222,7 +232,7 @@ echo   run_tests.bat [MODE] [OPTIONS]
 echo.
 echo Modes (pick one):
 echo   --full       Run full isolated synthetic gate, whole-source coverage 80%%
-echo                Manual, existing-server E2E and real AI are separate gates
+echo                Manual, isolated browser and real AI are separate gates
 echo   --quick      Run full suite without coverage, quick defaults
 echo   --ai         Run tests/ai only
 echo   --phases     Run phase-specific feature tests

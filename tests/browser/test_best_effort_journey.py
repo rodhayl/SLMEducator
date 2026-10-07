@@ -1,89 +1,166 @@
-"""EN/ES acceptance through real browser, API and synthetic provider parser."""
+"""EN/ES React acceptance through browser, real API and synthetic provider parser."""
 
-import json
-from pathlib import Path
+import os
+import re
 
 import pytest
 from playwright.sync_api import expect
 
-from tests.browser.test_live_journeys import login, screenshot
+from tests.browser.support import login, screenshot
+
+pytestmark = pytest.mark.skipif(
+    os.environ.get("SLM_BROWSER_ACCEPTANCE") != "1",
+    reason="Explicit isolated browser acceptance only",
+)
+
+LABELS = {
+    "en": {
+        "tutor": "Tutor and questions",
+        "conversation": "Tutor conversation",
+        "prompt": "What would you like help with?",
+        "send": "Ask tutor",
+        "questions": "My questions",
+        "question": "My question",
+        "ask": "Ask AI for a suggestion",
+        "unverified": "AI suggestion, not verified.",
+        "failed": "No usable suggestion was confirmed.",
+        "start": "Start studying",
+        "continue": "Continue session",
+    },
+    "es": {
+        "tutor": "Tutor y preguntas",
+        "conversation": "Conversación con el tutor",
+        "prompt": "¿En qué necesitas ayuda?",
+        "send": "Preguntar al tutor",
+        "questions": "Mis preguntas",
+        "question": "Mi pregunta",
+        "ask": "Pedir una sugerencia a la IA",
+        "unverified": "Sugerencia de IA sin verificar.",
+        "failed": "No se confirmó una sugerencia utilizable.",
+        "start": "Comenzar a estudiar",
+        "continue": "Continuar sesión",
+    },
+}
 
 
 @pytest.mark.parametrize("locale", ["en", "es"])
 def test_independent_learner_best_effort(live_page, browser_world, locale):
-    """Assigned reading and help work with only a learner browser session."""
-    page, world = live_page, browser_world
-    world.api("POST", "/api/settings/app", account="learner_a", json={"language": locale, "theme": "light"})
-    page.add_init_script(f"localStorage.setItem('slm_language', '{locale}')")
-    login(page, world, "learner_a")
-    expect(page.locator("html")).to_have_attribute("lang", locale)
-    expect(page.locator("#nav-create")).not_to_be_visible()
-    first = world.manifest["content_ids"][0]
-    plan = world.manifest["plan_id"]
-    page.goto(f"{world.base_url}/session_player.html?content_id={first}&plan_id={plan}")
-    expect(page.locator("#session-content-title")).to_contain_text(world.manifest["lesson_titles"][0])
-    page.goto(world.base_url + "/dashboard.html")
-    page.locator('[data-view="tutor"]').click()
-    send = page.locator('#chat-form button[type="submit"]')
-    expect(send).to_be_enabled()
-    translations = json.loads((Path(__file__).parents[2] / "translations" / f"{locale}.json").read_text(encoding="utf-8"))
+    """Assigned reading, tutor and private questions need no teacher session."""
+    page, world, labels = live_page, browser_world, LABELS[locale]
+    login(page, world, "learner_a", locale)
+    expect(
+        page.get_by_role("navigation").get_by_role(
+            "link", name=re.compile("^(People|Personas)$")
+        )
+    ).to_have_count(0)
+    first, plan = world.manifest["content_ids"][0], world.manifest["plan_id"]
+    page.goto(f"{world.base_url}/materiales/{first}?plan_id={plan}")
+    expect(page.get_by_role("heading", level=1)).to_have_text(
+        world.manifest["lesson_titles"][0]
+    )
+    expect(page.get_by_role("article")).to_be_visible()
+    page.get_by_role("navigation").get_by_role(
+        "link", name=labels["tutor"], exact=True
+    ).click()
+    conversation = page.get_by_role("region", name=labels["conversation"], exact=True)
+    question = conversation.get_by_label(labels["prompt"], exact=True)
+    send = conversation.get_by_role("button", name=labels["send"], exact=True)
     calls = []
-    page.on("request", lambda request: calls.append(request) if request.url.endswith("/api/ai/chat") else None)
+    page.on(
+        "request",
+        lambda request: (
+            calls.append(request.url)
+            if request.url.endswith("/api/ai/chat") and request.method == "POST"
+            else None
+        ),
+    )
     for mode in ("structured", "prose"):
-        page.locator("#chat-input").fill(f"[acceptance:{mode}] Compare parts")
-        with page.expect_response(lambda response: response.url.endswith("/api/ai/chat")) as response:
+        question.fill(f"[acceptance:{mode}] Compare parts")
+        with page.expect_response(
+            lambda response: response.url.endswith("/api/ai/chat")
+        ) as response:
             send.click()
         data = response.value.json()
-        assert data["status"] == "suggestion"
-        assert data["receipt"]["status"] == "completed"
-        expect(page.locator("#chat-history")).to_contain_text(f"Synthetic {mode}")
-        expect(page.locator("#chat-history")).to_contain_text(translations["recovery"]["answer_unverified"])
-        assert page.locator("#chat-history img, #chat-history script").count() == 0
+        assert (
+            data["status"] == "suggestion" and data["receipt"]["status"] == "completed"
+        )
+        log = conversation.get_by_role("log", name=labels["conversation"], exact=True)
+        expect(log).to_contain_text(f"Synthetic {mode}")
+        expect(log).to_contain_text(labels["unverified"])
+        assert log.locator("img, script").count() == 0
         assert page.evaluate("window.acceptanceUnsafe") is None
-        expect(page.locator("#chat-input")).to_have_value("")
+        expect(question).to_have_value("")
     for mode, status in (("format", "invalid_response"), ("provider", "unavailable")):
-        question = f"[acceptance:{mode}] Keep this question"
-        page.locator("#chat-input").fill(question)
+        text = f"[acceptance:{mode}] Keep this question"
+        question.fill(text)
         ids = []
-        for attempt in range(2):
+        for _ in range(2):
             before = len(calls)
-            with page.expect_response(lambda response: response.url.endswith("/api/ai/chat")) as response:
+            with page.expect_response(
+                lambda response: response.url.endswith("/api/ai/chat")
+            ) as response:
                 send.click()
             data = response.value.json()
-            assert data["status"] == status
-            assert data["receipt"]["status"] == "failed"
+            assert data["status"] == status and data["receipt"]["status"] == "failed"
             ids.append(data["receipt"]["request_id"])
-            expect(page.locator("#tutor-request-status")).to_contain_text(data["response"])
-            expect(page.locator("#chat-input")).to_have_value(question)
+            expect(conversation.get_by_role("status")).to_contain_text(labels["failed"])
+            expect(question).to_have_value(text)
             expect(send).to_be_enabled()
             page.wait_for_timeout(350)
             assert len(calls) == before + 1
         assert ids[0] != ids[1]
         screenshot(page, f"best-effort-tutor-{mode}-{locale}.png")
-    page.locator('[data-view="library"]').click()
-    page.locator("#student-qa-btn").click()
+    # Switching the two panes preserves typed questions without creating a saved record.
+    page.get_by_role("button", name=labels["questions"], exact=True).click()
+    questions = page.get_by_role("region", name=labels["questions"], exact=True)
+    qa = questions.get_by_label(labels["question"], exact=True)
+    ask = questions.get_by_role("button", name=labels["ask"], exact=True)
     qa_calls = []
-    page.on("request", lambda request: qa_calls.append(request) if request.url.endswith("/api/ai/answer-question") else None)
+    page.on(
+        "request",
+        lambda request: (
+            qa_calls.append(request.url)
+            if request.url.endswith("/api/ai/answer-question")
+            and request.method == "POST"
+            else None
+        ),
+    )
     for mode in ("structured", "prose", "format", "provider"):
-        question = f"[acceptance:{mode}] Independent Q&A"
-        page.locator("#qa-question").fill(question)
+        text = f"[acceptance:{mode}] Independent Q&A"
+        qa.fill(text)
         before = len(qa_calls)
-        with page.expect_response(lambda response: response.url.endswith("/api/ai/answer-question")) as response:
-            page.locator("#qa-ask-ai-btn").click()
+        with page.expect_response(
+            lambda response: response.url.endswith("/api/ai/answer-question")
+        ) as response:
+            ask.click()
         data = response.value.json()
         assert data["success"] is (mode in ("structured", "prose"))
-        assert data["receipt"]["status"] == ("completed" if data["success"] else "failed")
-        expect(page.locator("#qa-ai-answer")).to_contain_text(translations["help_panel"]["unverified"])
-        expect(page.locator("#qa-ai-answer-content")).to_contain_text("Synthetic" if data["success"] else data["answer"])
-        expect(page.locator("#qa-question")).to_have_value(question)
-        assert page.locator("#qa-ai-answer-content img, #qa-ai-answer-content script").count() == 0
+        assert data["receipt"]["status"] == (
+            "completed" if data["success"] else "failed"
+        )
+        if data["success"]:
+            expect(questions).to_contain_text(labels["unverified"])
+            expect(questions).to_contain_text(f"Synthetic {mode}")
+        else:
+            expect(
+                questions.get_by_role("status").filter(has_text=labels["failed"])
+            ).to_be_visible()
+            expect(
+                questions.get_by_role(
+                    "heading", name=re.compile("^(AI suggestion|Sugerencia de IA)$")
+                )
+            ).to_have_count(0)
+        expect(qa).to_have_value(text)
+        assert questions.locator("img, script").count() == 0
         assert page.evaluate("window.acceptanceUnsafe") is None
         page.wait_for_timeout(350)
         assert len(qa_calls) == before + 1
         if not data["success"]:
-            with page.expect_response(lambda response: response.url.endswith("/api/ai/answer-question")) as retry:
-                page.locator("#qa-ask-ai-btn").click()
+            with page.expect_response(
+                lambda response: response.url.endswith("/api/ai/answer-question")
+            ) as retry:
+                ask.click()
             assert retry.value.json()["success"] is False
-            expect(page.locator("#qa-question")).to_have_value(question)
+            expect(qa).to_have_value(text)
             assert len(qa_calls) == before + 2
     screenshot(page, f"best-effort-qa-{locale}.png")

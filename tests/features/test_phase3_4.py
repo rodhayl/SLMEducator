@@ -4,34 +4,25 @@ Tests role-based UI and AI refinement enhancements
 """
 
 import sys
-import os
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from datetime import datetime
 
-sys.path.insert(0, os.getcwd())
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from src.core.services.database import DatabaseService
+from tests.fixtures.synthetic_database import new_synthetic_database
 from src.core.models import User, StudyPlan, Content, ContentType, UserRole
 
 
 class Phase3And4Tester:
-    def __init__(self):
-        self._cleanup_db_files()
-        self.db = DatabaseService("test_phase3_4.db")
+    def __init__(self, db_path: Path):
+        """Initialize a new test database at the explicitly supplied path."""
+        self.db = new_synthetic_database(db_path)
         print("✓ Database initialized")
 
-    def _cleanup_db_files(self):
-        db_path = "test_phase3_4.db"
-        for ext in ["", "-shm", "-wal"]:
-            file_path = db_path + ext
-            if os.path.exists(file_path):
-                try:
-                    os.remove(file_path)
-                except BaseException:
-                    pass
-
     def cleanup(self):
-        self._cleanup_db_files()
-        print("✓ Cleaned up test database")
+        """Close handles; the temporary-directory owner removes its own files."""
+        self.db.close()
 
     def test_phase3_role_detection(self):
         """Test Phase 3: Role-based UI features"""
@@ -348,6 +339,7 @@ class Phase3And4Tester:
 
 
 if __name__ == "__main__":
-    tester = Phase3And4Tester()
-    success = tester.run_all_tests()
+    with TemporaryDirectory(prefix="slm-phase3-4-") as directory:
+        tester = Phase3And4Tester(Path(directory) / "synthetic.sqlite3")
+        success = tester.run_all_tests()
     exit(0 if success else 1)

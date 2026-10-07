@@ -55,7 +55,9 @@ async def get_dashboard_stats(
     )
     total_study_time_minutes = int(total_study_time_minutes)
     unknown_duration_sessions = completed_sessions.filter(
-        (~known_timestamp_clause(LearningSession.start_time)) | (~known_timestamp_clause(LearningSession.end_time)) | LearningSession.end_time.is_(None)
+        (~known_timestamp_clause(LearningSession.start_time))
+        | (~known_timestamp_clause(LearningSession.end_time))
+        | LearningSession.end_time.is_(None)
     ).count()
     total_content = (
         db.query(Content).filter(Content.creator_id == current_user.id).count()
@@ -93,7 +95,7 @@ async def get_dashboard_stats(
             )
             .scalar()
         )
-        average_score = round(avg_result) if avg_result else 0
+        average_score = round(avg_result) if avg_result is not None else None
 
         return {
             "active_students": active_students,

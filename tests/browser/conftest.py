@@ -2,11 +2,11 @@
 
 import json
 import os
-from pathlib import Path
 import socket
 import subprocess
 import sys
 import time
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -23,7 +23,7 @@ class BrowserWorld(SimpleNamespace):
 
 
 @pytest.fixture(scope="module")
-def browser_world(tmp_path_factory):
+def browser_world(tmp_path_factory, request):
     if os.environ.get("SLM_BROWSER_ACCEPTANCE") != "1":
         pytest.skip("Explicit real-browser acceptance is disabled")
     directory = tmp_path_factory.mktemp("browser-installation")
@@ -40,6 +40,11 @@ def browser_world(tmp_path_factory):
             str(directory),
             "--port",
             str(port),
+            *(
+                ["--legacy-worker-fixture"]
+                if request.module.__name__.endswith("test_service_worker_update")
+                else []
+            ),
         ],
         cwd=directory,
         stdout=logfile,
@@ -61,6 +66,10 @@ def browser_world(tmp_path_factory):
             time.sleep(0.1)
         else:
             pytest.fail("Synthetic browser server did not become ready")
+        ui = client.get(base_url + "/entrar", timeout=10)
+        assert ui.status_code == 200 and 'id="root"' in ui.text, (
+            "Build a verified React dist before browser acceptance"
+        )
         manifest = json.loads((directory / "fixture.json").read_text(encoding="utf-8"))
         accounts = {record["username"]: record for record in manifest["credentials"]}
         tokens = {}
@@ -81,9 +90,9 @@ def browser_world(tmp_path_factory):
                 timeout=15,
                 **kwargs,
             )
-            assert (
-                response.status_code < 400
-            ), f"Synthetic setup/check failed: {method} {path} {response.status_code}"
+            assert response.status_code < 400, (
+                f"Synthetic setup/check failed: {method} {path} {response.status_code}"
+            )
             return response
 
         manifest["private_rubric_marker"] = (
@@ -102,14 +111,22 @@ def browser_world(tmp_path_factory):
         )
         api("POST", f"/api/assessments/{manifest['assessment_id']}/publish")
         for action in ("review", "publish"):
-            api("POST", f"/api/study-plans/{manifest['plan_id']}/workflow", json={"action": action})
+            api(
+                "POST",
+                f"/api/study-plans/{manifest['plan_id']}/workflow",
+                json={"action": action},
+            )
         api(
             "POST",
             f"/api/study-plans/{manifest['plan_id']}/assign",
             json={"student_ids": [manifest["users"]["learner_a"]]},
         )
         yield BrowserWorld(
-            base_url=base_url, directory=directory, accounts=accounts, manifest=manifest, api=api
+            base_url=base_url,
+            directory=directory,
+            accounts=accounts,
+            manifest=manifest,
+            api=api,
         )
     finally:
         client.close()
@@ -138,7 +155,9 @@ def live_browser(browser_world):
 @pytest.fixture
 def live_page(live_browser, browser_world):
     context = live_browser.new_context(
-        viewport={"width": 1280, "height": 900}, service_workers="block", accept_downloads=True
+        viewport={"width": 1280, "height": 900},
+        service_workers="block",
+        accept_downloads=True,
     )
     context.route(
         "**/*",

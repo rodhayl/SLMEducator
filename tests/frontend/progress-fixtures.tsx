@@ -1,0 +1,58 @@
+import { vi } from 'vitest';
+import { render, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { createMemoryRouter, RouterProvider } from 'react-router';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { createInstance } from 'i18next';
+import { I18nextProvider, initReactI18next } from 'react-i18next';
+import { AuthProvider } from '@/app/AuthProvider';
+import { AuthController } from '@/app/auth-controller';
+import { AppearanceProvider } from '@/app/AppearanceProvider';
+import { ProtectedLayout } from '@/app/AppShell';
+import { createQueryClient } from '@/lib/query';
+import { HomePage } from '@/features/home/HomePage';
+import { ProgressPage } from '@/features/progress/ProgressPage';
+import { locales as homeLocales } from '@/features/home/locales';
+import { locales as progressLocales } from '@/features/progress/locales';
+import { en, es } from '@/i18n/common';
+import type { Role } from '@/lib/types';
+export const account={id:7,username:'synthetic.learner',first_name:'Sam',last_name:'Example',email:'learner@example.test',role:'student' as Role};
+export const json=(value:unknown,status=200)=>new Response(JSON.stringify(value),{status,headers:{'Content-Type':'application/json'}});
+export const clock={timezone:'UTC',day_timezone:null,day_provenance:'legacy_unknown',mixed_day_policy:false};
+export const goal={...clock,goal_type:'lessons',target:3,current:0,percentage:0,completed:false,has_goal:true};
+export const receipt={...clock,id:8,goal_type:'lessons',target_value:5,current_value:0,completed:false,goal_date:'2026-10-07'};
+export const course={id:11,title:'Synthetic geometry',creator_id:4,description:null,is_public:false,created_at:'2026-10-07T10:00:00Z'};
+export const tree={...course,phases:[{name:'Shapes'}],contents:[{id:20,title:'Angles',content_type:'lesson',difficulty:1,phase_index:0,order_index:0,created_at:'2026-10-07T10:00:00Z'},{id:21,title:'Polygons',content_type:'lesson',difficulty:1,phase_index:0,order_index:1,created_at:'2026-10-07T10:00:00Z'}],content_count:2};
+export const progress={study_plan_id:11,completed_content_ids:[20],last_content_id:20,completion_percentage:50};
+export const session={id:31,content_id:21,status:'active',start_time:'2026-10-07T10:00:00Z',duration_minutes:0,notes:null,timestamp_provenance:'utc_offset_v1',duration_known:true,content_snapshot:{id:21,title:'Pinned polygons',content_type:'lesson',content_data:{}},context_revision:{study_plan_id:11}};
+export const submission={id:41,assessment_id:51,assessment_title:'Geometry check',student_id:7,student_name:'Sam Example',status:'draft',score:null,total_points:10,submitted_at:null,graded_at:null};
+export type Call={path:string;method:string;body?:Record<string,unknown>};
+export type Intercept=(call:Call)=>Response|Promise<Response>|undefined;
+export async function mountProgress(path='/inicio',role:Role='student',language:'en'|'es'='en',initialIntercept?:Intercept) {
+ let current={...account,role};let intercept=initialIntercept;let savedGoal={...goal};const calls:Call[]=[];window.scrollTo=vi.fn();
+ const transport=vi.fn(async(input:RequestInfo|URL,init?:RequestInit):Promise<Response>=>{
+  const path=String(input),method=init?.method || 'GET';const body=typeof init?.body==='string'?JSON.parse(init.body) as Record<string,unknown>:undefined;const call={path,method,body};calls.push(call);const intercepted=intercept?.(call);if(intercepted!==undefined)return intercepted;
+  if(path==='/api/classroom/messages/unread-count')return json({unread_count:0});if(path==='/api/auth/me')return json(current);if(path==='/api/auth/login')return json({access_token:'synthetic',user:current});
+  if(path==='/api/learning/active')return json(session);if(path==='/api/study-plans/')return json([course]);if(path==='/api/study-plans/11/tree')return json(tree);if(path==='/api/study-plans/11/my-progress')return json(progress);
+  if(path==='/api/assessments/submissions')return json([submission]);if(path.startsWith('/api/assessments/submissions?'))return json([{...submission,status:'submitted'}]);
+  if(path==='/api/assessments/')return json([{id:51,title:'Geometry check',description:null,is_published:true,question_count:1,created_at:'2026-10-07T10:00:00Z',can_manage:true}]);
+  if(path==='/api/classroom/help')return json([]);if(path==='/api/status')return json({status:'online',version:'2.0.0'});
+  if(path==='/api/dashboard/stats')return json({completed_lessons:0,total_study_time_minutes:0,unknown_duration_sessions:2,total_content:0,active_students:0,assessments_created:0,average_score:0});
+  if(path==='/api/mastery/evidence')return json({items:[{content_id:20,evidence_type:'final_assessment',assessment_percent:0,self_confidence:2},{content_id:21,evidence_type:'legacy_or_self_report',assessment_percent:null,self_confidence:null}]});
+  if(path==='/api/mastery/due')return json([{mastery_node_id:6,content_id:21,content_title:'Polygons',content_type:'lesson',days_overdue:0,evidence_type:'legacy_or_self_report'}]);
+  if(path==='/api/content/')return json(tree.contents.map(item=>({...item,is_personal:false,creator_id:4})));
+  if(path==='/api/dashboard/activity')return json([{id:0,text:'No recent activity',time:'Start learning!'}]);
+  if(path==='/api/gamification/daily-goal/progress')return json(savedGoal);
+  if(path==='/api/gamification/daily-goal' && method==='POST'){savedGoal={...savedGoal,goal_type:String(body?.goal_type),target:Number(body?.target_value)};return json({...receipt,goal_type:body?.goal_type,target_value:body?.target_value});}
+  if(path==='/api/gamification/profile')return json({xp:0,level:1,current_streak:0,longest_streak:0,badges_earned:1,last_activity_date:'2025-01-01',timezone:'UTC',day_provenance:'legacy_unknown'});
+  if(path==='/api/gamification/badges')return json([{id:1,name:'Synthetic participation badge',description:'Test badge',xp_value:0,earned:true,earned_at:'2025-01-01T12:00:00'}]);
+  if(path.startsWith('/api/gamification/leaderboard?'))return json([{rank:1,user_id:7,username:'synthetic.learner',xp:0,level:1,metric_type:'participation',rank_scope:'visible_users'}]);
+  if(path==='/api/settings/timezone')return json({timezone:'UTC',timezone_source:'default',local_date:'2026-10-07',timestamp_policy:'utc_offset_v1',legacy_timestamps:'unknown_until_explicit_migration',historical_dates:'preserved_as_recorded'});
+  return json({detail:'Not found'},404);
+ });
+ const queries=createQueryClient();localStorage.setItem('token','synthetic');const controller=new AuthController(queries,localStorage,transport);const i18n=createInstance();await i18n.use(initReactI18next).init({lng:language,fallbackLng:language,defaultNS:'common',resources:{en:{common:en,home:homeLocales.en,progress:progressLocales.en},es:{common:es,home:homeLocales.es,progress:progressLocales.es}},interpolation:{escapeValue:false}});
+ const router=createMemoryRouter([{element:<ProtectedLayout/>,children:[{path:'/inicio',element:<HomePage/>},{path:'/progreso',element:<ProgressPage/>},{path:'/cursos',element:<p>Course destination</p>},{path:'*',element:<p>Resource destination</p>}]}],{initialEntries:[path]});
+ const view=render(<I18nextProvider i18n={i18n}><QueryClientProvider client={queries}><AuthProvider controller={controller}><AppearanceProvider><RouterProvider router={router}/></AppearanceProvider></AuthProvider></QueryClientProvider></I18nextProvider>);
+ await waitFor(()=>expect(controller.snapshot().status).toBe('authenticated'));
+ return {...view,router,queries,controller,calls,user:userEvent.setup(),intercept:(next:Intercept)=>{intercept=next;},changeAccount:(id:number,nextRole:Role='student')=>{current={...current,id,role:nextRole,username:`synthetic-${id}`};},dispose:()=>{view.unmount();router.dispose();queries.clear();}};
+}

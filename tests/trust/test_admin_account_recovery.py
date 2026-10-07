@@ -144,7 +144,9 @@ def test_password_recovery_revokes_tokens_and_preserves_unknown_history_bytes(sc
     assert login.status_code == 200, login.text
 
 
-def test_missing_html_has_recoverable_page_body(scenario):
+def test_missing_html_is_real_404_without_legacy_gui_fallback(scenario):
     client, *_ = scenario
     response = client.get("/does-not-exist-synthetic.html")
-    assert response.status_code == 404 and "<html" in response.text.lower()
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Not Found"}
+    assert "<html" not in response.text.lower()

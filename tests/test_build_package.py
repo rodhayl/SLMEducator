@@ -13,6 +13,7 @@ from typing import Any, Iterator
 import pytest
 
 from scripts import build_package as builder
+from tests.fixtures.frontend_artifact import make_frontend
 
 
 def test_windows_freezer_collects_iana_timezone_database(tmp_path):
@@ -62,12 +63,17 @@ def project(tmp_path: Path) -> Path:
     source = Path(__file__).resolve().parents[1]
     project = tmp_path / "checkout"
     project.mkdir()
-    for directory in ("src", "translations", "alembic"):
+    # Narrow inputs before any copy: src/frontend/node_modules may be a large
+    # external symlink and has never belonged in a packaging fixture.
+    for directory in ("src/api", "src/core", "translations", "alembic"):
         shutil.copytree(
             source / directory,
             project / directory,
             ignore=shutil.ignore_patterns("__pycache__"),
         )
+    for name in ("__init__.py", "starter.py", "starter_headless.py", "startup_utils.py", "frontend_delivery.py"):
+        shutil.copyfile(source / "src" / name, project / "src" / name)
+    make_frontend(project)
     (project / "scripts").mkdir()
     shutil.copyfile(
         source / "scripts" / "seed_admin.py", project / "scripts" / "seed_admin.py"
@@ -94,6 +100,7 @@ def fake_freezer(monkeypatch: pytest.MonkeyPatch) -> list[tuple[list[str], Path]
         assert "SLM_INITIAL_ADMIN_PASSWORD" not in kwargs["env"]
         assert "SLM_TEST_MODE" not in kwargs["env"]
         assert "SLM_WEB_DIR" not in kwargs["env"]
+        assert "SLM_FRONTEND_DIR" not in kwargs["env"]
         name = command[command.index("--name") + 1]
         output = Path(command[command.index("--distpath") + 1]) / name
         output.mkdir(parents=True)
@@ -411,16 +418,18 @@ def test_packaged_first_run_resolves_seeded_database_from_other_directory(
     assert Path.cwd() == package
     assert Path(get_config_file_path()) == package / "env.properties"
     monkeypatch.delenv("SLM_WEB_DIR", raising=False)
-    assert _resolve_web_dir() == (package, package / "_internal" / "src" / "web")
+    monkeypatch.delenv("SLM_FRONTEND_DIR", raising=False)
+    monkeypatch.delattr(sys, "_MEIPASS", raising=False)
+    assert _resolve_web_dir() == (package, package / "_internal/src/frontend/dist")
     translations = TranslationService()
     assert translations.translations_dir == package / "_internal" / "translations"
     assert translations.load_language("en")
     assert translations.load_language("es")
     assert translations.translations["en"]
     assert translations.translations["es"]
-    for directory in ("src/web", "translations", "alembic"):
+    for directory in ("src/frontend/dist", "translations", "alembic"):
         for source in (project / directory).rglob("*"):
-            if source.is_file() and "__pycache__" not in source.parts:
+            if source.is_file() and "__pycache__" not in source.parts and source.name != "README":
                 packaged = package / "_internal" / source.relative_to(project)
                 assert packaged.read_bytes() == source.read_bytes()
     database = DatabaseService()
@@ -454,6 +463,7 @@ def test_production_does_not_open_or_change_a_live_working_database(
 ) -> None:
     source, writer = live_database
     paths = [source, Path(str(source) + "-wal"), Path(str(source) + "-shm")]
+
     def fingerprint(path: Path) -> bytes | tuple[int, int]:
         """Read live files where Windows SQLite sharing permits it."""
         try:
@@ -493,7 +503,8 @@ def test_local_backups_logs_and_keys_are_not_package_inputs(
     staging.mkdir()
     builder._copy_inputs(project, staging)
     assert not (staging / "src" / name).exists()
-    assert (staging / "src" / "web" / "static" / "css" / "main.css").is_file()
+    assert (staging / "src/frontend/dist/assets/index-12345678.css").is_file()
+    assert not (staging / "src/web").exists()
 
 
 @pytest.mark.parametrize(
@@ -517,3 +528,134 @@ def test_symlinked_inputs_are_rejected(
     staging.mkdir()
     with pytest.raises(ValueError, match="Symlinked package input"):
         builder._copy_inputs(project, staging)
+
+
+@pytest.mark.parametrize("directory", ["src/frontend/node_modules", "src/frontend/tests", "src/frontend/tooling", "src/web"])
+def test_excluded_frontend_links_are_not_traversed(project: Path, tmp_path: Path, directory: str) -> None:
+    outside = tmp_path / "excluded-private-tree"
+    outside.mkdir()
+    (outside / "private.txt").write_text("synthetic excluded bytes")
+    link = project / directory
+    link.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        link.symlink_to(outside, target_is_directory=True)
+    except OSError:
+        pytest.skip("The test host does not allow symlink creation")
+    staging = tmp_path / "staging"
+    staging.mkdir()
+    builder._copy_inputs(project, staging)
+    assert not (staging / directory).exists()
+    assert not (staging / "src/frontend/package-lock.json").exists()
+    assert (staging / "src/frontend/dist/build-manifest.json").is_file()
+    assert (staging / "scripts/recover_database.py").is_file()
+
+
+@pytest.mark.parametrize("change", ["missing", "tampered", "stale-lock", "stale-ts", "stale-css", "new-source", "deleted-source", "extra-file"])
+def test_invalid_frontend_fails_before_seeding_or_freezing(
+    project: Path, tmp_path: Path, fake_freezer: list[Any], change: str
+) -> None:
+    dist = project / "src/frontend/dist"
+    if change == "missing":
+        shutil.rmtree(dist)
+    elif change == "tampered":
+        (dist / "assets/index-12345678.js").write_text("modified after build")
+    elif change == "stale-lock":
+        (dist.parent / "package-lock.json").write_text("new lockfile")
+    elif change in {"stale-ts", "stale-css", "new-source"}:
+        name = {"stale-ts": "main.tsx", "stale-css": "styles.css", "new-source": "new.tsx"}[change]
+        (dist.parent / "src" / name).write_text("changed after build")
+    elif change == "deleted-source":
+        (dist.parent / "src/main.tsx").unlink()
+    else:
+        (dist / "private.txt").write_text("unlisted synthetic bytes")
+    with pytest.raises((ValueError, FileNotFoundError)):
+        builder.build_package(project, tmp_path / "package")
+    assert not (tmp_path / "package").exists()
+    assert not fake_freezer
+
+
+@pytest.mark.parametrize("name", ["src/frontend", "src/frontend/dist", "src/frontend/dist/assets", "src/frontend/dist/assets/index-12345678.js", "src/frontend/package-lock.json"])
+def test_frontend_payload_links_fail(project: Path, tmp_path: Path, name: str) -> None:
+    path = project / name
+    target = tmp_path / "outside-frontend"
+    shutil.move(str(path), target)
+    try:
+        path.symlink_to(target, target_is_directory=target.is_dir())
+    except OSError:
+        pytest.skip("The test host does not allow symlink creation")
+    staging = tmp_path / "staging"
+    staging.mkdir()
+    with pytest.raises(ValueError, match="[Ss]ymlink"):
+        builder._copy_inputs(project, staging)
+
+
+@pytest.mark.parametrize("change", ["tamper", "replace-manifest", "legacy", "tooling"])
+def test_freezer_must_preserve_exact_verified_frontend(
+    project: Path, tmp_path: Path, fake_freezer: list[Any], monkeypatch: pytest.MonkeyPatch, change: str
+) -> None:
+    from tests.fixtures.frontend_artifact import refresh_manifest
+    real_or_fake = builder.subprocess.run
+
+    def altered_freezer(command: list[str], **kwargs: Any) -> Any:
+        result = real_or_fake(command, **kwargs)
+        if command[1:3] == ["-m", "PyInstaller"]:
+            name = command[command.index("--name") + 1]
+            package = Path(command[command.index("--distpath") + 1]) / name
+            frontend = package / "_internal/src/frontend/dist"
+            if change == "legacy":
+                (package / "_internal/src/web").mkdir()
+            elif change == "tooling":
+                (frontend.parent / "package.json").write_text("{}")
+            else:
+                (frontend / "index.html").write_text((frontend / "index.html").read_text() + "modified")
+                if change == "replace-manifest":
+                    # A different internally consistent build is still not the staged build.
+                    shutil.copyfile(project / "src/frontend/package-lock.json", frontend.parent / "package-lock.json")
+                    refresh_manifest(frontend)
+                    (frontend.parent / "package-lock.json").unlink()
+        return result
+
+    monkeypatch.setattr(builder.subprocess, "run", altered_freezer)
+    with pytest.raises((ValueError, RuntimeError)):
+        builder.build_package(project, tmp_path / "package")
+    assert not (tmp_path / "package").exists()
+
+
+def test_staged_runtime_consumes_real_resources_without_checkout_fallback(
+    project: Path, tmp_path: Path,
+) -> None:
+    """Use runtime loaders in a separate process rooted in staged code only."""
+    source = Path(__file__).resolve().parents[1]
+    shutil.copyfile(source / "src/settings.properties.template", project / "src/settings.properties.template")
+    staging = tmp_path / "runtime-closure"
+    staging.mkdir()
+    builder._copy_inputs(project, staging)
+    assert not (staging / "src/settings.properties.template").exists()
+    environment = builder._build_environment(staging)
+    program = '''
+from pathlib import Path
+from src.core.services.settings_config_service import SettingsConfigService
+from src.core.services.translation_service import TranslationService
+from alembic.config import Config
+from alembic.script import ScriptDirectory
+root = Path.cwd()
+settings = SettingsConfigService(str(root / "env.properties"))
+assert Path(settings.config_file).is_relative_to(root)
+assert settings.get("ai", "default_provider") == "ollama"
+assert settings.get("ai", "openrouter.api_key") == ""
+assert (root / "env.properties").is_file()
+translations = TranslationService()
+assert translations.translations_dir == root / "translations"
+assert translations.load_language("en") and translations.load_language("es")
+assert translations.translations["en"] and translations.translations["es"]
+migrations = ScriptDirectory.from_config(Config(str(root / "alembic.ini")))
+assert migrations.get_heads()
+assert all(Path(revision.path).resolve().is_relative_to(root) for revision in migrations.walk_revisions())
+revision = migrations.generate_revision("synthetic_closure", "synthetic resource verification", head="heads")
+assert revision is not None and Path(revision.path).resolve().is_relative_to(root)
+compile(Path(revision.path).read_text(), "synthetic-migration", "exec")
+print("Staged configuration, EN/ES resources, Alembic revisions and Mako template loaded successfully.")
+'''
+    result = subprocess.run([sys.executable, "-c", program], cwd=staging, env=environment,
+                            check=True, capture_output=True, text=True)
+    assert "loaded successfully" in result.stdout

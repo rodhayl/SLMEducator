@@ -4,37 +4,25 @@ Tests the backend functionality that the GUI uses without opening GUI components
 """
 
 import sys
-import os
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from datetime import datetime
 
-sys.path.insert(0, os.getcwd())
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from src.core.services.database import DatabaseService
+from tests.fixtures.synthetic_database import new_synthetic_database
 from src.core.models import User, StudyPlan, Content, ContentType, UserRole
 
 
 class Phase1And2Tester:
-    def __init__(self):
-        """Initialize with fresh test database"""
-        self._cleanup_db_files()
-        self.db = DatabaseService("test_phases_1_2.db")
+    def __init__(self, db_path: Path):
+        """Initialize a new test database at the explicitly supplied path."""
+        self.db = new_synthetic_database(db_path)
         print("✓ Database initialized")
 
-    def _cleanup_db_files(self):
-        """Remove test database files if they exist"""
-        db_path = "test_phases_1_2.db"
-        for ext in ["", "-shm", "-wal"]:
-            file_path = db_path + ext
-            if os.path.exists(file_path):
-                try:
-                    os.remove(file_path)
-                except BaseException:
-                    pass
-
     def cleanup(self):
-        """Clean up test database"""
-        self._cleanup_db_files()
-        print("✓ Cleaned up test database")
+        """Close handles; the temporary-directory owner removes its own files."""
+        self.db.close()
 
     def test_phase1_content_ordering(self):
         """
@@ -389,6 +377,7 @@ class Phase1And2Tester:
 
 
 if __name__ == "__main__":
-    tester = Phase1And2Tester()
-    success = tester.run_all_tests()
+    with TemporaryDirectory(prefix="slm-phases-1-2-") as directory:
+        tester = Phase1And2Tester(Path(directory) / "synthetic.sqlite3")
+        success = tester.run_all_tests()
     exit(0 if success else 1)

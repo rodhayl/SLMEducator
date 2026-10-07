@@ -1,0 +1,8 @@
+.learning-workspace { display: grid; gap: 1.5rem; min-width: 0; align-items: start; }
+.learning-reader { min-width: 0; max-width: 74ch; overflow-wrap: anywhere; }
+.learning-tools { min-width: 0; overflow-wrap: anywhere; }
+.learning-controls { flex-wrap: wrap; }
+.learning-reader .prose { max-width: 100%; }
+.learning-tools[hidden], .learning-tool[hidden] { display: none; }
+.learning-reader h1, .learning-reader h2, .learning-tools h2 { scroll-margin-top: 1rem; }
+@media (min-width: 75rem) { .learning-workspace:has(.learning-tools:not([hidden])) { grid-template-columns: minmax(0, 74ch) minmax(16rem, 1fr); } }

@@ -1,0 +1,4 @@
+.tutor-workspace { max-width:64rem; overflow-wrap:anywhere; }
+.tutor-workspace dl { display:grid; gap:.75rem; }
+.tutor-workspace dt { font-weight:600; }
+.tutor-workspace dd { margin-inline-start:0; }

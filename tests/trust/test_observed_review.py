@@ -1,20 +1,21 @@
 """Checked understanding and self-confidence have separate durable contracts."""
 
-from tests.trust.test_resource_contracts import scenario, synthetic_credentials
 from src.core.models import (
     Assessment,
-    AssessmentQuestion,
     AssessmentSubmission,
-    ContentType,
     MasteryNode,
-    QuestionType,
     SubmissionStatus,
 )
 from src.core.services.assessed_review import record_assessed_mastery
+from tests.trust import test_resource_contracts as fixture_source
+
+# Expose reusable pytest fixtures without importing their test functions.
+scenario = fixture_source.scenario
+synthetic_credentials = fixture_source.synthetic_credentials
 
 
 def test_confidence_does_not_become_mastery(scenario):
-    client, db, users, selected, plan, lessons, _ = scenario
+    client, db, users, selected, _plan, lessons, _ = scenario
     selected[0] = users["learner_a"]
     response = client.post(
         "/api/mastery/review", json={"content_id": lessons[0].id, "rating": 5}
@@ -72,3 +73,7 @@ def test_final_attempt_updates_review_once_and_correction_recomputes(scenario):
     record_assessed_mastery(db, submission)
     db.commit()
     assert (node.mastery_level, node.review_count) == (90, 1)
+    submission.score = 0
+    record_assessed_mastery(db, submission)
+    db.commit()
+    assert (node.mastery_level, node.review_count) == (0, 1)

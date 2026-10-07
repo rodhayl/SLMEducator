@@ -39,14 +39,6 @@ router = APIRouter(prefix="/api/assessments", tags=["assessments"])
 # --- Pydantic Models ---
 
 
-class QuestionCreate(BaseModel):
-    question_text: str
-    question_type: QuestionType
-    points: int = Field(default=10, gt=0, le=10000)
-    correct_answer: Optional[str] = None
-    options: Optional[Dict[str, Any]] = None
-
-
 class RubricCriterionCreate(BaseModel):
     name: str
     description: Optional[str] = None
@@ -57,6 +49,16 @@ class RubricCreate(BaseModel):
     name: str
     description: Optional[str] = None
     criteria: List[RubricCriterionCreate] = []
+
+
+class QuestionCreate(BaseModel):
+    question_text: str
+    question_type: QuestionType
+    points: int = Field(default=10, gt=0, le=10000)
+    correct_answer: Optional[str] = None
+    options: Optional[Dict[str, Any]] = None
+    content_metadata: Optional[Dict[str, Any]] = None
+    rubrics: List[RubricCreate] = Field(default_factory=list)
 
 
 class AssessmentCreate(BaseModel):
@@ -80,11 +82,15 @@ class AssessmentResponse(BaseModel):
     is_published: bool
     created_at: datetime
     question_count: int
+    can_manage: bool
 
     model_config = ConfigDict(from_attributes=True)
 
 
 class QuestionResponseModel(BaseModel):
+    options_supported: bool
+    content_metadata: Optional[Dict[str, Any]] = None
+    rubrics: List[RubricCreate] = Field(default_factory=list)
     id: int
     question_text: str
     question_type: str
@@ -166,6 +172,10 @@ class SubmissionDetail(BaseModel):
     feedback: Optional[str]
     submitted_at: Optional[datetime]
     graded_at: Optional[datetime]
+    started_at: Optional[datetime]
+    expires_at: Optional[datetime]
+    timing_provenance: str
+    time_limit_minutes: Optional[int]
     answers: List[AnswerDetail]
 
 
@@ -230,11 +240,15 @@ async def create_assessment(
             points=q_data.points,
             order_index=idx,
             options=q_data.options,
+            content_metadata=q_data.content_metadata,
         )
         if q_data.correct_answer:
             question.set_encrypted_correct_answer(q_data.correct_answer)
 
         db.add(question)
+        db.flush()
+        for rubric_data in q_data.rubrics:
+            _persist_question_rubric(db, new_assessment, question, current_user, rubric_data)
         total_points += q_data.points
 
     # Add Rubric if present
@@ -277,6 +291,7 @@ async def create_assessment(
         is_published=new_assessment.is_published,
         created_at=new_assessment.created_at,
         question_count=len(assessment_data.questions),
+        can_manage=can_manage_assessment(db, current_user, new_assessment),
     )
 
 
@@ -299,6 +314,7 @@ async def list_assessments(
                 is_published=a.is_published,
                 created_at=a.created_at,
                 question_count=len(a.questions),
+                can_manage=can_manage_assessment(db, current_user, a),
             )
         )
     return result
@@ -316,6 +332,25 @@ class AssessmentUpdate(BaseModel):
     is_published: Optional[bool] = None
     questions: Optional[List[QuestionCreate]] = None
     rubric: Optional[RubricCreate] = None
+
+
+def _require_mutable_definition(db: Session, assessment: Assessment) -> None:
+    """Keep assigned published material intact, including before its first attempt.
+
+    Call under the assessment attempt lock after refreshing the definition.
+    Unpublished drafts on assigned plans remain editable and removable.
+    """
+    if not assessment.is_published or not assessment.study_plan_id:
+        return
+    from src.core.models import StudentStudyPlan
+
+    if db.query(StudentStudyPlan.student_id).filter_by(
+        study_plan_id=assessment.study_plan_id
+    ).first():
+        raise HTTPException(
+            status_code=409,
+            detail="Published assessment material belongs to an assigned course. Copy it to a new draft before editing.",
+        )
 
 
 @router.put("/{assessment_id}", response_model=AssessmentResponse)
@@ -353,19 +388,19 @@ async def update_assessment(
     # attempt. Reject demotion too, otherwise a two-request edit could bypass
     # this guard. Unpublished drafts can still be prepared on an assigned plan.
     revision_fields = grading_fields | {"title", "description", "max_attempts"}
-    if assessment.is_published and assessment.study_plan_id and (
+    if (
         revision_fields.intersection(update_data.model_fields_set)
         or update_data.is_published is False
     ):
-        from src.core.models import StudentStudyPlan
+        _require_mutable_definition(db, assessment)
 
-        assigned = db.query(StudentStudyPlan.student_id).filter_by(
-            study_plan_id=assessment.study_plan_id
-        ).first()
-        if assigned:
+    if update_data.questions is not None:
+        if any(q.content_metadata or q.rubrics for q in assessment.questions) and any(
+            not {"content_metadata", "rubrics"}.issubset(q.model_fields_set)
+            for q in update_data.questions
+        ):
             raise HTTPException(
-                status_code=409,
-                detail="Published assessment material belongs to an assigned course. Copy it to a new draft before editing.",
+                status_code=409, detail="Question authoring assets must be preserved when replacing questions"
             )
 
     # Update basic fields
@@ -405,16 +440,22 @@ async def update_assessment(
                 points=q_data.points,
                 order_index=idx,
                 options=q_data.options,
+                content_metadata=q_data.content_metadata,
             )
             if q_data.correct_answer:
                 question.set_encrypted_correct_answer(q_data.correct_answer)
             db.add(question)
+            db.flush()
+            for rubric_data in q_data.rubrics:
+                _persist_question_rubric(db, assessment, question, current_user, rubric_data)
             total_points += q_data.points
         assessment.total_points = total_points
 
     if "rubric" in update_data.model_fields_set:
+        db.expire(assessment, ["rubrics"])
         for rubric in list(assessment.rubrics):
-            db.delete(rubric)
+            if rubric.question_id is None:
+                db.delete(rubric)
         db.flush()
         if update_data.rubric is not None:
             data = update_data.rubric
@@ -458,6 +499,7 @@ async def update_assessment(
         is_published=assessment.is_published,
         created_at=assessment.created_at,
         question_count=len(assessment.questions),
+        can_manage=can_manage_assessment(db, current_user, assessment),
     )
 
 
@@ -599,6 +641,7 @@ async def get_submission_details(
         feedback=submission.feedback,
         submitted_at=submission.submitted_at,
         graded_at=submission.graded_at,
+        **_attempt_timing(submission),
         answers=answers,
     )
 
@@ -791,6 +834,9 @@ async def get_assessment(
                 question_type=q.question_type.value,
                 points=q.points,
                 options=q.options,
+                options_supported=_options_supported(q),
+                content_metadata=(q.content_metadata if can_manage_assessment(db, current_user, assessment) else None),
+                rubrics=([_serialize_rubric(r) for r in q.rubrics] if can_manage_assessment(db, current_user, assessment) else []),
                 correct_answer=(
                     _usable_answer_key(q)
                     if can_manage_assessment(db, current_user, assessment)
@@ -806,6 +852,7 @@ async def get_assessment(
         is_published=assessment.is_published,
         created_at=assessment.created_at,
         question_count=len(questions),
+        can_manage=can_manage_assessment(db, current_user, assessment),
         questions=questions,
         time_limit_minutes=assessment.time_limit_minutes,
         max_attempts=assessment.max_attempts,
@@ -820,11 +867,8 @@ async def get_assessment(
     )
 
 
-def _rubric_for_editor(assessment: Assessment) -> Optional[RubricCreate]:
-    """Round-trip the assessment rubric without exposing grading assets to learners."""
-    if not assessment.rubrics:
-        return None
-    rubric = assessment.rubrics[0]
+def _serialize_rubric(rubric: Rubric) -> RubricCreate:
+    """Serialize a grading asset only inside an authorized author branch."""
     return RubricCreate(
         name=rubric.name,
         description=rubric.description,
@@ -835,6 +879,61 @@ def _rubric_for_editor(assessment: Assessment) -> Optional[RubricCreate]:
             for item in sorted(rubric.criteria, key=lambda item: item.order_index)
         ],
     )
+
+
+def _rubric_for_editor(assessment: Assessment) -> Optional[RubricCreate]:
+    """Question-specific rubrics must never masquerade as the global rubric."""
+    rubric = next((item for item in assessment.rubrics if item.question_id is None), None)
+    return _serialize_rubric(rubric) if rubric else None
+
+
+def _persist_question_rubric(
+    db: Session, assessment: Assessment, question: Question, author: User, data: RubricCreate,
+) -> None:
+    """Preserve question-linked rubric criteria during explicit author save/copy."""
+    rubric = Rubric(
+        name=data.name, description=data.description,
+        total_points=sum(item.max_points for item in data.criteria),
+        created_by_id=author.id, assessment_id=assessment.id, question_id=question.id,
+    )
+    db.add(rubric)
+    db.flush()
+    for index, item in enumerate(data.criteria):
+        db.add(RubricCriterion(
+            rubric_id=rubric.id, name=item.name, description=item.description,
+            max_points=item.max_points, order_index=index,
+        ))
+
+
+def _options_supported(question: Question) -> bool:
+    """Expose a safe compatibility flag without leaking which option is correct.
+
+    Historical array and raw-map controls submitted displayed text. The new
+    nested choices map has explicit canonical values. A letter key for legacy
+    prose options has no unambiguous mapping and needs author review; no stored
+    answers, keys or score semantics are changed by this read-only flag.
+    """
+    if question.question_type not in {QuestionType.MULTIPLE_CHOICE, QuestionType.TRUE_FALSE}:
+        return True
+    raw = question.options
+    canonical = isinstance(raw, dict) and isinstance(raw.get("choices"), dict)
+    if isinstance(raw, dict):
+        raw = raw.get("choices", raw.get("options", raw))
+    if not raw and question.question_type == QuestionType.TRUE_FALSE:
+        values = ["True", "False"]
+    elif isinstance(raw, list):
+        values = raw
+    elif isinstance(raw, dict):
+        values = list(raw) if canonical else list(raw.values())
+    else:
+        return False
+    if len(values) < 2 or any(not isinstance(item, (str, int, float, bool)) for item in values):
+        return False
+    normalized = [str(item).strip().casefold() for item in values]
+    if any(not value for value in normalized) or len(set(normalized)) != len(normalized):
+        return False
+    key = _usable_answer_key(question)
+    return key is not None and key.strip().casefold() in normalized
 
 
 def _validate_score(score: int, maximum: int) -> None:
@@ -931,18 +1030,26 @@ async def start_assessment_attempt(
     _lock_attempts(db, assessment_id)
     submission = _reserve_attempt(db, current_user, assessment)
     db.commit()
-    expires = (
-        submission.started_at + timedelta(minutes=assessment.time_limit_minutes)
-        if assessment.time_limit_minutes and known_instant(submission.started_at)
-        else None
-    )
     return {
         "id": submission.id,
         "submission_id": submission.id,
         "status": submission.status.value,
+        **_attempt_timing(submission),
+    }
+
+
+def _attempt_timing(submission: Submission) -> dict:
+    """Read persisted attempt timing without reserving or changing the attempt."""
+    minutes = submission.assessment.time_limit_minutes
+    expires = (
+        submission.started_at + timedelta(minutes=minutes)
+        if minutes and known_instant(submission.started_at)
+        else None
+    )
+    return {
         "started_at": submission.started_at,
         "timing_provenance": timestamp_provenance(submission.started_at),
-        "time_limit_minutes": assessment.time_limit_minutes,
+        "time_limit_minutes": minutes,
         "expires_at": expires,
     }
 
@@ -1070,8 +1177,10 @@ def _get_attempt(
 
 
 def _grading_rubric(assessment: Assessment, question: Question) -> Optional[dict]:
-    """Use persisted question rubrics, falling back to assessment criteria."""
-    rubrics = question.rubrics or assessment.rubrics
+    """Use question criteria or global criteria, never another question's rubric."""
+    rubrics = question.rubrics or [
+        rubric for rubric in assessment.rubrics if rubric.question_id is None
+    ]
     if not rubrics:
         return None
     return {
@@ -1188,7 +1297,9 @@ def _save_suggestions(
         response.ai_suggested_score is not None for response in submission.responses
     ):
         submission.ai_draft_score = sum(
-            response.score or response.ai_suggested_score or 0
+            response.score if response.score is not None
+            else response.ai_suggested_score if response.ai_suggested_score is not None
+            else 0
             for response in submission.responses
         )
         if not late:
@@ -1391,6 +1502,7 @@ async def delete_assessment(
             status_code=403, detail="You can only delete assessments you created"
         )
 
+    _require_mutable_definition(db, assessment)
     if assessment.submissions:
         raise HTTPException(
             status_code=409,

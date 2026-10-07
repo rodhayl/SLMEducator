@@ -18,6 +18,7 @@ from src.core.services.course_workflow import (
 from src.api.security import get_current_user
 from src.api.policies import (
     can_view_content as _can_view_content,
+    _source_public,
     teacher_student_ids as _teacher_student_ids,
     can_manage_plan,
     require_allowed,
@@ -139,6 +140,7 @@ class ContentResponse(BaseModel):
     creator_username: Optional[str] = None
     creator_name: Optional[str] = None
     can_edit: bool = False
+    public_reuse: bool = False
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -233,6 +235,7 @@ async def list_content(
                 "creator_username": creator_meta.get("username"),
                 "creator_name": creator_meta.get("name"),
                 "can_edit": _can_edit_content(db, current_user, item),
+                "public_reuse": not item.is_personal and _source_public(db, item),
             }
         )
     return result
@@ -532,6 +535,7 @@ async def get_content(
         "content_data": decrypted_data,
         "source_selection": selection_receipt,
         "can_edit": _can_edit_content(db, current_user, content),
+        "public_reuse": not content.is_personal and _source_public(db, content),
     }
 
 

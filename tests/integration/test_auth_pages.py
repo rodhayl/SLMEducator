@@ -1,60 +1,41 @@
+"""React delivery and authentication keep distinct, isolated contracts."""
+
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from src.api.main import app
-import sys
-import os
 
-# Ensure src module is visible
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
+from src.frontend_delivery import register_frontend
+from tests.fixtures.frontend_artifact import make_frontend
+from tests.trust import test_resource_contracts as fixture_source
 
-client = TestClient(app)
-
-
-def test_auth_pages_served():
-    # 1. Landing
-    resp = client.get("/")
-    assert resp.status_code == 200
-    assert "<title>SLM Educator</title>" in resp.text
-
-    # 2. Login
-    resp = client.get("/login.html")
-    assert resp.status_code == 200
-    assert 'id="login-form"' in resp.text
-
-    # 3. Register
-    resp = client.get("/register.html")
-    assert resp.status_code == 200
-    assert 'id="register-form"' in resp.text
+scenario = fixture_source.scenario
+synthetic_credentials = fixture_source.synthetic_credentials
 
 
-def test_static_css_served():
-    resp = client.get("/static/css/main.css")
-    assert resp.status_code == 200
-    assert ":root" in resp.text
+def test_auth_pages_use_verified_react_build_and_legacy_bridges(tmp_path):
+    app = FastAPI()
+    register_frontend(app, make_frontend(tmp_path))
+    client = TestClient(app)
+    for path in ("/", "/entrar", "/personas/nueva"):
+        response = client.get(path)
+        assert response.status_code == 200
+        assert '<div id="root">' in response.text
+        assert response.headers["cache-control"] == "no-cache"
+    for old, current in (
+        ("/login.html", "/entrar"),
+        ("/register.html", "/personas/nueva"),
+    ):
+        response = client.get(old, follow_redirects=False)
+        assert response.status_code == 307
+        assert response.headers["location"] == current
+        assert client.get(response.headers["location"]).status_code == 200
+    for retired in ("/static/css/main.css", "/static/js/auth.js"):
+        assert client.get(retired).status_code == 404
 
 
-def test_auth_api_endpoints():
-    # 4. Invalid Login (should return 401)
-    resp = client.post(
+def test_invalid_login_still_rejected_against_synthetic_database(scenario):
+    client, *_ = scenario
+    response = client.post(
         "/api/auth/login",
         data={"username": "invalid_user", "password": "invalid_password"},
     )
-    assert resp.status_code == 401
-
-
-if __name__ == "__main__":
-    try:
-        print("Running Auth Page Tests...")
-        test_auth_pages_served()
-        print("✅ Pages Served")
-
-        test_static_css_served()
-        print("✅ CSS Served")
-
-        test_auth_api_endpoints()
-        print("✅ Auth API Handled")
-
-    except Exception as e:
-        print(f"❌ Test Failed: {e}")
-        import traceback
-
-        traceback.print_exc()
+    assert response.status_code == 401

@@ -1974,7 +1974,7 @@ class AIService:
         Fetch available models from AI providers.
 
         Args:
-            provider: Specific provider to fetch models from. If None, uses current config provider.
+            provider: Configured provider to fetch models from. A different provider is rejected.
             base_url: Custom base URL for the provider. If None, uses configured URL.
 
         Returns:
@@ -1986,6 +1986,11 @@ class AIService:
         target_provider = provider or AIProvider(self.config.provider)
 
         try:
+            if target_provider != AIProvider(self.config.provider):
+                raise ConfigurationError(
+                    "Model discovery must use the configured provider; save the requested provider first"
+                )
+            base_url = base_url or self.config.endpoint
             if target_provider == AIProvider.OLLAMA:
                 return self._fetch_ollama_models(base_url)
             elif target_provider == AIProvider.LM_STUDIO:
@@ -2006,6 +2011,7 @@ class AIService:
         ollama_url = base_url or self.settings_service.get(
             "ai", "ollama.url", "http://localhost:11434"
         )
+        ollama_url = ollama_url.rstrip("/").removesuffix("/api/generate")
 
         try:
             response = self._client.get(f"{ollama_url}/api/tags", timeout=10.0)
@@ -2028,7 +2034,7 @@ class AIService:
         )
 
         # Normalize the URL - remove trailing /v1 if present to avoid duplication
-        lm_studio_url = lm_studio_url.rstrip("/")
+        lm_studio_url = lm_studio_url.rstrip("/").removesuffix("/chat/completions")
         if lm_studio_url.endswith("/v1"):
             lm_studio_url = lm_studio_url[:-3]
 
@@ -2054,6 +2060,8 @@ class AIService:
         openai_endpoint = base_url or self.settings_service.get(
             "ai", "openai.url", "https://api.openai.com"
         )
+        openai_endpoint = openai_endpoint.rstrip("/").removesuffix("/chat/completions")
+        openai_endpoint = openai_endpoint.removesuffix("/v1")
 
         try:
             headers = {
@@ -2093,17 +2101,7 @@ class AIService:
             "ai", "openrouter.url", "https://openrouter.ai/api/v1"
         )
 
-        # If the URL ends with /chat/completions, remove it to get the base API URL
-        if openrouter_endpoint.endswith("/chat/completions"):
-            openrouter_endpoint = openrouter_endpoint[
-                :-17
-            ]  # Remove '/chat/completions'
-        elif openrouter_endpoint.endswith("/v1"):
-            # Already a base URL, use as-is
-            pass
-        else:
-            # Ensure we have the base API endpoint
-            openrouter_endpoint = openrouter_endpoint.rstrip("/")
+        openrouter_endpoint = openrouter_endpoint.rstrip("/").removesuffix("/chat/completions")
 
         try:
             headers = {

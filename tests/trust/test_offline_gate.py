@@ -47,10 +47,11 @@ def test_ci_gate_keeps_external_acceptance_separate():
         "contents: read",
         "persist-credentials: false",
         "npm ci --ignore-scripts",
-        "--ignore=tests/manual --ignore=tests/e2e --ignore=tests/real_ai",
+        "--ignore=tests/manual --ignore=tests/real_ai",
         '-m "not real_ai"',
         "--basetemp=",
-        "npm test --prefix tests/ui",
+        "npm run check --prefix src/frontend",
+        "cache-dependency-path: src/frontend/package-lock.json",
     ):
         assert contract in workflow
     assert "pull_request_target" not in workflow

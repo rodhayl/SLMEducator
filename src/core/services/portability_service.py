@@ -217,18 +217,32 @@ def _learner_options(value: Any) -> Any:
             (
                 item
                 if isinstance(item, str)
-                else {key: item[key] for key in ("id", "text", "label") if key in item}
+                else {
+                    key: item[key] for key in ("id", "text", "label")
+                    if isinstance(item.get(key), str)
+                    or (key == "id" and type(item.get(key)) is int)
+                }
             )
             for item in value
             if isinstance(item, (str, dict))
         ]
     if isinstance(value, dict):
+        # Explicit wrappers preserve canonical values and labels, while sibling
+        # provider/grading metadata never enters a learner handout.
+        for wrapper in ("choices", "options"):
+            if isinstance(value.get(wrapper), (dict, list)):
+                return {wrapper: _learner_options(value[wrapper])}
         return {
             key: item
             for key, item in value.items()
-            if isinstance(item, str)
-            and key.lower()
-            not in {"answer", "correct_answer", "solution", "explanation"}
+            if isinstance(key, str) and isinstance(item, str)
+            and key.lower().replace("_", "").replace("-", "").replace(" ", "") not in {
+                "answer", "answers", "answerkey", "correct", "correctanswer",
+                "correctanswers", "iscorrect", "correctness", "correctnessmetadata",
+                "correctoption", "correctchoice", "correctvalue", "solution",
+                "solutions", "explanation", "feedback", "rubric", "rubrics",
+                "rubricmetadata", "grading", "gradingmetadata",
+            }
         }
     return None
 

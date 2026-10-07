@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from src.core.models import (
     Assessment,
     Content,
+    ContentType,
     StudyPlan,
     StudyPlanContent,
     StudentStudyPlan,
@@ -141,16 +142,27 @@ def assert_plan_editable(db: Session, plan: StudyPlan) -> None:
         )
 
 
-def assert_content_editable(db: Session, content: Content) -> None:
-    """Protect shared content already used in an assigned course."""
+def _material_plan_ids(db: Session, content: Content) -> set[int]:
+    """Keep personal Q&A's course context separate from authored material."""
     plan_ids = {
         row[0]
         for row in db.query(StudyPlanContent.study_plan_id).filter_by(
             content_id=content.id
         )
     }
-    if content.study_plan_id:
+    # Learners may attach personal questions to an assigned course for context.
+    # That direct link does not add their work to the reviewed course. Explicit
+    # canonical links still count, as do direct links for other material.
+    if content.study_plan_id and not (
+        content.is_personal and content.content_type == ContentType.QA
+    ):
         plan_ids.add(content.study_plan_id)
+    return plan_ids
+
+
+def assert_content_editable(db: Session, content: Content) -> None:
+    """Protect shared content already used in an assigned course."""
+    plan_ids = _material_plan_ids(db, content)
     if (
         plan_ids
         and db.query(StudentStudyPlan.student_id)
@@ -164,15 +176,9 @@ def assert_content_editable(db: Session, content: Content) -> None:
 
 def invalidate_reviews(db: Session, content: Content) -> None:
     """A changed item requires another teacher review before publication."""
-    plans = (
-        db.query(StudyPlan)
-        .outerjoin(StudyPlanContent)
-        .filter(
-            (StudyPlanContent.content_id == content.id)
-            | (StudyPlan.id == content.study_plan_id)
-        )
-        .all()
-    )
+    plans = db.query(StudyPlan).filter(
+        StudyPlan.id.in_(_material_plan_ids(db, content))
+    ).all()
     for plan in plans:
         data = metadata(plan)
         previous = data.get("workflow", {})

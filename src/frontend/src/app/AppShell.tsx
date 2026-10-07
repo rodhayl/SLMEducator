@@ -1,0 +1,33 @@
+import { useEffect, useState } from 'react';
+import { Link, NavLink, Navigate, Outlet, ScrollRestoration, useLocation } from 'react-router';
+import { Dialog } from '@base-ui/react/dialog';
+import { BookOpen, Menu, X, LogOut, Home, Users, Library, ClipboardList, MessageCircle, Settings, LifeBuoy, ChartNoAxesCombined, Archive, Activity, CheckCheck } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { useAuth } from './AuthProvider';
+import { navigation, pathRoleAllowed } from './route-contracts';
+import { useAppearance, type Theme } from './AppearanceProvider';
+import { DirtyProvider, NavigationGuard } from './DirtyGuard';
+import { Button, ConfirmDialog, EmptyState, ErrorState, Field, LoadingState, Select } from '@/components/ui';
+import { UnreadMessagesBadge } from './UnreadMessagesBadge';
+import { LoginPage } from '@/features/auth/LoginPage';
+const icons = { home:Home,courses:Library,people:Users,assessments:ClipboardList,progress:ChartNoAxesCombined,help:LifeBuoy,messages:MessageCircle,grading:CheckCheck,requests:LifeBuoy,settings:Settings,backups:Archive,status:Activity };
+function RoleNavigation({ onNavigate }: { onNavigate?: () => void }) {
+ const { user } = useAuth(); const { t } = useTranslation(); const location = useLocation(); if (!user) return null;
+ const items = navigation.filter(item => item.roles.includes(user.role));
+ const render = (labels: string[]) => items.filter(item => labels.includes(item.label)).map(item => { const Icon = icons[item.label as keyof typeof icons]; const label = item.label === 'courses' && user.role === 'student' ? 'myCourses' : item.label === 'people' && user.role === 'teacher' ? 'myStudents' : item.label; return <NavLink key={item.path} to={item.path} className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`} onClick={onNavigate}><Icon size={20} aria-hidden="true"/>{t(label)}{item.label === 'messages' && <UnreadMessagesBadge/>}</NavLink>; });
+ return <nav aria-label={t('menu')}><div className="navigation-group"><h2>{t(user.role === 'admin' ? 'administration' : user.role === 'student' ? 'studying' : 'teaching')}</h2>{render(user.role === 'admin' ? ['home','people','backups','status'] : user.role === 'student' ? ['home','courses','assessments','progress'] : ['home','courses','assessments','people'])}</div>{user.role === 'admin' && <details className="navigation-group" key={location.pathname.startsWith('/cursos') || location.pathname.startsWith('/evaluaciones') || location.pathname.startsWith('/correcciones') ? 'active' : 'other'} open={true}><summary>{t('teaching')}</summary>{render(['courses','assessments','grading','requests'])}</details>}<div className="navigation-group"><h2>{t('support')}</h2>{render(user.role === 'student' ? ['help','requests','messages'] : user.role === 'teacher' ? ['grading','requests','help','messages'] : ['help','messages'])}</div><div className="navigation-group">{render(['settings'])}</div></nav>;
+}
+function Shell() {
+ const auth = useAuth(); const { t, i18n } = useTranslation(); const appearance = useAppearance(); const location = useLocation(); const [drawer, setDrawer] = useState(false); const [logout, setLogout] = useState(false); const [logoutError, setLogoutError] = useState<unknown>(null); const [busy, setBusy] = useState(false);
+ if (!auth.user) return null;
+ async function signOut(mode: 'keep'|'delete') { setBusy(true); setLogoutError(null); try { await auth.logout(mode); } catch (error) { setLogoutError(error); } finally { setBusy(false); } }
+ return <><a href="#main-content" className="skip-link">{t('skip')}</a><div className="app-shell"><aside className="sidebar"><Link className="brand" to="/inicio"><BookOpen aria-hidden="true"/>{t('appName')}</Link><RoleNavigation/><Button variant="ghost" onClick={() => setLogout(true)}><LogOut size={20} aria-hidden="true"/>{t('signOut')}</Button></aside><div className="app-column"><header className="topbar"><div className="cluster"><Button variant="secondary" className="mobile-menu" aria-label={t('menu')} onClick={() => setDrawer(true)}><Menu aria-hidden="true"/></Button><span className="account-label">{auth.user.first_name || auth.user.username}<br/><span className="muted">{t(`role_${auth.user.role}`)}</span></span></div><div className="topbar-controls"><Field label={t('language')}><Select value={i18n.language} onChange={event => void i18n.changeLanguage(event.target.value)}><option value="es">Español</option><option value="en">English</option></Select></Field><Field label={t('theme')}><Select value={appearance.theme} onChange={event => appearance.setTheme(event.target.value as Theme)}><option value="system">{t('system')}</option><option value="light">{t('light')}</option><option value="dark">{t('dark')}</option></Select></Field></div></header><main id="main-content" className="main">{pathRoleAllowed(location.pathname, auth.user.role) ? <Outlet/> : <EmptyState title={t('unavailableTitle')}/>}</main></div></div><Dialog.Root open={drawer && auth.status === 'authenticated'} onOpenChange={setDrawer}><Dialog.Portal><Dialog.Backdrop className="dialog-backdrop"/><Dialog.Popup className="dialog navigation-drawer"><div className="cluster"><Dialog.Title>{t('appName')}</Dialog.Title><Button variant="ghost" aria-label={t('close')} onClick={() => setDrawer(false)}><X aria-hidden="true"/></Button></div><RoleNavigation onNavigate={() => setDrawer(false)}/><Button variant="ghost" onClick={() => { setDrawer(false); setLogout(true); }}><LogOut aria-hidden="true"/>{t('signOut')}</Button></Dialog.Popup></Dialog.Portal></Dialog.Root><ConfirmDialog open={logout} onOpenChange={setLogout} title={t('signOutTitle')} description={t('signOutDescription')} confirmLabel={t('keepDrafts')} onConfirm={() => void signOut('keep')} busy={busy}><ErrorState error={logoutError}/><Button variant="danger" busy={busy} onClick={() => void signOut('delete')}>{t('deleteDrafts')}</Button></ConfirmDialog><NavigationGuard/><ScrollRestoration/></>;
+}
+export function ProtectedLayout() {
+ const { status, user, scope } = useAuth(); const location = useLocation(); const { t } = useTranslation();
+ const locked = status !== 'authenticated';
+ useEffect(() => { if (locked) document.title = `${t('auth.reauthTitle')} · SLMEducator`; }, [locked, t]);
+ if (status === 'checking' && !user) return <LoadingState/>;
+ if (status === 'anonymous') return <Navigate to={`/entrar?return=${encodeURIComponent(location.pathname + location.search + location.hash)}`} replace/>;
+ return <DirtyProvider key={scope}><div hidden={locked} inert={locked} aria-hidden={locked}><Shell/></div>{locked && <LoginPage reauth/>}</DirtyProvider>;
+}

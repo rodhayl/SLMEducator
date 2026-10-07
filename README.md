@@ -21,7 +21,7 @@ Use demonstration data for evaluation. Students can ask the tutor or Q&A without
 
 ## Quick Start (Windows)
 
-Clone this repository and open PowerShell in its root. Before launching, review [Initial Admin Account](#initial-admin-account). For a new database, supply your own initial credential or privately save the one-time generated password printed during startup.
+Clone this repository and open PowerShell in its root. Before launching, prepare the [React frontend build](#react-frontend-build) and review [Initial Admin Account](#initial-admin-account). For a new database, supply your own initial credential or privately save the one-time generated password printed during startup.
 
 ```powershell
 .\install_dependencies.bat
@@ -46,6 +46,52 @@ python -m venv venv
 .\venv\Scripts\python.exe -m uvicorn src.api.main:app --host 127.0.0.1 --port 8080 --reload
 ```
 
+## React frontend build
+
+The active server serves only the React build from `src/frontend/dist`. Prepare
+it explicitly before source startup or packaging (Node 22.22+ is a build tool):
+
+```powershell
+cd src/frontend
+npm ci --ignore-scripts
+npm run check
+cd ../..
+```
+
+`npm run check` includes typecheck, lint, synthetic frontend tests and the
+production build. A subsequent explicit `npm run build` is sufficient to rebuild
+already-checked sources. Missing or invalid output produces a clear HTTP 503 for
+the UI; the API remains reachable. There is no fallback to the legacy GUI.
+Node, npm, source maps, frontend sources and build tools are not runtime needs.
+
+The package builder validates the build manifest, asset sizes/SHA-256 hashes,
+Vite references, local HTML assets and matching npm lockfile/source-input digest
+before any seeding or freezing. The canonical build fingerprints source, styles,
+public assets and build configuration/tooling before compilation and refuses to
+seal output if those inputs change. A source edit, addition or removal requires
+an explicit rebuild, even when the lockfile did not change. Only verified dist
+files join the allowlisted Python/runtime resources. Frontend tooling, dependencies, tests and `src/web` are excluded.
+Build output must be complete, contain no unlisted files or symlinks, and match
+the lockfile and source inputs; the builder never installs dependencies or starts
+a frontend build. Frozen runtime validates the embedded identity and shipped
+bytes without requiring the source checkout or Node.
+A manifest is an integrity inventory, not a signature or native acceptance result.
+
+Known old `.html` links redirect to allowlisted React routes with validated IDs.
+Unknown routes and assets return real 404 responses; `/api/` errors never become
+HTML. The frozen app uses only its own bundled dist. `SLM_FRONTEND_DIR` explicitly
+selects another verified dist; the older `SLM_WEB_DIR` name accepts only that same
+new format. Invalid overrides fail clearly rather than selecting another tree.
+Restart the server after replacing source-build output.
+
+Fresh installs register no service worker. `/sw.js` remains temporarily available
+only to retire the two recognized old SLM caches through the normal worker
+lifecycle. Save your work and close old application tabs before reopening to
+finish that transition. No tab is force-reloaded, no browser drafts or other
+apps' caches are erased, and offline API/inference is not provided by a cache.
+Real-browser update/dirty-tab coverage and native Windows package validation are
+separate acceptance gates, not implied by synthetic tests.
+
 ## Configuration
 
 - Copy `.env.example` to `.env` for local secret/env overrides.
@@ -66,8 +112,8 @@ remain failures. Structured authoring and grading keep their validation contract
 
 Once the local application, dependencies, data and a local model are prepared,
 Internet access is not required for the local-provider path. Cloud providers need
-connectivity. The browser still needs the running application server: its static
-cache does not provide offline API data or inference. Exported learner handouts
+connectivity. The browser still needs the running application server; bundled static
+assets do not provide offline API data or inference. Exported learner handouts
 can be read separately. Hardware suitability and installation preparation remain
 deployment considerations.
 
@@ -127,12 +173,13 @@ From a prepared PowerShell environment, the equivalent Python gate is:
 ```powershell
 $env:SLM_OFFLINE_TESTS = "1"
 $env:USE_REAL_AI = "0"
-python -m pytest tests -q -ra --strict-markers --ignore=tests/manual --ignore=tests/e2e --ignore=tests/real_ai -m "not real_ai" --basetemp="$env:TEMP/slm-check-$([guid]::NewGuid())"
+python -m pytest tests -q -ra --strict-markers --ignore=tests/manual --ignore=tests/real_ai -m "not real_ai" --basetemp="$env:TEMP/slm-check-$([guid]::NewGuid())"
 Remove-Item Env:SLM_OFFLINE_TESTS
 ```
 
-For DOM checks, run `npm ci --ignore-scripts --prefix tests/ui`, then
-`npm test --prefix tests/ui` with Node 20+. See [the UI test boundary](tests/ui/README.md).
+For React checks, run `npm ci --ignore-scripts --prefix src/frontend`, then
+`npm run check --prefix src/frontend` with Node 22.22+. This includes TypeScript,
+ESLint, serial DOM tests and the production build. See [the frontend boundary](src/frontend/README.md).
 These checks do not certify a Windows executable, a live browser or model quality.
 See [maintained functional contracts](docs/FUNCTIONAL_REQUIREMENTS.md) for current
 capabilities instead of historical desktop-module inventories.

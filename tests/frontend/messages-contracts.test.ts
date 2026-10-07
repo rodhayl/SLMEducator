@@ -1,0 +1,11 @@
+import {describe,expect,it} from 'vitest';
+import {confirmMessage,confirmMessageAction,filterMessages,messageFolder,parseContacts,parseMessage,parseMessages} from '@/features/messages/contracts';
+import {message} from './messages-fixtures';
+describe('classroom message contracts',()=>{
+ it('validates owner and folder before rendering',()=>{expect(parseMessages([message()],7,'inbox')).toHaveLength(1);expect(()=>parseMessages([message()],8,'inbox')).toThrow();expect(()=>parseMessages([message()],7,'sent')).toThrow();expect(()=>parseMessages([message()],7,'archived')).toThrow();expect(()=>parseMessages([message(),message()],7,'inbox')).toThrow();});
+ it.each([{id:'1'},{to_id:'7'},{content:{}},{read_at:7},{sent_at:null}])('rejects malformed message %j',changes=>expect(()=>parseMessage({...message(),...changes})).toThrow());
+ it('confirms exact send contents and recipient ID',()=>{const input={recipient_id:8,subject:'Synthetic',body:'Body'};expect(()=>confirmMessage(message({from_id:7,to_id:9,subject:input.subject,content:input.body}),input,7)).toThrow();expect(()=>confirmMessage(message({from_id:7,to_id:8,subject:input.subject,content:input.body}),input,7)).not.toThrow();});
+ it('checks action acknowledgements and permanent delete',()=>{expect(()=>confirmMessageAction({status:'ok',deleted:true},'delete')).not.toThrow();expect(()=>confirmMessageAction({status:'ok'},'delete')).toThrow();expect(()=>confirmMessageAction({status:'ok',archived_at:null},'archive')).toThrow();expect(()=>confirmMessageAction({status:'ok',read_at:null},'unread')).not.toThrow();});
+ it('searches actual name, subject and body fields and normalizes folders',()=>{expect(filterMessages([message()],'BODY')).toHaveLength(1);expect(filterMessages([message()],'Alex')).toHaveLength(1);expect(filterMessages([message()],'absent')).toHaveLength(0);expect(messageFolder('trash')).toBe('inbox');});
+ it('rejects duplicated or malformed contacts, keeping homonyms by IDs',()=>{const first={id:1,username:'a',full_name:'Same Name',role:'student'},second={...first,id:2,username:'b'};expect(parseContacts([first,second])).toHaveLength(2);expect(()=>parseContacts([first,first])).toThrow();expect(()=>parseContacts([{...first,role:'guest'}])).toThrow();});
+});

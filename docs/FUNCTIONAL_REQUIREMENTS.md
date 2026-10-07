@@ -1,7 +1,7 @@
 # Maintained functional contracts
 
-Updated 2026-10-06. The maintained stack is FastAPI, SQLAlchemy/SQLite, HTTPX and
-Bootstrap/vanilla JavaScript. Tkinter supplies the Windows launcher only. This
+Updated 2026-10-07. The maintained stack is FastAPI, SQLAlchemy/SQLite, HTTPX and
+React/TypeScript with React Router, TanStack Query and shared Base UI primitives. Tkinter supplies the Windows launcher only. This
 replaces an obsolete desktop-UI inventory; old module paths and configuration
 flags are not supported just because historical documentation mentioned them.
 
@@ -43,8 +43,8 @@ security certification, child suitability or regulatory compliance.
 
 Sources: `src/core/services/content_schema.py`, `course_workflow.py`,
 `generation_workflow.py`, and `src/api/routes/content.py`, `study_plans.py`,
-`assessment.py`, `generation.py`. Authoring uses `src/web/course_designer.html`,
-`study_plan_builder.html`, `assessment_builder.html` and their JavaScript modules.
+`assessment.py`, `generation.py`. Authoring uses `src/frontend/src/features/authoring`, `courses` and
+`assessments`, with shared authenticated API/query and form components.
 
 ## Study, attempts and feedback
 
@@ -65,8 +65,7 @@ Sources: `src/core/services/content_schema.py`, `course_workflow.py`,
 
 Sources: `src/api/routes/learning.py`, `assessment.py`, `mastery.py`,
 `src/core/services/assessed_review.py`, `learning_session_service.py`, and
-`src/web/session_player.html`, `grading.html`, `assessment_history.html`,
-`assessment_taker.html`. See the three-lesson and product-journey trust tests.
+`src/frontend/src/features/learning` and `assessments`. See the three-lesson and product-journey trust tests.
 
 ## Optional AI and source provenance
 
@@ -139,7 +138,8 @@ Sources: `src/api/routes/portability.py`, `src/core/services/portability_service
   databases/configuration are never silently reset or included.
 - Synthetic CI excludes manual, existing-server browser and real-provider suites.
   It disables provider discovery and fails closed on real HTTP transports, then
-  runs API/service checks and serial DOM regressions. Dependency installation
+  runs API/service checks and serial React DOM regressions, TypeScript, ESLint
+  and the explicit production build. Dependency installation
   still requires package-registry access.
 - Native Windows build/start/login/restart/recovery, live-browser keyboard/screen
   reader/zoom/bilingual journeys and human-pilot evidence remain separate from
@@ -150,12 +150,12 @@ Sources: `src/api/routes/portability.py`, `src/core/services/portability_service
   Functional availability, honest errors and uncertainty, authorization, privacy,
   review/publication and provisional-grading contracts remain required.
 - Loss of Internet can be compatible with a prepared local installation and local
-  model. Loss of access to the application server is different: the service
-  worker does not cache API responses. Reading exports does not imply offline
+  model. Loss of access to the application server is different: the new frontend
+  registers no service worker and does not cache API responses. Reading exports does not imply offline
   interactive tutoring or synchronization.
 - No shared-host deployment, multi-process quota guarantee or educational efficacy
   claim is part of this implementation.
 
 Procedures: `scripts/build_package.py`, `.github/workflows/offline-tests.yml`,
-`tests/ui/README.md`, [browser scenarios](BROWSER_TEST.md),
+`src/frontend/README.md`, [browser scenarios](BROWSER_TEST.md),
 [pilot tooling](pilot/README.md).

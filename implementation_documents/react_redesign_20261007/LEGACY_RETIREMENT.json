@@ -1,0 +1,456 @@
+{
+  "scope": "Retired source and replaced test harness; recovery in immutable Git history and scoped local archive",
+  "removed": [
+    {
+      "path": "src/web/404.html",
+      "bytes": 1437,
+      "sha256": "01d73acb64893964bd56b2f3c8d84989cde97e755375c7e98557dc26a8cd0d61",
+      "git_blob": "56a43cb38b6ed9cba50ac5c7c0e1027ca975cbf2"
+    },
+    {
+      "path": "src/web/assessment_builder.html",
+      "bytes": 11833,
+      "sha256": "a48203d9e82e903c9b3045c64b17ea661206e7d231d262e6758fe54ed8cdc733",
+      "git_blob": "19f624e80a513a7b755bde4d2f570c4a20f21f3a"
+    },
+    {
+      "path": "src/web/assessment_history.html",
+      "bytes": 2865,
+      "sha256": "8347d5a010ad7cb06fd153bf1c92dda80c24c8357350a1e20ff21ab79fd474bb",
+      "git_blob": "a3c945048c5d51dc93c56016b2286a28635fd3f5"
+    },
+    {
+      "path": "src/web/assessment_taker.html",
+      "bytes": 5404,
+      "sha256": "555cba5be5040c49f64e4d2ec490cb6b9e6b43ee75e5f2abb9bd67ded79fdb0b",
+      "git_blob": "b8cc491172acd7f0c02e3732c86f3dbf7acd3910"
+    },
+    {
+      "path": "src/web/course_designer.html",
+      "bytes": 13304,
+      "sha256": "80516a73ca8d6da2183c95a873f4274ba0561a2b84e65b271176f8c34456c715",
+      "git_blob": "a897b225d525bf6c970c6b14e1c9fb506b3c7c56"
+    },
+    {
+      "path": "src/web/dashboard.html",
+      "bytes": 134781,
+      "sha256": "3f96886c0119609c9cfca495b494d9be9e87d1097776e848377081d5ccc3d46f",
+      "git_blob": "4bbba472b1870adb69a1f4071ffa6c5466540ec2"
+    },
+    {
+      "path": "src/web/grading.html",
+      "bytes": 7478,
+      "sha256": "7fd0e795cabf4a0ea5967ffc751ad15dc46242e63c933ae9a09aa5c1939feca2",
+      "git_blob": "5da7f463020021d2cdb08a538a2c9a7d7741b1c8"
+    },
+    {
+      "path": "src/web/index.html",
+      "bytes": 2815,
+      "sha256": "27d0d393a6cc9c2a72edc8044d7c78f8f7e441f4bef2bb7ba5fd0c4c2d856f72",
+      "git_blob": "5829136a104653417173d53f318b54b9ceca611f"
+    },
+    {
+      "path": "src/web/login.html",
+      "bytes": 2025,
+      "sha256": "a331dfd7b707f997de51c7db1a169dc63385bb809655f6ba28a4e9646a53fdfd",
+      "git_blob": "c378d8b32592a4a0d26859169f4e36e8080f40da"
+    },
+    {
+      "path": "src/web/portability.html",
+      "bytes": 7176,
+      "sha256": "f33344ddc6d5cdc8e494f6f56dc38111356f0464e42e542a21c3059be660b573",
+      "git_blob": "266baf9bc17bda24e9a6823e3ade3f1a957e3429"
+    },
+    {
+      "path": "src/web/register.html",
+      "bytes": 4206,
+      "sha256": "55255c40530df5f1cded790bbfd896923d2991a790e004483f9c44d89ed7a37e",
+      "git_blob": "c58e12d34071153bdf3855349cec50f7320e7927"
+    },
+    {
+      "path": "src/web/session_player.html",
+      "bytes": 14476,
+      "sha256": "b9aae85ec9615a8e8f6992bc84880c0ebab9abb7a77c6c635f2e7eb4f1b56314",
+      "git_blob": "94b52441073ede2c3d0da87eeb2eb383693ace22"
+    },
+    {
+      "path": "src/web/static/css/main.css",
+      "bytes": 48472,
+      "sha256": "a2c4a1fc7a3cad3ddb4512f17fa1d3c3ec963852afc97944cd2b9030a48c4e1a",
+      "git_blob": "7c389231296aa2f56287a5c7b0e7eae1880cabe7"
+    },
+    {
+      "path": "src/web/static/js/admin-accounts.js",
+      "bytes": 7435,
+      "sha256": "d65b2e68355ca61ebcbaf3e17c0aa56bebb7274b59b9596e01b17d2d649b763c",
+      "git_blob": "b28e6f6d726e42838b6b66961855c640f9cafbf8"
+    },
+    {
+      "path": "src/web/static/js/assessment.js",
+      "bytes": 8269,
+      "sha256": "d039d11209549d01b59e1d8c15247bdbfc8cd4b2f517644fa1fe9116d246e382",
+      "git_blob": "5fbfa11b8e6317e2923372b61afffe7aa61b9ce5"
+    },
+    {
+      "path": "src/web/static/js/assessment_builder.js",
+      "bytes": 17235,
+      "sha256": "d982c155096065b735daebc86fd61b13a29cd97f229aaa88dfaf38d8160bbf15",
+      "git_blob": "23504c34b395283178618731bcbaa313b015c153"
+    },
+    {
+      "path": "src/web/static/js/assessment_history.js",
+      "bytes": 10875,
+      "sha256": "34b4954886852d558f8124ad1768463fe29d759c718b2ea8b1ec256daff2daef",
+      "git_blob": "673785b14cfeb78f9c5dc05e95853dcabc7cfc88"
+    },
+    {
+      "path": "src/web/static/js/assessment_taker.js",
+      "bytes": 16555,
+      "sha256": "33ab9dfaa3c49d791b5cc3f515b57fa864163974c3e81957c73e88ddcbbb375b",
+      "git_blob": "2acf7235d909ee0cda4f8514bcfafa7669d5d318"
+    },
+    {
+      "path": "src/web/static/js/auth.js",
+      "bytes": 18781,
+      "sha256": "c47545d38767f268e48d5b58bc065a44219e1024fec5a04f05bd53d4a6242db4",
+      "git_blob": "1d077b12ea015a4f4391ae533a0be07ac33531c1"
+    },
+    {
+      "path": "src/web/static/js/course_designer.js",
+      "bytes": 33035,
+      "sha256": "b3ac2d49ab61697c0f36ca8634cb78c38f705e54451f2cb0ae0cb5b7334c96e5",
+      "git_blob": "59652df24251bd222f32b1a1fd4acfa57351bdb2"
+    },
+    {
+      "path": "src/web/static/js/dashboard.js",
+      "bytes": 194444,
+      "sha256": "5d538f061c95c768b7ebf2469c8804cf4b6b4e6675c5909cd4047fed2430873a",
+      "git_blob": "5eb62d18abe45a4907dad3a8d891705feafaa4a6"
+    },
+    {
+      "path": "src/web/static/js/grading.js",
+      "bytes": 16129,
+      "sha256": "413679cae650261489d2057af4323e07e6f44825b2ece2acf8dd8e8bc2a90621",
+      "git_blob": "a308fbf86ffab42e2c13db20ae2594273d9631ff"
+    },
+    {
+      "path": "src/web/static/js/i18n.js",
+      "bytes": 9190,
+      "sha256": "33dbda471dee47a54ef9cef255f9370ca82c25adce97c8fe446456c980cb3595",
+      "git_blob": "cecc59dbd53ebb88e11595f48140f5ebf2b5d66f"
+    },
+    {
+      "path": "src/web/static/js/learning-client.js",
+      "bytes": 5815,
+      "sha256": "302bbe470e5a9a6ecb34ac60e681a061966b3016e6f579e6b4b08de6c8553600",
+      "git_blob": "397a7b1f21c4a0b6872cbfc74dbb3e174de6a394"
+    },
+    {
+      "path": "src/web/static/js/learning-help.js",
+      "bytes": 41413,
+      "sha256": "c6033cb439a3f4032df4478a078610bcfe87fe68e4edc948fc17293970669b64",
+      "git_blob": "322b0ec618a3180382949105a5c1dd7e307d62b6"
+    },
+    {
+      "path": "src/web/static/js/modules/inbox.js",
+      "bytes": 24415,
+      "sha256": "bd04f77eb5662f6efc7ea794e20579c2ce77336c455222b2b283a1c3fd6751a4",
+      "git_blob": "d3e5dd5d7c8c43242c5b9ad641e0b05fbb34d149"
+    },
+    {
+      "path": "src/web/static/js/portability.js",
+      "bytes": 13989,
+      "sha256": "90433c7526dbe05b572d38d3a774a21021d906792d84403d0faf5d0fbcaa9ad9",
+      "git_blob": "7e7277a4982e2c31cbb4e60ab82348ccc599e7fb"
+    },
+    {
+      "path": "src/web/static/js/practice.js",
+      "bytes": 7170,
+      "sha256": "71d7a305444a35ab6297fce9878b18ca5ddbd2db1dac8d38f2757931d561dd04",
+      "git_blob": "81db62f9d4ab309e66e1922702d252894c552d4a"
+    },
+    {
+      "path": "src/web/static/js/safe-render.js",
+      "bytes": 5831,
+      "sha256": "bc6c495ad4a1f81e0ceaa475c6fe87c4b23a66d1041efda0d70713ac41d869be",
+      "git_blob": "0d43ba7c5bcbd8ded74d5e667e69ecc98260bb44"
+    },
+    {
+      "path": "src/web/static/js/session.js",
+      "bytes": 36870,
+      "sha256": "f6457b709df073559e56bd096dcb670529494d14c7e40cf50df090b1db38b390",
+      "git_blob": "e5aac2ae8929ce0aacb20fd99c42c2346b58bc98"
+    },
+    {
+      "path": "src/web/static/js/study_plan_builder.js",
+      "bytes": 15081,
+      "sha256": "1f64378f67dbe2bae1f6f9c3accf19af5659283cc0b2783f924e3030a4357c1f",
+      "git_blob": "0cf73e07a24b08eae139afa6e7505c164aef4403"
+    },
+    {
+      "path": "src/web/static/js/theme.js",
+      "bytes": 2131,
+      "sha256": "4080d24d7cf53c93f09e9d9e5ab38cfccd75ec61abc67d9d7ab807f4fd6b7f8e",
+      "git_blob": "1ee2e30ff68646830ed4a0aa665965df981d12a5"
+    },
+    {
+      "path": "src/web/static/js/time-display.js",
+      "bytes": 5250,
+      "sha256": "6846e1099cac7055987193550d3dea345c9e0b7d8c63866039580d8316525723",
+      "git_blob": "3acae36d07c130cdd1cccf5623e6ed34ed18c70a"
+    },
+    {
+      "path": "src/web/static/js/toast.js",
+      "bytes": 10515,
+      "sha256": "e8773e7d50ff6b018a1edfde6d42c9c93d29f20eae1700952bec76ca4428b4ad",
+      "git_blob": "f1e43eb1b1322e7f6f4d4f8da7227c15c4a18044"
+    },
+    {
+      "path": "src/web/static/vendor/bootstrap@5.3.0/LICENSE",
+      "bytes": 1093,
+      "sha256": "3d0b0c88216e4752b9afd3d24e36faaf27873b5a45a61458bb3c83e794c26832",
+      "git_blob": "6633b55fe5e9556a9d7722f7d7b55369c5e479f1"
+    },
+    {
+      "path": "src/web/static/vendor/bootstrap@5.3.0/dist/css/bootstrap.min.css",
+      "bytes": 232914,
+      "sha256": "7f1d37f0d90b6385354c2ac10e2bb91563c46bd7a266ed351222ebcac8496c2a",
+      "git_blob": "b23c3e79254774434419623dbcb14e69f9c619c5"
+    },
+    {
+      "path": "src/web/static/vendor/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js",
+      "bytes": 80421,
+      "sha256": "aa53d582f97eb594c2a5cc5824574707f9ba9837bce3046bfa5f3556860f4e04",
+      "git_blob": "fe19d88aeb7277028a2265b9ed06ab8f1bd29fe1"
+    },
+    {
+      "path": "src/web/static/vendor/dompurify@3.4.16/LICENSE",
+      "bytes": 11358,
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "git_blob": "d645695673349e3947e8e5ae42332d0ac3164cd7"
+    },
+    {
+      "path": "src/web/static/vendor/dompurify@3.4.16/purify.min.js",
+      "bytes": 28885,
+      "sha256": "2c90a9b46d6463f26038a29b686e82bc91de01fdac9d5229e7cfe3b360134ea2",
+      "git_blob": "00742c47118a703f414f6a116ddff07965d8e59e"
+    },
+    {
+      "path": "src/web/static/vendor/manifest.json",
+      "bytes": 1305,
+      "sha256": "77c4560523281846a3f2579ca8f2cea27e0e8aa8a2b43a5bbc1b0137e4961386",
+      "git_blob": "5f852be41c632255cf0a41ae2646663faf983d87"
+    },
+    {
+      "path": "src/web/static/vendor/marked@15.0.12/LICENSE.md",
+      "bytes": 2942,
+      "sha256": "8e3a3f82f59a60958f56ca08f445647c32a4733dc7ca6c2c46f6eb898471ab9c",
+      "git_blob": "4bd2d4a084987ab634893a29f72ff6d1a67bf658"
+    },
+    {
+      "path": "src/web/static/vendor/marked@15.0.12/marked.min.js",
+      "bytes": 39903,
+      "sha256": "3e7e7d7feb3e5d58cb6c804f68ab5c24cc7e5eb6270fd6e5cbb9124739217d0c",
+      "git_blob": "b4e0d73b2bdc93af14ec56ed661ecff3c9f78a2f"
+    },
+    {
+      "path": "src/web/static/vendor/sortablejs@1.15.0/LICENSE",
+      "bytes": 1106,
+      "sha256": "e94dfc31e800d169257569db270457c9f028440c9ccae41e7eb78b2db18f1298",
+      "git_blob": "f5193eb28153db4f6f1dce4268cf3f10a5f3e629"
+    },
+    {
+      "path": "src/web/static/vendor/sortablejs@1.15.0/Sortable.min.js",
+      "bytes": 44136,
+      "sha256": "8a9889aecc2f011e15031fed87eeb35ac75e62655a7b4889ba247ee8ea872474",
+      "git_blob": "17bb16c73b2c4859aeda8f607af6b391342b2e53"
+    },
+    {
+      "path": "src/web/study_plan_builder.html",
+      "bytes": 7119,
+      "sha256": "de83977cd1f84e61e699f103b9b0f66f6ee7dce6fd7423c366cbc9feea1ed213",
+      "git_blob": "e3c4f93261fcbb6e48d23f4b75f428bffedd16bb"
+    },
+    {
+      "path": "src/web/sw.js",
+      "bytes": 6359,
+      "sha256": "bde3cdc01eb53a6ff7c2060b98812c9fea0a932f48b44151255d0ca5ea487809",
+      "git_blob": "f676cf4918cd8cf8ece52493229cdc23713d6d1f"
+    },
+    {
+      "path": "tests/ui/.gitignore",
+      "bytes": 15,
+      "sha256": "ca1838cde9e4cfb493f3ea87a08bf973a9d6102aac688fc8828107d5586042aa",
+      "git_blob": "2ccbe4656c6078ded72491cf2ee9c5ec20219624"
+    },
+    {
+      "path": "tests/ui/README.md",
+      "bytes": 2323,
+      "sha256": "c1df41601aaf1794dec10683307220a4e673906be242b03fa7d8feab42dc83b2",
+      "git_blob": "13a55e23fbc0da2a64ad4cc9c6dbcfaee8370fb5"
+    },
+    {
+      "path": "tests/ui/admin_accounts.test.cjs",
+      "bytes": 4690,
+      "sha256": "b2d8a783d3ded1fb25218f1fa22fc543dd0ff5ae835bbd8eeb619b8fc04a5724",
+      "git_blob": "60f167081b746ccd69291c1d5cf5b20da1edee26"
+    },
+    {
+      "path": "tests/ui/ai_settings_journey.test.cjs",
+      "bytes": 4818,
+      "sha256": "cab25de1862f78520972f9d18c320a5fc618d5ed62d792947d25c8047d8a85d0",
+      "git_blob": "0d3ac28b2f8fd7e2764f0d6e08740250833400e6"
+    },
+    {
+      "path": "tests/ui/assessment_journey.test.cjs",
+      "bytes": 21842,
+      "sha256": "8cbef6422bd09c82074f68cf4b03e05e6914a8434e8971552004859531805b8f",
+      "git_blob": "c0d452994483b18b7d948333a80e879bf19b4032"
+    },
+    {
+      "path": "tests/ui/auth_errors.test.cjs",
+      "bytes": 24141,
+      "sha256": "908f253d3416f765c08d47b931129ae60b6877d8e331a7e3349043de18b6ec23",
+      "git_blob": "35250003a1b3998bede8641ea723d78470a71b63"
+    },
+    {
+      "path": "tests/ui/content_edit_journey.test.cjs",
+      "bytes": 7141,
+      "sha256": "31af4bcdb5105d39eabee1e934a50e2d454a77f53130743257c4884cb31beb99",
+      "git_blob": "1b5e94735fec3d759e86bc51a1fa2926599f4a05"
+    },
+    {
+      "path": "tests/ui/course_source_journey.test.cjs",
+      "bytes": 7452,
+      "sha256": "c4fecbc417ffdcada2825ced424e798bd58c030e080b9175450dc8096b9307c8",
+      "git_blob": "db9b20c405f5b792ee6a0c8084e8bae866869bc3"
+    },
+    {
+      "path": "tests/ui/dashboard_startup.test.cjs",
+      "bytes": 4874,
+      "sha256": "372d1caeea033e0483b867ff5380458f593bacf345a6fc4393510e846f47ff43",
+      "git_blob": "b3c5dd8b937f36f4757ad402123b3ad0830c6b7f"
+    },
+    {
+      "path": "tests/ui/frontend_safety.test.cjs",
+      "bytes": 34936,
+      "sha256": "14dd901bc306bdfe49cf0db24d15f7f9865bac5bc2f34f904a0ceffd3a10ae2b",
+      "git_blob": "732146f3368a2e7a56956ac05ba4247217aaddc0"
+    },
+    {
+      "path": "tests/ui/learning_help.test.cjs",
+      "bytes": 31703,
+      "sha256": "0622444d7f226482a8bb65427f871b383128d259c5d066c83ee31c92bad9d225",
+      "git_blob": "9d10ec64afecacd1a44150886020046232be54b4"
+    },
+    {
+      "path": "tests/ui/package-lock.json",
+      "bytes": 18575,
+      "sha256": "a1a65604ad96aa69449fc58d366cd284552a38bfe3f2f2ec5754559788fbe646",
+      "git_blob": "95692181ecd8be7bd8f7866f44eee9dd4832225e"
+    },
+    {
+      "path": "tests/ui/package.json",
+      "bytes": 190,
+      "sha256": "e5f93c6d5475686eb9ef057b93bd81c0d876a542208326c910cd3a993f91e8b2",
+      "git_blob": "2b0db9ba081a73741087d46e216f0ccb6351c8c0"
+    },
+    {
+      "path": "tests/ui/portability_journey.test.cjs",
+      "bytes": 5900,
+      "sha256": "faa237cd2ef0c201f630bf742c2f56bf6dbc6f85d1557f56482ff612d13f6183",
+      "git_blob": "f71b79f492dabb790b8eb15aa702b22e9d9c5bf8"
+    },
+    {
+      "path": "tests/ui/practice_option_contract.test.cjs",
+      "bytes": 5592,
+      "sha256": "05053ce50d7455927e7a291c16d7ccbb87f78c23910848877476561f0d6cbdc6",
+      "git_blob": "0c4a4d010516e4034db8fca419671e27defb2c36"
+    },
+    {
+      "path": "tests/ui/role_journeys.test.cjs",
+      "bytes": 23794,
+      "sha256": "81ef081150da1dd12584b5c84c065edcbce44b3c4ac85a681973997df1598848",
+      "git_blob": "82279bd26047fbf375b45d2a2f56c8c9e086eca6"
+    },
+    {
+      "path": "tests/ui/service_worker.test.cjs",
+      "bytes": 1764,
+      "sha256": "7612002a6fe9a5c1cfe73d1e18b6ee9c9f7708a80cc03c9f098ff7449d98cd67",
+      "git_blob": "79ccf30f1f6a359b24bbf48e8753e1721319c7db"
+    },
+    {
+      "path": "tests/ui/session_progress_locale.test.cjs",
+      "bytes": 3244,
+      "sha256": "9ee93d9c5940c45751c9f7ddf5050bed9e1365887fc8d21496fb948cd01cd353",
+      "git_blob": "8f950a63bb693cb8eae621cc4f5ff6db17f5626c"
+    },
+    {
+      "path": "tests/ui/source_clarification.test.cjs",
+      "bytes": 1667,
+      "sha256": "257ab8905828b65a949503d8cbab6c8279bcf4cf0fd3674d26f0c4548e1ad918",
+      "git_blob": "2fb3a4df77709da829f1d9f8370709d10093cb19"
+    },
+    {
+      "path": "tests/ui/test_frontend_safety.py",
+      "bytes": 6037,
+      "sha256": "264a9667e56f7c294a0301a698f80dd6c7cc483c07e11397c685005a8decb7cb",
+      "git_blob": "62a115dc9af350496e656d5b1459badb2f5ac01e"
+    },
+    {
+      "path": "tests/ui/test_style_standardization.py",
+      "bytes": 8949,
+      "sha256": "19547b477827af2fe6e19a15a65e72af9d661be4e86450ebf14addd35bef610a",
+      "git_blob": "8ab013d23788a36bba0eef7363983ccb7a26b55b"
+    },
+    {
+      "path": "tests/ui/tutor_receipts_journey.test.cjs",
+      "bytes": 9504,
+      "sha256": "aa5810384ee7a6cae28eaf997403ddfb8fb484536a533d932b1301eaf1ef5b4a",
+      "git_blob": "a890131950663752c4233a3c750c7962241fceef"
+    },
+    {
+      "path": "tests/e2e/conftest.py",
+      "bytes": 1608,
+      "sha256": "7d907792be2406ca99d6f22bcc8f41bd2619f9b2f17f12d34876ff6c61907a62",
+      "git_blob": "aa2d03aae52a9da6bf6931cbbd8ea576ea868ffd"
+    },
+    {
+      "path": "tests/e2e/test_dashboard_flow.py",
+      "bytes": 3486,
+      "sha256": "31b53f8ed2d00438d61c9798ac554fdb35b083655d1cae8641c9e4e34dba3e4f",
+      "git_blob": "6437b8ff28ef70097d106b0ecf14f3bfd6d11c3a"
+    },
+    {
+      "path": "tests/e2e/test_smoke.py",
+      "bytes": 1249,
+      "sha256": "07ff6bee4a9fec6885e346ce49f70b88d536380f4efa910050f386cbc07446b8",
+      "git_blob": "c6a529124630bdf52b62e48ca6c5067d5790a544"
+    }
+  ],
+  "counts": {
+    "legacy_gui": 46,
+    "old_ui_tests": 22,
+    "existing_server_e2e": 3
+  },
+  "replacement_map": {
+    "admin_accounts.test.cjs": "people-model.test.ts + people-flows.test.tsx (confirmation, revocation receipts, UTF-8 passwords, last-admin refusal, account fencing)",
+    "ai_settings_journey.test.cjs": "settings-contracts.test.ts + settings-flows.test.tsx (unsupported-provider repair, LM Studio reasoning, read failures)",
+    "assessment_journey.test.cjs": "assessments-contracts.test.ts + assessments-workflows.test.tsx (start/close, canonical answers, zero/pending grades, feedback, role isolation, uncertainty)",
+    "auth_errors.test.cjs": "foundation-safety.test.tsx + foundation-auth-ui.test.tsx + people-flows.test.tsx (safe/localized 422, verified identity, creator retained, secret isolation)",
+    "content_edit_journey.test.cjs": "authoring-contracts.test.ts + authoring-flows.test.tsx + learning-tools-components.test.tsx (lesson/exercise fidelity, hints, retries)",
+    "course_source_journey.test.cjs": "authoring-contracts.test.ts + authoring-flows.test.tsx (source identity, revision, assignment immutability, explicit adoption)",
+    "dashboard_startup.test.cjs": "foundation-appearance.test.tsx + foundation-auth-ui.test.tsx + foundation-safety.test.tsx (theme ownership, verified auth/startup, retained buffer)",
+    "frontend_safety.test.cjs": "foundation-safety/architecture/time, assessments, courses, authoring, tutor, learning, portability, settings suites; foundation-reward-boundary.test.ts now explicitly protects absence of both /api/gamification/award-xp and /api/mastery/review throughout new source graph",
+    "learning_help.test.cjs": "learning-help.test.tsx + help-contracts/workflows + tutor-workflows (context/policy/receipt/UUID/cancellation, hidden/locked ownership)",
+    "portability_journey.test.cjs": "portability-contracts.test.ts + portability-flows.test.tsx + foundation-downloads.test.tsx (purpose, exact formats, import/revision confirmations)",
+    "practice_option_contract.test.cjs": "learning-tools-contracts/components + authoring-contracts/flows (option keys, mode validation, editable retry)",
+    "role_journeys.test.cjs": "people, learning, courses, assessments, tutor, home suites; learning-reading.test.tsx restores numeric source receipts including zero and malformed data; role URL/draft/unread work owned by finish_slm_draft_migration",
+    "service_worker.test.cjs": "test_frontend_delivery.py retirement-worker execution plus foundation-worker-retirement.test.ts; old precache contract intentionally removed, not copied",
+    "session_progress_locale.test.cjs": "learning-locale-continuity.test.tsx: both EN->ES and ES->EN, 1/2 and 2/2 progress after new read, current-item identity, same input/node, local draft, hidden buffer, focused notes/index control, unchanged route, no extra reads or writes; existing learning-session/reading locale tests",
+    "source_clarification.test.cjs": "learning-source-clarification-fixtures.test.tsx: every one of 11 shared JSON fixture cases, inert literal initial render, same-object-shape rerender, real materialForm/materialPayload editor roundtrip, legacy flattened body and repeated rerender; also existing learning-reading/authoring-contracts",
+    "tutor_receipts_journey.test.cjs": "tutor-contracts/workflows + learning-help (unverified suggestions, receipt identity, usage unknown, retries/cancel)"
+  },
+  "browser_native_acceptance": "NOT RUN; harness migrated, actual browser blocked",
+  "final_whole_codebase_audits": 0
+}

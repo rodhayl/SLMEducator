@@ -163,24 +163,17 @@ def block_offline_http_transport(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
-def setup_test_env(test_db_path, test_log_dir):
+def setup_test_env(test_db_path, test_log_dir, monkeypatch):
     """Set up test environment"""
-    # Set test database path
-    os.environ["SLM_DB_PATH"] = str(test_db_path)
-    os.environ["SLM_LOG_DIR"] = str(test_log_dir)
+    # Use the shared fixture so later test-specific patches unwind first and
+    # collection-safe defaults return even if setup or the test raises.
+    monkeypatch.setenv("SLM_DB_PATH", str(test_db_path))
+    monkeypatch.setenv("SLM_LOG_DIR", str(test_log_dir))
 
-    # Import and initialize database service
     from src.core.services.database import init_db_service
 
     init_db_service(str(test_db_path))
-
     yield
-
-    # Cleanup
-    if "SLM_DB_PATH" in os.environ:
-        del os.environ["SLM_DB_PATH"]
-    if "SLM_LOG_DIR" in os.environ:
-        del os.environ["SLM_LOG_DIR"]
 
 
 # Keep a registry of AIService instances created during tests; will auto-close them
@@ -376,6 +369,14 @@ def pytest_configure(config):
         and os.environ.get("USE_REAL_AI") == "1"
     ):
         raise pytest.UsageError("Offline tests cannot enable USE_REAL_AI")
+    # Test modules are imported before function fixtures execute. Give those
+    # imports an isolated database, and keep it as the between-test fallback.
+    directory = tempfile.TemporaryDirectory(prefix="slm-pytest-collection-")
+    environment = pytest.MonkeyPatch()
+    environment.setenv("SLM_DB_PATH", str(Path(directory.name) / "collection.sqlite3"))
+    environment.setenv("SLM_LOG_DIR", str(Path(directory.name) / "logs"))
+    config.add_cleanup(directory.cleanup)
+    config.add_cleanup(environment.undo)
     os.environ["TKINTER_HEADLESS"] = "true"
     # Register custom markers used across tests
     config.addinivalue_line(

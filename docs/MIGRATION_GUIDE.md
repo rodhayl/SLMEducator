@@ -1,171 +1,75 @@
-# SLMEducator Migration Guide
+# Migration and recovery guide
 
-## Encryption Key Migration
+The maintained procedure is [Course portability and database recovery](PORTABILITY_RECOVERY.md).
+Use its copy-first, encrypted backup and create-only restore/upgrade flow for an
+existing installation. Do not delete or reset the original database to recover
+access, resolve schema errors or replace an encryption key.
 
-### Background
+## Before changing an installation
 
-In the latest update, we've fixed a critical security issue where the encryption key was regenerated on every application restart. This caused encrypted data to become unreadable after restarts.
+1. Identify the explicit source database path, original encryption key and local
+   configuration. Keep the key private and securely retained separately from the
+   backup; never print it, paste it into an issue or write a plaintext key dump.
+2. Use the original managed key as `SLM_ENCRYPTION_KEY` in the recovery process.
+   Follow the [key-handling instructions](PORTABILITY_RECOVERY.md#preserve-the-original-encryption-key)
+   without exposing its value. Recovery does not discover or generate a key.
+3. Save pending application work. Create destination directories and choose new,
+   unused output filenames. Protect backups and restored databases as private
+   information. Archive uploaded files and required configuration separately;
+   the database archive does not include them, the encryption key or JWT secret.
 
-### What Changed
+## Back up, restore and verify
 
-**Before**: Encryption key was generated using:
-```python
-ENCRYPTION_KEY = os.getenv('SLM_ENCRYPTION_KEY', Fernet.generate_key())
+Run from a prepared source checkout, replacing these example absolute paths with
+operator-selected paths. Existing output files and symlinks are refused.
+
+```powershell
+.\venv\Scripts\python.exe scripts\recover_database.py backup --database C:\SLM\slm_educator.db --output C:\Backups\before-upgrade.slmbackup
+.\venv\Scripts\python.exe scripts\recover_database.py restore --backup C:\Backups\before-upgrade.slmbackup --output C:\SLM-Recovered\restored.db
+.\venv\Scripts\python.exe scripts\recover_database.py inspect --database C:\SLM-Recovered\restored.db
 ```
 
-**After**: Encryption key is now persistent:
-```python
-from .security_utils import get_or_create_encryption_key
-ENCRYPTION_KEY = get_or_create_encryption_key()
+SQLite's online backup API captures committed WAL data in a consistent snapshot;
+a plain copy of only a live `.db` file can miss it. The backup may manage source
+SQLite sidecars/read marks but does not change source rows. Uncommitted work is
+excluded. Restore verifies the archive and matching key before creating a new
+database. Keep the source and verified backup available until the new copy has
+been checked and deliberately accepted.
+
+## Upgrade an existing schema
+
+If startup reports an incomplete or unstamped schema, use the explicit
+[copy-first schema upgrade](PORTABILITY_RECOVERY.md#explicit-schema-upgrades):
+
+```powershell
+.\venv\Scripts\python.exe scripts\recover_database.py upgrade --database C:\SLM\slm_educator.db --output C:\SLM-Upgraded\upgraded.db --backup C:\Backups\pre-upgrade.slmbackup
+.\venv\Scripts\python.exe scripts\recover_database.py inspect --database C:\SLM-Upgraded\upgraded.db
 ```
 
-The key is now stored in `~/.slm_educator/encryption.key` with restricted permissions (0o600).
+Upgrade verifies an encrypted backup, restores into a new path and reconciles
+compatible additions there. It preserves source rows and account security state;
+it does not infer destructive schema changes or recover a lost encryption key.
+Leave legacy timestamp values unchanged unless the source timezone is independently
+known for each explicitly selected field. See the detailed recovery guide for
+limits, timestamp provenance and failure handling.
 
-### Migration Steps
+After verification, stop the old application before deliberately selecting the
+new database through `SLM_DB_PATH`. Configure the original encryption key in that
+runtime and verify expected records and sign-in behavior. The CLI does not switch
+databases automatically. A failed new copy is never a reason to delete the source.
 
-#### For New Installations
+## Credentials and session secrets
 
-No action required. The encryption key will be automatically generated on first run.
+An encryption key must match the records it protects. Generating a new key cannot
+recover old ciphertext. If the original key is unavailable or a validation fails,
+stop and arrange an administrator-reviewed recovery; preserve the original files.
+Do not share databases, keys, tokens or private configuration in support reports.
 
-#### For Existing Installations
+Preserve the installation's managed JWT secret separately when appropriate;
+changing it invalidates existing signed sessions. Signing in again does not repair
+encrypted data. Bootstrap credentials are create-only and do not reset existing
+accounts. Use the authenticated password-change flow or an explicit administrator
+recovery procedure, as described in the [project README](../README.md#initial-admin-account).
 
-> [!WARNING]
-> **Data Loss Risk**: If you have existing encrypted data and don't migrate properly, it will become unreadable.
-
-**Option 1: Fresh Start (Recommended for Development)**
-1. Backup your database: `cp slm_educator.db slm_educator.db.backup`
-2. Delete the database: `rm slm_educator.db`
-3. Restart the application - it will create a new database with the new encryption key
-
-**Option 2: Manual Migration (For Production)**
-
-If you have the old encryption key stored in an environment variable:
-
-1. **Backup your database**:
-   ```bash
-   cp slm_educator.db slm_educator.db.backup
-   ```
-
-2. **Export your old encryption key**:
-   ```bash
-   echo $SLM_ENCRYPTION_KEY > old_encryption_key.txt
-   ```
-
-3. **Run the migration script**:
-   ```bash
-   python scripts/migrate_encryption_key.py
-   ```
-
-4. **Verify the migration**:
-   - Login to the application
-   - Check that AI configurations are still accessible
-   - Verify encrypted content can be read
-
-**Option 3: No Encrypted Data**
-
-If you haven't stored any sensitive data (API keys in database, encrypted content):
-1. Simply restart the application
-2. The new encryption key will be generated automatically
-3. Re-enter any API keys in the settings
-
-### What Data is Encrypted?
-
-The following data types use encryption:
-- AI Model API keys stored in database
-- Content metadata (if marked as sensitive)
-- User preferences (if marked as private)
-
-### Troubleshooting
-
-**Problem**: "Unable to decrypt data" errors after update
-
-**Solution**:
-1. Check if `~/.slm_educator/encryption.key` exists
-2. If you have the old key, run the migration script
-3. If not, you'll need to re-enter encrypted data
-
-**Problem**: Application won't start after update
-
-**Solution**:
-1. Check logs in `logs/` directory
-2. Verify `src/core/security_utils.py` exists
-3. Ensure you have write permissions to `~/.slm_educator/`
-
-### Environment Variables
-
-The application now supports loading configuration from environment variables via `.env` file.
-
-**Setup**:
-1. Copy `.env.example` to `.env`:
-   ```bash
-   cp .env.example .env
-   ```
-
-2. Edit `.env` and fill in your values:
-   ```bash
-   # OpenRouter API Configuration
-   OPENROUTER_API_KEY=your_actual_api_key_here
-   
-   # Encryption Key (auto-generated if not set)
-   SLM_ENCRYPTION_KEY=your_encryption_key_here
-   
-   # JWT Secret (auto-generated if not set)
-   JWT_SECRET=your_jwt_secret_here
-   ```
-
-3. Restart the application
-
-**Priority**: Environment variables take precedence over `env.properties` / `settings.properties`.
-
-### Security Best Practices
-
-1. **Never commit `.env` file** - It's already in `.gitignore`
-2. **Never commit `env.properties` or `settings.properties` with real API keys**
-3. **Backup your encryption key** - Store it securely
-4. **Rotate keys periodically** - Use the migration script
-5. **Restrict file permissions** - `chmod 600 .env`
-
-### Getting Help
-
-If you encounter issues during migration:
-1. Check the logs in `logs/` directory
-2. Review the error messages carefully
-3. Ensure all dependencies are installed: `pip install -r requirements.txt`
-4. Create an issue on GitHub with:
-   - Error message
-   - Steps to reproduce
-   - Your environment (OS, Python version)
-
----
-
-## JWT Secret Migration
-
-### Background
-
-JWT secret was previously regenerated on every service restart, causing all users to be logged out.
-
-### What Changed
-
-JWT secret is now persistent and stored in `~/.slm_educator/jwt.secret`.
-
-### Migration Steps
-
-**For All Users**:
-1. Restart the application
-2. All users will need to log in again (one-time)
-3. After this, sessions will persist across restarts
-
-**No data migration required** - JWT tokens are short-lived and will naturally expire.
-
----
-
-## Summary
-
-| Change | Impact | Action Required |
-|--------|--------|-----------------|
-| Encryption Key | High | Backup data, run migration if needed |
-| JWT Secret | Low | Users re-login once |
-| Environment Variables | Medium | Create `.env` file |
-| Settings Service | Low | None - backward compatible |
-
-**Estimated Migration Time**: 5-15 minutes
+Synthetic recovery tests exercise disposable data. They do not establish native
+Windows acceptance or recovery of a real installation.

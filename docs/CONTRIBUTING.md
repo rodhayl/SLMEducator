@@ -56,7 +56,8 @@ src/
 │   ├── models/     # Data models
 │   └── services/   # Business services
 ├── api/            # API routes and endpoints
-└── web/            # Frontend HTML/JS
+├── frontend/       # React/TypeScript source and explicit dist build
+
 ```
 
 ### Test Organization
@@ -125,11 +126,16 @@ Example: `implementation_documents/gui_audit_20251216_findings.md`
 
 ### UI Styling (web)
 
-The maintained learning UI is FastAPI-served HTML, vanilla JavaScript and
-Bootstrap with shared tokens in `src/web/static/css/main.css`. Reuse those
-components, `safe-render.js`, `learning-client.js`, localization, theme and toast
-helpers. Keep accessible labels, focus/status feedback and keyboard alternatives.
-The packaged launcher uses Tkinter; there is no maintained Qt educational UI.
+The active learning UI is React/TypeScript in `src/frontend`, served from its
+verified dist by FastAPI. Read `src/frontend/CONTRACTS.md` and reuse the shared
+primitives, auth/API/query adapters, renderer and localization. Keep accessible
+labels, focus/status feedback and keyboard alternatives. Never import legacy
+Bootstrap, global scripts or handlers into the new graph. Legacy `src/web` and its executable scripts/styles are retired; Git history
+preserves the original implementation. Compatibility redirects and the narrow
+service-worker retirement endpoint are maintained boundaries, never a legacy GUI
+fallback or package input. The packaged launcher uses Tkinter; there is
+no maintained Qt educational UI. Node is required only for explicit build/test
+work. See the README for frontend build and integrity requirements.
 
 ---
 
@@ -228,9 +234,11 @@ Already in `.gitignore`:
 
 ### Internationalization (i18n)
 
-- **Proactive Translation**: Add translation keys to BOTH `en.json` and `es.json` for new UI
-- **No Hardcoded Strings**: All user-facing text must use `data-i18n` attributes
-- **Check All Languages**: Never leave a key missing in one language
+- **React catalogs**: Use `useTranslation('<domain>')` from `react-i18next` and add matching `en`/`es` keys to the feature's `locales.ts`. Shared labels belong in `src/frontend/src/i18n/common.ts`.
+- **Translate every UI state**: Include visible labels, statuses, errors and accessible names. Keep double-brace placeholders consistent; preserve user-authored content as written.
+- **Current behavior**: Spanish is the React startup/default fallback. Language selection updates the document language and the origin-local browser preference; account settings use their separate save boundary.
+- **Separate surfaces**: Python `translations/*.json` and native launcher strings remain separate from React catalogs. Do not add legacy DOM translation handlers or Qt imports.
+- **Verify changes**: Follow [the translation guide](i18n/TRANSLATION_GUIDE.md), test both languages and run the frontend checks.
 
 ### Docstring Template
 

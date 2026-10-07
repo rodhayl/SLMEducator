@@ -1,0 +1,38 @@
+import { describe,it,expect,vi } from 'vitest';
+import { act,render,screen,waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { createMemoryRouter,Link } from 'react-router';
+import { RouterProvider } from 'react-router';
+import { useState } from 'react';
+import { DraftAdapter } from '@/lib/drafts';
+import { AuthController } from '@/app/auth-controller';
+import { AuthProvider } from '@/app/AuthProvider';
+import { ProtectedLayout } from '@/app/AppShell';
+import { useDirtyGuard } from '@/app/DirtyGuard';
+import { useResource,createQueryClient } from '@/lib/query';
+import { PageHeader,Field,Input,ConfirmDialog } from '@/components/ui';
+import { LoginPage } from '@/features/auth/LoginPage';
+import i18n from '@/i18n';
+const account={id:1,username:'demo',role:'teacher',first_name:'Demo',last_name:'Teacher',email:'demo@example.com'};
+const json=(value:unknown,status=200)=>new Response(JSON.stringify(value),{status});
+function Editor(){ const [confirm,setConfirm]=useState(false); const [value,setValue]=useState('Initial title');useResource(['private'],'/api/content/9');useDirtyGuard(value!=='Initial title');return <><PageHeader title="Edit course"/><Field label="Private course title"><Input value={value} onChange={event=>setValue(event.target.value)}/></Field><button onClick={()=>setConfirm(true)}>Open private confirmation</button><ConfirmDialog open={confirm} onOpenChange={setConfirm} title="Private course confirmation" description="Account-owned private draft" confirmLabel="Confirm" onConfirm={()=>setConfirm(false)}/><Link to="/destination">Leave editor</Link><Link to="/edit?content_id=2">Change context</Link></>; }
+async function fixture(){
+ await i18n.changeLanguage('en');window.scrollTo=vi.fn();
+ const transport=vi.fn(async(input:RequestInfo|URL,init?:RequestInit)=>{const path=String(input);const other=(init?.headers as Record<string,string>)?.Authorization==='Bearer B';if(path==='/api/auth/login'){const isOther=(init?.body as URLSearchParams).get('username')==='other';return json({access_token:isOther?'B':'A',user:isOther?{...account,id:2,username:'other'}:account});}if(path==='/api/classroom/messages/unread-count')return json({unread_count:0});if(path==='/api/auth/me')return json(other?{...account,id:2,username:'other'}:account);return json({id:9,title:'Private'});});
+ localStorage.setItem('token','A');const queries=createQueryClient();const auth=new AuthController(queries,localStorage,transport);
+ const router=createMemoryRouter([{path:'/entrar',element:<LoginPage/>},{element:<ProtectedLayout/>,children:[{path:'/edit',element:<Editor/>},{path:'/destination',element:<PageHeader title="Destination"/>}]}],{initialEntries:['/edit']});
+ render(<QueryClientProvider client={queries}><AuthProvider controller={auth}><RouterProvider router={router}/></AuthProvider></QueryClientProvider>);
+ await screen.findByRole('textbox',{name:'Private course title'});return {auth,router,transport};
+}
+describe('private buffer and navigation integration',()=>{
+ it('hides and inertizes dirty editor on expiry, then restores same-account input without mutation replay',async()=>{
+ const {auth,transport}=await fixture();const input=screen.getByRole('textbox',{name:'Private course title'});await userEvent.clear(input);await userEvent.type(input,'My unsaved work');act(()=>auth.lock());expect(screen.queryByRole('textbox',{name:'Private course title'})).toBeNull();expect(screen.getByLabelText('Private course title')).not.toBeVisible();expect(screen.getByLabelText('Private course title').closest('[inert]')).toBeTruthy();await act(()=>auth.login('demo','synthetic'));expect(screen.getByRole('textbox',{name:'Private course title'})).toHaveValue('My unsaved work');expect(document.title).toBe('Edit course · SLMEducator');expect(transport.mock.calls.filter(([,init])=>init?.method==='POST').map(([path])=>path)).toEqual(['/api/auth/login']);
+ });
+ it('hides portaled private confirmation content during reauthentication',async()=>{const {auth}=await fixture();await userEvent.click(screen.getByRole('button',{name:'Open private confirmation'}));expect(await screen.findByRole('dialog')).toHaveTextContent('Account-owned private draft');act(()=>auth.lock());expect(screen.queryByRole('dialog')).toBeNull();expect(screen.queryByText('Account-owned private draft')).toBeNull();await act(()=>auth.login('demo','synthetic'));expect(await screen.findByRole('dialog')).toBeVisible();});
+ it('offers an explicit exit from a locked buffer while keeping supported device drafts',async()=>{const {auth}=await fixture();new DraftAdapter(1).write('notes',1,1,{notes:'kept'});await userEvent.type(screen.getByRole('textbox',{name:'Private course title'}),' private');act(()=>auth.lock());await userEvent.click(screen.getByRole('button',{name:'Discard hidden work and sign out'}));expect(await screen.findByRole('heading',{name:'Welcome back'})).toBeVisible();expect(screen.queryByLabelText('Private course title')).toBeNull();expect(new DraftAdapter(1).hasDrafts()).toBe(true);});
+ it('blocks history navigation during lock so the hidden buffer remains mounted',async()=>{const {auth,router}=await fixture();await userEvent.type(screen.getByRole('textbox',{name:'Private course title'}),' preserved');act(()=>auth.lock());await act(()=>router.navigate('/destination'));expect(router.state.location.pathname).toBe('/edit');expect(screen.getByLabelText('Private course title')).toHaveValue('Initial title preserved');expect(screen.queryByRole('dialog')).toBeNull();await act(()=>auth.login('demo','synthetic'));expect(await screen.findByRole('dialog')).toBeVisible();await userEvent.click(screen.getByRole('button',{name:'Cancel'}));expect(screen.getByRole('textbox',{name:'Private course title'})).toHaveValue('Initial title preserved');});
+ it('destroys hidden private editor memory before another account is shown',async()=>{const {auth}=await fixture();const input=screen.getByRole('textbox',{name:'Private course title'});await userEvent.clear(input);await userEvent.type(input,'Previous account only');act(()=>auth.lock());await act(()=>auth.login('other','synthetic'));expect(screen.getByRole('textbox',{name:'Private course title'})).toHaveValue('Initial title');expect(screen.queryByDisplayValue('Previous account only')).toBeNull();});
+ it('blocks changed route and context, cancel leaves values, discard proceeds',async()=>{await fixture();await userEvent.type(screen.getByRole('textbox',{name:'Private course title'}),' changed');await userEvent.click(screen.getByRole('link',{name:'Change context'}));expect(await screen.findByRole('dialog')).toBeVisible();await userEvent.click(screen.getByRole('button',{name:'Cancel'}));await waitFor(()=>expect(screen.queryByRole('dialog')).toBeNull());expect(screen.getByRole('textbox',{name:'Private course title'})).toHaveValue('Initial title changed');await userEvent.click(screen.getByRole('link',{name:'Leave editor'}));await userEvent.click(await screen.findByRole('button',{name:'Discard changes and leave'}));expect(await screen.findByRole('heading',{name:'Destination'})).toBeVisible();});
+ it('reacts to an account switch from another tab and drops the old buffer',async()=>{await fixture();await userEvent.type(screen.getByRole('textbox',{name:'Private course title'}),' secret');localStorage.setItem('token','B');act(()=>window.dispatchEvent(new StorageEvent('storage',{key:'token',oldValue:'A',newValue:'B'})));await waitFor(()=>expect(screen.getByRole('textbox',{name:'Private course title'})).toHaveValue('Initial title'));});
+});

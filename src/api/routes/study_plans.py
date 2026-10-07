@@ -22,7 +22,6 @@ from src.core.models import (
     StudyPlanContent,
     ContentType,
     StudentStudyPlan,
-    DailyGoal,
 )
 from src.core.roles import is_admin, is_student, is_teacher_or_admin
 from src.core.services import course_workflow
@@ -99,6 +98,7 @@ class StudyPlanCreate(BaseModel):
 
 class StudyPlanResponse(BaseModel):
     id: int
+    creator_id: Optional[int]
     title: str
     description: Optional[str]
     is_public: bool
@@ -453,6 +453,7 @@ class StudyPlanTree(BaseModel):
     """Study plan with nested content structure."""
 
     id: int
+    creator_id: Optional[int]
     title: str
     description: Optional[str]
     is_public: bool
@@ -554,6 +555,7 @@ async def get_study_plan_tree(
 
     return StudyPlanTree(
         id=plan.id,
+        creator_id=plan.creator_id,
         title=plan.title,
         description=plan.description,
         is_public=plan.is_public,
@@ -725,8 +727,8 @@ async def get_study_plan_grades(
         total_assessments=len(assessments),
         graded_submissions=len(graded),
         pending_submissions=len(pending),
-        average_score=round(avg_score, 1) if avg_score else None,
-        passing_rate=round(passing_rate, 1) if passing_rate else None,
+        average_score=round(avg_score, 1) if avg_score is not None else None,
+        passing_rate=round(passing_rate, 1) if passing_rate is not None else None,
     )
 
 
@@ -754,8 +756,17 @@ async def get_topic_grades(
     if not content:
         raise HTTPException(status_code=404, detail="Topic not found")
 
+    require_allowed(
+        content.study_plan_id == plan_id
+        or db.query(StudyPlanContent)
+        .filter_by(study_plan_id=plan_id, content_id=topic_id)
+        .first() is not None
+    )
+
     # Get assessments linked to this topic
-    assessments = db.query(Assessment).filter(Assessment.topic_id == topic_id).all()
+    assessments = db.query(Assessment).filter(
+        Assessment.topic_id == topic_id, Assessment.study_plan_id == plan_id
+    ).all()
     assessment_ids = [a.id for a in assessments]
 
     if not assessment_ids:
@@ -811,8 +822,8 @@ async def get_topic_grades(
         total_assessments=len(assessments),
         graded_submissions=len(graded),
         pending_submissions=len(pending),
-        average_score=round(avg_score, 1) if avg_score else None,
-        passing_rate=round(passing_rate, 1) if passing_rate else None,
+        average_score=round(avg_score, 1) if avg_score is not None else None,
+        passing_rate=round(passing_rate, 1) if passing_rate is not None else None,
     )
 
 
