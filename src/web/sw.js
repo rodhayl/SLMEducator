@@ -4,7 +4,7 @@
  * Version: 1.0.2
  */
 
-const CACHE_NAME = 'slm-educator-v22-session-locale';
+const CACHE_NAME = 'slm-educator-v22-session-locale-auth-validation';
 const OFFLINE_URL = '/404.html';
 
 // Static assets to cache on install

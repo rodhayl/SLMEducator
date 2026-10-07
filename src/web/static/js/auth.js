@@ -21,25 +21,108 @@ export class AuthService {
         return { ...user, role };
     }
 
+    static _message(key, fallback) {
+        const value = window.I18n?.t?.(key);
+        return typeof value === 'string' && value && value !== key ? value : fallback;
+    }
+
+    static _validationMessage(detail) {
+        const fields = {
+            username: ['common.labels.username', 'Username'],
+            password: ['common.labels.password', 'Password'],
+            email: ['common.labels.email', 'Email'],
+            first_name: ['common.labels.first_name', 'First Name'],
+            last_name: ['common.labels.last_name', 'Last Name'],
+            role: ['auth.errors.role', 'Role'],
+            teacher_id: ['auth.errors.teacher_id', 'Teacher']
+        };
+        const entries = Array.isArray(detail) ? detail : [detail];
+        const messages = [];
+        // Never display validator msg/input/ctx: even msg can echo a password.
+        for (const entry of entries.slice(0, 20)) {
+            const loc = entry?.loc;
+            if (!Array.isArray(loc) || loc.length !== 2 || loc[0] !== 'body' || typeof loc[1] !== 'string'
+                || !Object.hasOwn(fields, loc[1])) continue;
+            const field = loc[1];
+            const label = this._message(...fields[field]);
+            const reason = entry.type === 'missing'
+                ? this._message('auth.errors.required', 'This field is required.')
+                : field === 'email'
+                    ? this._message('auth.errors.invalid_email', 'Enter a valid email address, such as name@example.com.')
+                    : this._message('auth.errors.invalid_field', 'Check this field.');
+            const text = `${label}: ${reason}`;
+            if (!messages.includes(text)) messages.push(text);
+            if (messages.length === 4) break;
+        }
+        return messages.join(' ').slice(0, 600);
+    }
+
+    static _error(status, detail, operation) {
+        const fallback = this._message(`auth.errors.${operation}_failed`,
+            operation === 'login' ? 'Sign-in failed. Please try again.' : 'Account creation failed. Check the form and try again.');
+        let message = '';
+        if (status < 500 && typeof detail === 'string') {
+            // Only fixed backend messages are safe: arbitrary strings may contain
+            // credentials, including whitespace-normalized or JSON-escaped ones.
+            const routineMessages = [
+                'Username already exists', 'Email already exists',
+                'Password must be at least 8 characters and contain uppercase, lowercase, digit, and special character',
+                'Choose an active teacher for a student account', 'Invalid role',
+                'Account creation requires an administrator or teacher',
+                'Teachers can only create student accounts',
+                'Teachers can only enroll their own learners',
+                'Students cannot create user accounts', 'Invalid username or password',
+                'Too many login attempts. Please try again later.',
+                'Account is locked due to too many failed attempts',
+                'Account lock timestamp has an unknown timezone. Ask the administrator to review its provenance.',
+                'Not authenticated', 'Could not validate credentials', 'Not authorized'
+            ];
+            if (routineMessages.includes(detail)) message = detail;
+        } else if (status === 422 && detail && typeof detail === 'object') {
+            message = this._validationMessage(detail);
+        }
+        const error = new Error(message || fallback);
+        error.status = status;
+        return error;
+    }
+
+    static async _request(url, options, operation) {
+        let response;
+        try {
+            response = await fetch(url, options);
+        } catch {
+            throw new Error(operation === 'register'
+                ? this._message('auth.errors.register_network', 'Could not reach the server. Check the connection. Before retrying account creation, check the account list.')
+                : this._message('auth.errors.network', 'Could not reach the server. Check the connection and try again.'));
+        }
+        let data;
+        try { data = await response.json(); } catch { data = null; }
+        if (!response.ok) throw this._error(response.status, data?.detail, operation);
+        const valid = operation === 'login'
+            ? typeof data?.access_token === 'string' && data.access_token.length > 0 && Number.isInteger(data.user?.id) && data.user.id > 0
+            : Number.isInteger(data?.id) && data.id > 0;
+        if (!valid) {
+            const error = new Error(operation === 'register'
+                ? this._message('auth.errors.register_invalid_response', 'The server response could not be read. Before retrying account creation, check the account list.')
+                : this._message('auth.errors.invalid_response', 'The server response could not be read. Please try again.'));
+            error.status = response.status;
+            throw error;
+        }
+        return data;
+    }
+
     static async login(username, password) {
         const params = new URLSearchParams();
         params.append('username', username);
         params.append('password', password);
 
-        const response = await fetch('/api/auth/login', {
+        const data = await this._request('/api/auth/login', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded'
             },
             body: params
-        });
-
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.detail || 'Login failed');
-        }
-
-        const data = await response.json();
+        }, 'login');
         localStorage.setItem('token', data.access_token);
         const user = AuthService._normalizeUser(data.user);
         localStorage.setItem('user', JSON.stringify(user));
@@ -169,16 +252,11 @@ export class AuthService {
         const token = AuthService.getToken();
         const headers = { 'Content-Type': 'application/json' };
         if (token) headers['Authorization'] = `Bearer ${token}`;
-        const res = await fetch('/api/auth/register', {
+        return this._request('/api/auth/register', {
             method: 'POST',
             headers,
             body: JSON.stringify(userData)
-        });
-        if (!res.ok) {
-            const err = await res.json();
-            throw new Error(err.detail || 'Registration failed');
-        }
-        return await res.json();
+        }, 'register');
     }
 }
 

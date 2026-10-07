@@ -106,6 +106,19 @@
     }
   },
   "auth": {
+    "errors": {
+      "login_failed": "Sign-in failed. Please try again.",
+      "register_failed": "Account creation failed. Check the form and try again.",
+      "network": "Could not reach the server. Check the connection and try again.",
+      "invalid_response": "The server response could not be read. Please try again.",
+      "required": "This field is required.",
+      "invalid_field": "Check this field.",
+      "invalid_email": "Enter a valid email address, such as name@example.com.",
+      "teacher_id": "Teacher",
+      "role": "Role",
+      "register_network": "Could not reach the server. Check the connection. Before retrying account creation, check the account list.",
+      "register_invalid_response": "The server response could not be read. Before retrying account creation, check the account list."
+    },
     "login": {
       "title": "Welcome Back",
       "subtitle": "Sign in to continue to SLM Educator",

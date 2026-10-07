@@ -106,6 +106,19 @@
     }
   },
   "auth": {
+    "errors": {
+      "login_failed": "No se pudo iniciar sesión. Inténtalo de nuevo.",
+      "register_failed": "No se pudo crear la cuenta. Revisa el formulario e inténtalo de nuevo.",
+      "network": "No se pudo contactar con el servidor. Comprueba la conexión e inténtalo de nuevo.",
+      "invalid_response": "No se pudo leer la respuesta del servidor. Inténtalo de nuevo.",
+      "required": "Este campo es obligatorio.",
+      "invalid_field": "Revisa este campo.",
+      "invalid_email": "Introduce un correo válido, como nombre@example.com.",
+      "teacher_id": "Docente",
+      "role": "Rol",
+      "register_network": "No se pudo contactar con el servidor. Comprueba la conexión. Antes de volver a crear la cuenta, consulta la lista de cuentas.",
+      "register_invalid_response": "No se pudo leer la respuesta del servidor. Antes de volver a crear la cuenta, consulta la lista de cuentas."
+    },
     "login": {
       "title": "Bienvenido de Nuevo",
       "subtitle": "Inicia sesión para continuar a SLM Educador",
