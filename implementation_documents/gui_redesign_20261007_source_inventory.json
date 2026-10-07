@@ -1,0 +1,258 @@
+{
+  "commit": "99ebef03901871ca9c9a1c548058971ae1f7e089",
+  "surface_files": [
+    {
+      "path": "src/web/404.html",
+      "lines": 40,
+      "bytes": 1437,
+      "sha": "56a43cb38b6ed9cba50ac5c7c0e1027ca975cbf2",
+      "remote_matches": true
+    },
+    {
+      "path": "src/web/assessment_builder.html",
+      "lines": 201,
+      "bytes": 11833,
+      "sha": "19f624e80a513a7b755bde4d2f570c4a20f21f3a",
+      "remote_matches": true
+    },
+    {
+      "path": "src/web/assessment_history.html",
+      "lines": 48,
+      "bytes": 2865,
+      "sha": "a3c945048c5d51dc93c56016b2286a28635fd3f5",
+      "remote_matches": true
+    },
+    {
+      "path": "src/web/assessment_taker.html",
+      "lines": 113,
+      "bytes": 5404,
+      "sha": "b8cc491172acd7f0c02e3732c86f3dbf7acd3910",
+      "remote_matches": true
+    },
+    {
+      "path": "src/web/course_designer.html",
+      "lines": 220,
+      "bytes": 13304,
+      "sha": "a897b225d525bf6c970c6b14e1c9fb506b3c7c56",
+      "remote_matches": true
+    },
+    {
+      "path": "src/web/dashboard.html",
+      "lines": 2039,
+      "bytes": 134781,
+      "sha": "4bbba472b1870adb69a1f4071ffa6c5466540ec2",
+      "remote_matches": true
+    },
+    {
+      "path": "src/web/grading.html",
+      "lines": 134,
+      "bytes": 7478,
+      "sha": "5da7f463020021d2cdb08a538a2c9a7d7741b1c8",
+      "remote_matches": true
+    },
+    {
+      "path": "src/web/index.html",
+      "lines": 62,
+      "bytes": 2815,
+      "sha": "5829136a104653417173d53f318b54b9ceca611f",
+      "remote_matches": true
+    },
+    {
+      "path": "src/web/login.html",
+      "lines": 43,
+      "bytes": 2025,
+      "sha": "c378d8b32592a4a0d26859169f4e36e8080f40da",
+      "remote_matches": true
+    },
+    {
+      "path": "src/web/portability.html",
+      "lines": 86,
+      "bytes": 7176,
+      "sha": "266baf9bc17bda24e9a6823e3ade3f1a957e3429",
+      "remote_matches": true
+    },
+    {
+      "path": "src/web/register.html",
+      "lines": 70,
+      "bytes": 4206,
+      "sha": "c58e12d34071153bdf3855349cec50f7320e7927",
+      "remote_matches": true
+    },
+    {
+      "path": "src/web/session_player.html",
+      "lines": 235,
+      "bytes": 14476,
+      "sha": "94b52441073ede2c3d0da87eeb2eb383693ace22",
+      "remote_matches": true
+    },
+    {
+      "path": "src/web/static/css/main.css",
+      "lines": 2058,
+      "bytes": 48472,
+      "sha": "7c389231296aa2f56287a5c7b0e7eae1880cabe7",
+      "remote_matches": true
+    },
+    {
+      "path": "src/web/static/js/admin-accounts.js",
+      "lines": 88,
+      "bytes": 7435,
+      "sha": "b28e6f6d726e42838b6b66961855c640f9cafbf8",
+      "remote_matches": true
+    },
+    {
+      "path": "src/web/static/js/assessment.js",
+      "lines": 128,
+      "bytes": 8269,
+      "sha": "5fbfa11b8e6317e2923372b61afffe7aa61b9ce5",
+      "remote_matches": true
+    },
+    {
+      "path": "src/web/static/js/assessment_builder.js",
+      "lines": 346,
+      "bytes": 17235,
+      "sha": "23504c34b395283178618731bcbaa313b015c153",
+      "remote_matches": true
+    },
+    {
+      "path": "src/web/static/js/assessment_history.js",
+      "lines": 171,
+      "bytes": 10875,
+      "sha": "673785b14cfeb78f9c5dc05e95853dcabc7cfc88",
+      "remote_matches": true
+    },
+    {
+      "path": "src/web/static/js/assessment_taker.js",
+      "lines": 308,
+      "bytes": 16555,
+      "sha": "2acf7235d909ee0cda4f8514bcfafa7669d5d318",
+      "remote_matches": true
+    },
+    {
+      "path": "src/web/static/js/auth.js",
+      "lines": 428,
+      "bytes": 18781,
+      "sha": "1d077b12ea015a4f4391ae533a0be07ac33531c1",
+      "remote_matches": true
+    },
+    {
+      "path": "src/web/static/js/course_designer.js",
+      "lines": 785,
+      "bytes": 33035,
+      "sha": "59652df24251bd222f32b1a1fd4acfa57351bdb2",
+      "remote_matches": true
+    },
+    {
+      "path": "src/web/static/js/dashboard.js",
+      "lines": 4339,
+      "bytes": 194444,
+      "sha": "5eb62d18abe45a4907dad3a8d891705feafaa4a6",
+      "remote_matches": true
+    },
+    {
+      "path": "src/web/static/js/grading.js",
+      "lines": 283,
+      "bytes": 16129,
+      "sha": "a308fbf86ffab42e2c13db20ae2594273d9631ff",
+      "remote_matches": true
+    },
+    {
+      "path": "src/web/static/js/i18n.js",
+      "lines": 264,
+      "bytes": 9190,
+      "sha": "cecc59dbd53ebb88e11595f48140f5ebf2b5d66f",
+      "remote_matches": true
+    },
+    {
+      "path": "src/web/static/js/learning-client.js",
+      "lines": 107,
+      "bytes": 5815,
+      "sha": "397a7b1f21c4a0b6872cbfc74dbb3e174de6a394",
+      "remote_matches": true
+    },
+    {
+      "path": "src/web/static/js/learning-help.js",
+      "lines": 517,
+      "bytes": 41413,
+      "sha": "322b0ec618a3180382949105a5c1dd7e307d62b6",
+      "remote_matches": true
+    },
+    {
+      "path": "src/web/static/js/modules/inbox.js",
+      "lines": 649,
+      "bytes": 24415,
+      "sha": "d3e5dd5d7c8c43242c5b9ad641e0b05fbb34d149",
+      "remote_matches": true
+    },
+    {
+      "path": "src/web/static/js/portability.js",
+      "lines": 178,
+      "bytes": 13989,
+      "sha": "7e7277a4982e2c31cbb4e60ab82348ccc599e7fb",
+      "remote_matches": true
+    },
+    {
+      "path": "src/web/static/js/practice.js",
+      "lines": 99,
+      "bytes": 7170,
+      "sha": "81db62f9d4ab309e66e1922702d252894c552d4a",
+      "remote_matches": true
+    },
+    {
+      "path": "src/web/static/js/safe-render.js",
+      "lines": 92,
+      "bytes": 5831,
+      "sha": "0d43ba7c5bcbd8ded74d5e667e69ecc98260bb44",
+      "remote_matches": true
+    },
+    {
+      "path": "src/web/static/js/session.js",
+      "lines": 887,
+      "bytes": 36870,
+      "sha": "e5aac2ae8929ce0aacb20fd99c42c2346b58bc98",
+      "remote_matches": true
+    },
+    {
+      "path": "src/web/static/js/study_plan_builder.js",
+      "lines": 303,
+      "bytes": 15081,
+      "sha": "0cf73e07a24b08eae139afa6e7505c164aef4403",
+      "remote_matches": true
+    },
+    {
+      "path": "src/web/static/js/theme.js",
+      "lines": 71,
+      "bytes": 2131,
+      "sha": "1ee2e30ff68646830ed4a0aa665965df981d12a5",
+      "remote_matches": true
+    },
+    {
+      "path": "src/web/static/js/time-display.js",
+      "lines": 94,
+      "bytes": 5250,
+      "sha": "3acae36d07c130cdd1cccf5623e6ed34ed18c70a",
+      "remote_matches": true
+    },
+    {
+      "path": "src/web/static/js/toast.js",
+      "lines": 276,
+      "bytes": 10515,
+      "sha": "f1e43eb1b1322e7f6f4d4f8da7227c15c4a18044",
+      "remote_matches": true
+    },
+    {
+      "path": "src/web/study_plan_builder.html",
+      "lines": 131,
+      "bytes": 7119,
+      "sha": "e3c4f93261fcbb6e48d23f4b75f428bffedd16bb",
+      "remote_matches": true
+    },
+    {
+      "path": "src/web/sw.js",
+      "lines": 169,
+      "bytes": 6359,
+      "sha": "f676cf4918cd8cf8ece52493229cdc23713d6d1f",
+      "remote_matches": true
+    }
+  ],
+  "api_core_translation_mismatches": []
+}
