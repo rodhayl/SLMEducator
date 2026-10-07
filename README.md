@@ -236,6 +236,22 @@ Automated packaging tests exercise real SQLite and the real seeder with a
 simulated freezer. A native Windows build and packaged startup/login smoke test
 are still required before distributing an executable.
 
+### Windows installer (Inno Setup)
+
+`build_installer.bat` wraps a fresh `--prod` payload in a per-user Windows
+installer. It reuses `scripts/build_package.py --prod` for the payload and
+compiles `installer/SLMEducator.iss` with Inno Setup 6 (`ISCC.exe`).
+
+```powershell
+.\build_installer.bat --payload-dir "C:\builds\SLMEducator payload" --output-dir "C:\builds\SLMEducator setup" --version 2.0.0
+```
+
+Both directories must be new and absolute. The installer installs under
+`%LOCALAPPDATA%\Programs\SLMEducator` without administrator rights, keeps the
+seeded database and generated `env.properties` as user data across reinstall
+and uninstall, and refuses to update an existing installation in place.
+See [the installer recipe](docs/WINDOWS_INSTALLER.md) for boundaries and limits.
+
 ## Teacher-reviewed local evaluation
 
 New accounts require an authenticated administrator or teacher. Bootstrap remains create-only. Teachers create their own learners; resource access follows enrollment and authorship. The password-change screen uses `/api/auth/change-password` and revokes previous sessions after rotation.
