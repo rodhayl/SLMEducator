@@ -11,14 +11,16 @@ import './tutor.css';
 export function TutorPage(){const {scope}=useAuth();return <TutorWorkspace key={scope}/>;}
 function TutorWorkspace(){
  const {t}=useTranslation('tutor'),{status,user}=useAuth(),[params]=useSearchParams();
- const [mode,setMode]=useState(params.get('tab')==='questions'||params.has('question_id')?'questions':'conversation');
+ const initialMode=params.get('tab')==='questions'||params.has('question_id')?'questions':'conversation';
+ const [mode,setMode]=useState(initialMode),[visited,setVisited]=useState([initialMode]);
+ function selectMode(value:string){setMode(value);setVisited(previous=>previous.includes(value)?previous:[...previous,value]);}
  const [chatDirty,setChatDirty]=useState(false),[questionDirty,setQuestionDirty]=useState(false);
  useDirtyGuard(chatDirty||questionDirty);
  const active=status==='authenticated';
  return <div className="stack tutor-workspace" hidden={!active} inert={!active}>
   <PageHeader title={t('title')} description={t('subtitle')} actions={<Link to="/ayuda">{t(user?.role==='student'?'myRequests':'helpRequests')}</Link>}/>
-  <div className="cluster"><Button variant={mode==='conversation'?'primary':'secondary'} aria-pressed={mode==='conversation'} onClick={()=>setMode('conversation')}>{t('conversation')}</Button><Button variant={mode==='questions'?'primary':'secondary'} aria-pressed={mode==='questions'} onClick={()=>setMode('questions')}>{t(user?.role==='student'?'myQuestions':'sharedQuestions')}</Button></div>
-  <Conversation active={active&&mode==='conversation'} onDirty={setChatDirty} initialContent={positiveId(params.get('content_id'))} initialPlan={positiveId(params.get('plan_id')||params.get('study_plan_id'))}/>
-  <Questions active={active&&mode==='questions'} onDirty={setQuestionDirty} initialId={positiveId(params.get('question_id'))}/>
+  <div className="cluster"><Button variant={mode==='conversation'?'primary':'secondary'} aria-pressed={mode==='conversation'} onClick={()=>selectMode('conversation')}>{t('conversation')}</Button><Button variant={mode==='questions'?'primary':'secondary'} aria-pressed={mode==='questions'} onClick={()=>selectMode('questions')}>{t(user?.role==='student'?'myQuestions':'sharedQuestions')}</Button></div>
+  {visited.includes('conversation')&&<Conversation active={active} visible={mode==='conversation'} onDirty={setChatDirty} initialContent={positiveId(params.get('content_id'))} initialPlan={positiveId(params.get('plan_id')||params.get('study_plan_id'))}/>}
+  {visited.includes('questions')&&<Questions active={active} visible={mode==='questions'} onDirty={setQuestionDirty} initialId={positiveId(params.get('question_id'))}/>}
  </div>;
 }

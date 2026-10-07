@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react';
-import { Link, useParams, useSearchParams, type RouteObject } from 'react-router';
+import { Link, useLocation, useParams, useSearchParams, type RouteObject } from 'react-router';
 import { useForm, type FieldPath } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/app/AuthProvider';
@@ -28,9 +28,14 @@ function usePeople(role: Role | '', includeInactive: boolean, enabled = true) {
 function useReportDirty(dirty: boolean, report: (dirty: boolean) => void) {
   useEffect(() => { report(dirty); return () => report(false); }, [dirty, report]);
 }
+function listFilters(params:URLSearchParams) {
+  const result=new URLSearchParams();for(const key of ['role','state','q']){const value=params.get(key);if(value)result.set(key,value);}
+  return result.size?'?'+result:'';
+}
 function BackLink() {
-  const { t } = useTranslation('people');
-  return <Link to={listUrl}>{t('back')}</Link>;
+  const { t } = useTranslation('people'),[params]=useSearchParams(),location=useLocation();
+  const {personId,studentId}=useParams(),id=positiveId(personId||studentId),filter=listFilters(params);
+  return <Link to={`${listUrl}${filter}${id&&(filter||location.state?.listOrigin===listUrl)?'#person-'+id:''}`}>{t('back')}</Link>;
 }
 
 /** Both staff roles enter the same context-aware list; student access does no reads. */
@@ -58,7 +63,7 @@ function PeopleList({ actor }: { actor: User }) {
     `${personName(person)} ${person.username} ${person.email}`.toLocaleLowerCase().includes(search.toLocaleLowerCase()));
   return <div className="stack">
     <PageHeader title={t(admin ? 'people' : 'students')} description={t(admin ? 'peopleDescription' : 'studentsDescription')}
-      actions={<Link to="/personas/nueva">{t(admin ? 'createPerson' : 'createStudent')}</Link>} />
+      actions={<Link to={`/personas/nueva${listFilters(params)}`} state={{listOrigin:listUrl}}>{t(admin ? 'createPerson' : 'createStudent')}</Link>} />
     <Card><div className="toolbar">
       {admin && <Field label={t('filterRole')}><Select aria-label={t('filterRole')} value={role} onChange={event => setFilter('role', isRole(event.target.value) ? event.target.value : '')}>
         <option value="">{t('allRoles')}</option>{accountRoles.map(value => <option key={value} value={value}>{t(value)}</option>)}
@@ -76,7 +81,7 @@ function PeopleList({ actor }: { actor: User }) {
       {!filtered.length ? <EmptyState title={t(admin ? 'empty' : 'emptyStudents')} description={t(admin ? 'emptyDescription' : 'emptyStudentsDescription')} /> :
         <div className="table-wrap"><table><thead><tr><th scope="col">{t('name')}</th><th scope="col">{t('role')}</th><th scope="col">{t('status')}</th><th scope="col">{t('email')}</th></tr></thead>
           <tbody>{filtered.map(person => <tr key={person.id}>
-            <th scope="row"><Link to={detailUrl(person, actor.role)} aria-label={t('openPerson', { name: personName(person) })}>{personName(person)}</Link><div className="muted">{person.username}</div></th>
+            <th scope="row"><Link id={`person-${person.id}`} to={`${detailUrl(person, actor.role)}${listFilters(params)}`} state={{listOrigin:listUrl}} aria-label={t('openPerson', { name: personName(person) })}>{personName(person)}</Link><div className="muted">{person.username}</div></th>
             <td>{t(person.role)}</td><td><Badge>{t(person.active ? 'active' : 'inactive')}</Badge></td><td>{person.email}</td>
           </tr>)}</tbody></table></div>}
     </>}
@@ -93,6 +98,7 @@ export function CreatePersonPage() {
 }
 const emptyForm = (actor: User): CreateValues => ({ first_name: '', last_name: '', username: '', email: '', password: '', role: actor.role === 'teacher' ? 'student' : '' });
 function CreatePersonForm({ actor, initialRole }: { actor: User; initialRole: Role | '' }) {
+  const [params]=useSearchParams();
   const { t } = useTranslation('people');
   const { t: errorsT } = useTranslation();
   const { api } = useAuth();
@@ -129,7 +135,7 @@ function CreatePersonForm({ actor, initialRole }: { actor: User; initialRole: Ro
   if (created) return <div className="stack">
     <PageHeader title={t('created')} description={t('createdDescription', { name: personName(created) })} />
     <Card><div className="cluster">
-      <Link to={detailUrl(created, actor.role)}>{t(actor.role === 'admin' && created.role === 'student' ? 'enrollNext' : 'openCreated')}</Link>
+      <Link to={`${detailUrl(created, actor.role)}${listFilters(params)}`} state={{listOrigin:listUrl}}>{t(actor.role === 'admin' && created.role === 'student' ? 'enrollNext' : 'openCreated')}</Link>
       <BackLink /><Button variant="secondary" onClick={() => { setCreated(null); operation.reset(); }}>{t('createAnother')}</Button>
     </div></Card>
   </div>;

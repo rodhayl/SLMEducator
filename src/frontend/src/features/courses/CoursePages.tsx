@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { Link, useParams } from 'react-router';
+import { Link, useLocation, useParams, useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/app/AuthProvider';
 import { useResource } from '@/lib/query';
@@ -13,23 +12,28 @@ import { invalidResponse, isCourseList, isCourseTree, isProgress, isWorkflow, ma
 export function CourseListPage() {
   const { user } = useAuth(), { t } = useTranslation('courses');
   const courses = useResource<unknown>(['courses'], '/api/study-plans/');
-  const [search, setSearch] = useState('');
+  const [params, setParams] = useSearchParams();
+  const search = params.get('q') || '';
+  const filter = new URLSearchParams(); if(search) filter.set('q',search);
+  const suffix = filter.size ? `?${filter}` : '';
   const staff = user?.role === 'teacher' || user?.role === 'admin';
-  if (courses.isPending) return <LoadingState />;
-  if (courses.error) return <ErrorState error={courses.error} retry={() => { void courses.refetch(); }} />;
-  if (!isCourseList(courses.data)) return <ErrorState error={invalidResponse()} />;
-  const filtered = courses.data.filter(course => course.title.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()));
+  const items = isCourseList(courses.data) ? courses.data : null;
+  const filtered = items?.filter(course => course.title.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()));
   return <div className="stack">
     <PageHeader title={t(staff ? 'title' : 'myCourses')} description={t(staff ? 'subtitle' : 'studentSubtitle')} actions={staff ? <Link to="/cursos/nuevo">{t('newCourse')}</Link> : undefined} />
-    <Field label={t('search')}><Input value={search} onChange={event => setSearch(event.target.value)} type="search" /></Field>
-    {!courses.data.length ? <EmptyState title={t('empty')} description={t(staff ? 'emptyDescription' : 'studentEmpty')} /> : !filtered.length ? <EmptyState title={t('noMatches')} /> :
-      <div className="grid">{filtered.map(course => <Card key={course.id}><div className="stack"><Badge>{t(course.is_public ? 'public' : 'private')}</Badge><h2><Link to={`/cursos/${course.id}`}>{course.title}</Link></h2>{course.description && <p>{course.description}</p>}</div></Card>)}</div>}
+    <nav className="cluster" aria-label={t('catalog')}><Link to="/cursos" aria-current="page">{t('title')}</Link><Link to="/materiales">{t('materials')}</Link></nav>
+    <Field label={t('search')}><Input value={search} onChange={event => {const next=new URLSearchParams();if(event.target.value)next.set('q',event.target.value);setParams(next,{replace:true,preventScrollReset:true});}} type="search" /></Field>
+    {courses.isPending ? <LoadingState/> : courses.error ? <ErrorState error={courses.error} retry={()=>void courses.refetch()}/> : !items || !filtered ? <ErrorState error={invalidResponse()}/> : !items.length ? <EmptyState title={t('empty')} description={t(staff ? 'emptyDescription' : 'studentEmpty')} /> : !filtered.length ? <EmptyState title={t('noMatches')} /> :
+      <div className="grid">{filtered.map(course => <Card key={course.id}><div className="stack"><Badge>{t(course.is_public ? 'public' : 'private')}</Badge><h2><Link id={`course-${course.id}`} to={`/cursos/${course.id}${suffix}`} state={{listOrigin:'/cursos'}}>{course.title}</Link></h2>{course.description && <p>{course.description}</p>}</div></Card>)}</div>}
   </div>;
 }
 
 export function CourseDetailPage() {
   const { courseId } = useParams(), id = positiveId(courseId), { user } = useAuth(), { t } = useTranslation('courses');
   const staff = user?.role === 'teacher' || user?.role === 'admin';
+  const [params] = useSearchParams(), location=useLocation();
+  const filter=new URLSearchParams();if(params.get('q'))filter.set('q',params.get('q')!);
+  const back=`/cursos${filter.size?'?'+filter:''}${location.state?.listOrigin==='/cursos'||filter.size?'#course-'+id:''}`;
   const tree = useResource<unknown>(['courses', id, 'tree'], id ? `/api/study-plans/${id}/tree` : null);
   const workflow = useResource<unknown>(['courses', id, 'workflow'], id ? `/api/study-plans/${id}/workflow` : null);
   const owned = useResource<unknown>(['courses'], staff ? '/api/study-plans/' : null);
@@ -40,7 +44,7 @@ export function CourseDetailPage() {
   const course = tree.data;
   const canManage = staff && isCourseList(owned.data) && owned.data.some(plan => plan.id === id);
   return <div className="stack">
-    <Link to="/cursos">{t('back')}</Link>
+    <Link to={back}>{t('back')}</Link>
     <PageHeader title={course.title} description={course.description ?? undefined} actions={canManage ? <Link to={`/cursos/${id}/editar`}>{t('editCourse')}</Link> : undefined} />
     <div className="cluster"><Link to={`/ajustes/datos?plan_id=${id}`}>{t('exportCourse')}</Link>{canManage && <><Link to={`/fuentes?plan_id=${id}`}>{t('courseSources')}</Link>{isWorkflow(workflow.data) && !workflow.data.read_only && <Link to={`/generar?plan_id=${id}`}>{t('generateMaterials')}</Link>}</>}</div>
     <div className="cluster"><Badge>{t(course.is_public ? 'public' : 'private')}</Badge><span>{t('materialsCount', { count: course.content_count })}</span></div>

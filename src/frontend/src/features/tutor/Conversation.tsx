@@ -11,7 +11,7 @@ import { AIStatus } from './AIStatus';
 import { useAIRequest } from './useAIRequest';
 import { helpFingerprint, helpRecord, isTutorSource, responseError, type Assistance, type ChatInput, type TutorSource } from './contracts';
 type Exchange = {question:string;response:string;source:TutorSource|null};
-export function Conversation({active,onDirty,initialContent=null,initialPlan=null}:{active:boolean;onDirty:(value:boolean)=>void;initialContent?:number|null;initialPlan?:number|null}) {
+export function Conversation({active,visible=true,onDirty,initialContent=null,initialPlan=null}:{active:boolean;visible?:boolean;onDirty:(value:boolean)=>void;initialContent?:number|null;initialPlan?:number|null}) {
  const {t}=useTranslation('tutor'),{status}=useAuth();
  const [planId,setPlanId]=useState<number|null>(initialPlan),[contentId,setContentId]=useState<number|null>(initialContent),[sections,setSections]=useState<string[]>([]),[generation,setGeneration]=useState(0),[exchanges,setExchanges]=useState<Exchange[]>([]);
  const form=useForm<{question:string;assistance:Assistance}>({defaultValues:{question:'',assistance:'hint'}});
@@ -47,7 +47,7 @@ export function Conversation({active,onDirty,initialContent=null,initialPlan=nul
    if(form.getValues('question').trim()===message)form.reset({question:'',assistance:values.assistance});
   });
  }
- return <section hidden={!enabled} inert={!enabled} className="stack" aria-label={t('conversation')}>
+ return <section hidden={!enabled||!visible} inert={!enabled||!visible} className="stack" aria-label={t('conversation')}>
   <p>{t('freeHint')}</p><p className="muted">{t('memoryOnly')}</p>
   <p>{source?t('usingSource',{title:source.title}):!selectedId?t('noSource'):''}</p>
   <details><summary>{t('chooseContext')}</summary><div className="stack">
@@ -68,7 +68,7 @@ export function Conversation({active,onDirty,initialContent=null,initialPlan=nul
    <Field label={t('prompt')} error={form.formState.errors.question?t('questionRequired'):undefined}><Textarea rows={4} maxLength={4000} {...form.register('question',{required:true,maxLength:4000,validate:value=>!!value.trim()})}/></Field>
    <Button type="submit" busy={request.busy} disabled={!allowed||request.quotaBlocked||request.cancelling||!!request.pending}>{t('askTutor')}</Button>
   </form>
-  <AIStatus request={request}/>
+  <AIStatus request={request} visible={visible}/>
  </section>;
 }
 export function SourceDetails({source}:{source:TutorSource}) {

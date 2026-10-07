@@ -14,8 +14,9 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-def test_native_200_percent_zoom_keeps_modes_keyboard_and_reflow(
-    browser_world, tmp_path
+@pytest.mark.parametrize("zoom_factor", [2, 4], ids=["200-percent", "400-percent"])
+def test_native_zoom_keeps_modes_keyboard_and_reflow(
+    browser_world, tmp_path, zoom_factor
 ):
     extension = tmp_path / "zoom-extension"
     extension.mkdir()
@@ -57,17 +58,17 @@ def test_native_200_percent_zoom_keeps_modes_keyboard_and_reflow(
             login(page, browser_world, "teacher_a")
             before = page.evaluate("({dpr:devicePixelRatio,width:innerWidth})")
             zoom = worker.evaluate(
-                """async url => {
+                """async ({url, factor}) => {
                 const [tab] = await chrome.tabs.query({url:url+'/*'});
-                await chrome.tabs.setZoom(tab.id, 2); return chrome.tabs.getZoom(tab.id);
+                await chrome.tabs.setZoom(tab.id, factor); return chrome.tabs.getZoom(tab.id);
             }""",
-                browser_world.base_url,
+                {"url": browser_world.base_url, "factor": zoom_factor},
             )
-            assert zoom == 2
+            assert zoom == zoom_factor
             page.wait_for_function(
-                "factor => devicePixelRatio === factor", arg=before["dpr"] * 2
+                "factor => devicePixelRatio === factor", arg=before["dpr"] * zoom_factor
             )
-            assert page.evaluate("innerWidth") <= before["width"] / 2 + 1
+            assert page.evaluate("innerWidth") <= before["width"] / zoom_factor + 1
             page.get_by_role("button", name="Open navigation", exact=True).click()
             drawer = page.get_by_role("dialog")
             expect(drawer.get_by_role("navigation")).to_be_visible()
@@ -94,8 +95,21 @@ def test_native_200_percent_zoom_keeps_modes_keyboard_and_reflow(
             assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
             page.keyboard.press("Tab")
             assert page.evaluate("document.activeElement !== document.body")
-            page.set_viewport_size({"width": 390, "height": 844})
+            page.screenshot(
+                path=str(tmp_path / f"native-{zoom_factor * 100}.png"), full_page=True
+            )
+            # Test 320 CSS px separately from zoom; do not label a scaled
+            # 320-device-pixel viewport as the 320-CSS-pixel requirement.
+            worker.evaluate(
+                """async url => {
+                    const [tab] = await chrome.tabs.query({url:url+'/*'});
+                    await chrome.tabs.setZoom(tab.id, 1);
+                }""",
+                browser_world.base_url,
+            )
+            page.set_viewport_size({"width": 320, "height": 844})
+            page.wait_for_function("innerWidth === 320")
             assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
-            page.screenshot(path=str(tmp_path / "native-200.png"), full_page=True)
+            page.screenshot(path=str(tmp_path / "reflow-320.png"), full_page=True)
         finally:
             context.close()

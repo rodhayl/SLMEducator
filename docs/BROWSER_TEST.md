@@ -103,7 +103,7 @@ with insufficient roles, foreign IDs, stale sessions and disabled users.
 ## GUI, accessibility and cache
 
 Check ES/EN, actual light/dark styles, keyboard order and visible focus, field
-labels, native browser 100%/200% zoom (measure it; CSS scaling is not zoom), 390px
+labels, native browser 100%/200%/400% zoom (measure it; CSS scaling is not zoom), 320 CSS px
 and desktop sizes, empty/loading/error states, unsaved work after interruptions,
 back navigation and repeated operations. Use existing shared rendering and CSS.
 
@@ -135,6 +135,33 @@ with an AF_UNIX sandbox denial; the supported cloud browser's loopback request
 also returned `net::ERR_BLOCKED_BY_CLIENT`. Do not add insecure launch flags or
 alternate hosts to evade either restriction. Syntax, pytest collection and
 in-process checks can be reported separately. All live React journeys, real
-worker lifecycle, true 200% tab zoom, screenshots and native Windows startup
+worker lifecycle, true 200%/400% tab zoom and separate 320 CSS px reflow, screenshots and native Windows startup
 remain NOTRUN/BLOCKED here until performed in a supported prepared environment.
 A collection or skip count is never a browser PASS.
+
+
+### Continuity regression acceptance (G1–G5)
+
+The DOM suite reproduces these cases; real-browser acceptance is still required
+on an identified candidate. Record role, locale, fixture, viewport, zoom, source
+SHA and screenshot/trace. The native zoom harness now defines 200% and 400%
+cases plus a separate measured 320 CSS px viewport; adding them is not a pass.
+
+- Edit an existing and a new personal Q&A (title, question, answer, sharing),
+  switch to Tutor and back. Preserve unsaved fields; do not save automatically.
+  Lock and reauthenticate the same account, including revoked resource access;
+  no old-account buffer or mutation may reach a replacement account.
+- Free/contextual Tutor: complete a response, switch tabs and continue. History
+  remains for the next explicit question. Switch while pending: the same request
+  may finish in its hidden panel; no duplicate inference. Explicit Cancel still
+  fences late output. Changing source/version or policy fences stale output.
+  Leaving/reloading this workspace still ends its temporary conversation.
+- A fresh teacher/admin can reach Material library from Courses, then choose
+  manual material creation or AI generation without creating a placeholder course.
+  A student sees only authorized reading material and no author controls.
+- Filter Courses/People, open a detail, return with browser Back and with its
+  return link. Keep filters and the selected item; check scroll restoration after
+  asynchronous data render. Direct detail links return to the fixed local list.
+- Save disabled animations, reopen at a non-settings route and verify reduced
+  motion. Switch accounts, test failed/malformed reads and system reduced-motion.
+  No new persistent browser setting or automatic settings save is expected.

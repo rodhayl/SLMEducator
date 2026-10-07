@@ -43,6 +43,7 @@ async function mount(path = '/personas', role: Role = 'admin', language: 'en' | 
     const intercepted = intercept?.(path, method, body); if (intercepted !== undefined) return intercepted;
     if (path === '/api/classroom/messages/unread-count') return json({ unread_count: 0 });
   if (path === '/api/auth/me') return json(current);
+    if (path === '/api/settings/app') return json({theme:'auto',language:'en',font_size:'medium',enable_animations:true});
     const url = new URL(path, 'http://local');
     if (url.pathname === '/api/auth/users') return json(records.filter(person => person.id !== current.id && (!url.searchParams.get('role') || person.role === url.searchParams.get('role')) && (url.searchParams.get('include_inactive') === 'true' || person.active) && (current.role === 'admin' || person.role === 'student' && person.teacher_id === current.id)).slice(0, 500));
     if (path === '/api/auth/register' && body) {
@@ -257,12 +258,12 @@ async function completeCreate(user: ReturnType<typeof userEvent.setup>, language
   it.each(['/personas/0', '/personas/-1', '/estudiantes/not-an-id'])('rejects invalid direct-link ID %s without protected data requests', async path => {
     const h = await mount(path);
     expect(await screen.findByRole('alert')).toHaveTextContent('You do not have access');
-    expect(h.calls.filter(call => !['/api/auth/me','/api/classroom/messages/unread-count'].includes(call.path))).toHaveLength(0);
+    expect(h.calls.filter(call => !['/api/auth/me','/api/classroom/messages/unread-count','/api/settings/app'].includes(call.path))).toHaveLength(0);
   });
   it('denies students before issuing account or enrollment reads', async () => {
     const h = await mount('/personas/nueva', 'student');
     expect(await screen.findByText('This resource is not available')).toBeInTheDocument();
-    expect(h.calls.filter(call => !['/api/auth/me','/api/classroom/messages/unread-count'].includes(call.path))).toHaveLength(0);
+    expect(h.calls.filter(call => !['/api/auth/me','/api/classroom/messages/unread-count','/api/settings/app'].includes(call.path))).toHaveLength(0);
   });
   it('shows teachers only their student and no account or enrollment mutations', async () => {
     const h = await mount('/personas', 'teacher');
@@ -428,4 +429,47 @@ describe('legacy registration role context', () => {
  it.each(['teacher','admin','student'])('prefills an allowed administrator-selected %s role without submitting', async role => { const h = await mount(`/personas/nueva?role=${role}`); expect(await screen.findByLabelText('Role')).toHaveValue(role); expect(h.calls.filter(call => call.method !== 'GET')).toHaveLength(0); });
  it('never elevates a teacher through an admin URL prefill', async () => { const h = await mount('/personas/nueva?role=admin','teacher'); await completeCreate(h.user,'en',null);expect(screen.queryByLabelText('Role')).not.toBeInTheDocument();await h.user.click(screen.getByRole('button',{name:'Create account'}));await screen.findByRole('heading',{name:'Account created'});expect(h.calls.find(call=>call.path==='/api/auth/register')?.body).toMatchObject({role:'student',teacher_id:2}); });
  it('ignores invalid roles without inventing account privileges', async () => { await mount('/personas/nueva?role=superuser'); expect(await screen.findByLabelText('Role')).toHaveValue(''); });
+});
+
+
+it.each(['admin','teacher'] as const)('returns to the filtered People origin for %s', async role => {
+ const h=await mount('/personas?role=student&state=all&q=Sam',role);
+ await h.user.click(await screen.findByRole('link',{name:'Open Sam Student'}));
+ const back=await screen.findByRole('link',{name:locales.en.back});
+ expect(back.getAttribute('href')).toContain('q=Sam');
+ await h.user.click(back);
+ expect(await screen.findByRole('searchbox')).toHaveValue('Sam');
+ expect(h.router.state.location.hash).toBe('#person-3');
+ if(role==='admin'){expect(screen.getByLabelText('Filter by role')).toHaveValue('student');expect(screen.getByLabelText('Account status')).toHaveValue('all');}
+});
+
+
+it.each(['browser','link'])('restores list scroll with %s return under the same account', async kind => {
+ const h=await mount('/personas?q=Sam&role=student');
+ await screen.findByRole('link',{name:'Open Sam Student'});
+ vi.spyOn(window,'scrollY','get').mockReturnValue(430);
+ await h.user.click(screen.getByRole('link',{name:'Open Sam Student'}));
+ await screen.findByRole('link',{name:locales.en.back});
+ vi.mocked(window.scrollTo).mockClear();
+ if(kind==='browser')await act(async()=>h.router.navigate(-1));
+ else await h.user.click(screen.getByRole('link',{name:locales.en.back}));
+ expect(await screen.findByRole('searchbox')).toHaveValue('Sam');
+ expect(window.scrollTo).toHaveBeenCalledWith(0,430);
+});
+it('direct People links have a fixed local return with no external destination', async () => {
+ await mount('/personas/3?return=https://example.test&extra=unknown');
+ expect(await screen.findByRole('link',{name:locales.en.back})).toHaveAttribute('href','/personas');
+});
+
+
+it('carries the directory origin through contextual creation and the created account', async () => {
+ const h=await mount('/personas?role=student&state=all&q=Sam');
+ await h.user.click(await screen.findByRole('link',{name:'Create account'}));
+ expect(await screen.findByLabelText(locales.en.role)).toHaveValue('student');
+ await completeCreate(h.user);await h.user.click(screen.getByRole('button',{name:'Create account'}));
+ await h.user.click(await screen.findByRole('link',{name:locales.en.enrollNext}));
+ await h.user.click(await screen.findByRole('link',{name:locales.en.back}));
+ expect(await screen.findByRole('searchbox')).toHaveValue('Sam');
+ expect(screen.getByLabelText('Filter by role')).toHaveValue('student');
+ expect(screen.getByLabelText('Account status')).toHaveValue('all');
 });

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, ConfirmDialog, ErrorState } from '@/components/ui';
 import type { useAIRequest } from './useAIRequest';
-export function AIStatus({request}:{request:ReturnType<typeof useAIRequest>}) {
+export function AIStatus({request,visible=true}:{request:ReturnType<typeof useAIRequest>;visible?:boolean}) {
  const {t}=useTranslation('tutor'),[confirm,setConfirm]=useState(false);
  const {receipt,policy,usage}=request;
  return <div className="stack">
@@ -23,6 +23,6 @@ export function AIStatus({request}:{request:ReturnType<typeof useAIRequest>}) {
    {receipt&&<><h3>{t('receipt')}</h3><dl>{Object.entries({requestId:receipt.request_id,requestStatus:t(`status_${receipt.status}`),provider:receipt.provider||t('unknown'),model:receipt.model||t('unknown'),elapsed:receipt.elapsed_seconds,tokens:receipt.tokens_used??t('unknown'),maxOutput:receipt.max_output_tokens}).map(([key,value])=><div key={key}><dt>{t(key)}</dt><dd>{value}</dd></div>)}</dl>{receipt.provider_may_continue&&<p>{t('providerContinue')}</p>}</>}
    <p>{t('costUnknown')}</p>
   </div></details>
-  <ConfirmDialog open={confirm&&request.active} onOpenChange={setConfirm} title={t('newRequest')} description={t('newRequestWarning')} confirmLabel={t('newRequest')} onConfirm={()=>{request.abandon();setConfirm(false);}}/>
+  <ConfirmDialog open={confirm&&request.active&&visible} onOpenChange={setConfirm} title={t('newRequest')} description={t('newRequestWarning')} confirmLabel={t('newRequest')} onConfirm={()=>{request.abandon();setConfirm(false);}}/>
  </div>;
 }

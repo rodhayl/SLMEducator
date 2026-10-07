@@ -26,7 +26,9 @@ The hook exposes:
 
 Theme and reading size initialize from validated origin-local preferences with
 `system` and `18` defaults; write failures leave session-only state. Animation
-state starts enabled and is not separately persisted by this provider. Setters
+state starts with system behavior and is hydrated by the authenticated shell
+from the current account’s validated settings read. It resets on account
+replacement/logout and is not separately persisted by this provider. Setters
 change presentation in the current browser; they do not save an account setting.
 The account settings form performs and validates that separate API save first.
 

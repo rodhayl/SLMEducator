@@ -18,13 +18,20 @@ not consume React appearance state.
 - Reading sizes are `16`, `18`, `20` and `24`, defaulting to `18`. They are stored
   under `slm-reading-size` and applied as `--reading-size` in rem to `.prose`.
   This control does not change actual browser zoom.
-- Animations default to enabled for the provider lifetime. Disabling them writes
-  `data-motion="reduced"`; this flag has no separate localStorage entry. Shared
-  CSS also respects `prefers-reduced-motion`, even when animations are enabled.
+- Animations start with the system behavior. Once signed in, the shell loads
+  the current account's `/api/settings/app` through the shared scoped query and
+  applies a validated `enable_animations` value, including on a fresh opening
+  outside Settings. `false` writes `data-motion="reduced"`. The prior account's
+  value is reset on account replacement/logout. Unavailable or invalid initial
+  settings leave system behavior; a failed same-account refresh does not erase
+  an already confirmed preference. There is no separate localStorage entry.
+  Shared CSS always respects `prefers-reduced-motion`.
 
 The shell theme control changes the browser preference immediately. The account
-appearance form loads `/api/settings/app`; only after a matching successful save
-receipt does it apply theme, reading size, animations and language to this browser.
+appearance form shares `/api/settings/app`. Motion is applied from a confirmed
+read at sign-in/reopening, while theme, reading size and language keep their
+browser-local initialization. Only a matching successful save applies all four
+form values to this browser. Unsaved form changes do not change motion.
 The server value `auto` maps to the provider value `system`. Do not describe the
 browser preference as automatically synchronized across accounts or devices.
 
@@ -44,7 +51,8 @@ See the [hook reference](API_THEME_MANAGER.md),
 
 [Appearance DOM tests](../../tests/frontend/foundation-appearance.test.tsx) cover
 preference storage, invalid-value defaults, reading-size units and animation
-state. Settings tests cover the save boundary. Run `npm run check --prefix
+state. Settings tests cover the save boundary, motion on reopening, account replacement
+and invalid/late preferences. Run `npm run check --prefix
 src/frontend` from a prepared checkout after relevant changes. DOM checks do not
 certify painted contrast, a screen reader, native Windows or actual browser zoom;
 use the separate browser/native acceptance gates for those claims.

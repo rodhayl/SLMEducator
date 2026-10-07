@@ -39,3 +39,16 @@ Async success callbacks must recheck identity, credential epoch, mount and relev
 Binary exports use api.download(path,{method?,body?,expectedContentTypes,signal?}) and useFileDownload() from @/lib/downloads. Blob decoding and URL handoff are credential/identity-bound; object URLs are revoked on auth change/unmount/pagehide or after 60 seconds. Do not retain blobs or credentials in Query mutation state. useAuth.refreshIdentity() rechecks /me for profile display; requireReauthentication() locks after confirmed password rotation.
 
 A stale rejection from onSuccess invalidation does not mean the already-confirmed mutation failed. Do not replay it or deliver old UI state. Current-owner refresh failures belong in a separate safe refresh/read error while preserving the confirmed server outcome. Fire-and-forget invalidations must catch stale rejection explicitly.
+
+
+Tutor workspace panels are mounted on first use and retained until the workspace
+ends. Visibility only hides/inertizes a tab and its portals: it must not clear an
+editor, conversation history or an in-flight request. Authentication, credential
+changes, selected context/source version and policy still fence delivery. No
+mutation/inference is automatically replayed; Cancel remains explicit. Mounted
+question resources stay registered through same-account reauth so access is
+revalidated before the hidden buffer is exposed. This retention is memory-only.
+
+The authenticated shell applies validated account motion settings on opening;
+it shares the existing settings query and AppearanceProvider. Browser-local
+theme/font/language initialization and explicit account save remain separate.

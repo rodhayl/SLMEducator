@@ -57,3 +57,36 @@ describe('Account/settings synthetic UI',()=>{
   const h=await mount('/ajustes/ia');await h.user.type(await screen.findByLabelText('New provider API key'),'OldAccountKey');let finish!:(response:Response)=>void;h.intercept(call=>call.path==='/api/settings/ai'&&call.method==='POST'?new Promise<Response>(resolve=>{finish=resolve;}):undefined);await h.user.click(screen.getByRole('button',{name:'Save changes'}));await waitFor(()=>expect(finish).toBeDefined());h.changeAccount('teacher',9);await act(async()=>{await h.controller.login('synthetic-9','unused');});await screen.findByLabelText('New provider API key');fireEvent.change(screen.getByLabelText('New provider API key'),{target:{value:'NewAccountKey'}});await act(async()=>finish(json({...aiDefaults,has_api_key:true})));expect(screen.getByLabelText('New provider API key')).toHaveValue('NewAccountKey');expect(screen.queryByText('AI configuration saved.')).not.toBeInTheDocument();
  });
 });
+
+
+it.each(['/ajustes/apariencia','/ajustes/perfil'])('applies saved motion on opening %s without saving', async path => {
+ const h=await mount(path,'student','en',call=>call.path==='/api/settings/app'&&call.method==='GET'?json({theme:'auto',language:'en',font_size:'medium',enable_animations:false}):undefined);
+ await waitFor(()=>expect(document.documentElement.dataset.motion).toBe('reduced'));
+ expect(h.calls.filter(call=>call.method!=='GET')).toHaveLength(0);
+ expect(localStorage.getItem('slm-animations')).toBeNull();
+});
+
+
+it('fences late prior-account motion reads after account replacement', async () => {
+ let finish!:(value:Response)=>void;
+ const h=await mount('/ajustes/perfil','student','en',call=>call.path==='/api/settings/app'?new Promise<Response>(resolve=>{finish=resolve;}):undefined);
+ await waitFor(()=>expect(finish).toBeDefined());
+ h.intercept(()=>undefined); h.changeAccount('student',9);
+ await act(async()=>h.controller.login('synthetic-9','unused'));
+ await waitFor(()=>expect(h.controller.snapshot().user?.id).toBe(9));
+ await act(async()=>finish(json({theme:'auto',language:'en',font_size:'medium',enable_animations:false})));
+ expect(document.documentElement.dataset.motion).toBe('system');
+ expect(h.calls.filter(call=>call.path==='/api/settings/app'&&call.method!=='GET')).toHaveLength(0);
+});
+it('resets prior-account motion when the replacement account read is malformed', async () => {
+ const h=await mount('/ajustes/perfil','student','en',call=>call.path==='/api/settings/app'?json({theme:'auto',language:'en',font_size:'medium',enable_animations:false}):undefined);
+ await waitFor(()=>expect(document.documentElement.dataset.motion).toBe('reduced'));
+ h.intercept(call=>call.path==='/api/settings/app'?json({enable_animations:'false'}):undefined); h.changeAccount('student',9);
+ await act(async()=>h.controller.login('synthetic-9','unused'));
+ await waitFor(()=>expect(document.documentElement.dataset.motion).toBe('system'));
+});
+it('uses system motion on an unavailable initial read without blocking other pages', async () => {
+ await mount('/ajustes/perfil','student','en',call=>call.path==='/api/settings/app'?json({},503):undefined);
+ expect(await screen.findByLabelText('First name')).toBeVisible();
+ expect(document.documentElement.dataset.motion).toBe('system');
+});

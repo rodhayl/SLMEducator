@@ -13,7 +13,7 @@ import { AIStatus } from './AIStatus';
 import { useAIRequest } from './useAIRequest';
 import { helpFingerprint, isQuestion, isQuestionList, ownsQuestion, questionForm, questionMatches, questionPayload, questionReceipt, responseError, type Question, type QuestionForm, type QuestionPayload } from './contracts';
 type PendingSave={payload:QuestionPayload;values:QuestionForm;baseline:number[];id:number|null};
-export function QuestionEditor({initial,active,knownIds,onDirty}:{initial?:Question;active:boolean;knownIds:number[]|null;onDirty:(value:boolean)=>void}) {
+export function QuestionEditor({initial,active,visible=true,knownIds,onDirty}:{initial?:Question;active:boolean;visible?:boolean;knownIds:number[]|null;onDirty:(value:boolean)=>void}) {
  const {t}=useTranslation('tutor'),{api,user,scope,status,credentialEpoch,getSnapshot}=useAuth(),invalidate=useInvalidate(),queries=useQueryClient();
  const [saved,setSaved]=useState<Question|undefined>(initial),[baseline,setBaseline]=useState(questionForm(initial)),[pending,setPending]=useState<PendingSave|null>(null),[candidates,setCandidates]=useState<Question[]>([]),[message,setMessage]=useState(''),[error,setError]=useState<unknown>(null),[confirm,setConfirm]=useState<'retry'|'answer'|null>(null),[suggestion,setSuggestion]=useState('');
  const [deleted,setDeleted]=useState(false),[deleting,setDeleting]=useState(false),[saving,setSaving]=useState(false);
@@ -88,9 +88,9 @@ export function QuestionEditor({initial,active,knownIds,onDirty}:{initial?:Quest
   <ErrorState error={error}/>{message&&<p role="status">{t(message)}</p>}
   {pending&&!busy&&<Card><div className="stack"><p>{t('saveUnknownHint')}</p><Button type="button" variant="secondary" onClick={()=>void inspectOutcome()}>{t('checkSaved')}</Button>{candidates.map(item=><Card key={item.id}><h3>{item.title} (#{item.id})</h3><ContentRenderer value={item.content_data.question||''}/>{item.content_data.answer&&<ContentRenderer value={item.content_data.answer}/>}<Button type="button" onClick={()=>finish(item,{...pending,id:item.id},epoch.current.value)}>{t('useSavedEntry')}</Button></Card>)}<Button type="button" variant="secondary" onClick={()=>setConfirm('retry')}>{t('allowSaveAgain')}</Button></div></Card>}
   {suggestion&&<Card><h3>{t('suggestion')}</h3><ContentRenderer value={suggestion}/><p>{t('unverified')}</p><p>{t('answerNotSaved')}</p><Button type="button" variant="secondary" onClick={()=>{if(form.getValues('answer').trim())setConfirm('answer');else applySuggestion();}}>{t('useAnswer')}</Button></Card>}
-  <AIStatus request={ai}/>
-  {saved&&<DeleteQuestion id={saved.id} active={enabled} disabled={busy||!!pending||!!ai.pending} onDirty={setDeleting} onGone={()=>{setDeleted(true);form.reset();}}/>}
+  <AIStatus request={ai} visible={visible}/>
+  {saved&&<DeleteQuestion id={saved.id} active={enabled} visible={visible} disabled={busy||!!pending||!!ai.pending} onDirty={setDeleting} onGone={()=>{setDeleted(true);form.reset();}}/>}
   {saved&&<Link to={`/ayuda?content_id=${saved.id}`}>{t('askTeacherAbout')}</Link>}
-  <ConfirmDialog open={!!confirm&&enabled} onOpenChange={open=>{if(!open)setConfirm(null);}} title={t(confirm==='answer'?'useAnswer':'allowSaveAgain')} description={t(confirm==='answer'?'replaceAnswerWarning':'saveAgainWarning')} confirmLabel={t(confirm==='answer'?'useAnswer':'allowSaveAgain')} onConfirm={()=>{if(confirm==='answer')applySuggestion();else{setPending(null);setCandidates([]);setMessage('');setConfirm(null);}}}/>
+  <ConfirmDialog open={!!confirm&&enabled&&visible} onOpenChange={open=>{if(!open)setConfirm(null);}} title={t(confirm==='answer'?'useAnswer':'allowSaveAgain')} description={t(confirm==='answer'?'replaceAnswerWarning':'saveAgainWarning')} confirmLabel={t(confirm==='answer'?'useAnswer':'allowSaveAgain')} onConfirm={()=>{if(confirm==='answer')applySuggestion();else{setPending(null);setCandidates([]);setMessage('');setConfirm(null);}}}/>
  </div>;
 }

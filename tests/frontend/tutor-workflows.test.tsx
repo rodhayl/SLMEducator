@@ -46,8 +46,8 @@ describe('Standalone tutor and student questions (synthetic, no providers)',()=>
   auth.status='locked';auth.credentialEpoch++;view.rerenderApp();expect(screen.queryByRole('textbox',{name:'What would you like help with?'})).not.toBeInTheDocument();await act(async()=>job.resolve(result(payload)));auth.status='authenticated';view.rerenderApp();expect(screen.getByLabelText('What would you like help with?')).toHaveValue('Private draft');expect(screen.queryByText('Synthetic suggestion')).not.toBeInTheDocument();expect(auth.api.post).toHaveBeenCalledTimes(1);
   auth.scope='8:2';auth.user.id=8;view.rerenderApp();await ready();expect(screen.getByLabelText('What would you like help with?')).toHaveValue('');
  });
- it('hiding tutor suppresses late delivery and never automatically retries',async()=>{
-  const job=deferred<unknown>();auth.api.post.mockReturnValue(job.promise);await mount();await ready();await ask();const payload=auth.api.post.mock.calls[0][1];fireEvent.click(screen.getByRole('button',{name:'My questions'}));await act(async()=>job.resolve(result(payload)));fireEvent.click(screen.getByRole('button',{name:'Tutor conversation'}));expect(screen.queryByText('Synthetic suggestion')).not.toBeInTheDocument();expect(auth.api.post).toHaveBeenCalledTimes(1);expect(screen.getByLabelText('What would you like help with?')).toHaveValue('Original question');
+ it('hiding tutor keeps an in-flight request and never automatically retries',async()=>{
+  const job=deferred<unknown>();auth.api.post.mockReturnValue(job.promise);await mount();await ready();await ask();const payload=auth.api.post.mock.calls[0][1];fireEvent.click(screen.getByRole('button',{name:'My questions'}));await act(async()=>job.resolve(result(payload)));fireEvent.click(screen.getByRole('button',{name:'Tutor conversation'}));expect(await screen.findByText('Synthetic suggestion')).toBeVisible();expect(auth.api.post).toHaveBeenCalledTimes(1);expect(screen.getByLabelText('What would you like help with?')).toHaveValue('');
  });
  it('cancels local delivery truthfully and fences a provider response that arrives afterward',async()=>{
   const job=deferred<unknown>();auth.api.post.mockImplementation((path:string)=>path==='/api/ai/chat'?job.promise:Promise.resolve(receipt(path.split('/')[4],{status:'cancelled',provider_may_continue:true})));
@@ -207,6 +207,134 @@ it.each(['different', 'same', 'tab'])('waits for new detail before reopening a r
  mode = 'wait';
  if (selection === 'tab') {fireEvent.click(screen.getByRole('button', {name: 'Tutor conversation'})); fireEvent.click(screen.getByRole('button', {name: 'My questions'}));}
  else {fireEvent.click(screen.getByRole('button', {name: selection === 'different' ? 'New question' : 'Existing question'})); fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', {name: 'Continue'})); if (selection === 'different') fireEvent.click(screen.getByRole('button', {name: 'Existing question'}));}
- expect(screen.queryByRole('textbox', {name: 'My question'})).not.toBeInTheDocument();
+ if (selection === 'tab') {
+  // Hiding preserves the uncertain buffer. Readback remains an explicit action.
+  expect(screen.getByLabelText('My question')).toHaveValue('Persisted new question');
+  expect(screen.getByRole('button',{name:'Save question'})).toBeDisabled();
+  fireEvent.click(screen.getByRole('button',{name:'Check saved content'}));
+ } else expect(screen.queryByRole('textbox', {name: 'My question'})).not.toBeInTheDocument();
  await act(async () => pending.resolve(server)); expect(await screen.findByLabelText('My question')).toHaveValue('Persisted new question'); expect(auth.api.put).toHaveBeenCalledTimes(1);
+});
+
+
+describe('same-workspace tab continuity', () => {
+ it.each(['/tutor', '/tutor?content_id=11'])('retains completed history through tabs in %s', async path => {
+  await mount(path); await ready(); await ask(); await screen.findByText('Synthetic suggestion');
+  fireEvent.click(screen.getByRole('button', {name: 'My questions'}));
+  expect(screen.getByText('Synthetic suggestion')).not.toBeVisible();
+  fireEvent.click(screen.getByRole('button', {name: 'Tutor conversation'})); await ready();
+  expect(screen.getByText('Synthetic suggestion')).toBeVisible();
+  await ask('Next question');
+  expect(auth.api.post.mock.calls[1][1].conversation_history).toEqual([{role:'user',content:'Original question'},{role:'assistant',content:'Synthetic suggestion'}]);
+  expect(auth.api.post).toHaveBeenCalledTimes(2);
+ });
+ it.each([null,51])('retains every unsaved field for question %s without mutations', async id => {
+  const normal=auth.api.get.getMockImplementation()!;
+  auth.api.get.mockImplementation((path:string)=>path==='/api/content/?content_type=qa'?Promise.resolve([question]):normal(path));
+  await mount('/tutor?tab=questions'+(id?'&question_id='+id:'')); await screen.findByLabelText('My question');
+  fireEvent.change(screen.getByLabelText('Question title'),{target:{value:'Unsaved title'}});
+  fireEvent.change(screen.getByLabelText('My question'),{target:{value:'Unsaved question'}});
+  fireEvent.change(screen.getByLabelText('Answer to save (optional)'),{target:{value:'Unsaved answer'}});
+  fireEvent.click(screen.getByLabelText('Share this question with my teacher'));
+  fireEvent.click(screen.getByRole('button',{name:'Tutor conversation'}));
+  fireEvent.click(screen.getByRole('button',{name:'My questions'}));
+  expect(await screen.findByLabelText('My question')).toHaveValue('Unsaved question');
+  expect(screen.getByLabelText('Question title')).toHaveValue('Unsaved title');
+  expect(screen.getByLabelText('Answer to save (optional)')).toHaveValue('Unsaved answer');
+  expect(screen.getByLabelText('Share this question with my teacher')).toBeChecked();
+  expect(auth.api.post).not.toHaveBeenCalled(); expect(auth.api.put).not.toHaveBeenCalled();
+ });
+ it('keeps an existing edit hidden during same-account reauth and clears it for another account', async () => {
+  const normal=auth.api.get.getMockImplementation()!;
+  auth.api.get.mockImplementation((path:string)=>path==='/api/content/?content_type=qa'?Promise.resolve([question]):normal(path));
+  const view=await mount('/tutor?question_id=51'); await screen.findByLabelText('My question');
+  fireEvent.change(screen.getByLabelText('My question'),{target:{value:'Private edited question'}});
+  auth.status='locked'; auth.credentialEpoch++; view.rerenderApp();
+  expect(screen.queryByRole('textbox',{name:'My question'})).not.toBeInTheDocument();
+  auth.status='authenticated'; view.rerenderApp();
+  expect(await screen.findByLabelText('My question')).toHaveValue('Private edited question');
+  auth.scope='8:2'; auth.user.id=8; view.rerenderApp();
+  await waitFor(()=>expect(screen.queryByDisplayValue('Private edited question')).not.toBeInTheDocument());
+  expect(auth.api.put).not.toHaveBeenCalled();
+ });
+ it('retains contextual pending delivery while hidden but rejects a source change there', async () => {
+  const job=deferred<unknown>(); auth.api.post.mockReturnValue(job.promise);
+  const normal=auth.api.get.getMockImplementation()!, view=await mount('/tutor?content_id=11'); await ready(); await ask();
+  const payload=auth.api.post.mock.calls[0][1];
+  fireEvent.click(screen.getByRole('button',{name:'My questions'}));
+  auth.api.get.mockImplementation((path:string)=>path.startsWith('/api/ai/context?')?Promise.resolve({source:{...source,source_version:'c'.repeat(64)}}):normal(path));
+  await act(async()=>view.client.invalidateQueries({queryKey:[auth.scope,'tutor','source']}));
+  await waitFor(()=>expect(screen.getByText(/Source version: c{64}/)).toBeInTheDocument());
+  await act(async()=>job.resolve(result(payload)));
+  fireEvent.click(screen.getByRole('button',{name:'Tutor conversation'}));
+  expect(screen.queryByText('Synthetic suggestion')).not.toBeInTheDocument();
+  expect(screen.getByRole('button',{name:'Retry same request'})).toBeDisabled();
+  expect(auth.api.post).toHaveBeenCalledTimes(1);
+ });
+});
+
+it('finishes the same Q&A save while its panel is hidden, without replay',async()=>{
+ const job=deferred<unknown>(),normal=auth.api.get.getMockImplementation()!;
+ let server=structuredClone(question);
+ auth.api.get.mockImplementation((path:string)=>path==='/api/content/?content_type=qa'?Promise.resolve([server]):path==='/api/content/51'?Promise.resolve(server):normal(path));
+ auth.api.put.mockReturnValue(job.promise);
+ await mount('/tutor?question_id=51');await screen.findByLabelText('My question');
+ fireEvent.change(screen.getByLabelText('My question'),{target:{value:'Saved while hidden'}});
+ fireEvent.click(screen.getByRole('button',{name:'Save question'}));await waitFor(()=>expect(auth.api.put).toHaveBeenCalledTimes(1));
+ fireEvent.click(screen.getByRole('button',{name:'Tutor conversation'}));
+ server={...question,content_data:{...question.content_data,question:'Saved while hidden'}};
+ await act(async()=>job.resolve(server));
+ expect(await screen.findByText(locales.en.saved)).not.toBeVisible();
+ fireEvent.click(screen.getByRole('button',{name:'My questions'}));
+ expect(screen.getByLabelText('My question')).toHaveValue('Saved while hidden');
+ expect(screen.getByRole('button',{name:'Save question'})).toBeEnabled();
+ expect(auth.api.put).toHaveBeenCalledTimes(1);expect(auth.api.post).not.toHaveBeenCalled();
+});
+it('keeps a Q&A suggestion pending across tabs and requires explicit application',async()=>{
+ const job=deferred<unknown>();auth.api.post.mockReturnValue(job.promise);
+ await mount('/tutor?tab=questions');await waitFor(()=>expect(screen.getByRole('button',{name:'Ask AI for a suggestion'})).toBeEnabled());draft();
+ fireEvent.click(screen.getByRole('button',{name:'Ask AI for a suggestion'}));await waitFor(()=>expect(auth.api.post).toHaveBeenCalledTimes(1));const payload=auth.api.post.mock.calls[0][1];
+ fireEvent.click(screen.getByRole('button',{name:'Tutor conversation'}));
+ await act(async()=>job.resolve({...result(payload),success:true,answer:'Hidden answer suggestion'}));
+ fireEvent.click(screen.getByRole('button',{name:'My questions'}));
+ expect(await screen.findByText('Hidden answer suggestion')).toBeVisible();
+ expect(screen.getByLabelText('Answer to save (optional)')).toHaveValue('');
+ expect(auth.api.post).toHaveBeenCalledTimes(1);expect(auth.api.put).not.toHaveBeenCalled();
+});
+
+
+it('fences pending delivery when policy is revoked while the conversation is hidden',async()=>{
+ const job=deferred<unknown>();auth.api.post.mockReturnValue(job.promise);
+ const normal=auth.api.get.getMockImplementation()!,view=await mount();await ready();await ask();const payload=auth.api.post.mock.calls[0][1];
+ fireEvent.click(screen.getByRole('button',{name:'My questions'}));
+ auth.api.get.mockImplementation((path:string)=>path==='/api/ai/assistance-policy'?Promise.resolve({mode:'disabled'}):normal(path));
+ await act(async()=>view.client.invalidateQueries({queryKey:[auth.scope,'tutor','policy']}));
+ await waitFor(()=>expect(screen.getAllByText(locales.en.policy_disabled).length).toBeGreaterThan(0));
+ await act(async()=>job.resolve(result(payload)));
+ fireEvent.click(screen.getByRole('button',{name:'Tutor conversation'}));
+ expect(screen.queryByText('Synthetic suggestion')).not.toBeInTheDocument();
+ expect(screen.getByRole('button',{name:'Ask tutor'})).toBeDisabled();
+ expect(screen.getByRole('button',{name:'Retry same request'})).toBeDisabled();
+ expect(auth.api.post).toHaveBeenCalledTimes(1);
+});
+it.each(['discard','delete','answer'])('hides the question %s portal when its panel is hidden',async kind=>{
+ const normal=auth.api.get.getMockImplementation()!;
+ auth.api.get.mockImplementation((path:string)=>path==='/api/content/?content_type=qa'?Promise.resolve([question]):normal(path));
+ await mount('/tutor?question_id=51');await screen.findByLabelText('My question');
+ if(kind==='discard'){fireEvent.change(screen.getByLabelText('My question'),{target:{value:'Private unsaved'}});fireEvent.click(screen.getByRole('button',{name:'New question'}));}
+ else if(kind==='delete')fireEvent.click(screen.getByRole('button',{name:'Delete question'}));
+ else{await waitFor(()=>expect(screen.getByRole('button',{name:'Ask AI for a suggestion'})).toBeEnabled());fireEvent.click(screen.getByRole('button',{name:'Ask AI for a suggestion'}));await screen.findByText('Suggested answer');fireEvent.click(screen.getByRole('button',{name:locales.en.useAnswer}));}
+ expect(await screen.findByRole('dialog')).toBeVisible();
+ // Programmatic tab change exercises portal isolation independently of modal focus trapping.
+ fireEvent.click(screen.getByText('Tutor conversation',{selector:'button'}));
+ await waitFor(()=>expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+ expect(auth.api.delete).not.toHaveBeenCalled();expect(auth.api.put).not.toHaveBeenCalled();
+});
+it('hides the new-request confirmation portal with the conversation panel',async()=>{
+ auth.api.post.mockRejectedValue(new ApiError(0,'network',true,'uncertain'));
+ await mount();await ready();await ask();
+ fireEvent.click(await screen.findByRole('button',{name:locales.en.newRequest}));expect(await screen.findByRole('dialog')).toBeVisible();
+ fireEvent.click(screen.getByText('My questions',{selector:'button'}));
+ await waitFor(()=>expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+ expect(auth.api.post).toHaveBeenCalledTimes(1);
 });
