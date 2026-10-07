@@ -1,3 +1,33 @@
+> AVISO ACTUALIZADO 2026-10-07: HANDOFF HISTÓRICO, NO CANDIDATO REACT ACTUAL.
+>
+> El instalador `fe954cab4655` descrito abajo es anterior a la GUI React y a
+> los arreglos G1–G5 de `642966a93e7e9c9f9c5e93cce0bc842f538846fb`.
+> Se conserva íntegro el registro original por trazabilidad. Sus PASS, rutas,
+> credenciales privadas y «primer paso» NO se aplican a la nueva sesión.
+
+INICIO
+
+Si recibes este handoff para continuar una prueba, comprueba primero qué
+candidato pidió el usuario. Para probar la GUI React actual, abre
+[MANUAL_TEST1](../../MANUAL_TEST1.md) y localiza el nuevo handoff generado por
+esa preparación. Debe identificar Setup, SHA de producto, versión/build y
+SHA-256 propios; después usa [MANUAL_TEST2](../../MANUAL_TEST2.md).
+
+Si no hay un instalador nuevo verificado, informa de ese bloqueo y detente
+antes de pedir abrir un Setup. No ejecutes el paso 7 histórico de abajo, no
+pruebes otra vez la GUI antigua, no reutilices su credencial y no desinstales
+ni reemplaces nada para continuar. Este aviso no afirma que ya se haya
+construido o aceptado un instalador React.
+
+Si se reanuda expresamente una sesión histórica, conserva su identidad y
+registro separados; sus resultados no acreditan el producto actual.
+
+FIN
+
+---
+
+## Registro original conservado sin cambios
+
 # MANUAL_TEST_HANDOFF — instalador SLMEducator listo para la prueba manual
 
 Este handoff permite continuar con `MANUAL_TEST2.md` sin rehacer la preparación.
