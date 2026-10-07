@@ -40,9 +40,16 @@ Application URL: `http://127.0.0.1:8080`
 
 ## Manual Run (Alternative)
 
+Prepare the [React frontend build](#react-frontend-build) and review
+[Initial Admin Account](#initial-admin-account) before starting. The create-only
+seeder below supplies the first account for a new database and preserves existing
+accounts. Keep any one-time generated password private and save it before closing
+the terminal.
+
 ```powershell
 python -m venv venv
 .\venv\Scripts\python.exe -m pip install -r requirements.txt
+.\venv\Scripts\python.exe scripts\seed_admin.py
 .\venv\Scripts\python.exe -m uvicorn src.api.main:app --host 127.0.0.1 --port 8080 --reload
 ```
 
@@ -312,7 +319,7 @@ See [the implementation boundary](implementation_documents/LEARNING_LOOP_PLAN.md
 ## Repository Layout
 
 ```text
-src/            application code (api, core, web)
+src/            application code (api, core, frontend)
 tests/          unit/integration/e2e tests
 scripts/        utility scripts
 docs/           project documentation (including browser test guide)

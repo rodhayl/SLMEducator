@@ -68,6 +68,21 @@ describe('assessment learner journeys', () => {
  it('student cannot open authoring or staff attempt route', async () => { const h = await mount('/evaluaciones/nueva'); expect(h.calls.filter(call => call.path.startsWith('/api/assessments'))).toHaveLength(0); });
 });
 describe('assessment author and grading journeys', () => {
+ it('keeps generated choice values unique after adding, removing and adding again', async () => {
+  const h = await mount('/evaluaciones/10/editar', {role: 'teacher', noAttempts: true});
+  await h.user.click(await screen.findByRole('button', {name: 'Add choice'}));
+  await h.user.click(screen.getByRole('button', {name: 'Add choice'}));
+  await h.user.type(screen.getByLabelText('Choice 4 text'), 'Fourth choice');
+  await h.user.click(screen.getByRole('button', {name: 'Remove choice 3'}));
+  await h.user.click(screen.getByRole('button', {name: 'Add choice'}));
+  expect(screen.getByLabelText('Choice 3 value')).toHaveValue('option_4');
+  expect(screen.getByLabelText('Choice 4 value')).toHaveValue('option_5');
+  await h.user.type(screen.getByLabelText('Choice 4 text'), 'Fifth choice');
+  await h.user.click(screen.getByRole('button', {name: 'Save draft'}));
+  await screen.findByText(locales.en.savedDraft);
+  expect(mutations(h.calls)).toHaveLength(1);
+  expect(mutations(h.calls)[0].body).toMatchObject({questions: [{options: {choices: {A: 'One, half', B: 'Two thirds', option_4: 'Fourth choice', option_5: 'Fifth choice'}}}, {}]});
+ });
  it.each(['teacher', 'admin'] as const)('%s preview cannot reserve attempts or trigger rewards', async role => { const h = await mount('/evaluaciones/10', { role }); expect(await screen.findByText(locales.en.previewNotice)).toBeInTheDocument(); expect(screen.queryByRole('button', { name: 'Start assessment' })).not.toBeInTheDocument(); expect(mutations(h.calls)).toHaveLength(0); await h.user.click(screen.getByRole('button', { name: 'Final-grade statistics' })); expect(await screen.findAllByText('0.0%')).toHaveLength(4); });
  it('visibility never grants editing or grading permission', async () => { const h = await mount('/evaluaciones/10', { role: 'teacher', canManage: false }); expect(await screen.findByText(locales.en.manageOnly)).toBeInTheDocument(); expect(screen.queryByRole('link', { name: 'Edit assessment' })).not.toBeInTheDocument(); await act(async () => { await h.router.navigate('/correcciones/55'); }); await screen.findByRole('alert'); expect(screen.queryByRole('button', { name: 'Save question grade' })).not.toBeInTheDocument(); expect(mutations(h.calls)).toHaveLength(0); });
  it.each(['en', 'es'] as const)('saves a zero last-question score after explaining immediate finalization in %s', async language => { const h = await mount('/correcciones/55?filter=pending', { role: 'teacher', status: 'submitted', language }); const labels = locales[language]; const headings = await screen.findAllByRole('heading', { name: new RegExp(language === 'en' ? 'Grade question' : 'Calificar pregunta') }); const second = headings[1].closest('section')!; const score = within(second).getByLabelText(labels.score); expect(score).toHaveValue(null); await h.user.type(score, '0'); expect(within(second).getByText(labels.lastQuestionWarning)).toBeInTheDocument(); await h.user.click(within(second).getByRole('button', { name: labels.saveQuestion })); expect(mutations(h.calls)).toHaveLength(0); await h.user.click(within(screen.getByRole('dialog')).getByRole('button', { name: labels.save })); await waitFor(() => expect(h.sub.status).toBe('graded')); expect(h.sub.score).toBe(0); expect(mutations(h.calls)[0].body).toEqual({ score: 0, feedback: null }); expect(screen.getByRole('link', { name: labels.backQueue })).toHaveAttribute('href', '/correcciones?filter=pending'); });

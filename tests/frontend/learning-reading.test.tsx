@@ -9,6 +9,51 @@ import type { LearningContent } from '@/features/learning/contracts';
 async function reading(content:LearningContent, language:'en'|'es'='en') {const i18n=createInstance();await i18n.init({lng:language,defaultNS:'learning',resources:{en:{learning:locales.en},es:{learning:locales.es}}});return render(<I18nextProvider i18n={i18n}><MemoryRouter><LessonContent content={content}/></MemoryRouter></I18nextProvider>);}
 const content:LearningContent={id:1,title:'Lesson',content_type:'lesson',content_data:{}};
 describe('study reading content boundaries (DOM only)',()=>{
+ it('preserves a distinct legacy snapshot body alongside structured sections',async()=>{
+  await reading({...content,content_data:{body:'Legacy overview',sections:[{title:'Detail',content:'Detailed explanation'}]}});
+  expect(screen.getByText('Legacy overview')).toBeVisible();
+  expect(screen.getByText('Detailed explanation')).toBeVisible();
+ });
+ it.each([' \n\t ',true,27,{},['Invalid content']].map(invalidContent=>({invalidContent})))('uses a legacy body when content is not a nonblank string: $invalidContent',async({invalidContent})=>{
+  await reading({...content,content_data:{content:invalidContent,body:'Usable legacy body',text:'Lower priority text',sections:[{title:'Detail',content:'Structured explanation'}]}});
+  expect(screen.getByText('Usable legacy body')).toBeVisible();
+  expect(screen.getByText('Structured explanation')).toBeVisible();
+  expect(screen.queryByText('Lower priority text')).not.toBeInTheDocument();
+ });
+ it.each([
+  {content:' \n ',body:'\t '},
+  {content:true,body:{}},
+  {content:[],body:27},
+  {content:{},body:['Invalid body']},
+ ])('uses legacy text when earlier fields are unusable: %j',async(earlierFields)=>{
+  await reading({...content,content_data:{...earlierFields,text:'Usable legacy text'}});
+  expect(screen.getByText('Usable legacy text')).toBeVisible();
+ });
+ it('keeps a valid modern body ahead of legacy fallback fields',async()=>{
+  await reading({...content,content_data:{content:'Modern explanation',body:'Legacy body',text:'Legacy text'}});
+  expect(screen.getByText('Modern explanation')).toBeVisible();
+  expect(screen.queryByText('Legacy body')).not.toBeInTheDocument();
+  expect(screen.queryByText('Legacy text')).not.toBeInTheDocument();
+ });
+ it('does not repeat the canonical flattened body when its section text is already shown',async()=>{
+  await reading({...content,content_data:{content:'First explanation\n\nSecond explanation',body:'Older legacy explanation',sections:[{title:'First',content:'First explanation'},{title:'Second',content:'Second explanation'}]}});
+  expect(screen.getAllByText('First explanation')).toHaveLength(1);
+  expect(screen.getAllByText('Second explanation')).toHaveLength(1);
+  expect(screen.queryByText('Older legacy explanation')).not.toBeInTheDocument();
+ });
+ it('keeps clarification before objectives and a recovered legacy text body',async()=>{
+  await reading({...content,content_data:{content:' \n ',body:{},text:'Recovered legacy explanation',sections:[{title:'Source clarification',content:'Check the source first.',source_clarification:true}],objectives:['Compare the original source']}});
+  const clarification=screen.getByText('Check the source first.'),objective=screen.getByText('Compare the original source'),body=screen.getByText('Recovered legacy explanation');
+  expect(body).toBeVisible();
+  expect(clarification.compareDocumentPosition(objective)&Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(objective.compareDocumentPosition(body)&Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+ });
+ it('keeps clarification first without losing a separate legacy snapshot body',async()=>{
+  const {container}=await reading({...content,content_data:{body:'Preserved legacy explanation',sections:[{title:'Source clarification',content:'Check the original source.',source_clarification:true}],objectives:['Compare the source']}});
+  expect(container.querySelector('section')).toHaveTextContent('Check the original source.');
+  expect(screen.getByText('Preserved legacy explanation')).toBeVisible();
+  expect(screen.getByText('Compare the source')).toBeVisible();
+ });
  it('places source clarifications before objectives and isolates untrusted blocks',async()=>{
   const {container}=await reading({...content,content_data:{sections:[{title:'Source clarification',content:'Clarify the given definition.',source_clarification:true},{title:'Lesson explanation',content:'Safe explanation<script>steal()</script>'}],objectives:['Understand the idea'],summary:'Summary text',worked_example:'Example text'}});
   const headings=screen.getAllByRole('heading');expect(headings[0]).toHaveTextContent('Source clarification');expect(headings[1]).toHaveTextContent('Learning objectives');expect(container.querySelector('script')).toBeNull();expect(screen.getByText('Example text')).toBeVisible();

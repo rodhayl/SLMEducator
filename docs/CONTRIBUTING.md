@@ -68,9 +68,10 @@ src/
 tests/
 ├── unit/           # Fast, isolated tests (< 1ms each)
 ├── integration/    # Component interactions (< 100ms each)
-├── e2e/            # End-to-end workflows
+├── browser/        # Opt-in isolated browser journeys
+├── windows/        # Opt-in native package and installer checks
 ├── real_ai/        # Tests with actual AI providers
-├── ui/             # UI/visual tests
+├── frontend/       # React contracts and synthetic DOM tests
 └── fixtures/       # Test fixtures and mocks
 ```
 
@@ -354,7 +355,9 @@ A task is complete when ALL of the following are satisfied:
 
 ## Resources
 
-- **Test Users**: See `TEST_USERS.txt`
+- **Synthetic test accounts**: Use `scripts/seed_pilot.py` with a new disposable
+  database; see the [synthetic pilot guide](pilot/README.md). Keep generated
+  credentials private.
 - **Environment variables**: Copy `.env.example` to `.env`
 - **App config**: Copy `env.properties.example` to `env.properties`
 - **API Docs**: See `docs/api/`

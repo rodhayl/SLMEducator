@@ -26,6 +26,20 @@ def summarize(record: dict) -> dict:
     incidents = record.get("incidents", {})
     if any(type(value) is not int or value < 0 for value in incidents.values()):
         raise ValueError("Incident counts must be nonnegative integers")
+    durations = [
+        row[field]
+        for row in tasks
+        for field in ("authoring_minutes", "correction_minutes", "baseline_minutes")
+        if field in row
+    ]
+    if any(
+        isinstance(value, bool)
+        or not isinstance(value, (int, float))
+        or not math.isfinite(value)
+        or value < 0
+        for value in durations
+    ):
+        raise ValueError("Measured durations must be nonnegative numbers")
     measured = [
         row["authoring_minutes"] + row.get("correction_minutes", 0)
         for row in tasks

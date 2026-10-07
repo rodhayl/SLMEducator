@@ -1,0 +1,1689 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-07",
+  "base_commit": "1ae599904666237f08939a72f570e6f98abfad0a",
+  "purpose": "Review accounting for the bounded functional continuation; no security, whole-codebase or browser acceptance claim.",
+  "source_leaf_count": 191,
+  "method_counts": {
+    "full_static_functional_read": 91,
+    "excluded_from_this_independent_review": 5,
+    "partial_static_functional_read": 4,
+    "manual_functional_source_review": 77,
+    "immutable_blob_verified_and_pinned_npm_ci_not_dependency_source_audit": 1,
+    "catalog_structure_type_and_regression_review_not_translation_acceptance": 9,
+    "full_static_read": 4
+  },
+  "source_files": [
+    {
+      "path": "src/__init__.py",
+      "method": "full_static_functional_read",
+      "scope": "entry-point wiring, exports, exceptions, logging and public configuration template",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "src/api/dependencies.py",
+      "method": "full_static_functional_read",
+      "scope": "ordinary API/core workflows, not security certification",
+      "sha256": "3fc7b0923d66637bd90e2ebbd4261b6fa40ae25ee5f77309c50373bc913fe5e8"
+    },
+    {
+      "path": "src/api/main.py",
+      "method": "full_static_functional_read",
+      "scope": "entry-point wiring, exports, exceptions, logging and public configuration template",
+      "sha256": "282152c8e3cc990a7c6304aa06cc3fed078b791b923b3889dc2f2e791918abe8"
+    },
+    {
+      "path": "src/api/policies.py",
+      "method": "excluded_from_this_independent_review",
+      "scope": "Security/authorization/translation investigation excluded; no restricted probe rerun.",
+      "sha256": "9e477ff314d861ef5f0731a65d0b9f7b32a73076daa14aaa0b4d86a40fe22ca0"
+    },
+    {
+      "path": "src/api/routes/ai.py",
+      "method": "full_static_functional_read",
+      "scope": "ordinary API/core workflows, not security certification",
+      "sha256": "24dcc1f029854c1449ef691ec8bcaf9783885da2d8263af7f577a4c7ddef60f9"
+    },
+    {
+      "path": "src/api/routes/annotations.py",
+      "method": "full_static_functional_read",
+      "scope": "ordinary API/core workflows, not security certification",
+      "sha256": "4c4eb2807791c62b9c5d2749d91f7142b664efc9d883b309f1f92a6a020fc919"
+    },
+    {
+      "path": "src/api/routes/assessment.py",
+      "method": "full_static_functional_read",
+      "scope": "ordinary API/core workflows, not security certification",
+      "sha256": "870f767eb793ad2a565ed015710b56a65a73009917216f020bf90f70e3732300"
+    },
+    {
+      "path": "src/api/routes/assistance.py",
+      "method": "full_static_functional_read",
+      "scope": "ordinary API/core workflows, not security certification",
+      "sha256": "7bddaa9bb8dec6d7f36a2f5974630e2487aeb49da6e524d1407278ffde1196fd"
+    },
+    {
+      "path": "src/api/routes/auth.py",
+      "method": "full_static_functional_read",
+      "scope": "ordinary API/core workflows, not security certification",
+      "sha256": "56a2e01df6eb9bf5932ea427b47371c24a9377f7b5c3c6fe8ff2ea9396f18810"
+    },
+    {
+      "path": "src/api/routes/classroom.py",
+      "method": "full_static_functional_read",
+      "scope": "ordinary API/core workflows, not security certification",
+      "sha256": "8ddac54d3be80d9d5c960406d696e855c7961eaee8815ce1f5e65426af826aac"
+    },
+    {
+      "path": "src/api/routes/content.py",
+      "method": "full_static_functional_read",
+      "scope": "ordinary API/core workflows, not security certification",
+      "sha256": "85e5287e75682b5e7e1b385e2bdd2ecdb09f6174e8ec943145787f96195f1c7f"
+    },
+    {
+      "path": "src/api/routes/dashboard.py",
+      "method": "full_static_functional_read",
+      "scope": "ordinary API/core workflows, not security certification",
+      "sha256": "f1cc2809aadbce1de429842e829f3eb523dd256502e8cd31252749304811d978"
+    },
+    {
+      "path": "src/api/routes/gamification.py",
+      "method": "full_static_functional_read",
+      "scope": "ordinary API/core workflows, not security certification",
+      "sha256": "f147aba1344439e660933fe505efb39001877046f5d68ad1d3caee582a812dc3"
+    },
+    {
+      "path": "src/api/routes/generation.py",
+      "method": "full_static_functional_read",
+      "scope": "ordinary API/core workflows, not security certification",
+      "sha256": "411d34e079c6b66b4e4acec8128b57b562a3ee0f2fdba98b87ce1eb1427c79b5"
+    },
+    {
+      "path": "src/api/routes/learning.py",
+      "method": "full_static_functional_read",
+      "scope": "ordinary API/core workflows, not security certification",
+      "sha256": "0915f563651babff423040c7fc3d3aa8ec8c39f5f0b751ce21c325c743ae990e"
+    },
+    {
+      "path": "src/api/routes/mastery.py",
+      "method": "full_static_functional_read",
+      "scope": "ordinary API/core workflows, not security certification",
+      "sha256": "15fb598666bf376b6e3036f531fd683e9277f63358110cfd429cd012c8972375"
+    },
+    {
+      "path": "src/api/routes/portability.py",
+      "method": "full_static_functional_read",
+      "scope": "ordinary API/core workflows, not security certification",
+      "sha256": "5661d97335b9e0b9ce5e917fa542d6ab75cd02a431b431378cd5e1694fb0ef0c"
+    },
+    {
+      "path": "src/api/routes/settings.py",
+      "method": "partial_static_functional_read",
+      "scope": "Provider/application-settings functional flow inspected; translation handler was not investigated.",
+      "sha256": "052755865318d2e2cda3b59282cc4a30bb8b19a8a2280586f30fbd393bdc7247"
+    },
+    {
+      "path": "src/api/routes/students.py",
+      "method": "full_static_functional_read",
+      "scope": "ordinary API/core workflows, not security certification",
+      "sha256": "9bdcb766256c17098b92aed4852b360ec7b07106f9ab7a8a720de480abb54511"
+    },
+    {
+      "path": "src/api/routes/study_plans.py",
+      "method": "full_static_functional_read",
+      "scope": "ordinary API/core workflows, not security certification",
+      "sha256": "05db80c3d016892778aa0f41393557a6cbc5df397718bc2d1b93f9cc19cfcd49"
+    },
+    {
+      "path": "src/api/routes/timezone.py",
+      "method": "full_static_functional_read",
+      "scope": "ordinary API/core workflows, not security certification",
+      "sha256": "3757a09cb750904d7580ea81edd0dcbe80f7524c0cfcc380c92717b84dbfbe0e"
+    },
+    {
+      "path": "src/api/routes/upload.py",
+      "method": "full_static_functional_read",
+      "scope": "ordinary API/core workflows, not security certification",
+      "sha256": "fa7f1528ab62898f679a4006dca029459c97e7ad15c3a83a801b869a732e218d"
+    },
+    {
+      "path": "src/api/security.py",
+      "method": "excluded_from_this_independent_review",
+      "scope": "Security/authorization/translation investigation excluded; no restricted probe rerun.",
+      "sha256": "8fc561af8622cf5759413e0fea03163a5f1590c99886adc6317d96efad2897cc"
+    },
+    {
+      "path": "src/core/__init__.py",
+      "method": "full_static_functional_read",
+      "scope": "entry-point wiring, exports, exceptions, logging and public configuration template",
+      "sha256": "54e747d62b44a3f59be658fde2e5086878e40294e890e0c8e000ef2557dc2940"
+    },
+    {
+      "path": "src/core/exceptions.py",
+      "method": "full_static_functional_read",
+      "scope": "entry-point wiring, exports, exceptions, logging and public configuration template",
+      "sha256": "0a6387117fd197c0ead671b7fcece734b8487cf812ed599fe903a25717c7c78c"
+    },
+    {
+      "path": "src/core/models/__init__.py",
+      "method": "full_static_functional_read",
+      "scope": "ordinary API/core workflows, not security certification",
+      "sha256": "2854141a25219dd6531f2ec809c559f0de06825e5444d7ca76f41bfeb7cdbc90"
+    },
+    {
+      "path": "src/core/models/models.py",
+      "method": "partial_static_functional_read",
+      "scope": "Baseline lines 123–334, 345–440, 480–516 and 585–1131 plus class/function inventory; authentication/encryption/bootstrap internals not reviewed.",
+      "sha256": "9db038eb6546fef930229ee251a21000d407886771a0abcc3ea5970459485a0a"
+    },
+    {
+      "path": "src/core/roles.py",
+      "method": "full_static_functional_read",
+      "scope": "ordinary API/core workflows, not security certification",
+      "sha256": "16c75ce4b85cff1514eb937c1e117b28bac1640c57abbb061a52d2584db4881b"
+    },
+    {
+      "path": "src/core/security.py",
+      "method": "excluded_from_this_independent_review",
+      "scope": "Security/authorization/translation investigation excluded; no restricted probe rerun.",
+      "sha256": "a893e979c41026ccdcc5a302e9ba11fad89b1f4d7e9bf8c564832421beebc68d"
+    },
+    {
+      "path": "src/core/security_utils.py",
+      "method": "excluded_from_this_independent_review",
+      "scope": "Security/authorization/translation investigation excluded; no restricted probe rerun.",
+      "sha256": "398f58cb9c4b8e1d89bc6273ed46b62d0bd2b0ed392b56eb2137b87ec675ad17"
+    },
+    {
+      "path": "src/core/services/__init__.py",
+      "method": "full_static_functional_read",
+      "scope": "ordinary API/core workflows, not security certification",
+      "sha256": "433ec5d16875e48835b4f4aa80d18aa87ebd2fe1a6e422080bcb234cb627aaee"
+    },
+    {
+      "path": "src/core/services/ai_request_lifecycle.py",
+      "method": "full_static_functional_read",
+      "scope": "ordinary API/core workflows, not security certification",
+      "sha256": "be1e59d92ac3f0eaad7b809ec05a4ef4d57d4c6c0e7cd96c73a95171d217d90e"
+    },
+    {
+      "path": "src/core/services/ai_service.py",
+      "method": "partial_static_functional_read",
+      "scope": "Method inventory and baseline lines 764–885 and 1590–1635. Remaining provider adapters, model prompts and implementation not independently reviewed in depth.",
+      "sha256": "d241f440de944a40c17bf982a475a767a7c6bfb1dcb3279851fe3a5f62721b70"
+    },
+    {
+      "path": "src/core/services/assessed_review.py",
+      "method": "full_static_functional_read",
+      "scope": "ordinary API/core workflows, not security certification",
+      "sha256": "9499d9766de5ab79166e77ccb588ef5b320f744a4c1b60760ac2e71581bbc6f7"
+    },
+    {
+      "path": "src/core/services/assessment_contract.py",
+      "method": "full_static_functional_read",
+      "scope": "ordinary API/core workflows, not security certification",
+      "sha256": "a88fe822a9c62cb382478a133a6855fafd6bb6bdf43bdfca99cbfe3ed91790cc"
+    },
+    {
+      "path": "src/core/services/assistance_policy.py",
+      "method": "full_static_functional_read",
+      "scope": "ordinary API/core workflows, not security certification",
+      "sha256": "182afb5c6f7a1d2a66e004a26baf3e7c843cdf314d8edb04c4d138fc5063811e"
+    },
+    {
+      "path": "src/core/services/auth.py",
+      "method": "partial_static_functional_read",
+      "scope": "Method inventory and baseline registration lines 46–125 and profile-update lines 514–588. Authentication/password/token/lockout internals excluded.",
+      "sha256": "4602851c27a31880a13df6269649d93573525c180b380d1b7d4487e9b7498471"
+    },
+    {
+      "path": "src/core/services/content_schema.py",
+      "method": "full_static_functional_read",
+      "scope": "ordinary API/core workflows, not security certification",
+      "sha256": "f5ac37fa4b101bdf4d57ba8c3ec46fef3ac5a7a1994b6487f45b189d2a5aea10"
+    },
+    {
+      "path": "src/core/services/content_service.py",
+      "method": "full_static_functional_read",
+      "scope": "ordinary API/core workflows, not security certification",
+      "sha256": "b5596fdbce30080d5c77f250ce1764290c2c4f3d556a470f04ad1f586bf3ed50"
+    },
+    {
+      "path": "src/core/services/course_workflow.py",
+      "method": "full_static_functional_read",
+      "scope": "ordinary API/core workflows, not security certification",
+      "sha256": "a53c6227b3567c7ddcc215b1f02546e1bd5cd3aeb8af37876fa55b390c1cf84e"
+    },
+    {
+      "path": "src/core/services/database.py",
+      "method": "full_static_functional_read",
+      "scope": "ordinary API/core workflows, not security certification",
+      "sha256": "dd6b5fea0f4900fd2dd8f1d1bb0c5404941297d3bb9d89855aa29aae54b94720"
+    },
+    {
+      "path": "src/core/services/exercise_generator_service.py",
+      "method": "full_static_functional_read",
+      "scope": "ordinary API/core workflows, not security certification",
+      "sha256": "d2edff71ae38ab9b88a5af768c13ae513215d70bc9b90bef52b131f8c82e8b27"
+    },
+    {
+      "path": "src/core/services/file_service.py",
+      "method": "full_static_functional_read",
+      "scope": "ordinary API/core workflows, not security certification",
+      "sha256": "eccc0413e05e8c7b8f9276b87284c24e2a4557be2cc2b977846bba922c82f81d"
+    },
+    {
+      "path": "src/core/services/generation_workflow.py",
+      "method": "full_static_functional_read",
+      "scope": "ordinary API/core workflows, not security certification",
+      "sha256": "8659e63433dda32f702e579b0ac409cbe38063bb2701e1d9adeac44fe719e228"
+    },
+    {
+      "path": "src/core/services/learning_context.py",
+      "method": "full_static_functional_read",
+      "scope": "ordinary API/core workflows, not security certification",
+      "sha256": "6f8e3765156aee89aa5d248c33ea2459daa5d61dfceff81b4a65545676ca52ea"
+    },
+    {
+      "path": "src/core/services/learning_session_service.py",
+      "method": "full_static_functional_read",
+      "scope": "ordinary API/core workflows, not security certification",
+      "sha256": "a6b229fa846be7b406329731c12522d62d37a9ab37e9e859fb2d719c49cab9e6"
+    },
+    {
+      "path": "src/core/services/logging.py",
+      "method": "full_static_functional_read",
+      "scope": "entry-point wiring, exports, exceptions, logging and public configuration template",
+      "sha256": "e3eb865fd56cc52b55719b786ed610f1042d778097efc1ef36596f7028aea236"
+    },
+    {
+      "path": "src/core/services/portability_service.py",
+      "method": "full_static_functional_read",
+      "scope": "ordinary API/core workflows, not security certification",
+      "sha256": "4e12c56981e1783b539e2cbfa8ce2da7702b1429945e281414c749c11b644109"
+    },
+    {
+      "path": "src/core/services/progress_tracking_service.py",
+      "method": "full_static_functional_read",
+      "scope": "ordinary API/core workflows, not security certification",
+      "sha256": "7b4f190a9c1fb9d29f560c70ac0b8ed783c817efc1c5c74c17e51f699959b02d"
+    },
+    {
+      "path": "src/core/services/recovery_service.py",
+      "method": "full_static_functional_read",
+      "scope": "ordinary API/core workflows, not security certification",
+      "sha256": "992e666d206b3c55b5882e11813d10f874af0d9ac5bbca4349f23ba81c123407"
+    },
+    {
+      "path": "src/core/services/schema_migrations.py",
+      "method": "full_static_functional_read",
+      "scope": "ordinary API/core workflows, not security certification",
+      "sha256": "dde949e8c1b529254d5b513f434832172e3d804574c6c49901fe87b3d847c810"
+    },
+    {
+      "path": "src/core/services/settings_config_service.py",
+      "method": "full_static_functional_read",
+      "scope": "ordinary API/core workflows, not security certification",
+      "sha256": "3e94a9acf1f99b544d159ec3c920437d139db4f40ef8dbb4f161731d8877a1c7"
+    },
+    {
+      "path": "src/core/services/source_documents.py",
+      "method": "full_static_functional_read",
+      "scope": "ordinary API/core workflows, not security certification",
+      "sha256": "ef4777669c82932dfbf2e3f3c0d192817e63a9d0b472b03196b6852f9e8f911f"
+    },
+    {
+      "path": "src/core/services/spaced_repetition_service.py",
+      "method": "full_static_functional_read",
+      "scope": "ordinary API/core workflows, not security certification",
+      "sha256": "519725c5bb215ac196b0e611a6f86d718d271cee781df71524a1f21d8735b16b"
+    },
+    {
+      "path": "src/core/services/study_plan_service.py",
+      "method": "full_static_functional_read",
+      "scope": "ordinary API/core workflows, not security certification",
+      "sha256": "02b2bab5beff2bcc05a2702dd41923825f747d93decf72984e9a780a6c39c756"
+    },
+    {
+      "path": "src/core/services/temporal_migration.py",
+      "method": "full_static_functional_read",
+      "scope": "ordinary API/core workflows, not security certification",
+      "sha256": "22ab75727a65a3b34c8744e148f69d98a4afcd415330b1e00127bcbe710265a4"
+    },
+    {
+      "path": "src/core/services/temporal_service.py",
+      "method": "full_static_functional_read",
+      "scope": "ordinary API/core workflows, not security certification",
+      "sha256": "dda1a6b9bab40e2d5aabe8d0b0655c190c9eed3f74b9ef90cc5064b5996c14e3"
+    },
+    {
+      "path": "src/core/services/translation_service.py",
+      "method": "excluded_from_this_independent_review",
+      "scope": "Security/authorization/translation investigation excluded; no restricted probe rerun.",
+      "sha256": "d8bc189cac2184ccd577a1752b5e6cf7138a5b71518a0d32f4aa6247c62b67f2"
+    },
+    {
+      "path": "src/core/temporal.py",
+      "method": "full_static_functional_read",
+      "scope": "ordinary API/core workflows, not security certification",
+      "sha256": "d7aa7f978b668543c7784e218732960f505ffdf2c809a254bb843b52c3a937e1"
+    },
+    {
+      "path": "src/frontend/CONTRACTS.md",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "569e60f1c5b14f720d571502e0eeb9c668e23d37e6b52dffbd3dbecf8edb52fc"
+    },
+    {
+      "path": "src/frontend/README.md",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "22c25f9e1c7b382f89db35b7430d11063c2b64fe835a02eb489c3d7e9b00d6d5"
+    },
+    {
+      "path": "src/frontend/eslint.config.js",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "ed77498e5c62aaff20110a581533d3ad0d469b48cccea445f6285a55a98d0d68"
+    },
+    {
+      "path": "src/frontend/index.html",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "4c46427399363adacbd2d873617aaf16591c43df01ac44274596113f24839c81"
+    },
+    {
+      "path": "src/frontend/package-lock.json",
+      "method": "immutable_blob_verified_and_pinned_npm_ci_not_dependency_source_audit",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "ab78857b4057c8344b1c355681880df67049c383c9a170f39025bd36212bcd19"
+    },
+    {
+      "path": "src/frontend/package.json",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "3f797f6f74d641b1014674242bc9ce255be4739f94ec6340e5a1f6e405953234"
+    },
+    {
+      "path": "src/frontend/scripts/build-manifest.mjs",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "1ed2ad62334aa2d86b9e90167573e608d0e578d248d643d8d131ea488a5bcbbd"
+    },
+    {
+      "path": "src/frontend/scripts/build.mjs",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "a9293fce0a593a098344882c40578d8e3efa4d6e1c6bc5b86b6b02d9c7fef32f"
+    },
+    {
+      "path": "src/frontend/scripts/source-identity.mjs",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "ef2e49d204a64b4c8b159016cbcf52e6d4e81768930fd669ec4f5e36d564beee"
+    },
+    {
+      "path": "src/frontend/src/app/AppShell.tsx",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "4a8d6e734c9c91da8b680c953658bb1c1f313ea610b4e18eaaef63e0ded44d56"
+    },
+    {
+      "path": "src/frontend/src/app/AppearanceProvider.tsx",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "2c994475bdaa5af04c639b665866b1533842dc4835ffff374bb92df0b4fcce43"
+    },
+    {
+      "path": "src/frontend/src/app/AuthProvider.tsx",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "4f8585791bee14cd16ecd4e38391c572573ac1c5c9a391a53a900681ae8eca99"
+    },
+    {
+      "path": "src/frontend/src/app/DirtyGuard.tsx",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "f71731c88e8cc4eb77957d510a87f4dc14b0b5020ff848fe1d0e0b14f2697eef"
+    },
+    {
+      "path": "src/frontend/src/app/PrivacyContext.tsx",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "dc3f9a61f833095767ec47de05f7b5cb1a4fe32495dcc6fe64b1e7863048f8eb"
+    },
+    {
+      "path": "src/frontend/src/app/UnreadMessagesBadge.tsx",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "cd45802a144fdf90f6d718c2928b5c6d6a9120451644c83c327d99c17c77bfea"
+    },
+    {
+      "path": "src/frontend/src/app/auth-controller.ts",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "9c0af2ccc2b80c312898db95cb00783155b7dcb37bf88342c58972590fcdf6ab"
+    },
+    {
+      "path": "src/frontend/src/app/feature-routes.ts",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "655fd4c3e3f2d8f05a57eb3bb8089b3f4990c430a76cdba8fe4a491655c1f6fb"
+    },
+    {
+      "path": "src/frontend/src/app/legacy-dashboard.ts",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "9196d9ecb2c1ea6fb52427cee23f3bdbf0e51d17be86ba977e51cb67bda8f72a"
+    },
+    {
+      "path": "src/frontend/src/app/retire-legacy-worker.ts",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "fe7e73a5d30bbb036211901577902381be851350e1f1c7a2a5d303bbb0261007"
+    },
+    {
+      "path": "src/frontend/src/app/route-contracts.ts",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "947916abca06bd7f027c36ef6bf471e481b51d451cb1ad987b34c4da77b954f3"
+    },
+    {
+      "path": "src/frontend/src/app/router.tsx",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "cd0a8aa871cc27d9a4e1b7bfdb97560dac362534a6626d1a4f6085316b19a343"
+    },
+    {
+      "path": "src/frontend/src/components/content/ContentRenderer.tsx",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "ecf1e8cd612aee1b5122f1e71227fe6090a7688642200fb6812e8d02b95f261a"
+    },
+    {
+      "path": "src/frontend/src/components/ui/index.tsx",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "a22c290227f238d64cd220a03ac2d48efd167664fa772ebdbf10db8d36e62ffa"
+    },
+    {
+      "path": "src/frontend/src/features/assessments/AssessmentEditor.tsx",
+      "method": "full_static_functional_read",
+      "scope": "assessments, authoring, courses, learning",
+      "sha256": "fc584a1a87edc33865bf8d337c8aed0bcf28ac6ed8057a01ac21ac4fe8c2ca20"
+    },
+    {
+      "path": "src/frontend/src/features/assessments/AssessmentPages.tsx",
+      "method": "full_static_functional_read",
+      "scope": "assessments, authoring, courses, learning",
+      "sha256": "46aef9ffa21089bb82db40972775f528728d64829ac04886f871de0ed4b68658"
+    },
+    {
+      "path": "src/frontend/src/features/assessments/AttemptWorkspace.tsx",
+      "method": "full_static_functional_read",
+      "scope": "assessments, authoring, courses, learning",
+      "sha256": "eb7ea750c497443016496a387e6d7111cb1518fa491b7914788e5ef7a953fdc5"
+    },
+    {
+      "path": "src/frontend/src/features/assessments/GradingWorkspace.tsx",
+      "method": "full_static_functional_read",
+      "scope": "assessments, authoring, courses, learning",
+      "sha256": "23f53280a7cd8058e1d745ea87de73c49dcb86c8a7d40fe32d3fbd1157ee6083"
+    },
+    {
+      "path": "src/frontend/src/features/assessments/LocalAttemptRecovery.tsx",
+      "method": "full_static_functional_read",
+      "scope": "assessments, authoring, courses, learning",
+      "sha256": "38d16c221f3457edda5ad069b4316104d9d4c91ac2ec465e157b20742557b436"
+    },
+    {
+      "path": "src/frontend/src/features/assessments/editor-model.ts",
+      "method": "full_static_functional_read",
+      "scope": "assessments, authoring, courses, learning",
+      "sha256": "ffe00351fe874ef58024904154bcb22996917540632ee8430d6515d7cd2b94b9"
+    },
+    {
+      "path": "src/frontend/src/features/assessments/locales.ts",
+      "method": "full_static_functional_read",
+      "scope": "assessments, authoring, courses, learning",
+      "sha256": "72422a1a85ab7c8c17dca483019a839b43add943484ec31cf3f8866f281272b7"
+    },
+    {
+      "path": "src/frontend/src/features/assessments/model.ts",
+      "method": "full_static_functional_read",
+      "scope": "assessments, authoring, courses, learning",
+      "sha256": "36a713580c4da152831d53cb394c619800ccb8108eb073e327176ae17bf4d9c2"
+    },
+    {
+      "path": "src/frontend/src/features/assessments/routes.tsx",
+      "method": "full_static_functional_read",
+      "scope": "assessments, authoring, courses, learning",
+      "sha256": "425c0d975e9edbbbba07dfd895283375f2be1d0bf5553bd7af198e1daae424db"
+    },
+    {
+      "path": "src/frontend/src/features/assessments/shared.tsx",
+      "method": "full_static_functional_read",
+      "scope": "assessments, authoring, courses, learning",
+      "sha256": "83355b9c88b219fa25a09f3d069f755597ce1f636a31d388f97b965cc9d1747d"
+    },
+    {
+      "path": "src/frontend/src/features/auth/LoginPage.tsx",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "057967a860bcc4ff4cf94eb4331570a3fbb6e8040ab676f9090fcc39e614284e"
+    },
+    {
+      "path": "src/frontend/src/features/authoring/CourseChoice.tsx",
+      "method": "full_static_functional_read",
+      "scope": "assessments, authoring, courses, learning",
+      "sha256": "4839461af50139f702c0d70bbcbe7b4944cc7723d34f741907201f3d36ea6616"
+    },
+    {
+      "path": "src/frontend/src/features/authoring/GenerationJobs.tsx",
+      "method": "full_static_functional_read",
+      "scope": "assessments, authoring, courses, learning",
+      "sha256": "dd30909642e09a09399b075dfa14dc5b7bb547ffaa505dedc975fc108fedf521"
+    },
+    {
+      "path": "src/frontend/src/features/authoring/GenerationPage.tsx",
+      "method": "full_static_functional_read",
+      "scope": "assessments, authoring, courses, learning",
+      "sha256": "f190bcf1467269505944572b643d297094e67e392a128f492fc75be2392ce29f"
+    },
+    {
+      "path": "src/frontend/src/features/authoring/MaterialEditor.tsx",
+      "method": "full_static_functional_read",
+      "scope": "assessments, authoring, courses, learning",
+      "sha256": "d4ac32ee8cb99850926afcde6c2aac5306933fa973cacf5057e77b424a877a53"
+    },
+    {
+      "path": "src/frontend/src/features/authoring/MaterialLibrary.tsx",
+      "method": "full_static_functional_read",
+      "scope": "assessments, authoring, courses, learning",
+      "sha256": "85e33f7d5d5f0c0741f9330a7c19491196ed63272bf3de1b91d3c3d7b009ffad"
+    },
+    {
+      "path": "src/frontend/src/features/authoring/SourcePage.tsx",
+      "method": "full_static_functional_read",
+      "scope": "assessments, authoring, courses, learning",
+      "sha256": "6bf053bcd4301b7220f6a08cb09dc0c4f80dd2bb10fb0b7389229301f4703f72"
+    },
+    {
+      "path": "src/frontend/src/features/authoring/contracts.ts",
+      "method": "full_static_functional_read",
+      "scope": "assessments, authoring, courses, learning",
+      "sha256": "8b4d17a92ed7084ce803ac95b9bc400ad7ac408e367ea1760135ef36edb99eab"
+    },
+    {
+      "path": "src/frontend/src/features/authoring/legacy-designer.ts",
+      "method": "full_static_functional_read",
+      "scope": "assessments, authoring, courses, learning",
+      "sha256": "ac1a7d3cf8c892ff4d26fd8bb80c54acddc828e5ab596f3caebbe7f35bb38174"
+    },
+    {
+      "path": "src/frontend/src/features/authoring/locales.ts",
+      "method": "full_static_functional_read",
+      "scope": "assessments, authoring, courses, learning",
+      "sha256": "c67968eac6860e7313d613c0aa6101027281b253ba44088342caa2a5707458cb"
+    },
+    {
+      "path": "src/frontend/src/features/authoring/routes.tsx",
+      "method": "full_static_functional_read",
+      "scope": "assessments, authoring, courses, learning",
+      "sha256": "223cb1cb76299a61452f9b52ad996c08b05764ca4e55e4f69529db387343138c"
+    },
+    {
+      "path": "src/frontend/src/features/courses/CourseEditor.tsx",
+      "method": "full_static_functional_read",
+      "scope": "assessments, authoring, courses, learning",
+      "sha256": "ccf1f328e07586735c02289c4317067e376444ff8e9c8ae068aac8e592be57e6"
+    },
+    {
+      "path": "src/frontend/src/features/courses/CoursePages.tsx",
+      "method": "full_static_functional_read",
+      "scope": "assessments, authoring, courses, learning",
+      "sha256": "d540572060e6547dd376d00b34b7d1a81ba7be83ea2a2ed803d14d8c55d78843"
+    },
+    {
+      "path": "src/frontend/src/features/courses/CourseWorkflowPanel.tsx",
+      "method": "full_static_functional_read",
+      "scope": "assessments, authoring, courses, learning",
+      "sha256": "86f817e1de3a68448bf6216a86e390e236e4a9a178129a9c9dd87362af3a3698"
+    },
+    {
+      "path": "src/frontend/src/features/courses/LessonComposer.tsx",
+      "method": "full_static_functional_read",
+      "scope": "assessments, authoring, courses, learning",
+      "sha256": "a941b33008f92d7054960b839ecfe344311d74186cb7cd817bc5d686e06138b1"
+    },
+    {
+      "path": "src/frontend/src/features/courses/contracts.ts",
+      "method": "full_static_functional_read",
+      "scope": "assessments, authoring, courses, learning",
+      "sha256": "55197b310b92696ef7ffa45ad715f1aa8f2a7270cb76a362cbe1fefd18baae99"
+    },
+    {
+      "path": "src/frontend/src/features/courses/locales.ts",
+      "method": "full_static_functional_read",
+      "scope": "assessments, authoring, courses, learning",
+      "sha256": "83280b69a8969bd0c9b20577a25ab4053574fe17b7e5b05453bd3950e3b625cc"
+    },
+    {
+      "path": "src/frontend/src/features/courses/routes.tsx",
+      "method": "full_static_functional_read",
+      "scope": "assessments, authoring, courses, learning",
+      "sha256": "dd450a2ed1661565dfc0139ba05045b14af42f76edd259575fa63515be7d8ea4"
+    },
+    {
+      "path": "src/frontend/src/features/help/HelpPages.tsx",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "771df370287a6621355e94c3c7220b1db07c759bfddcfdf265f2c42076133bb1"
+    },
+    {
+      "path": "src/frontend/src/features/help/HelpResponse.tsx",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "5498554127f5045e0b6f3f4262d998b23e4b6ee2cdd1074d9bfc36ca5f22df6a"
+    },
+    {
+      "path": "src/frontend/src/features/help/contracts.ts",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "8ff6d29da7db163e5acb7e34c5218bcd8aaefc1d08bede656aa06b5a43043c58"
+    },
+    {
+      "path": "src/frontend/src/features/help/locales.ts",
+      "method": "catalog_structure_type_and_regression_review_not_translation_acceptance",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "4785fa64a3caa2010aada0c2ee0ce73f3435e2b3ad69351dbe064e4f05fc6d63"
+    },
+    {
+      "path": "src/frontend/src/features/help/routes.tsx",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "88eb41eb4a6506e6b5667c32f02a470e2984c6de5a11092ab3f34e6d8a39c456"
+    },
+    {
+      "path": "src/frontend/src/features/home/HomePage.tsx",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "f8d0eab123ef7f74d522cb019bff6e096ddc643ad5fea52534b76a293b28db34"
+    },
+    {
+      "path": "src/frontend/src/features/home/locales.ts",
+      "method": "catalog_structure_type_and_regression_review_not_translation_acceptance",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "c77bea45199a9d4ea280a5a0fee9f06ebed11b63749ef60f2164635a6addaf71"
+    },
+    {
+      "path": "src/frontend/src/features/home/routes.tsx",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "a91b45cb99bb0c8a43096150212e84f3e78239e449eaaa77ae5c53f4c2277733"
+    },
+    {
+      "path": "src/frontend/src/features/learning/AnnotationsPanel.tsx",
+      "method": "full_static_functional_read",
+      "scope": "assessments, authoring, courses, learning",
+      "sha256": "2603b2423cbf5c90f314b7a4042a5246263b418479c1387605bdd6c4b6183a51"
+    },
+    {
+      "path": "src/frontend/src/features/learning/LearningHelp.tsx",
+      "method": "full_static_functional_read",
+      "scope": "assessments, authoring, courses, learning",
+      "sha256": "577451eed5e208a2bf2ed454a8cc640ba0ee153efcc8061560c5447cba629f60"
+    },
+    {
+      "path": "src/frontend/src/features/learning/LessonContent.tsx",
+      "method": "full_static_functional_read",
+      "scope": "assessments, authoring, courses, learning",
+      "sha256": "f8d53728964b24c15bec195f364f382677573637b4c1ddf916ab688be92a49d9"
+    },
+    {
+      "path": "src/frontend/src/features/learning/PracticeBlock.tsx",
+      "method": "full_static_functional_read",
+      "scope": "assessments, authoring, courses, learning",
+      "sha256": "508a2df4eb9799301e1c5948d3fba2e7f6f21f9b011c1497e2681a3ae18d98c5"
+    },
+    {
+      "path": "src/frontend/src/features/learning/SessionElapsed.tsx",
+      "method": "full_static_functional_read",
+      "scope": "assessments, authoring, courses, learning",
+      "sha256": "e902bdb8b961a76084b411e6c6fdf51a49662cc3ec017362a07a9044915856e5"
+    },
+    {
+      "path": "src/frontend/src/features/learning/contracts.ts",
+      "method": "full_static_functional_read",
+      "scope": "assessments, authoring, courses, learning",
+      "sha256": "33f24ee37ab829aba5cee47c278a4d3ebc63d015cd62733121f9fcd9a8e60250"
+    },
+    {
+      "path": "src/frontend/src/features/learning/help-contracts.ts",
+      "method": "full_static_functional_read",
+      "scope": "assessments, authoring, courses, learning",
+      "sha256": "2d4c91d8c3c97988d639d461236e54a85f4e889ad2a42b4b52fa11bb2113db2b"
+    },
+    {
+      "path": "src/frontend/src/features/learning/help-locales.ts",
+      "method": "full_static_functional_read",
+      "scope": "assessments, authoring, courses, learning",
+      "sha256": "66b2c747a11625947a5242a452ca7d646dcf4ce3c611853228880b6321e55ce6"
+    },
+    {
+      "path": "src/frontend/src/features/learning/learning.css",
+      "method": "full_static_functional_read",
+      "scope": "assessments, authoring, courses, learning",
+      "sha256": "2a48226245d9ecfd7871e2605c2585d30c46df616df238c574f2acd80a2220a4"
+    },
+    {
+      "path": "src/frontend/src/features/learning/locales.ts",
+      "method": "full_static_functional_read",
+      "scope": "assessments, authoring, courses, learning",
+      "sha256": "d76bf376cf9426d63538f2c33a03270a679c877333c623864646381285122238"
+    },
+    {
+      "path": "src/frontend/src/features/learning/routes.tsx",
+      "method": "full_static_functional_read",
+      "scope": "assessments, authoring, courses, learning",
+      "sha256": "1826b34aa4e1786937cd41e25664c167f1b1104c2ee696366096550945243efd"
+    },
+    {
+      "path": "src/frontend/src/features/learning/tool-contracts.ts",
+      "method": "full_static_functional_read",
+      "scope": "assessments, authoring, courses, learning",
+      "sha256": "a583fabe70b373bf14f5761858b39ba6e0bb48df22463ee9ce6199ed07f0b292"
+    },
+    {
+      "path": "src/frontend/src/features/learning/tool-locales.ts",
+      "method": "full_static_functional_read",
+      "scope": "assessments, authoring, courses, learning",
+      "sha256": "3134c29e78486ca1cc8d587b38efee57398a162115a48e2cd6201de9776542d6"
+    },
+    {
+      "path": "src/frontend/src/features/messages/MessagesPage.tsx",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "6c645732a58564a97f4a28b7650bb927cd58aec7851ea1d2ffc4a335a262d2c2"
+    },
+    {
+      "path": "src/frontend/src/features/messages/contracts.ts",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "91b2734b1b645f023e2205eb70e581c49c182e1bb3a16c6e23a96a6e44931be8"
+    },
+    {
+      "path": "src/frontend/src/features/messages/locales.ts",
+      "method": "catalog_structure_type_and_regression_review_not_translation_acceptance",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "db387e5473a9997aa38623077fbb3bafda3b6496180fed5bbeff8e1e44e5f8e6"
+    },
+    {
+      "path": "src/frontend/src/features/messages/routes.tsx",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "e03b36b41349cc1b0fa392fd81f31ca60daf1c317f58fbf6d3454b8b9a42b3c2"
+    },
+    {
+      "path": "src/frontend/src/features/messages/useDelivery.ts",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "9ace519ee06e241f26ac3d9dd51e97ccd8e11a0ad714484fdbdc225869a385db"
+    },
+    {
+      "path": "src/frontend/src/features/messages/useTimestamp.ts",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "253d479d44d9f4f49159a33d8d83a6335d1ae9a89c3196c79ae86342f3e1e9bf"
+    },
+    {
+      "path": "src/frontend/src/features/people/locales.ts",
+      "method": "catalog_structure_type_and_regression_review_not_translation_acceptance",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "e0b27f4f36a339ead7e8db153053c4fc4e5f661f65bc2841a8f9a9c268232812"
+    },
+    {
+      "path": "src/frontend/src/features/people/model.ts",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "b540356653d49de06193a88bd289b867ed9b6143b609018b755062ff0b3bddd3"
+    },
+    {
+      "path": "src/frontend/src/features/people/routes.tsx",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "c5251235b10dd94ebeec193883bfb59bf943936576d29b7420248f4a78484151"
+    },
+    {
+      "path": "src/frontend/src/features/portability/BackupPage.tsx",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "3d301546ba35504606f432e1b54a1b00755f0a4f4193fd3493e9fdc689e1b237"
+    },
+    {
+      "path": "src/frontend/src/features/portability/PortabilityPage.tsx",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "b9eef74fd2dcf8bb7ea1962accecff244fa473684cec7fa5a49c78f84f3296d5"
+    },
+    {
+      "path": "src/frontend/src/features/portability/WritePanels.tsx",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "ca0abbee45e4e110034d2daf7eecf01b5db2e49e6cf9c10d4aba0ef9127c4b4b"
+    },
+    {
+      "path": "src/frontend/src/features/portability/contracts.ts",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "3218bbb947c5eb4ea97ae41fadc27a972475d844499f7e4b1fda057e5d7205c1"
+    },
+    {
+      "path": "src/frontend/src/features/portability/locales.ts",
+      "method": "catalog_structure_type_and_regression_review_not_translation_acceptance",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "1e6238b75b8b1b1b1e446a6efaa14cba96d07da66a964ef825f01c5c2141e546"
+    },
+    {
+      "path": "src/frontend/src/features/portability/routes.tsx",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "19f6eed68a5cc0b880627c1aa60be6aabd5f59f4b14972bef4f989b47631bbea"
+    },
+    {
+      "path": "src/frontend/src/features/portability/shared.tsx",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "ffb9e55a8c37882572f062a4a5480f0d2e2fcc62b8b503b4057027d0360f3f2f"
+    },
+    {
+      "path": "src/frontend/src/features/progress/DailyGoal.tsx",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "2608a3e4e51bb6378f7c2f90944f9017cf697fe8c715193577416158b98dbfe0"
+    },
+    {
+      "path": "src/frontend/src/features/progress/ProgressPage.tsx",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "7a12ed206021f2b002f43070b6fb0bae3cf4ddeaeb79b213ffbd82a911463692"
+    },
+    {
+      "path": "src/frontend/src/features/progress/contracts.ts",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "8d26758ddf5eb8ee0a2b4f66375b7d411553740014302bb055c252e5e6241fff"
+    },
+    {
+      "path": "src/frontend/src/features/progress/locales.ts",
+      "method": "catalog_structure_type_and_regression_review_not_translation_acceptance",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "9cf370657378cd29f1ec06426663b935898bb479fb6fc2210413b375f65fce56"
+    },
+    {
+      "path": "src/frontend/src/features/progress/routes.tsx",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "15a7f74e8bf6da79a79d564d5ceac63444bf7e8304b3ddcf5dde9324f8ace0a0"
+    },
+    {
+      "path": "src/frontend/src/features/progress/shared.tsx",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "6a57992b9656126244b5f4d729f221166d8d68f9955d3ba413d95a632998b7eb"
+    },
+    {
+      "path": "src/frontend/src/features/settings/AISettingsPage.tsx",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "c54f6d2dd7de4f829a9640188619f7e3bd80a77bd56ce628d8dd9b37039d56bd"
+    },
+    {
+      "path": "src/frontend/src/features/settings/AccountPages.tsx",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "ece8a5f5d04c51e2e55b6e8926fde29464baf9d8d0ca494cd1f94496b1c0b6a1"
+    },
+    {
+      "path": "src/frontend/src/features/settings/PreferencePages.tsx",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "e3a399b90556ff83bac7d47b742fec1990f9a2a1588e2c0589fc3cba7a3e0244"
+    },
+    {
+      "path": "src/frontend/src/features/settings/contracts.ts",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "3a2cc8441b974e56617098e7001e5c3b14692757e909535f40394d8f9a65e967"
+    },
+    {
+      "path": "src/frontend/src/features/settings/locales.ts",
+      "method": "catalog_structure_type_and_regression_review_not_translation_acceptance",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "5dd79fd7709a4ed0f0d391ca266616e3402e42ebcf6e790eaeb2df3f46f69cbc"
+    },
+    {
+      "path": "src/frontend/src/features/settings/routes.tsx",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "cce07475cae1bc935caa1b4cbb6199540c857c3d7bede5defb18f974e6421760"
+    },
+    {
+      "path": "src/frontend/src/features/settings/shared.tsx",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "f6b892b93ad4feaece20b4c42c150c597dc3e278ddb85c17e7a1f99587b86118"
+    },
+    {
+      "path": "src/frontend/src/features/tutor/AIStatus.tsx",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "1210e19c0e1f451a1073c98c339cfb1e7d0fd80db82ff0625bab9df82d792b5f"
+    },
+    {
+      "path": "src/frontend/src/features/tutor/Conversation.tsx",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "7c46f45c46403779577a45039371bd73476a7d64056c92b6fd1e2305571d3c34"
+    },
+    {
+      "path": "src/frontend/src/features/tutor/DeleteQuestion.tsx",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "296492ced311c9ba6f15df8eea76315194bfc55bf693fe5dcb92186ba72f94ff"
+    },
+    {
+      "path": "src/frontend/src/features/tutor/QuestionEditor.tsx",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "f79d86acb6e222f46e675865763794b4e45ee1e057e25bb7325d5f57cf3075c2"
+    },
+    {
+      "path": "src/frontend/src/features/tutor/Questions.tsx",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "e64b37f3aac60e8efe8342e43646d0ade2177741d6fed3c8debb092cff6cde1f"
+    },
+    {
+      "path": "src/frontend/src/features/tutor/TutorPage.tsx",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "d2acb7b75b308b1e6ed7b9e79b4b7803fe8cd473cfab039c4d9ef8c220176fa8"
+    },
+    {
+      "path": "src/frontend/src/features/tutor/contracts.ts",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "933a00ecb545dd750cb9b427a5cefa88d853ea3c0cfdc5e3103ecfefc10b2ef7"
+    },
+    {
+      "path": "src/frontend/src/features/tutor/locales.ts",
+      "method": "catalog_structure_type_and_regression_review_not_translation_acceptance",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "9ebb55d941efe554e0d3bf26d7625b7bc3d3b455f147e8c61cee6c76f4c25889"
+    },
+    {
+      "path": "src/frontend/src/features/tutor/routes.tsx",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "8cd72185033f37dc0c58206e2578714a4f2de3872432001538d5ffa14e3aca1e"
+    },
+    {
+      "path": "src/frontend/src/features/tutor/tutor.css",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "65333375a836c77d52efd4f1f5a5065ddf69e333c0a4bc7ad158a0c6fd5537b8"
+    },
+    {
+      "path": "src/frontend/src/features/tutor/useAIRequest.ts",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "00348d1e31e530652cc43096c512963708eec860478314d456074dcb614b95bf"
+    },
+    {
+      "path": "src/frontend/src/i18n/common.ts",
+      "method": "catalog_structure_type_and_regression_review_not_translation_acceptance",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "44c38175bb9ef29548266d6805eabb083d1a89d19d8dd7adc9cfd9ed8fc60af2"
+    },
+    {
+      "path": "src/frontend/src/i18n/index.ts",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "cb79924e1c7b744e95b6cbaa6ef39645983a3a529bf691e59503b7498c709c5b"
+    },
+    {
+      "path": "src/frontend/src/lib/api.ts",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "f55f8152981b78002cd7b8f7534d4b3c5c2e654129d0d5497876a446c8e23ede"
+    },
+    {
+      "path": "src/frontend/src/lib/downloads.ts",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "03f65b224adcc6d26bd5f27d9e2f27c44508375e2093c1e3660788022147d27d"
+    },
+    {
+      "path": "src/frontend/src/lib/drafts.ts",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "e9b94b901daa7a19ec95215025798a97e59c122fb92fe011f1d06a6fdb4d03be"
+    },
+    {
+      "path": "src/frontend/src/lib/ids.ts",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "bfaad4d569060d36d552b234155725dcf79d0368742246b0303222c60fddaa68"
+    },
+    {
+      "path": "src/frontend/src/lib/query.ts",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "698d3e0477f62f919f857c30e323f5bae5c33f50a958010ba4ab54bd569961b1"
+    },
+    {
+      "path": "src/frontend/src/lib/storage.ts",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "16921586df499c4f9f69c773092c1ecb732825da413b8ae54be67bdb9e3f3c95"
+    },
+    {
+      "path": "src/frontend/src/lib/time.ts",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "f24c93cc68a7ab6e83be806723280d24606ae3d9c1a2efeb50975257849cac6b"
+    },
+    {
+      "path": "src/frontend/src/lib/types.ts",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "04f1958b5a4d1d94d9de2ecf4c8be0159e3c67ccdcd0afd62abab2ab45088344"
+    },
+    {
+      "path": "src/frontend/src/main.tsx",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "e5d308bef2cba61c50b811abbc3780305636caa30dea986af10405bdd5afa4b3"
+    },
+    {
+      "path": "src/frontend/src/styles/base.css",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "69188391f68d2f8ac231cd041b108ca8a1699d8e85702b29bbeba98671f4cf9d"
+    },
+    {
+      "path": "src/frontend/src/styles/tokens.css",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "f73b4dac8a5c8bdef0c9f46f592bea2f2adaeac6493bb5efa7740c1a785ef62e"
+    },
+    {
+      "path": "src/frontend/tsconfig.json",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "ddc494a31934a7db2b45b8b1bc8ce3a728e99636407638521e7416e7aa14e55c"
+    },
+    {
+      "path": "src/frontend/vite.config.ts",
+      "method": "manual_functional_source_review",
+      "scope": "frontend foundation and supporting role workflows",
+      "sha256": "54802afddc9c286055e1e8194c7a345f546c2c25f3c9f88ec916fc99ed8d2a63"
+    },
+    {
+      "path": "src/frontend_delivery.py",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Full static read after parent clarification: canonical source/build identity and artifact closure, normal GET/HEAD serving/cache semantics, API routing and legacy redirects, explicit frozen/override selection, narrow retirement-worker boundary. No source edits or new probes.",
+      "sha256": "b27eeb19487a437d8ccc8cba42066467c4e6f8c2664204705d2ef5f3cffee99f"
+    },
+    {
+      "path": "src/settings.properties.template",
+      "method": "full_static_functional_read",
+      "scope": "entry-point wiring, exports, exceptions, logging and public configuration template",
+      "sha256": "a35eab8d90f9796966ded1f766ac62a6ae083f03a0b52394d68acf5b8a81bfc5"
+    },
+    {
+      "path": "src/starter.py",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Reviewed native/controller/console paths, owned-child readiness/shutdown, delayed events, translated controls, recovery dispatch. No native UI validation.",
+      "sha256": "9718bc2071681edfa0d290731fa404ea5e3c73efd993b55c9b5a649f6d0d26e9"
+    },
+    {
+      "path": "src/starter_headless.py",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Reviewed shared headless lifecycle, fixed-port preflight and no-browser dispatch. No live server launched by this review.",
+      "sha256": "0df47a882eaed6a145c48e76db23a13c6893c723dc603dc2b95b070d2f3dcc30"
+    },
+    {
+      "path": "src/startup_utils.py",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Reviewed frozen-path setup, bounded readiness/body/deadline handling and owned-child state transitions. Existing synthetic lifecycle tests are the runtime boundary.",
+      "sha256": "c61e169d41ad8dfd85a743507ba2834269dbd18ace04566eb3e9cf0cd813b55b"
+    }
+  ],
+  "supporting_files": [
+    {
+      "path": ".coveragerc",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Read only; no dependency, hosted workflow, credential or policy changes.",
+      "sha256": "7018f498e96a4868ff857fa64b8de840b77a52f1819415113f0eb049636fbdfd"
+    },
+    {
+      "path": ".env.example",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Read only; no dependency, hosted workflow, credential or policy changes.",
+      "sha256": "90d2b2bf61d11b8cddf847852358b09edf6287cf17ec267e13d9d5582da7a7bc"
+    },
+    {
+      "path": ".gitattributes",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Read only; no dependency, hosted workflow, credential or policy changes.",
+      "sha256": "0cf8e306c67f75f7171208a19406fbb6d294d604f8b959818a3c41e4a5e9e0bd"
+    },
+    {
+      "path": ".github/workflows/browser-acceptance.yml",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Read only; no dependency, hosted workflow, credential or policy changes.",
+      "sha256": "0cf8f140b94a09518481ddad2c105cbeea3fb279854b3c09da2bb6973a3cf558"
+    },
+    {
+      "path": ".github/workflows/offline-tests.yml",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Read only; no dependency, hosted workflow, credential or policy changes.",
+      "sha256": "ccdec93df41b2970182e091cc0e50928370eb1afa9cef2646a86f3a6fd50c69d"
+    },
+    {
+      "path": "AGENTS.md",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Cross-checked current setup/operation, maintained implementation references and acceptance scope; related current-path edits documented separately.",
+      "sha256": "3c6b0cf6ac0716f54b83a7eb3c954b9c0230cd8e018448b08e94d1348c8ce25e"
+    },
+    {
+      "path": "README.md",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Cross-checked current setup/operation, maintained implementation references and acceptance scope; related current-path edits documented separately.",
+      "sha256": "f00c8a0844b5d958ded42abf6ecbfdff27316129b4c13acd0cabcbe10e81a73a"
+    },
+    {
+      "path": "build_installer.bat",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Reviewed script-location pushd, optional venv, forwarding and exit status. No change.",
+      "sha256": "d9b74bb70d7197f7b977ec69a2b1bfdb83d7e8cb7286e0ff027de65ea2699ba5"
+    },
+    {
+      "path": "build_package.bat",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Reviewed script-location pushd, optional venv, forwarding and exit status. No change.",
+      "sha256": "2d4a8e6e38273ab88eb49bad4f37f139d3fe76c83e0ec68950ce0593b146d10a"
+    },
+    {
+      "path": "docs/AI_REQUESTS_AND_OPERATIONS.md",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Cross-checked current setup/operation, maintained implementation references and acceptance scope; related current-path edits documented separately.",
+      "sha256": "210b421c48812d37cb9a5da35e19919391446583d098bc19e0575a25379d2a7a"
+    },
+    {
+      "path": "docs/ASSISTANCE_POLICY.md",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Cross-checked current setup/operation, maintained implementation references and acceptance scope; related current-path edits documented separately.",
+      "sha256": "85a5eee42cba13f023dad7a7b73ea62827ed9f06fb2f1a256a75a3141ef29b62"
+    },
+    {
+      "path": "docs/BROWSER_TEST.md",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Cross-checked current setup/operation, maintained implementation references and acceptance scope; related current-path edits documented separately.",
+      "sha256": "980cf34d21a1171748e6605f0de60b86c7728d0b940201cbf7bbd3380c58f4a0"
+    },
+    {
+      "path": "docs/CONTINUED_ACCEPTANCE_20261004.md",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Historical assertions retained for their original snapshot; not re-executed or treated as current acceptance.",
+      "sha256": "d2d439d5fadc20e519544c39b2d3b9e215ef6090c69e0af32ff6375711d9cd11"
+    },
+    {
+      "path": "docs/CONTRIBUTING.md",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Cross-checked current setup/operation, maintained implementation references and acceptance scope; related current-path edits documented separately.",
+      "sha256": "3f2bc1be33993b9ae870b906026b642faa12d3aceebac04bc52006f5fde925ce"
+    },
+    {
+      "path": "docs/FUNCTIONAL_REQUIREMENTS.md",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Cross-checked current setup/operation, maintained implementation references and acceptance scope; related current-path edits documented separately.",
+      "sha256": "2ba574b64ffedc4748d82149d3d1b1f122a511ffffc622bb0d736b86eaa9fdb3"
+    },
+    {
+      "path": "docs/MIGRATION_GUIDE.md",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Cross-checked current setup/operation, maintained implementation references and acceptance scope; related current-path edits documented separately.",
+      "sha256": "099c9497623ee7b706a9eb1e03dc941e1c37b80927dc9af69e6cd950c1df1a7e"
+    },
+    {
+      "path": "docs/PORTABILITY_RECOVERY.md",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Cross-checked current setup/operation, maintained implementation references and acceptance scope; related current-path edits documented separately.",
+      "sha256": "8035528ede089293374a8a1e127b0eae73cefea77c75568970a604c6f1f37fbc"
+    },
+    {
+      "path": "docs/PRODUCTION_READINESS_WINDOWS_20261005.md",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Historical assertions retained for their original snapshot; not re-executed or treated as current acceptance.",
+      "sha256": "1c5c8aaaa22bd999da88267eabe0430f23757f3608097ec630bc8831971b3de2"
+    },
+    {
+      "path": "docs/PRODUCT_ACCEPTANCE_WINDOWS_20261004.md",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Historical assertions retained for their original snapshot; not re-executed or treated as current acceptance.",
+      "sha256": "2713302a8a12f1d4c49d1d2ca581c66a4704e5eda2506bec9786367b2651b58c"
+    },
+    {
+      "path": "docs/README.md",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Cross-checked current setup/operation, maintained implementation references and acceptance scope; related current-path edits documented separately.",
+      "sha256": "f4209682aaeafe4ff0ed64654618021142a4589a11ef26c5f73377bd915ec824"
+    },
+    {
+      "path": "docs/SOURCE_CLARIFICATION_CONTRACT_20261005.md",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Historical assertions retained for their original snapshot; not re-executed or treated as current acceptance.",
+      "sha256": "bad7abfc00f581ef4a24d44e60ffa9fa37bfd0eaea5f0dd7bbb352c29733fa18"
+    },
+    {
+      "path": "docs/WINDOWS_INSTALLER.md",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Cross-checked current setup/operation, maintained implementation references and acceptance scope; related current-path edits documented separately.",
+      "sha256": "67a5c8bacce050547af3a3f7c5d67946ca77ebf3ede32d21af7111ed30007dc3"
+    },
+    {
+      "path": "docs/api/API_THEME_MANAGER.md",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Cross-checked current setup/operation, maintained implementation references and acceptance scope; related current-path edits documented separately.",
+      "sha256": "29e74f650c6eebe9e104432c85ee598310dbf4218f7cad67c66cf2f2c963693d"
+    },
+    {
+      "path": "docs/api/THEME_SYSTEM.md",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Cross-checked current setup/operation, maintained implementation references and acceptance scope; related current-path edits documented separately.",
+      "sha256": "492a2bc0e9653a4960a98aa898065a92aee15bb8bb5ef7d4bfcd7e96606cc242"
+    },
+    {
+      "path": "docs/i18n/TRANSLATION_GUIDE.md",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Cross-checked current setup/operation, maintained implementation references and acceptance scope; related current-path edits documented separately.",
+      "sha256": "478e8227c62a2265bd28543e94bed1be63f9cc3bf08c79f35154dbecb83d0532"
+    },
+    {
+      "path": "docs/i18n/TRANSLATION_IMPLEMENTATION_SUMMARY.md",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Cross-checked current setup/operation, maintained implementation references and acceptance scope; related current-path edits documented separately.",
+      "sha256": "8ecf255c8320f7dbe9a589a051aa5bf19db8890bbb7f9b718d2ca6e5d5f9cf44"
+    },
+    {
+      "path": "docs/pilot/README.md",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Cross-checked current setup/operation, maintained implementation references and acceptance scope; related current-path edits documented separately.",
+      "sha256": "6b92dd63ace66de7c5b50b337f0b217f693c61ded2ba8f490de0c4c1178feafd"
+    },
+    {
+      "path": "docs/pilot/evaluation_cases.json",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Cross-checked current setup/operation, maintained implementation references and acceptance scope; related current-path edits documented separately.",
+      "sha256": "63cc2e622f9bcd89689ef2f69d010beef952bbadeb864f73457a6ca49d5bb775"
+    },
+    {
+      "path": "docs/pilot/observation_template.json",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Cross-checked current setup/operation, maintained implementation references and acceptance scope; related current-path edits documented separately.",
+      "sha256": "ca5c69f93e494e2213efa8d3438514aa484981a07f524cc2db060fc3a6376e01"
+    },
+    {
+      "path": "env-test.properties",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Read only; no dependency, hosted workflow, credential or policy changes.",
+      "sha256": "f91d8e631f3282e38e872460feaea2b54c8ab44fb06e6434d450408b085a1a66"
+    },
+    {
+      "path": "env.properties.example",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Read only; no dependency, hosted workflow, credential or policy changes.",
+      "sha256": "9223678a6edffca01e07aa8df1a934dd1a5227945c3191d40a3ce89444bf2246"
+    },
+    {
+      "path": "implementation_documents/react_redesign_20261007/AUDIT_1.md",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Preserved without edits. SOURCE_CHECKPOINT supersedes earlier review-count and acceptance statements. Retirement source bytes were not reconstructed.",
+      "sha256": "f3fa65aed3e6c3f33f901ca94eef20692d7e15332ebe55191320f10122b1eae1"
+    },
+    {
+      "path": "implementation_documents/react_redesign_20261007/INTEGRATION_PROGRESS.md",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Preserved without edits. SOURCE_CHECKPOINT supersedes earlier review-count and acceptance statements. Retirement source bytes were not reconstructed.",
+      "sha256": "613c8827b3f6c639cc8560410665349d84cdbdb3eaeca621d225ff6da5fd3bac"
+    },
+    {
+      "path": "implementation_documents/react_redesign_20261007/LEGACY_RETIREMENT.json",
+      "method": "all_entries_compared_to_saved_git_metadata",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Preserved without edits. SOURCE_CHECKPOINT supersedes earlier review-count and acceptance statements. Retirement source bytes were not reconstructed.",
+      "sha256": "729883ff7df56206cb62e20543b273cca7fb6bab76b49c9912c94d88c2e3f457"
+    },
+    {
+      "path": "implementation_documents/react_redesign_20261007/SOURCE_CHECKPOINT.md",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Preserved without edits. SOURCE_CHECKPOINT supersedes earlier review-count and acceptance statements. Retirement source bytes were not reconstructed.",
+      "sha256": "96fb4eba5f33ac377cdfe51311755e8f6e7e8787dcc2d135fee859561f06ed9f"
+    },
+    {
+      "path": "implementation_documents/react_redesign_20261007/TEST_ISOLATION.md",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Preserved without edits. SOURCE_CHECKPOINT supersedes earlier review-count and acceptance statements. Retirement source bytes were not reconstructed.",
+      "sha256": "a73c3502396251c6ee9942d06bd8d4cd17e044ae83ace6720d77e5b5c0091298"
+    },
+    {
+      "path": "install_dependencies.bat",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Reviewed explicit venv/runtime/dev setup and pip check/error propagation. No change; not executed.",
+      "sha256": "c4a88438f5ae60ffd9b9353bce270bb6cc3660547fb2dee5b880183b66a20ba4"
+    },
+    {
+      "path": "installer/SLMEducator.iss",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Reviewed per-user recipe, payload/user-data separation, registry update refusal and opt-in native lifecycle harness. No change; not compiled.",
+      "sha256": "10bb9fe5529fc3b4f6e752d9049d7ff24a4a9658a5880fb4ca2029e8e043bbdf"
+    },
+    {
+      "path": "mypy.ini",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Read only; no dependency, hosted workflow, credential or policy changes.",
+      "sha256": "9ed1de5a507f9712ee5daad84f97a9a026cbd15c02d05f399a6d11f0cc098d69"
+    },
+    {
+      "path": "requirements-dev.txt",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Read only; no dependency, hosted workflow, credential or policy changes.",
+      "sha256": "ce3814885ece05d09ff998d265ca831a206cc55374bf2632790fc8420f0453dd"
+    },
+    {
+      "path": "requirements.txt",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Read only; no dependency, hosted workflow, credential or policy changes.",
+      "sha256": "0b58d10c019cb8866040c8e8febf7289da26119543e4721324145ee06e702fbe"
+    },
+    {
+      "path": "run_tests.bat",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Reviewed argument/confirmation flow, isolated synthetic flags, opt-in real-AI path and coverage/exit handling; Windows execution remains unrun here.",
+      "sha256": "1aac3c1200ee57cc81a431116e85db34e1aee04925f2a96d1b51bdfb122f7789"
+    },
+    {
+      "path": "scripts/build_installer.py",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Reviewed production-builder reuse, fresh outputs/compiler defines and failure handling; corrected inaccurate credential handoff/success wording. Compiler only mocked, never executed.",
+      "sha256": "3343d4c236b0ebaccfaa32460445b427e3b5a5976972ad1b357126aaf01970c8"
+    },
+    {
+      "path": "scripts/build_package.py",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Reviewed allowlisted runtime/staged verified dist, fresh production bootstrap, explicit SQLite backup, output refusal, Tcl/Tk preflight and failure handling. No change; actual freezer not executed.",
+      "sha256": "f5cb84fa4f99a12b76d35bae3b5a162464c5a25784d818831a2971fa9b8670a2"
+    },
+    {
+      "path": "scripts/evaluate_pilot.py",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Reviewed evidence gate and measured durations; repaired validation of each supplied task duration before aggregation.",
+      "sha256": "10d1c3d892d52505bd201407d250d264166d6b258d07bb947abb5cb275e500a8"
+    },
+    {
+      "path": "scripts/recover_database.py",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Reviewed explicit CLI parser, matching key requirement, create-only receipt/destination and controlled errors; cross-checked maintained recovery docs and tests. No change.",
+      "sha256": "a5c18fca8d3bef26863d5b32ef4563abb9acf323b5494c6962231b4a75beb23b"
+    },
+    {
+      "path": "scripts/seed_admin.py",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Reviewed create-only admin path, existing-state short-circuit, new credential path and commit failure handling. No change.",
+      "sha256": "c8955567b41af32e8365c1fb455571f9ba2deeed4bac287dbfd982ad04d0fa11"
+    },
+    {
+      "path": "scripts/seed_pilot.py",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Reviewed fresh synthetic database/accounts/course/assessment; aligned next-step guidance with assessment-first documentation and added narrow account-result annotation.",
+      "sha256": "308c4f58609a875bfe06664c8e953d05b2ef709448d4bbf13150ecf6332cc6ab"
+    },
+    {
+      "path": "start.bat",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Reviewed explicit prepared venv, runtime directories, create-only seeding and loopback startup; no source startup or native command execution performed.",
+      "sha256": "ee50ef7b7429d06da2ad611941aa7be079e09afd42f464de0a448b58f6ba6fe4"
+    },
+    {
+      "path": "tests/fixtures/frontend_artifact.py",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Full static read. Synthetic minimal canonical frontend artifact helper used by existing mocked packaging tests; not a production build.",
+      "sha256": "12a7145f5f9fda1adf40b4f3b98baa865fa6f3cdfad6ebaa68393372e1f127fa"
+    },
+    {
+      "path": "tests/fixtures/pilot/fractions_course.json",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Full static read; three bilingual synthetic lessons match seed shape; no real-model or educational validation.",
+      "sha256": "90b6e92fd57b10d00e1462a4469636bb261fe40a9184272ed0b27c1e7c5d895e"
+    },
+    {
+      "path": "tests/integration/test_operational_recovery.py",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Full static read; fresh process/config/database/key recovery and application reopening. Runtime execution deferred to aggregate/owner.",
+      "sha256": "10a941753810308859ecc0950f980bf920b70f86f803d261caf21d4877c279b0"
+    },
+    {
+      "path": "tests/test_build_installer.py",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Full static read; mocked build/compiler recipe contracts plus new success-output/credential-guidance regression.",
+      "sha256": "1de1e78c5bfca761cd99b04c5caf4937b57312be2cdb5fa8997774f6573b0605"
+    },
+    {
+      "path": "tests/test_build_package.py",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Full static read; real disposable SQLite/seeder, simulated freezer, frontend artifact closure and package-input regression coverage.",
+      "sha256": "9ab39dc53049914a450fb0af991c7b0feb3720a053a6b227ea35dd300614844d"
+    },
+    {
+      "path": "tests/test_frontend_build_identity.py",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Full static read only. Existing ordinary source/build parity, excluded output/dependency inputs, source-free/Node-free staged serving and explicit failure recovery contracts identified. Not executed in this scope.",
+      "sha256": "1444de65e1be9fb8c8626d9264d530ff684ccd7ae8d80f6eada546eec9f2d939"
+    },
+    {
+      "path": "tests/test_frontend_delivery.py",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Full static read only. Existing normal deep-link/API/asset serving, header/cache behavior, compatibility redirects and worker contracts identified. Not executed; no browser lifecycle/security acceptance inferred.",
+      "sha256": "d9e3c9810d7db0ab06ed7bea59401fbb9bcf36744dfe8573654fcc8bc6a2b134"
+    },
+    {
+      "path": "tests/test_installer_lifecycle_contract.py",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Full static read; mocked Windows registry/profile/installer failure controls, not actual native installation.",
+      "sha256": "e193abf54b4b50a83b00afa89493bc4cbc729b9ebc7b5beed5fb963f04e38627"
+    },
+    {
+      "path": "tests/test_launcher_lifecycle.py",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Full static read; mocked HTTP/socket/process/Tk lifecycle including late events, shutdown, locale and console paths.",
+      "sha256": "a7164b254cc2613483ace4c86cba83e1bc4757a6ee2bc37389b4f0434c594106"
+    },
+    {
+      "path": "tests/test_operational_documentation.py",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Full static read; maintained guide links/recovery/React boundaries; new manual-startup and contributor-inventory regressions.",
+      "sha256": "eeb8b59b90c98add0c496384d568389fd53edcc36e25fd063a2db60fcf0c7bca"
+    },
+    {
+      "path": "tests/test_seed_admin.py",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Full static read; disposable create-only bootstrap and all existing account-state preservation cases.",
+      "sha256": "d91890613b7b7148be3d9041c62ad6e50058a57b66efca6ae83e5cad14585a17"
+    },
+    {
+      "path": "tests/test_windows_test_runner.py",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Full static read; synthetic flags/build ordering plus Windows-only harmless stub-cmd tests. Native cmd cases cannot be claimed here.",
+      "sha256": "a7fc8cf6b822326707b7c0fafd71c1dd9b3c527f5b98968321c86856fc3fdb4b"
+    },
+    {
+      "path": "tests/trust/test_explicit_setup.py",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Full static read; installation policy/runtime-dev separation and removed export service boundary.",
+      "sha256": "99ef96ae96ea14955c79c65faf21592199a1930090baf3ff00d54405db3a616a"
+    },
+    {
+      "path": "tests/trust/test_pilot_tooling.py",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Full static read; pilot evidence gate and create-only synthetic seed; new per-duration and printed next-step regressions.",
+      "sha256": "9c09dc0a272bac8f7a790592acd7c41a67e2a83daa90d15347afe0329c6b0afe"
+    },
+    {
+      "path": "tests/windows/exercise_native_login.py",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Full static read; opt-in synthetic package HTTP delivery/login/rotation helper. Not executed.",
+      "sha256": "35af815670507e67684015ed2ed31c423b5de2f224f5a01eb5b74378a5a44f01"
+    },
+    {
+      "path": "tests/windows/test_installer_lifecycle.py",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Full static read; opt-in actual Windows Setup lifecycle and ownership/cleanup safeguards. Not executed.",
+      "sha256": "e9471814fd384ff8a301caef41bb9b2908b8ddc2538ab1a4f943a27cc7c095a2"
+    },
+    {
+      "path": "tests/windows/test_packaged_bootstrap.py",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Full static read; opt-in package login/rotation/restart harness. Not executed.",
+      "sha256": "b1c8921bc7beafca366ae185956596c603e388da5ede62694114a1cf5c2abc3e"
+    },
+    {
+      "path": "tests/windows/test_packaged_recovery.py",
+      "method": "full_static_read",
+      "scope": "packaging, launcher, operational documentation and retirement",
+      "note": "Full static read; opt-in frozen backup/reopen and other-listener preservation. Not executed.",
+      "sha256": "49f169c697650ef85435e0e4ede8912982432d82fcd002ce774b64d43ef57c67"
+    }
+  ],
+  "frontend_tests": {
+    "scope": "all tests/frontend test files via npm run check",
+    "files_passed": 49,
+    "tests_passed": 791,
+    "verified_at": "2026-10-07T19:50:57.598785+00:00"
+  },
+  "python_tests": {
+    "scope": "selected affected functional checks only, not full Python aggregate",
+    "tests_passed": 344,
+    "tests_skipped": 13,
+    "selected_nodes": [
+      "tests/test_build_package.py",
+      "tests/test_seed_admin.py",
+      "tests/test_build_installer.py",
+      "tests/test_installer_lifecycle_contract.py",
+      "tests/test_launcher_lifecycle.py",
+      "tests/test_windows_test_runner.py",
+      "tests/test_operational_documentation.py",
+      "tests/trust/test_pilot_tooling.py",
+      "tests/trust/test_explicit_setup.py",
+      "tests/integration/test_tutor_response_selection.py",
+      "tests/integration/test_handout_instructional_fields.py",
+      "tests/trust/test_tutor_text_fallback.py",
+      "tests/trust/test_ai_request_lifecycle.py::test_receipt_output_cap_matches_actual_transport",
+      "tests/trust/test_ai_request_lifecycle.py::test_same_request_replays_without_new_provider_work_or_usage",
+      "tests/trust/test_ai_request_lifecycle.py::test_daily_claim_survives_receipt_loss_without_automatic_reinference",
+      "tests/trust/test_ai_request_lifecycle.py::test_daily_limit_is_checked_before_provider_work",
+      "tests/trust/test_ai_request_lifecycle.py::test_timeout_has_honest_receipt_and_no_unbounded_retry",
+      "tests/integration/test_portability_recovery.py::test_teacher_package_roundtrip_preserves_order_keys_rubrics_and_remaps_ids",
+      "tests/trust/test_readable_portability.py::test_v1_is_explicitly_supported_and_v2_graph_has_a_validated_manifest",
+      "tests/test_lesson_visible_fields.py::test_teacher_examples_questions_and_review_are_shared_with_tutor_source",
+      "tests/test_frontend_build_identity.py::test_node_and_python_source_identity_use_identical_bytes_and_order",
+      "tests/test_frontend_build_identity.py::test_excluded_build_outputs_and_dependencies_do_not_change_source_identity",
+      "tests/test_frontend_build_identity.py::test_staged_frontend_serves_after_source_removed_without_node",
+      "tests/test_frontend_delivery.py::test_known_deep_links_serve_verified_html",
+      "tests/test_frontend_delivery.py::test_assets_are_local_immutable_and_notices_are_revalidated",
+      "tests/test_frontend_delivery.py::test_api_trailing_slash_redirect_remains_available"
+    ],
+    "verified_at": "2026-10-07T19:52:21.770419+00:00"
+  },
+  "not_run": [
+    "Restricted security investigation",
+    "Real browser and service-worker lifecycle",
+    "Native Windows GUI, zoom and installer",
+    "Live provider/model calls",
+    "Whole-source coverage gate",
+    "Human/learning-outcome validation"
+  ],
+  "catalog_note": "Structural/source inspection and synthetic language cases do not certify translation quality or a complete real-browser language transition.",
+  "followup_note": "The earlier 780-pass frontend checkpoint precedes the legacy-body selector follow-up. The current frontend and affected Python results were rerun after it; earlier logs remain historical."
+}

@@ -19,6 +19,34 @@ CURRENT_GUIDES = (
 )
 
 
+def test_manual_run_prepares_frontend_and_bootstraps_before_starting():
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    manual = readme.split("## Manual Run (Alternative)", 1)[1].split("## React frontend build", 1)[0]
+    assert "#react-frontend-build" in manual
+    assert "#initial-admin-account" in manual
+    install = manual.index("-m pip install -r requirements.txt")
+    seed = manual.index("scripts\\seed_admin.py")
+    start = manual.index("-m uvicorn src.api.main:app")
+    assert install < seed < start
+    layout = readme.split("## Repository Layout", 1)[1].split("## Troubleshooting", 1)[0]
+    assert "application code (api, core, frontend)" in layout
+
+
+def test_contributing_points_to_maintained_tests_and_synthetic_accounts():
+    contributing = (ROOT / "docs/CONTRIBUTING.md").read_text(encoding="utf-8")
+    organization = contributing.split("### Test Organization", 1)[1].split(
+        "### Documentation Structure", 1
+    )[0]
+    assert "frontend/" in organization
+    assert "browser/" in organization
+    assert "windows/" in organization
+    assert "e2e/" not in organization
+    assert "ui/" not in organization
+    assert "TEST_USERS.txt" not in contributing
+    assert "[synthetic pilot guide](pilot/README.md)" in contributing
+    assert "scripts/seed_pilot.py" in contributing
+
+
 @pytest.mark.parametrize("relative", CURRENT_GUIDES)
 def test_current_guides_link_only_to_existing_repository_paths(relative):
     document = ROOT / relative

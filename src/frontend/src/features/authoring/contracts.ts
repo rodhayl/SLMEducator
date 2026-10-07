@@ -78,13 +78,21 @@ export interface GenerationForm {mode: GenerationMode; subject: string; topic: s
 export const generationDefaults: GenerationForm = {mode: 'package', subject: '', topic: '', grade: '', objectives: '', weeks: 4, minutes: 30, difficulty: 'medium', exerciseType: 'multiple_choice', lesson: true, exercises: true, assessment: false, exerciseCount: 4, questionCount: 5, questionType: 'mixed', autoSave: true, planId: '', phase: 0};
 export function generationRequest(form: GenerationForm, source: SourceDocument|null) {
  if (!form.subject.trim() || !form.grade.trim() || !['lesson','exercise','plan','outline','package'].includes(form.mode)) throw validationError();
- if (!Number.isInteger(form.weeks) || form.weeks < 1 || form.weeks > 104 || !Number.isInteger(form.minutes) || form.minutes < 1 || form.minutes > 240 || !Number.isInteger(form.exerciseCount) || form.exerciseCount < 0 || form.exerciseCount > 12 || !Number.isInteger(form.questionCount) || form.questionCount < 1 || form.questionCount > 20 || !['easy','medium','hard'].includes(form.difficulty) || !['multiple_choice','true_false','short_answer'].includes(form.exerciseType) || !['mixed','multiple_choice','true_false','short_answer','long_answer','fill_in_blank'].includes(form.questionType)) throw validationError();
  const sourceText = source?.extracted_text || undefined, objectives = lines(form.objectives);
+ if (['plan','outline'].includes(form.mode) && (!Number.isInteger(form.weeks) || form.weeks < 1 || form.weeks > 104)) throw validationError();
  if (form.mode === 'plan') return {path: '/api/generate/study-plan', body: {subject: form.subject, grade_level: form.grade, objectives, duration_weeks: form.weeks}};
  if (form.mode === 'outline') return {path: '/api/generate/course-outline', body: {subject: form.subject, grade_level: form.grade, duration_weeks: form.weeks, source_material: sourceText}};
  if (!form.topic.trim()) throw validationError();
- if (form.mode === 'lesson') return {path: '/api/generate/lesson', body: {topic: form.topic, grade_level: form.grade, learning_objectives: objectives, duration_minutes: form.minutes, source_material: sourceText}};
- if (form.mode === 'exercise') return {path: '/api/generate/exercise', body: {topic: form.topic, grade_level: form.grade, learning_objectives: objectives, difficulty: form.difficulty, exercise_type: form.exerciseType, source_material: sourceText}};
+ if (form.mode === 'lesson') {
+  if (!Number.isInteger(form.minutes) || form.minutes < 1 || form.minutes > 240) throw validationError();
+  return {path: '/api/generate/lesson', body: {topic: form.topic, grade_level: form.grade, learning_objectives: objectives, duration_minutes: form.minutes, source_material: sourceText}};
+ }
+ if (!['easy','medium','hard'].includes(form.difficulty)) throw validationError();
+ if (form.mode === 'exercise') {
+  if (!['multiple_choice','true_false','short_answer'].includes(form.exerciseType)) throw validationError();
+  return {path: '/api/generate/exercise', body: {topic: form.topic, grade_level: form.grade, learning_objectives: objectives, difficulty: form.difficulty, exercise_type: form.exerciseType, source_material: sourceText}};
+ }
+ if (!Number.isInteger(form.exerciseCount) || form.exerciseCount < 0 || form.exerciseCount > 12 || !Number.isInteger(form.questionCount) || form.questionCount < 1 || form.questionCount > 20 || !['mixed','multiple_choice','true_false','short_answer','long_answer','fill_in_blank'].includes(form.questionType)) throw validationError();
  const planId = /^\d+$/.test(form.planId) ? Number(form.planId) : null;
  if ((!form.lesson && (!form.exercises || form.exerciseCount === 0) && !form.assessment) || (form.autoSave && !identifier(planId)) || form.phase < 0 || form.phase > 100 || !Number.isInteger(form.phase)) throw validationError();
  return {path: '/api/generate/full-topic-package', body: {subject: form.subject, topic_name: form.topic, grade_level: form.grade, learning_objectives: objectives, include_lesson: form.lesson, include_exercises: form.exercises, include_assessment: form.assessment, num_exercises: form.exerciseCount, exercise_difficulty: form.difficulty, num_assessment_questions: form.questionCount, assessment_difficulty: form.difficulty, assessment_question_types: form.questionType === 'mixed' ? null : [form.questionType], auto_save: form.autoSave, study_plan_id: planId, phase_index: form.phase, source_material: sourceText, source_document_id: source?.document_id || null}};

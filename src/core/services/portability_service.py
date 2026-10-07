@@ -43,7 +43,11 @@ from src.core.services.assistance_policy import (
     assessment_policy,
     set_assessment_policy,
 )
-from src.core.services.content_schema import normalize_content, learner_content
+from src.core.services.content_schema import (
+    LESSON_EXTRA_TEXT,
+    normalize_content,
+    learner_content,
+)
 
 PACKAGE_VERSION: Literal[2] = 2
 MAX_PACKAGE_BYTES = 10 * 1024 * 1024
@@ -915,6 +919,11 @@ def render_handout(package: dict, format_name: str) -> str:
                 )
         for term in data.get("vocabulary", []):
             lines.append(f"{term.get('term', '')}: {term.get('definition', '')}")
+        if item.kind == ContentType.LESSON:
+            for key in LESSON_EXTRA_TEXT:
+                if data.get(key):
+                    lines.append(data[key])
+            lines.extend(data.get("discussion_questions", []))
     for assessment in parsed.assessments:
         lines.extend(["", assessment.title, assessment.instructions or ""])
         for question in sorted(

@@ -190,6 +190,41 @@ def test_existing_payload_or_output_directory_is_refused(
     )
 
 
+def test_success_explains_configured_or_generated_credentials_without_a_handoff_file(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setattr(build_installer.sys, "platform", "win32")
+    payload = tmp_path / "payload"
+    output = tmp_path / "out"
+    iscc = tmp_path / "ISCC.exe"
+    iscc.write_text("synthetic compiler stub")
+
+    def fake_payload(project_root: Path, payload_dir: Path) -> int:
+        payload_dir.mkdir()
+        for name in (build_installer.PAYLOAD_EXECUTABLE, *build_installer.USER_DATA_FILES):
+            (payload_dir / name).write_text("synthetic")
+        return 0
+
+    def fake_compile(command, **kwargs):  # type: ignore[no-untyped-def]
+        assert command[0] == str(iscc)
+        filename = next(value.split("=", 1)[1] for value in command if value.startswith("/DMyOutputBaseFilename="))
+        output.mkdir()
+        (output / f"{filename}.exe").write_text("synthetic, never executable")
+        return subprocess.CompletedProcess(command, 0)
+
+    monkeypatch.setattr(build_installer, "build_payload", fake_payload)
+    monkeypatch.setattr(build_installer.subprocess, "run", fake_compile)
+    assert build_installer.main([
+        "--payload-dir", str(payload), "--output-dir", str(output),
+        "--iscc", str(iscc), "--build-id", "synthetic",
+    ]) == 0
+    message = capsys.readouterr().out
+    assert "SLM_INITIAL_ADMIN_PASSWORD" in message
+    assert "one-time generated password printed by the seeder" in message
+    assert "No plaintext credential file is created" in message
+    assert "private handoff location" not in message
+
+
 def test_missing_inno_compiler_reports_a_clear_blocker(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

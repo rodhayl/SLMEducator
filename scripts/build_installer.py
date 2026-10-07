@@ -14,9 +14,9 @@ Safety boundaries:
 * The working database, local configuration and existing installations are not
   read, changed or packaged. The seeded database comes from the maintained
   create-only seeder.
-* The initial administrator password is never printed here. Set
-  ``SLM_INITIAL_ADMIN_PASSWORD`` in the build process environment (or keep the
-  one-time generated value from the seeder) and store it privately.
+* The wrapper inherits the seeder's output: a generated administrator password
+  is printed once, while a supplied ``SLM_INITIAL_ADMIN_PASSWORD`` is not echoed.
+  Keep the selected credential private; no plaintext credential file is created.
 """
 
 from __future__ import annotations
@@ -218,8 +218,9 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     print(f"[OK] Installer created: {setup}")
     print(
-        "The initial admin password is deliberately not printed here. "
-        "Consult the private handoff location."
+        "If you supplied SLM_INITIAL_ADMIN_PASSWORD, keep that credential private. "
+        "Otherwise save the one-time generated password printed by the seeder. "
+        "No plaintext credential file is created."
     )
     return 0
 

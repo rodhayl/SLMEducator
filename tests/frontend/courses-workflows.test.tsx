@@ -52,6 +52,25 @@ describe('manual course journeys', () => {
     new DraftAdapter(7).write('learning-location', 'current', 0, {planId: 12, contentId: 3});
     const {router} = await mount('/cursos/12'); expect(await screen.findByRole('link', {name: 'Continue learning: Second lesson'})).toHaveAttribute('href', '/materiales/3?plan_id=12'); expect(router.state.location.pathname).toBe('/cursos/12'); expect(auth.api.post).not.toHaveBeenCalled();
   });
+  it('continues to unfinished material when the saved location has already been completed', async () => {
+    auth.user.role = 'student';
+    data['/api/study-plans/12/tree'] = {...tree, contents: [...tree.contents, {...tree.contents[0], id: 3, title: 'Second lesson', order_index: 1}], content_count: 2};
+    data['/api/study-plans/12/my-progress'] = {study_plan_id: 12, completed_content_ids: [2], last_content_id: 2, completion_percentage: 50};
+    new DraftAdapter(7).write('learning-location', 'current', 0, {planId: 12, contentId: 2});
+    await mount('/cursos/12');
+    expect(await screen.findByRole('link', {name: 'Continue learning: Second lesson'})).toHaveAttribute('href', '/materiales/3?plan_id=12');
+    expect(auth.api.post).not.toHaveBeenCalled();
+  });
+  it('shows course completion when the saved location is its last completed material', async () => {
+    auth.user.role = 'student';
+    data['/api/study-plans/12/my-progress'] = {study_plan_id: 12, completed_content_ids: [2], last_content_id: 2, completion_percentage: 100};
+    new DraftAdapter(7).write('learning-location', 'current', 0, {planId: 12, contentId: 2});
+    await mount('/cursos/12');
+    expect(await screen.findByText('Completed')).toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: /Continue learning:/})).not.toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'Motion lesson'})).toHaveAttribute('href', '/materiales/2?plan_id=12');
+    expect(auth.api.post).not.toHaveBeenCalled();
+  });
   it.each(['other-account', 'other-course', 'expired', 'missing-material', 'invalid-id'] as const)('ignores an invalid saved learning location: %s', async reason => {
     auth.user.role = 'student'; data['/api/study-plans/12/tree'] = {...tree, contents: [...tree.contents, {...tree.contents[0], id: 3, title: 'Second lesson', order_index: 1}], content_count: 2};
     const now = Date.now(), clock = vi.spyOn(Date, 'now'); if (reason === 'expired') clock.mockReturnValue(now - DRAFT_TTL - 1);

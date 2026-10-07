@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import secrets
 import sys
+from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -44,7 +45,8 @@ def seed_pilot(database: Path) -> dict:
     if seed_admin_user() != 0:
         raise RuntimeError("Pilot administrator bootstrap failed")
     auth = AuthService()
-    accounts, credentials = {}, []
+    accounts: dict[str, dict[str, Any]] = {}
+    credentials = []
     for name, role in [
         ("teacher_a", UserRole.TEACHER),
         ("teacher_b", UserRole.TEACHER),
@@ -135,7 +137,7 @@ def seed_pilot(database: Path) -> dict:
             "plan_id": plan.id,
             "assessment_id": assessment.id,
             "credentials": credentials,
-            "next": "Sign in as teacher_a; inspect lessons, review/publish/assign the course to learner_a, then publish the assessment. Credentials printed once; keep output private.",
+            "next": "Sign in as teacher_a; inspect lessons and assessment answers, publish the assessment first, then review/publish/assign the course to learner_a. Credentials printed once; keep output private.",
         }
 
 

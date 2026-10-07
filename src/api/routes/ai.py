@@ -63,6 +63,18 @@ class ChatResponse(BaseModel):
     effective_assistance: str = "hint"
 
 
+def _usable_tutor_answer(result: dict) -> Optional[str]:
+    """Select a parser-approved answer without unusable alternatives masking it."""
+    return next(
+        (
+            result[key]
+            for key in ("explanation", "answer", "response")
+            if isinstance(result.get(key), str) and result[key].strip()
+        ),
+        None,
+    )
+
+
 def _permitted_assistance(db: Session, user: User, requested: str) -> tuple[dict, str]:
     policy = effective_policy(db, user)
     if policy["mode"] == "disabled":
@@ -238,10 +250,8 @@ async def _chat_impl(
                 status_code=409,
                 detail="Source revision changed while the provider responded; ask again with the reviewed context",
             )
-        response = (
-            result.get("explanation") or result.get("answer") or result.get("response")
-        )
-        if not isinstance(response, str) or not response.strip():
+        response = _usable_tutor_answer(result)
+        if response is None:
             return ChatResponse(
                 response="The provider returned no usable answer. Try again or ask your teacher.",
                 status="invalid_response",
@@ -359,10 +369,8 @@ Keep answers concise but thorough enough to be helpful."""
         )
 
         _recheck_assistance(db, current_user, assistance)
-        answer_text = (
-            result.get("explanation") or result.get("answer") or result.get("response")
-        )
-        if not isinstance(answer_text, str) or not answer_text.strip():
+        answer_text = _usable_tutor_answer(result)
+        if answer_text is None:
             return AnswerQuestionResponse(
                 answer="The provider returned no usable answer. Try again or ask your teacher.",
                 success=False,
@@ -370,6 +378,10 @@ Keep answers concise but thorough enough to be helpful."""
                 effective_assistance=assistance,
             )
         suggestions = result.get("suggestions", result.get("follow_up_questions", None))
+        if not isinstance(suggestions, list) or not all(
+            isinstance(item, str) for item in suggestions
+        ):
+            suggestions = None
 
         return AnswerQuestionResponse(
             answer=answer_text,

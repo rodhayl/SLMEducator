@@ -16,6 +16,9 @@ export function LessonContent({ content }: { content: LearningContent }) {
   if (content.content_type === 'exercise') return <p>{t('startPractice')}</p>;
   if (content.content_type === 'qa') return <div className="stack">{['question', 'content', 'answer'].map(key => typeof data[key] === 'string' ? <ContentRenderer key={key} value={data[key]} /> : null)}</div>;
   const sections = Array.isArray(data.sections) ? data.sections.filter(isRecord) : [];
+  const body = [data.content, data.body, data.text].find((value): value is string => typeof value === 'string' && value.trim().length > 0) ?? '';
+  const sectionText = sections.map(section => typeof (section.content ?? section.text) === 'string' ? String(section.content ?? section.text) : '').join('\n\n');
+  const distinctBody = !!body.trim() && body.trim() !== sectionText.trim();
   const renderSection = (section: Record<string, unknown>, index: number) => <section key={index} className="stack">{typeof section.title === 'string' && <h2>{section.title}</h2>}{typeof (section.content ?? section.text) === 'string' && <ContentRenderer value={String(section.content ?? section.text)} />}</section>;
   const renderList = (key: string) => Array.isArray(data[key]) && data[key].some(item => typeof item === 'string') ? <section key={key}><h2>{t(`lesson.${key}`)}</h2><ul>{data[key].filter((item): item is string => typeof item === 'string').map((item, index) => <li key={index}><ContentRenderer value={item} /></li>)}</ul></section> : null;
   const usage = isRecord(content.source_selection) ? content.source_selection : null;
@@ -26,7 +29,8 @@ export function LessonContent({ content }: { content: LearningContent }) {
     {usage && <p className="muted" role="status">{hasCounts ? `${t('sourceCounts', { supplied, total })} ` : ''}{usage.use_coverage === 'partial' ? `${t('sourcePartial')} ` : ''}{t('sourceReceipt')}</p>}
     {sections.filter(section => section.source_clarification === true).map(renderSection)}
     {renderList('objectives')}
-    {sections.length ? sections.filter(section => section.source_clarification !== true).map(renderSection) : typeof (data.content ?? data.body ?? data.text) === 'string' ? <ContentRenderer value={String(data.content ?? data.body ?? data.text)} /> : <EmptyState title={t('needsReview')} />}
+    {distinctBody && <ContentRenderer value={body} />}
+    {sections.length ? sections.filter(section => section.source_clarification !== true).map(renderSection) : !distinctBody && <EmptyState title={t('needsReview')} />}
     {typeof data.summary === 'string' && <section><h2>{t('lesson.summary')}</h2><ContentRenderer value={data.summary} /></section>}
     {Array.isArray(data.vocabulary) && data.vocabulary.some(isRecord) && <section><h2>{t('lesson.vocabulary')}</h2><dl>{data.vocabulary.filter(isRecord).map((term, index) => typeof term.term === 'string' && typeof term.definition === 'string' ? <div key={index}><dt>{term.term}</dt><dd><ContentRenderer value={term.definition} /></dd></div> : null)}</dl></section>}
     {['key_concepts', 'discussion_questions'].map(renderList)}

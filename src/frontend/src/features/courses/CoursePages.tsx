@@ -73,7 +73,7 @@ function StudentCourseProgress({course}: {course: CourseTree}) {
   const activeSession = isSession(active.data) && active.data.status === 'active' ? active.data : null;
   const activeItem = activeSession && sessionPlan(activeSession) === course.id ? course.contents.find(item => item.id === activeSession.content_id) : undefined;
   const marker = user ? new DraftAdapter(user.id).read('learning-location', 'current', 0, (value): value is {planId: number; contentId: number} => isRecord(value) && typeof value.planId === 'number' && positiveId(value.planId) !== null && typeof value.contentId === 'number' && positiveId(value.contentId) !== null) : null;
-  const markedItem = marker?.planId === course.id ? course.contents.find(item => item.id === marker.contentId) : undefined;
+  const markedItem = marker?.planId === course.id ? course.contents.find(item => item.id === marker.contentId && !data.completed_content_ids.includes(item.id)) : undefined;
   const fallback = course.contents.find(item => item.id === data.last_content_id && !data.completed_content_ids.includes(item.id)) || [...course.contents].sort((a,b) => a.phase_index - b.phase_index || a.order_index - b.order_index).find(item => !data.completed_content_ids.includes(item.id));
   const resume = activeItem || markedItem || fallback;
   const href = activeSession && activeItem ? sessionHref(activeSession) : resume ? materialHref(resume.id, course.id) : null;

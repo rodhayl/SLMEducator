@@ -21,6 +21,31 @@ describe('actual source and generation API mapping',()=>{
  it('rejects altered extraction manifests, duplicate section refs and oversize text',()=>{const extracted={...authoredSource('demo.txt','[text:1]\nHello'),sections:[{reference:'text:1',text:'Hello'}],source_version:'f'.repeat(64)};expect(isSourceInput(extracted)).toBe(true);expect(isSourceInput({...extracted,extracted_text:'Changed'})).toBe(false);expect(isSourceInput({...extracted,sections:[...extracted.sections,...extracted.sections]})).toBe(false);expect(isSourceInput(authoredSource('demo','a'.repeat(100001)))).toBe(false);});
  it('uses study plan objectives and never attaches unsupported source text',()=>{expect(generationRequest({...config,mode:'plan'},source)).toEqual({path:'/api/generate/study-plan',body:{subject:config.subject,grade_level:'10',objectives:[],duration_weeks:4}});});
  it.each(['lesson','exercise','outline'] as const)('maps %s source-aware protocol',mode=>{const result=generationRequest({...config,mode},source);expect(result.path).toBe(`/api/generate/${mode==='outline'?'course-outline':mode}`);expect(result.body).toMatchObject({source_material:source.extracted_text,grade_level:'10'});});
+ it.each(['plan','outline'] as const)('ignores hidden material and package settings when generating %s',mode=>{
+  const result=generationRequest({...config,mode,minutes:NaN,exerciseCount:NaN,questionCount:NaN,difficulty:'',exerciseType:'',questionType:'',phase:NaN},source);
+  expect(result.path).toBe(`/api/generate/${mode==='plan'?'study-plan':'course-outline'}`);
+  expect(result.body).toMatchObject({duration_weeks:4});
+ });
+ it('ignores hidden plan, exercise and package settings when generating a lesson',()=>{
+  const result=generationRequest({...config,mode:'lesson',weeks:NaN,exerciseCount:NaN,questionCount:NaN,difficulty:'',exerciseType:'',questionType:'',phase:NaN},source);
+  expect(result.body).toMatchObject({duration_minutes:30,topic:'Motion'});
+ });
+ it('ignores hidden plan, lesson and package settings when generating an exercise',()=>{
+  const result=generationRequest({...config,mode:'exercise',weeks:NaN,minutes:NaN,exerciseCount:NaN,questionCount:NaN,questionType:'',phase:NaN},source);
+  expect(result.body).toMatchObject({difficulty:'medium',exercise_type:'multiple_choice'});
+ });
+ it('ignores hidden plan, lesson and standalone exercise settings in package mode',()=>{
+  const result=generationRequest({...config,mode:'package',weeks:NaN,minutes:NaN,exerciseType:''},source);
+  expect(result.body).toMatchObject({include_lesson:true,num_exercises:4,num_assessment_questions:5});
+ });
+ it.each([
+  {mode:'plan' as const,weeks:NaN},{mode:'outline' as const,weeks:105},{mode:'lesson' as const,minutes:0},
+  {mode:'exercise' as const,difficulty:''},{mode:'exercise' as const,exerciseType:''},
+  {mode:'package' as const,exerciseCount:13},{mode:'package' as const,questionCount:0},
+  {mode:'package' as const,difficulty:''},{mode:'package' as const,questionType:''},{mode:'package' as const,phase:NaN},
+ ])('still rejects invalid settings used by the active generation mode: %j',change=>{
+  expect(()=>generationRequest({...config,...change},source)).toThrow();
+ });
  it('maps phase, durable item flags, source revision and correct assessment enums without defaults losing zero exercises',()=>{expect(generationRequest({...config,exerciseCount:0,questionType:'long_answer',phase:2},source).body).toMatchObject({source_document_id:source.document_id,source_material:source.extracted_text,study_plan_id:12,phase_index:2,num_exercises:0,assessment_question_types:['long_answer'],auto_save:true});});
  it('requires a course for durable package generation and at least one requested item',()=>{expect(()=>generationRequest({...config,planId:''},null)).toThrow();expect(()=>generationRequest({...config,lesson:false,exercises:false,assessment:false},null)).toThrow();});
  it('recognizes partial receipts while rejecting phantom saved counts and malformed successes',()=>{const receipt={success:false,topic_name:'Motion',lesson:{content:'Body'},exercises:[],assessment:null,saved_content_ids:[2],items:[{key:'lesson',status:'ready',content_id:2},{key:'exercise-0',status:'failed',error_code:'provider_failure'}],job_key:'f'.repeat(64)};expect(isPackage(receipt,true)).toBe(true);expect(isPackage({...receipt,success:true},true)).toBe(false);expect(isPackage({...receipt,saved_content_ids:[2,3]},true)).toBe(false);expect(isPackage({...receipt,items:[{key:'lesson',status:'ready'}],saved_content_ids:[],success:true},true)).toBe(false);});
