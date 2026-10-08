@@ -1,0 +1,12 @@
+== descendant diff 642966a..HEAD (paths) ==
+AUTO_TEST.md
+MANUAL_TEST1.md
+MANUAL_TEST2.md
+implementation_documents/manual_windows_20261006/MANUAL_TEST_HANDOFF.md
+== e911e43 stat ==
+e911e4321c6ce1cba24fbc5c8b755a2bd4523f4d docs: clarify guided React manual tests [skip ci]
+
+ MANUAL_TEST1.md                                    |  234 +++++
+ MANUAL_TEST2.md                                    | 1055 ++++++++++++++++++++
+ .../manual_windows_20261006/MANUAL_TEST_HANDOFF.md |   30 +
+ 3 files changed, 1319 insertions(+)

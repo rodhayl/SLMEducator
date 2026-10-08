@@ -1,0 +1,38 @@
+RUN_ID auto-2026-10-08-001
+captured_local 2026-10-08T14:43:48+02:00
+== HEAD ==
+0f3ff15292f84a7d6877f9f2d6e47a3f646355f4
+== HEAD tree ==
+4faf9638a5c558991a60a91b489cda6943a52e4f
+== branch ==
+fix/react-functional-continuation-20261007
+== origin ref ==
+0f3ff15292f84a7d6877f9f2d6e47a3f646355f4
+== product base tree (642966a) ==
+e0a3966bddc8bbd4cfc2ab4041668c3162ce86f7
+== status --porcelain ==
+?? .manual-windows-worktree/
+?? .production-worktree/
+?? .v10-single-pass-worktree/
+?? .v11-final-evaluation-worktree/
+?? .windows-best-effort-worktree/
+?? implementation_documents/auto_testing_2026-10-08_001/
+== worktrees ==
+C:/Users/dhays/Github/SLMEducator                                0f3ff15 [fix/react-functional-continuation-20261007]
+C:/Users/dhays/Github/SLMEducator/.manual-windows-worktree       42dc3a8 [feature/windows-installer-inno-20261006]
+C:/Users/dhays/Github/SLMEducator/.production-worktree           b0fa6f9 [fix/production-readiness-windows-20261005]
+C:/Users/dhays/Github/SLMEducator/.v10-single-pass-worktree      ae42d5d [test/windows-v10-single-pass-20261006]
+C:/Users/dhays/Github/SLMEducator/.v11-final-evaluation-worktree 6109c49 [work/lesson-claim-consistency-20261006]
+C:/Users/dhays/Github/SLMEducator/.v9-evaluation-worktree        25d3f9e [test/windows-v9-semantic-gui-20261006]
+C:/Users/dhays/Github/SLMEducator/.windows-best-effort-worktree  5e839d2 [test/windows-best-effort-20261006]
+== log -5 ==
+0f3ff15 [DOCS] Add autonomous GUI test prompt [skip ci]
+e911e43 docs: clarify guided React manual tests [skip ci]
+642966a fix(gui): preserve tutor continuity and catalog navigation [skip ci]
+b6cec26 [FIX] Refine React workflows [skip ci]
+1ae5999 [FEAT] Checkpoint redesigned React GUI [skip ci]
+== doc-only descendant check (0f3ff15 stat) ==
+0f3ff15292f84a7d6877f9f2d6e47a3f646355f4 [DOCS] Add autonomous GUI test prompt [skip ci]
+
+ AUTO_TEST.md | 315 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 315 insertions(+)

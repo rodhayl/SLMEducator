@@ -1,0 +1,243 @@
+{
+  "run_id": "auto-2026-10-08-001",
+  "campaign": "AUTO_TEST.md",
+  "date_local": "2026-10-08",
+  "state": "finished_in_this_environment",
+  "candidate": {
+    "kind": "checkout-web-runtime",
+    "branch": "fix/react-functional-continuation-20261007",
+    "head": "0f3ff15292f84a7d6877f9f2d6e47a3f646355f4",
+    "tree": "4faf9638a5c558991a60a91b489cda6943a52e4f",
+    "product_base": "642966a93e7e9c9f9c5e93cce0bc842f538846fb",
+    "frontend_built_this_run": true,
+    "url": "http://127.0.0.1:8000",
+    "launcher": "src/starter_headless.py",
+    "installed_setup_tested": false,
+    "portable_tested": false
+  },
+  "evidence_mode": "GUI_CDP",
+  "evidence_mode_note": "Desviación autorizada por David: la app es web-only y se opera con DevTools/CDP en lugar de control nativo de pantalla. Todo lo que exige pantalla del sistema queda BLOCKED, no PASS.",
+  "coverage_totals": {
+    "rows": 117,
+    "BLOCKED": 26,
+    "PASS": 45,
+    "PARTIAL": 41,
+    "FAIL": 4,
+    "NOT_APPLICABLE": 1
+  },
+  "ai_runtime": {
+    "provider": "lm_studio",
+    "endpoint": "http://localhost:1234",
+    "model": "slm-production-evaluation",
+    "configured_by": "docente_auto08 (AUTO-AI-01) y env.properties por orden de David",
+    "connection_test": "OK, 16951 ms",
+    "catalog": "4 modelos",
+    "generation": "FALLO reproducido 2/2: POST /api/generate/lesson 500 tras HTTP 200 del proveedor"
+  },
+  "synthetic_data": {
+    "database": "C:\\Users\\dhays\\AppData\\Local\\Temp\\opencode\\slm-auto-2026-10-08-001\\slm_educator.db",
+    "accounts": [
+      {
+        "id": 1,
+        "username": "admin",
+        "role": "admin"
+      },
+      {
+        "id": 2,
+        "username": "docente_auto08",
+        "role": "teacher",
+        "display": "Docente Demo (T1)"
+      },
+      {
+        "id": 3,
+        "username": "alba_auto08",
+        "role": "student",
+        "display": "Alba Demo (S1)"
+      },
+      {
+        "id": 4,
+        "username": "bruno_auto08",
+        "role": "student",
+        "display": "Bruno Demo (S2)"
+      },
+      {
+        "id": 5,
+        "username": "contraste_auto08",
+        "role": "teacher",
+        "display": "Docente Contraste (T2)"
+      },
+      {
+        "id": 6,
+        "username": "temporal_auto08",
+        "role": "student",
+        "display": "Temporal Demo",
+        "note": "creada solo para AUTO-PEO-05; queda REACTIVADA y funcional"
+      }
+    ],
+    "materials": [
+      {
+        "id": 1,
+        "title": "L1 Partes iguales",
+        "type": "leccion"
+      },
+      {
+        "id": 2,
+        "title": "PR1 Denominador",
+        "type": "practica"
+      },
+      {
+        "id": 3,
+        "title": "PR2 Comparación",
+        "type": "practica"
+      },
+      {
+        "id": 4,
+        "title": "L2 Comparar fracciones",
+        "type": "leccion"
+      },
+      {
+        "id": 5,
+        "title": "L3 Comprobar la unidad",
+        "type": "leccion"
+      }
+    ],
+    "courses": [
+      {
+        "id": 1,
+        "title": "Fracciones cotidianas | auto08",
+        "state": "borrador",
+        "note": "duplicado accidental de la campaña"
+      },
+      {
+        "id": 2,
+        "title": "Fracciones cotidianas | auto08",
+        "state": "publicado V1 y asignado",
+        "assigned_to": [
+          3
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Fracciones cotidianas | auto08 (revision)",
+        "state": "borrador"
+      }
+    ],
+    "assessments": [
+      {
+        "id": 1,
+        "title": "Evaluación de fracciones | auto08",
+        "state": "publicada",
+        "attempts": 2,
+        "pass_mark": 60,
+        "time_limit": null,
+        "submission": 1,
+        "final_score": "9/10",
+        "extra": "envio 3: cerrado sin envio, respuesta conservada y Sin calificar"
+      },
+      {
+        "id": 3,
+        "title": "Evaluacion cronometrada | auto08",
+        "state": "publicada",
+        "time_limit_min": 1,
+        "attempts": 2,
+        "pass_mark": 60,
+        "plan_id": 2,
+        "submission": 2,
+        "final_score": "10/10",
+        "note": "envio vencido; comentario en ingles (SLM-AUTO-010)"
+      }
+    ],
+    "help_requests": [
+      {
+        "id": 1,
+        "subject": "Misma unidad",
+        "state": "resuelta",
+        "student": 3
+      }
+    ],
+    "messages": "2 sintéticos entre T1 y S1 (respuesta de ayuda + mensaje propio)",
+    "assessments_abandoned": [
+      {
+        "id": 2,
+        "title": "Evaluacion cronometrada | auto08",
+        "reason": "creada sin ID del curso; invisible para la alumna; documento la dependencia del vinculo"
+      }
+    ],
+    "enrollment_state": "S1 (alba_auto08) esta matriculada con T2 (ID 5) desde la sesion 3. T1 conserva autoria pero ya no abre la ficha de S1."
+  },
+  "last_completed_case": "PLAN-G7 (cierre de cobertura, sesion 10)",
+  "current_role": "student",
+  "current_account": "alba_auto08",
+  "current_page": "/inicio",
+  "account_preferences_restored": "S1: Español / Sistema",
+  "known_defects": [
+    "SLM-AUTO-001 S3 buscador pierde caracteres",
+    "SLM-AUTO-002 S4 biblioteca vacia indistinguible",
+    "SLM-AUTO-003 S3 claves duplicadas sin campo",
+    "SLM-AUTO-004 S2 /tutor 404",
+    "SLM-AUTO-005 S2 generar 500 tras 200",
+    "SLM-AUTO-006 S4 homonimos indistinguibles",
+    "SLM-AUTO-007 S4 seis encabezados vacios",
+    "SLM-AUTO-008 S3 rubrica no aplicable",
+    "SLM-AUTO-009 S4 vinculo oculto al reabrir",
+    "SLM-AUTO-010 S4 mensajes servidor en ingles (2 ocurrencias)",
+    "SLM-AUTO-011 S4 saliente pierde ficha",
+    "SLM-AUTO-012 S3 rechazos de archivo genericos",
+    "SLM-AUTO-013 S4 encabezado Lesson en ingles"
+  ],
+  "regressions_closed_in_this_run": [
+    "H-D3 (alta docente con correo invalido: error por campo, sin [object Object])"
+  ],
+  "pending_next_actions": [
+    "AUTO-SRC-01/02: crear TXT/MD/PDF sinteticos, cargar por selector nativo, propuesta extraida, vacio, tipo no admitido y limite de 10 MiB (bloque mas grueso sin ejecutar)",
+    "AUTO-PORT-02/03: paquete docente JSON con preview e importacion; copia de seguridad de admin con preview y alcance",
+    "AUTO-AUTH-02: perfil (editar/validar/cancelar/reabrir) y rotacion de contrasena con handoff",
+    "AUTO-LEARN-04: aula con texto largo, listas, enlaces y panel auxiliar",
+    "AUTO-LEARN-03 (resto): PR2 como alumno, cancelar y recarga con cambio de idioma",
+    "AUTO-GRADE-02 (resto), AUTO-HELP-02 (resto), AUTO-GEN-04, AUTO-MSG-02",
+    "AUTO-REG-01/03/05/06: persistencia tras reinicio, reautenticacion, tres indisponibilidades, errores y valores preservados",
+    "AUTO-VIS-01/03/05/07: revision visual por rol, solo teclado, movimiento reducido, launcher",
+    "AUTO-CRS-06 (resto): verificar scroll real con la fixture de escala"
+  ],
+  "blockers": [
+    {
+      "id": "BLK-GUI-NATIVE",
+      "detail": "Sin control nativo de pantalla. AUTO-BOOT-01..05, AUTO-LIFE-01, AUTO-VIS-04 (zoom nativo), AUTO-VIS-06 (lector) y AUTO-VIS-07 (launcher) quedan BLOCKED por variante.",
+      "minimal_action": "David opera el launcher y el Setup, o se habilita control de escritorio/VM."
+    },
+    {
+      "id": "BLK-INSTALLER",
+      "detail": "No se ha construido ni instalado el Setup vigente; el histórico fe954cab4655 no contiene esta GUI y no debe abrirse.",
+      "minimal_action": "Ejecutar MANUAL_TEST1 si se quiere cobertura del instalador."
+    },
+    {
+      "id": "BLK-TUTOR-ROUTE",
+      "detail": "SLM-AUTO-004 deja inaccesible la superficie de tutor y preguntas propias para los tres roles.",
+      "minimal_action": "Corregir SPA_PATH en src/frontend_delivery.py para incluir tutor y reconstruir; es cambio de producto, exige candidato nuevo."
+    },
+    {
+      "id": "BLK-AI-GENERATION",
+      "detail": "SLM-AUTO-005: la generacion falla con 500 tras respuesta 200 del proveedor y sin traza en el log.",
+      "minimal_action": "Registrar la excepcion en /api/generate/lesson y revisar el formato de la respuesta del modelo."
+    },
+    {
+      "id": "BLK-DOWNLOADS-DIR",
+      "detail": "AUTO-PORT-04 requiere abrir la copia exportada, que queda fuera del directorio de trabajo.",
+      "minimal_action": "Autorizar la lectura del directorio de descargas o revisar David el fichero course-2-learner.html."
+    },
+    {
+      "id": "BLK-SESSION-CONTEXT",
+      "detail": "Sesion detenida por limite de contexto del agente, no por bloqueo del producto.",
+      "minimal_action": "Reanudar leyendo RESUME.json; el runtime y la base sintetica siguen en pie."
+    }
+  ],
+  "own_resources_open": [
+    "servidor web local 127.0.0.1:8000 (proceso propio; detener solo por PID verificado)",
+    "base sintetica desechable en el directorio temporal aislado",
+    "pestana del navegador con sesion de alba_auto08"
+  ],
+  "next_action": "Ninguna pendiente en este entorno. Lo que sigue exige: control de escritorio/VM, Setup vigente, lector, fixtures de escala/legacy, autorizacion de descargas, o correccion de producto (nuevo candidato y campana).",
+  "no_secrets_stored": true,
+  "publication": "no publicada; falta autorizacion concreta de la rama",
+  "credentials_note": "T1 docente_auto08 rotada a NuevaSintetica#2026Bb (sintetica desechable). Resto de claves en RUN.md y HANDOFF sesion 6."
+}
