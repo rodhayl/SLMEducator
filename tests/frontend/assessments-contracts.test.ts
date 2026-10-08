@@ -55,3 +55,20 @@ describe('fresh generated multiple-choice normalization', () => {
  });
  it('rejects nonfinite fresh answer values', () => { expect(generatedAssessmentValues(proposal({A: 'Infinity', B: 'Other'}, Infinity))).toBeNull(); });
 });
+
+describe('assessment links and typed lifecycle notices', () => {
+ it('round-trips links, sends explicit null to clear, and rejects malformed IDs', () => {
+  const linked = {...assessment, study_plan_id: 7, topic_id: 8};
+  expect(editorPayload(editorValues(linked))).toMatchObject({study_plan_id: 7, topic_id: 8});
+  expect(editorPayload(editorValues(assessment))).toMatchObject({study_plan_id: null, topic_id: null});
+  expect(isAssessment({...assessment, study_plan_id: -1})).toBe(false);
+  expect(isAssessment({...assessment, topic_id: '8'})).toBe(false);
+ });
+ it('accepts only supported system notice codes and preserves teacher text', () => {
+  const notice = {...submission, system_notices: ['attempt_time_exceeded'], feedback: 'Comentario docente.'};
+  expect(isSubmission(notice)).toBe(true);
+  expect(isSubmission({...notice, system_notices: ['<script>private</script>']})).toBe(false);
+  expect(isSubmission({...notice, system_notices: 'attempt_time_exceeded'})).toBe(false);
+  expect(notice.feedback).toBe('Comentario docente.');
+ });
+});

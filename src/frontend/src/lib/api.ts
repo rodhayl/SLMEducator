@@ -25,6 +25,12 @@ const safeMessages: Record<string, string> = {
 const fields = new Set(['username', 'password', 'email', 'first_name', 'last_name', 'role', 'teacher_id']);
 export function responseError(status: number, body: unknown, mutation: boolean): ApiError {
   const detail = body && typeof body === 'object' && 'detail' in body ? body.detail : null;
+  // Only explicit receipts from non-persisting proposal endpoints remove
+  // uncertainty. Generic 5xx and interrupted mutations remain unknown outcomes.
+  if (status === 502 && detail && typeof detail === 'object' && 'code' in detail && 'saved' in detail && detail.saved === false) {
+    const generationErrors: Record<string, string> = { generation_output_limit: 'generationOutputLimit', generation_invalid_output: 'generationInvalidOutput', generation_provider_failed: 'generationProviderFailed' };
+    if (typeof detail.code === 'string' && Object.hasOwn(generationErrors, detail.code)) return new ApiError(status, 'http', false, generationErrors[detail.code]);
+  }
   const fieldErrors: Record<string, string> = {};
   if (status === 422 && detail && typeof detail === 'object') {
     for (const item of (Array.isArray(detail) ? detail : [detail]).slice(0, 20)) {

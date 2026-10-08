@@ -30,7 +30,7 @@ SPA_PATH = re.compile(
     r"|evaluaciones(?:/(?:nueva|historial|[1-9]\d*(?:/(?:editar|historial))?))?"
     r"|intentos/[1-9]\d*|envios/[1-9]\d*|correcciones(?:/[1-9]\d*)?"
     r"|personas(?:/(?:nueva|[1-9]\d*))?|estudiantes/[1-9]\d*"
-    r"|progreso|ayuda|solicitudes(?:/[1-9]\d*)?|mensajes"
+    r"|progreso|tutor|ayuda|solicitudes(?:/[1-9]\d*)?|mensajes"
     r"|ajustes(?:/(?:cuenta|perfil|seguridad|apariencia|zona-horaria|ia|datos))?"
     r"|administracion/(?:copias|estado))\Z"
 )
@@ -41,7 +41,7 @@ LEGACY_VIEWS = {
     "study-plans": "/materiales", "assessments": "/evaluaciones", "grading": "/correcciones",
     "students": "/personas?role=student", "teachers": "/personas?role=teacher", "admins": "/personas?role=admin",
     "leaderboard": "/progreso?tab=leaderboard", "help-queue": "/solicitudes",
-    "create": "/generar", "tutor": "/ayuda", "settings": "/ajustes/perfil",
+    "create": "/generar", "tutor": "/tutor", "settings": "/ajustes/perfil",
 }
 
 # Only caches observed in the supported migration are removed. Do not match a

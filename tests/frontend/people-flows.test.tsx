@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { flushSync } from 'react-dom';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { createInstance } from 'i18next';
@@ -82,7 +83,7 @@ async function mount(path = '/personas', role: Role = 'admin', language: 'en' | 
   const i18n = createInstance();
   await i18n.use(initReactI18next).init({ lng: language, fallbackLng: language, defaultNS: 'common', resources: { en: { common: en, people: locales.en }, es: { common: es, people: locales.es } }, interpolation: { escapeValue: false } });
   const router = createMemoryRouter([{ element: <ProtectedLayout />, children: routes }], { initialEntries: [path] }); mounted.push(router);
-  const rendered = render(<I18nextProvider i18n={i18n}><QueryClientProvider client={queries}><AuthProvider controller={controller}><RouterProvider router={router} /></AuthProvider></QueryClientProvider></I18nextProvider>);
+  const rendered = render(<I18nextProvider i18n={i18n}><QueryClientProvider client={queries}><AuthProvider controller={controller}><RouterProvider router={router} flushSync={fn => { flushSync(fn); return undefined; }} /></AuthProvider></QueryClientProvider></I18nextProvider>);
   await waitFor(() => expect(controller.snapshot().status).toBe('authenticated'));
   return { ...rendered, router, controller, queries, calls, records, notes, transport, user: userEvent.setup(), intercept: (next: Intercept) => { intercept = next; } };
 }
@@ -97,6 +98,16 @@ async function completeCreate(user: ReturnType<typeof userEvent.setup>, language
 }
 
  describe('People staff journeys', () => {
+  it('preserves rapid input before router transitions settle', async () => {
+    const h = await mount('/personas?role=teacher');
+    const input = await screen.findByLabelText<HTMLInputElement>('Find in this list');
+    await act(async () => {
+      for (const character of 'Taylor') fireEvent.change(input, { target: { value: input.value + character } });
+    });
+    expect(input).toHaveValue('Taylor');
+    expect(new URLSearchParams(h.router.state.location.search).get('q')).toBe('Taylor');
+    expect(await screen.findByRole('link', { name: 'Open Taylor Teacher' })).toBeInTheDocument();
+  });
   it('addresses student messages by verified ID', async () => {
     await mount('/personas/3');
     expect(await screen.findByRole('link', { name: 'Send message' })).toHaveAttribute('href', '/mensajes?recipient_id=3&compose=1');

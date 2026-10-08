@@ -37,6 +37,10 @@ class AIResponseParseError(AIServiceError):
     """The provider returned an unusable structured response."""
 
 
+class AIOutputLimitError(AIResponseParseError):
+    """The provider explicitly reported an incomplete, output-limited reply."""
+
+
 class AIContentValidationError(AIServiceError):
     """Parsed output does not satisfy the requested educational contract."""
 

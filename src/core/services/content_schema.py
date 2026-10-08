@@ -48,7 +48,9 @@ def normalize_content(kind: str, value: dict[str, Any]) -> dict[str, Any]:
                 raise ValueError("Section content must be text")
         joined = "\n\n".join(section.get("content", "") for section in sections)
         if isinstance(body, str) and body.strip() and body.strip() != joined.strip():
-            sections = [{"title": "Overview" if sections else "Lesson", "content": body}] + sections
+            # A generated heading has no author-provided language. Leave it
+            # untitled; presentation must not persist an English UI label.
+            sections = [{"title": "", "content": body}] + sections
         data["sections"] = sections
         data["content"] = "\n\n".join(section.get("content", "") for section in sections)
         data.pop("text", None)

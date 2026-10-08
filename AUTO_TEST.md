@@ -5,6 +5,14 @@ Cuando David pida ejecutarlo, realiza INICIO–FIN; no necesita `/goal`, copiar 
 
 INICIO DEL PROMPT
 
+## Actualización 2026-10-08 · primer administrador y evidencia sin credenciales
+
+Esta continuación se aplica únicamente al candidato que incluya la reparación de primera instalación. El payload de producción nuevo no contiene cuentas ni contraseña inicial. Antes de iniciar el servidor, el propietario crea su administrador en el diálogo local; no hay alta inicial por HTTP. El usuario elige e introduce la contraseña y su confirmación mediante handoff seguro. Cancelar no inicia servidor. Una instalación configurada no se reinicializa, y una base preexistente vacía/desconocida requiere recuperación autorizada.
+
+No escribas contraseñas utilizables, aunque sean sintéticas o «desechables», en COVERAGE.csv, RESUME.json, RUN, HANDOFF, REVIEW_REPORT, logs, comandos, informes, capturas o Git. Tampoco incluyas contraseñas anteriores, intentos de contraseña incorrectos ni hashes. Describe la validación y el resultado sin el valor. Antes de publicar, revisa el contenido completo de los informes y las imágenes originales. Si aparece un secreto, detén su publicación, informa solo del archivo y solicita la rotación privada por su propietario; borrar el valor actual no elimina el historial.
+
+El informe histórico auto-2026-10-08-001 conserva sus 117 estados originales. Los arreglos de código y las pruebas sintéticas posteriores no cambian esos estados. El 500 original de generación sigue necesitando repetición con proveedor real y el archivo de log citado no está en la evidencia publicada. El acceso del docente anterior a sus notas sigue siendo una decisión de retención/permisos; no amplíes permisos para convertirlo en PASS.
+
 ## 1. Encargo, autonomía y límites
 
 Prueba exhaustivamente la aplicación SLMEducator actual mediante su interfaz real: pantalla, ratón, teclado y capturas inspeccionadas. Actúa tú como operador de los tres roles, descubre todas sus funciones, reproduce regresiones y registra defectos con evidencia. Continúa lo independiente aunque una función falle. Informa solo de resultados importantes, decisiones necesarias y bloqueos; no conviertas el trabajo en una sesión de instrucciones para que David haga cada acción.
@@ -34,7 +42,7 @@ Identifica el candidato real: SHA/árbol, rama, cambios locales, dist/manifest, 
 
 Si falta un candidato vigente y hay Windows compatible autorizado, prepara uno siguiendo MANUAL_TEST1 y su cadena `build_installer.bat` → builder mantenido → Inno Setup, con staging/salida nuevos y payload prístino preservado. Respeta sus preflight/dependencias/credenciales y ejecuta solo verificaciones técnicas pertinentes permitidas. No simules Windows con Linux/freezer mock, ni sustituyas Setup por ZIP. Si Windows/build está bloqueado, no abras el EXE antiguo: conserva el bloqueo y prueba únicamente otro candidato ya autorizado, con identidad/alcance aparte.
 
-Usa perfil Windows/VM y base sintética aislados. Una carpeta diferente NO aísla AppId, registro HKCU, accesos directos, navegador ni rutas compartidas. Conserva instalaciones/portables anteriores; no actualices in-place ni desinstales al usuario. Ante colisión, bloquea lifecycle hasta disponer de aislamiento autorizado. Nunca empaquetes la base o configuración existente. El bootstrap `scripts/seed_admin.py` crea solo cuentas ausentes, no recupera ni resetea cuentas existentes.
+Usa perfil Windows/VM y base sintética aislados. Una carpeta diferente NO aísla AppId, registro HKCU, accesos directos, navegador ni rutas compartidas. Conserva instalaciones/portables anteriores; no actualices in-place ni desinstales al usuario. Ante colisión, bloquea lifecycle hasta disponer de aislamiento autorizado. Nunca empaquetes la base o configuración existente. El lanzamiento normal usa el modo interactivo de `scripts/seed_admin.py`: solo la instalación nueva acreditada admite configurar el primer administrador. No recupera ni resetea cuentas existentes.
 
 ## 3. Evidencia desde el primer minuto y recuperación de la sesión
 
@@ -84,6 +92,8 @@ Orden de dependencias: BOOT/AUTH → PEO → CRS/MAT/EVA autoría → asignació
   Oráculo: build correcto instalado sin tocar instalación previa; registrar cada advertencia. No eludir SmartScreen/certificado ni aceptar permisos imprevistos.
 - AUTO-BOOT-02 · Arranque instalado desde fuera del checkout, sin Python/Node de desarrollo: observar launcher, espera/listo/error y «Dirección local»; abrir mediante «Abrir SLMEducator».
   Verificar proceso/ruta/puerto propios como evidencia técnica aparte; nada de URL asumida.
+- AUTO-BOOT-06 · Primera cuenta del propietario: en una instalación nueva, observar el diálogo local antes de que exista servidor. Probar Cancelar y reabrir sin cuenta creada; completar usuario/contraseña/confirmación mediante intervención privada del propietario. Registrar únicamente presencia de campos ocultos, mensajes y resultado, nunca los valores.
+  Verificar creación única, primer acceso y segundo arranque sin reapertura del alta. Instalaciones ya configuradas conservan las cuentas. Las carreras y la interrupción antes de publicar la base tienen pruebas técnicas separadas; no atribuyas esa evidencia a GUI. Si falta pantalla nativa o handoff autorizado, este caso queda BLOCKED.
 - AUTO-BOOT-03 · X NATIVA: guardar trabajo, pulsar X del launcher, observar confirmación, cancelar una vez, volver a X y confirmar si está autorizado.
   Debe cerrar ventana y SU árbol/puerto; cerrar pestaña o terminar un PID no equivale a X.
 - AUTO-BOOT-04 · Reabrir acceso directo, comprobar misma cuenta/datos; «Detener» → cancelar/confirmar → detenido → «Iniciar» → listo → abrir.

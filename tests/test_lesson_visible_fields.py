@@ -43,3 +43,20 @@ def test_discussion_questions_accept_only_instructional_text():
     with pytest.raises(ValueError, match="list of text"):
         normalize_content("lesson", {"body": "Explanation", "discussion_questions": [{"rubric": "private"}]})
     assert learner_content("lesson", {"discussion_questions": ["Explain", {"rubric": "private"}]}) == {"discussion_questions": ["Explain"]}
+
+
+@pytest.mark.parametrize("body_key", ["content", "body", "text"])
+def test_body_only_lesson_does_not_invent_an_english_section_title(body_key):
+    """Inline lesson normalization keeps the body without storing a UI label."""
+    result = normalize_content("lesson", {body_key: "Texto del docente"})
+    assert result["sections"] == [{"title": "", "content": "Texto del docente"}]
+    assert normalize_content("lesson", result) == result
+    assert learner_content("lesson", result)["sections"] == result["sections"]
+
+
+def test_distinct_body_has_no_invented_heading_and_authored_titles_are_preserved():
+    """Do not translate or replace an author-provided title, even 'Lesson'."""
+    value = {"body": "Introducción", "sections": [{"title": "Lesson", "content": "Written title"}]}
+    result = normalize_content("lesson", value)
+    assert result["sections"][0] == {"title": "", "content": "Introducción"}
+    assert result["sections"][1] == value["sections"][0]

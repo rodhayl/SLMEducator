@@ -2,7 +2,7 @@
 
 Updated 2026-10-07. This is the minimal maintained recipe that wraps a freshly
 built PyInstaller `onedir` payload in a real Windows installer. It reuses the
-existing production builder and the create-only seeder; it does not introduce a
+existing production builder and local first-run setup; it does not introduce a
 second packaging path, a migration framework or a shared bootstrap password.
 
 ## Requirements
@@ -49,17 +49,15 @@ build id defaults to the current short source commit (`--build-id` overrides it)
 The output file is
 `SLMEducator-Setup-<version>-<build-id>.exe`.
 
-For the manual-test build, supply `SLM_INITIAL_ADMIN_PASSWORD` privately in the
-build process environment, using a unique password of at least 12 characters.
-Never copy it into chat, commands saved in reports, or logs. If it is omitted,
-the seeder generates and prints a one-time password through the wrapper; the
-build does not promise password-free output. Build the installer separately for each
-installation; a seeded package and its password hash must not be shared.
+Production payloads contain no account or password. The local installation owner
+chooses the first administrator credentials in the native launcher before the
+server opens. Build-time bootstrap password/email variables are ignored. After
+first setup, never redistribute that installation database or its credentials.
 
 ## What the recipe does
 
 - Runs `scripts/build_package.py --prod --output-dir <payload-dir>`, so the
-  payload is built from a new database and the existing create-only seeder.
+  payload contains an account-free database eligible for local first-run setup.
   Working databases, local configuration and existing installations are not
   read or changed.
 - Compiles `installer/SLMEducator.iss` with the payload path, version, build id
@@ -125,3 +123,14 @@ A Linux pass or opt-in skip is not native Windows validation.
   upgrade compatibility. An in-place upgrade path is explicitly not offered.
 - A native build, an install/login/restart smoke test and a human X-button check
   remain separate evidence; mocked freezing on Linux cannot replace them.
+
+
+## First administrator (current source)
+
+New production payloads contain an account-free database. The native launcher
+asks the local installation owner to choose and confirm the first administrator
+password before opening the HTTP server. No build-time credential is shipped.
+Canceling setup stops startup; configured installations retain their accounts.
+An existing or previously configured empty database does not reopen setup and
+requires authorized recovery. These paths have synthetic SQLite/launcher tests;
+a new native Windows build, install and first-start acceptance remain required.

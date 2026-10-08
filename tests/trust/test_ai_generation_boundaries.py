@@ -141,11 +141,16 @@ def test_question_generation_preserves_keys_and_requested_constraints(
         "grade",
     ],
 )
-def test_generation_provider_failure_never_becomes_success(generation_service, operation):
+def test_generation_provider_failure_never_becomes_success(generation_service, operation, caplog):
     service, _ = generation_service
-    service._client.post.side_effect = httpx.ConnectError("synthetic provider offline")
-    with pytest.raises(AIServiceError, match="synthetic provider offline"):
-        invoke_generation(service, operation)
+    private = "synthetic provider offline PRIVATE_BODY_SENTINEL PRIVATE_KEY_SENTINEL"
+    service._client.post.side_effect = httpx.ConnectError(private)
+    with caplog.at_level(logging.DEBUG):
+        with pytest.raises(AIServiceError, match="AI connection failed") as failure:
+            invoke_generation(service, operation)
+    assert private not in str(failure.value) + caplog.text
+    assert "PRIVATE_BODY_SENTINEL" not in str(failure.value) + caplog.text
+    assert "PRIVATE_KEY_SENTINEL" not in str(failure.value) + caplog.text
     assert service._client.post.call_count == 1
     assert not hasattr(service, "last_response")
 

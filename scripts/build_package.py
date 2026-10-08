@@ -2,7 +2,7 @@
 """Build a Windows package without modifying an installation or local config.
 
 Only new, disposable staging directories and a new output directory are written.
-Production uses the existing create-only seeder; test data requires an explicit
+Production defers account creation to local first launch; test data requires an explicit
 SQLite source and is captured with SQLite's online backup API.
 """
 
@@ -27,7 +27,7 @@ from src.frontend_delivery import is_link, validate_frontend_dist
 # Explicit runtime inputs: never recursively copy src/frontend or legacy src/web.
 RUNTIME_FILES = (
     "src/__init__.py", "src/starter.py", "src/starter_headless.py",
-    "src/startup_utils.py", "src/frontend_delivery.py",
+    "src/startup_utils.py", "src/frontend_delivery.py", "src/first_run_setup.py",
     "alembic.ini", "scripts/seed_admin.py", "scripts/recover_database.py",
 )
 RUNTIME_TREES = {
@@ -103,6 +103,7 @@ HIDDEN_IMPORTS = (
     "src.core.services.database",
     "src.core.services.ai_service",
     "scripts.recover_database",
+    "scripts.seed_admin",
 )
 COLLECT_ALL = ("fastapi", "pydantic", "sqlalchemy", "cryptography", "tzdata")
 
@@ -207,7 +208,7 @@ def _build_environment(staging: Path) -> dict[str, str]:
 def _prepare_database(
     staging: Path, environment: dict[str, str], database: Path | None
 ) -> None:
-    """Generate public defaults and prepare a fresh admin or explicit snapshot."""
+    """Prepare an account-free first-run database or explicit test snapshot."""
     # Reuse runtime defaults, never read the developer's properties/.env files.
     subprocess.run(
         [
@@ -225,15 +226,12 @@ def _prepare_database(
     if database is not None:
         snapshot_database(database, staging / "slm_educator.db")
         return
-    seed_environment = environment.copy()
-    for key in ("SLM_INITIAL_ADMIN_PASSWORD", "SLM_INITIAL_ADMIN_EMAIL"):
-        if key in os.environ:
-            seed_environment[key] = os.environ[key]
-    # Seeder errors are fatal. Never publish an unseeded, inaccessible package.
+    # Mark eligibility in disposable staging without creating credentials.
+    # Production packages prompt their local owner at first launch instead.
     subprocess.run(
-        [sys.executable, str(staging / "scripts" / "seed_admin.py")],
+        [sys.executable, str(staging / "scripts" / "seed_admin.py"), "--prepare-only"],
         cwd=staging,
-        env=seed_environment,
+        env=environment,
         check=True,
     )
 
@@ -334,7 +332,7 @@ def main(argv: list[str] | None = None) -> int:
     mode.add_argument(
         "--prod",
         action="store_true",
-        help="Fresh database with a unique initial admin password",
+        help="Fresh account-free database with local first-launch admin setup",
     )
     mode.add_argument(
         "--test",
@@ -390,10 +388,10 @@ def main(argv: list[str] | None = None) -> int:
     print(f"[OK] Package created: {result}")
     if args.prod:
         print(
-            "Save the initial admin password shown by the seeder (or supplied in the environment)."
+            "No administrator or password is included. The local owner creates one at first launch."
         )
         print(
-            "Sign in as admin and rotate it. Build separately for each installation; do not share its database."
+            "After setup, do not distribute the installation database or its account credentials."
         )
     else:
         print(

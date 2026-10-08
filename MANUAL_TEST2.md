@@ -30,11 +30,13 @@ solo el siguiente bloque pertinente; no recites toda la guía en cada turno.
    `docs/BROWSER_TEST.md`, `MANUAL_TEST1.md` y el handoff MÁS RECIENTE que
    identifica el instalador de esta sesión. Comprueba ruta real, nombre,
    versión/build, SHA-256, SHA/árbol de producto, dist y smokes de ESE artefacto.
-2. Referencia actual: `642966a93e7e9c9f9c5e93cce0bc842f538846fb`, árbol
-   `e0a3966bddc8bbd4cfc2ab4041668c3162ce86f7`, rama
-   `fix/react-functional-continuation-20261007`. Admite un descendiente solo
-   documental comprobado y registra su identidad. Otro producto necesita una
-   decisión expresa y su propio handoff. No selecciones `main` por defecto.
+2. La base histórica `642966a93e7e9c9f9c5e93cce0bc842f538846fb`, árbol
+   `e0a3966bddc8bbd4cfc2ab4041668c3162ce86f7`, no incluye los arreglos devueltos
+   ni la primera configuración local. Para la nueva sesión usa el SHA/árbol
+   explícitos del nuevo handoff preparado desde la misma rama autorizada
+   `fix/react-functional-continuation-20261007`. Comprueba que incluye
+   `implementation_documents/returned_defects_repair_20261008.md` y la primera
+   configuración local. No elijas una rama nueva ni `main` por defecto.
 3. El handoff `implementation_documents/manual_windows_20261006/` y el Setup
    `fe954cab4655` son HISTÓRICOS: no contienen esta GUI React. Si solo tienes
    ese archivo, o falta un nuevo instalador verificado, explica el bloqueo y
@@ -240,18 +242,43 @@ b. En la pantalla de destino, pide comprobar el directorio nuevo del handoff.
 c. Solo tras confirmar destino e identidad, pide el clic de instalación con
    su etiqueta visible. Esperado: finalización sin reemplazar datos antiguos.
 d. Pide abrir el acceso directo SLMEducator instalado, una vez. Esperado:
-   ventana nativa de inicio, transición a listo y navegador de esa instancia.
+   si es una instalación nueva, diálogo de primer administrador antes del servidor;
+   continúa por A.2 bis. Si ya estaba configurada, ventana nativa de inicio,
+   transición a listo y navegador de esa instancia.
 e. Pide leer «Dirección local» del launcher. Registra el origen
    completo real, incluido puerto. Si el launcher está en EN, la etiqueta es
    «Local address». No copies el puerto del README/smoke. Si el navegador
    no abre, usa el control «Abrir SLMEducator» que muestra el launcher; si
    tampoco está disponible, registra el estado antes de otra acción.
 
+#### A.2 bis. Elegir mi primer administrador en una instalación nueva
+
+Cada letra es una acción y espera separadas. Este paso corresponde al candidato
+nuevo sin cuentas; no se aplica al Setup histórico ni reinicializa cuentas previas.
+
+ a. Observa «Configurar el primer administrador». Antes de enviar nada, no debe
+    haberse iniciado el servidor. En una copia nueva, prueba «Cancelar» y reabre
+    para confirmar que no quedó ninguna cuenta; registra el resultado, no lo infieras.
+ b. Pídeme elegir y escribir el usuario administrador con los requisitos visibles.
+    No supongas que el nombre es `admin`: usa después el que yo haya elegido.
+ c. Dame el control antes de introducir la contraseña y su repetición, y déjame
+    completar también el envío. No leas, copies, generes, guardes ni muestres esos
+    valores. Ambos campos deben permanecer ocultos. No captures la entrada.
+ d. Tras completar yo «Crear administrador e iniciar», observa que el servidor
+    arranca y lee la dirección del launcher. Si hay validación o error, conserva
+    el estado y guía solo el siguiente paso necesario, sin escribir por mí el secreto.
+ e. Una instalación ya configurada no ofrece esta alta otra vez. Una base vacía
+    preexistente/desconocida o un administrador eliminado requiere recuperación
+    autorizada, nunca resembra automática. No borres datos para abrir el asistente.
+
+La prueba opt-in de login/rotación/reinicio requiere una fixture `admin` ya creada
+por su propietario. No cubre este diálogo y un skip no acredita primer arranque.
+
 #### A.3. Entrar y cambiar mi contraseña localmente
 
-a. Pantalla «Te damos la bienvenida»: escribe `admin` en «Usuario».
-b. Pídeme introducir la contraseña inicial desde el mecanismo privado del
-   handoff en «Contraseña», sin enviártela ni mostrarla en una captura.
+a. Pantalla «Te damos la bienvenida»: escribe el usuario administrador elegido en A.2 bis (o el usuario de la instalación existente confirmada).
+b. Pídeme introducir localmente mi contraseña en «Contraseña», sin enviártela
+   ni mostrarla en una captura. El handoff no contiene ni proporciona contraseñas.
 c. Pulsa «Entrar». Esperado: «Inicio», rol «Administrador».
 d. Abre «Cuenta y ajustes». Esperado: tarjetas de ajustes de esta cuenta.
 e. Abre «Contraseña». Esperado: aviso de revocación de sesiones anteriores.
@@ -1051,5 +1078,8 @@ completa o compatibilidad universal de proveedores/hardware.
 Detente después del informe o cuando yo diga que pare. No publiques, arregles,
 reconstruyas, desinstales, programes más pruebas ni inicies otra auditoría.
 La reanudación requiere esta misma identidad y el siguiente subpaso guardado.
+
+
+Regla de evidencia actualizada 2026-10-08: no registrar valores de contraseña, anteriores o nuevos, válidos o inválidos, aunque sean sintéticos, en COVERAGE.csv, RESUME.json, informes, mensajes, comandos, logs o capturas. Registrar solo el caso, la validación y el resultado. Revisar texto e imágenes antes de publicar; una exposición previa requiere rotación privada por el propietario y no desaparece al redactar el archivo actual.
 
 FIN

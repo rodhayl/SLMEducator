@@ -2,6 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List, Dict, Any, Optional
 from pydantic import BaseModel, Field
+import logging
+import traceback
 
 from src.api.dependencies import get_db
 from src.core.models import User, QuestionType
@@ -10,8 +12,30 @@ from src.core.services.content_schema import normalize_content
 from src.api.security import require_teacher_or_admin
 from src.api.policies import can_manage_plan, require_allowed
 from src.api.dependencies import get_ai_service_dependency
+from src.core.exceptions import AIContentValidationError, AIOutputLimitError, AIResponseParseError, AIServiceError
 
 router = APIRouter(prefix="/api/generate", tags=["generation"])
+logger = logging.getLogger(__name__)
+
+
+def _proposal_error(error: Exception) -> HTTPException:
+    """Classify unsaved generation failures without exposing prompts or replies."""
+    if isinstance(error, AIOutputLimitError):
+        code = "generation_output_limit"
+    elif isinstance(error, (AIResponseParseError, AIContentValidationError, ValueError)):
+        code = "generation_invalid_output"
+    elif isinstance(error, AIServiceError):
+        code = "generation_provider_failed"
+    else:
+        code = "generation_unexpected"
+    # Exception text and traceback source lines may contain provider/task data.
+    # Function/line frames retain a useful diagnostic without recording that data.
+    frames = traceback.extract_tb(error.__traceback__)
+    trace = " > ".join(f"{frame.name}:{frame.lineno}" for frame in frames[-12:])
+    logger.error("%s; type=%s; trace=%s", code, type(error).__name__, trace)
+    if code == "generation_unexpected":
+        return HTTPException(status_code=500, detail="Generation failed unexpectedly")
+    return HTTPException(status_code=502, detail={"code": code, "saved": False})
 
 # Pydantic models for requests
 
@@ -98,7 +122,7 @@ def generate_study_plan(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise _proposal_error(e) from None
 
 
 @router.post("/exercise")
@@ -121,7 +145,7 @@ def generate_exercise(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise _proposal_error(e) from None
 
 
 @router.post("/lesson")
@@ -149,7 +173,7 @@ def generate_lesson(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise _proposal_error(e) from None
 
 
 @router.post("/topic-content")
@@ -176,7 +200,7 @@ def generate_topic_content(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise _proposal_error(e) from None
 
 
 @router.post("/course-outline")
@@ -200,7 +224,7 @@ def generate_course_outline(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise _proposal_error(e) from None
 
 
 @router.post("/assessment-questions")
@@ -228,7 +252,7 @@ def generate_assessment_questions(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise _proposal_error(e) from None
 
 
 @router.post("/enhance")

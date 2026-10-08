@@ -57,7 +57,7 @@ function PeopleList({ actor }: { actor: User }) {
     const next = new URLSearchParams(previous);
     if (value) next.set(key, value); else next.delete(key);
     return next;
-  }, { replace: key === 'q' });
+  }, { replace: key === 'q', flushSync: key === 'q', preventScrollReset: true });
   const people = usePeople(role, admin && state !== 'active');
   const filtered = people.data?.filter(person => (state !== 'inactive' || !person.active) &&
     `${personName(person)} ${person.username} ${person.email}`.toLocaleLowerCase().includes(search.toLocaleLowerCase()));

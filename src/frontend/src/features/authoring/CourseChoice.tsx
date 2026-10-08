@@ -12,5 +12,5 @@ export function CourseChoice({value,onChange,disabled=false}: {value:string;onCh
  if(!isCourseList(courses.data))return <ErrorState error={responseError()}/>;
  const options=courses.data.filter(course=>user?.role==='admin'||course.creator_id===user?.id);
  if(!options.length)return <EmptyState title={t('noCourses')} action={<Link to="/cursos/nuevo">{t('createCourse')}</Link>}/>;
- return <Field label={t('course')}><Select value={value} disabled={disabled} onChange={event=>onChange(event.target.value)}><option value="">{t('chooseCourse')}</option>{options.map(course=><option key={course.id} value={course.id}>{course.title}</option>)}</Select></Field>;
+ return <Field label={t('course')}><Select value={value} disabled={disabled} onChange={event=>onChange(event.target.value)}><option value="">{t('chooseCourse')}</option>{options.map(course=><option key={course.id} value={course.id}>{t('courseOption',{title:course.title,id:course.id})}</option>)}</Select></Field>;
 }

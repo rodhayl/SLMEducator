@@ -51,6 +51,12 @@ except ImportError:
     GUI_AVAILABLE = False
 
 
+def ensure_initial_admin(*, gui: bool = True, language: str = "es") -> bool:
+    """Load bootstrap only after frozen runtime paths have been established."""
+    from src.first_run_setup import ensure_initial_admin as setup
+    return setup(gui=gui, language=language)
+
+
 def log_message(msg: str) -> None:
     """Log to file for debugging."""
     try:
@@ -676,6 +682,8 @@ def main() -> int:
 
         return recover_database(sys.argv[2:])
     log_message("=== SLM Educator Starting ===")
+    if not ensure_initial_admin(gui=GUI_AVAILABLE, language=default_language()):
+        return 1
     if not GUI_AVAILABLE:
         return run_console()
     try:

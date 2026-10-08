@@ -25,8 +25,8 @@ export function editorPayload(values: EditorValues, metadataOnly = false) {
  const criteria = [];
  for (const criterion of values.criteria) { const points = integer(criterion.max_points, 1, 10000); if (!criterion.name.trim() || points === null) return null; criteria.push({ name: criterion.name, description: criterion.description || null, max_points: points }); }
  if (criteria.length && !values.rubric_name.trim()) return null;
- const linkedIds: Record<string, number> = {};
- for (const key of ['study_plan_id', 'topic_id'] as const) { if (!values[key].trim()) continue; const value = integer(values[key], 1, Number.MAX_SAFE_INTEGER); if (value === null) return null; linkedIds[key] = value; }
+ const linkedIds: Record<string, number | null> = {};
+ for (const key of ['study_plan_id', 'topic_id'] as const) { if (!values[key].trim()) { linkedIds[key] = null; continue; } const value = integer(values[key], 1, Number.MAX_SAFE_INTEGER); if (value === null) return null; linkedIds[key] = value; }
  return { ...metadata, ...linkedIds, time_limit_minutes: time, passing_score: passing, grading_mode: values.grading_mode, is_published: false, questions, rubric: values.rubric_name.trim() ? { name: values.rubric_name, description: values.rubric_description || null, criteria } : null };
 }
 export function canPublish(values: EditorValues, policy: AssistanceMode | null): boolean { const payload = editorPayload(values); return !!policy && !!payload && 'questions' in payload && !!payload.questions.length && values.questions.every(question => !['multiple_choice', 'true_false'].includes(question.question_type) || !!question.correct_answer); }

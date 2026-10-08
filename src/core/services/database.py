@@ -62,7 +62,6 @@ class DatabaseService:
         """Set up SQLAlchemy engine with SQLite optimizations"""
 
         # Use WAL mode for better concurrency
-        @event.listens_for(Engine, "connect")
         def set_sqlite_pragma(dbapi_connection, connection_record):
             if isinstance(dbapi_connection, sqlite3.Connection):
                 cursor = dbapi_connection.cursor()
@@ -93,6 +92,11 @@ class DatabaseService:
                 pool_pre_ping=True,
                 pool_recycle=3600,
             )
+
+        # Keep the listener on this engine. Registering another global Engine
+        # listener per service mutates shared dispatch while concurrent local
+        # setup instances connect, and repeats every pragma indefinitely.
+        event.listen(self.engine, "connect", set_sqlite_pragma)
 
         # Ensure engine is disposed when DatabaseService is garbage collected
         try:

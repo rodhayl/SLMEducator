@@ -1,6 +1,7 @@
 """Synthetic build integrity, safe HTTP delivery and worker retirement contracts."""
 
 import json
+import re
 from pathlib import Path
 import subprocess
 import sys
@@ -10,7 +11,7 @@ from fastapi.testclient import TestClient
 import pytest
 
 from src.frontend_delivery import (
-    RETIREMENT_WORKER, register_frontend, resolve_frontend_dir, validate_frontend_dist,
+    RETIREMENT_WORKER, SPA_PATH, register_frontend, resolve_frontend_dir, validate_frontend_dist,
 )
 from tests.fixtures.frontend_artifact import make_frontend, refresh_manifest
 
@@ -39,7 +40,7 @@ def client(artifact: Path) -> TestClient:
 @pytest.mark.parametrize("path", ["/", "/entrar", "/inicio", "/cursos/12/editar", "/estudio/12", "/materiales/34",
                                   "/evaluaciones/nueva", "/evaluaciones/historial", "/evaluaciones/4/historial",
                                   "/personas/nueva", "/administracion/copias", "/correcciones/42", "/materiales", "/materiales/nuevo",
-                                  "/materiales/2/editar", "/generar", "/fuentes", "/ajustes/perfil"])
+                                  "/materiales/2/editar", "/generar", "/fuentes", "/ajustes/perfil", "/tutor"])
 def test_known_deep_links_serve_verified_html(client: TestClient, path: str) -> None:
     response = client.get(path)
     assert response.status_code == 200
@@ -48,6 +49,14 @@ def test_known_deep_links_serve_verified_html(client: TestClient, path: str) -> 
     assert response.headers["x-content-type-options"] == "nosniff"
     assert '<div id="root">' in response.text
     assert client.head(path).content == b""
+
+
+def test_every_navigation_entry_has_a_server_delivery_route() -> None:
+    """Prevent menu destinations from becoming unserved client-only routes."""
+    contracts = Path("src/frontend/src/app/route-contracts.ts").read_text()
+    paths = re.findall(r"path:\s*'([^']+)'", contracts)
+    assert paths
+    assert all(SPA_PATH.fullmatch(path) for path in paths)
 
 
 @pytest.mark.parametrize("method", ["get", "head", "post", "put", "patch", "delete", "options"])

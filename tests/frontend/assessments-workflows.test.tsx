@@ -206,3 +206,103 @@ it('waits for invalidated assessment detail before hydrating a reopened editor',
  await act(async () => {resolve(json(server));});
  expect(await screen.findByLabelText('Title')).toHaveValue('Reopened saved title'); expect(mutations(h.calls)).toHaveLength(1);
 });
+
+describe('returned assessment UX defects', () => {
+ it('keeps saved context visible and permits clearing it on an editable draft', async () => {
+  const linked = {...assessment, study_plan_id: 7, topic_id: 8, is_published: false};
+  const h = await mount('/evaluaciones/10/editar', {role: 'teacher', noAttempts: true, intercept: (path, method) => path === '/api/assessments/10' && method === 'GET' ? json(linked) : undefined});
+  expect(await screen.findByLabelText('Course ID')).toHaveValue(7);
+  expect(screen.getByLabelText('Material ID')).toHaveValue(8);
+  await h.user.clear(screen.getByLabelText('Course ID'));
+  await h.user.clear(screen.getByLabelText('Material ID'));
+  await h.user.click(screen.getByRole('button', {name: 'Save draft'}));
+  await waitFor(() => expect(mutations(h.calls)).toHaveLength(1));
+  expect(mutations(h.calls)[0].body).toMatchObject({study_plan_id: null, topic_id: null});
+ });
+ it('shows context read-only in the preview and in an editor with attempts', async () => {
+  const linked = {...assessment, study_plan_id: 7, topic_id: 8};
+  const h = await mount('/evaluaciones/10', {role: 'teacher', intercept: (path, method) => path === '/api/assessments/10' && method === 'GET' ? json(linked) : undefined});
+  expect(await screen.findByText('Course ID')).toBeInTheDocument();
+  expect(screen.getByText('Material ID')).toBeInTheDocument();
+  await h.user.click(screen.getByRole('link', {name: 'Edit assessment'}));
+  expect(await screen.findByLabelText('Course ID')).toHaveValue(7);
+  expect(screen.getByLabelText('Course ID')).toBeDisabled();
+ });
+ it.each(['en', 'es'] as const)('applies an explicit rubric breakdown without silently saving a grade in %s', async language => {
+  const rubric = {name: 'Lectura de 2/5', description: 'Use all three criteria', criteria: [{name: 'Numerador', description: null, max_points: 2}, {name: 'Denominador', description: null, max_points: 2}, {name: 'Partes iguales', description: null, max_points: 1}]};
+  const h = await mount('/correcciones/55', {role: 'teacher', status: 'submitted', language, intercept: path => path === '/api/assessments/10' ? json({...assessment, rubric}) : undefined});
+  const labels = locales[language];
+  const question = (await screen.findAllByRole('heading', {name: new RegExp(language === 'en' ? 'Grade question' : 'Calificar pregunta')}))[1].closest('section')!;
+  expect(within(question).getByText('Lectura de 2/5')).toBeInTheDocument();
+  await h.user.type(within(question).getByLabelText('Numerador (0–2)'), '2');
+  await h.user.type(within(question).getByLabelText('Denominador (0–2)'), '1');
+  await h.user.type(within(question).getByLabelText('Partes iguales (0–1)'), '0');
+  await h.user.click(within(question).getByRole('button', {name: language === 'en' ? 'Apply rubric to grade draft' : 'Aplicar rúbrica al borrador de calificación'}));
+  expect(mutations(h.calls)).toHaveLength(0);
+  expect(within(question).getByLabelText(labels.score)).toHaveValue(6);
+  expect((within(question).getByLabelText(labels.optionalFeedback) as HTMLTextAreaElement).value).toContain('Numerador: 2 / 2');
+  await h.user.click(within(question).getByRole('button', {name: labels.saveQuestion}));
+  await h.user.click(within(screen.getByRole('dialog')).getByRole('button', {name: labels.save}));
+  await waitFor(() => expect(mutations(h.calls)).toHaveLength(1));
+  expect(mutations(h.calls)[0].body).toMatchObject({score: 6, feedback: expect.stringContaining('Denominador: 1 / 2')});
+ });
+ it.each(['en', 'es'] as const)('renders system notices separately from teacher feedback in %s', async language => {
+  const h = await mount('/envios/55', {status: 'graded', language, intercept: path => path === '/api/assessments/submissions/55' ? json({...submission, status: 'graded', system_notices: ['attempt_time_exceeded'], feedback: 'Teacher-authored unchanged'}) : undefined});
+  expect(await screen.findByRole('heading', {name: language === 'en' ? 'System notices' : 'Avisos del sistema'})).toBeInTheDocument();
+  expect(screen.getByText('Teacher-authored unchanged')).toBeInTheDocument();
+  expect(document.body.textContent).toContain(language === 'en' ? 'The time limit was exceeded.' : 'Se superó el límite de tiempo.');
+  expect(mutations(h.calls)).toHaveLength(0);
+ });
+});
+
+describe('rubric grading safeguards', () => {
+ it('prefers question criteria, rejects incomplete or fractional input, and replaces only its own applied breakdown', async () => {
+  const data = structuredClone(assessment);
+  data.rubric = {name: 'Global rubric', criteria: [{name: 'Unrelated global criterion', description: null, max_points: 10}]};
+  data.questions[1].rubrics = [{name: 'Question rubric', criteria: [{name: 'Reasoning', description: 'Show the reasoning', max_points: 3}]}];
+  const h = await mount('/correcciones/55', {role: 'teacher', status: 'submitted', intercept: path => path === '/api/assessments/10' ? json(data) : undefined});
+  await screen.findByText('Question rubric');
+  expect(screen.queryByText('Unrelated global criterion')).not.toBeInTheDocument();
+  const question = screen.getByRole('heading', {name: 'Grade question 2'}).closest('section')!;
+  const apply = within(question).getByRole('button', {name: 'Apply rubric to grade draft'});
+  await h.user.click(apply);
+  expect(within(question).getByText(locales.en.rubricIncomplete)).toBeInTheDocument();
+  await h.user.type(within(question).getByLabelText('Reasoning (0–3)'), '1.5');
+  await h.user.click(apply);
+  expect(within(question).getByText(locales.en.rubricIncomplete)).toBeInTheDocument();
+  expect(within(question).getByRole('button', {name: 'Save question grade'})).toBeDisabled();
+  await h.user.clear(within(question).getByLabelText('Reasoning (0–3)'));
+  await h.user.type(within(question).getByLabelText('Reasoning (0–3)'), '1');
+  await h.user.type(within(question).getByLabelText('Feedback (optional)'), 'Original teacher comment.');
+  await h.user.click(apply);
+  expect(within(question).getByLabelText('Score')).toHaveValue(3);
+  await h.user.clear(within(question).getByLabelText('Reasoning (0–3)'));
+  await h.user.type(within(question).getByLabelText('Reasoning (0–3)'), '0');
+  await h.user.click(apply);
+  expect(within(question).getByLabelText('Score')).toHaveValue(0);
+  const text = (within(question).getByLabelText('Feedback (optional)') as HTMLTextAreaElement).value;
+  expect(text).toContain('Original teacher comment.');
+  expect(text).toContain('Reasoning: 0 / 3');
+  expect(text.match(/Rubric breakdown:/g)).toHaveLength(1);
+  expect(mutations(h.calls)).toHaveLength(0);
+ });
+ it.each(['attempt_closed', 'attempt_timezone_unknown', 'attempt_time_exceeded'] as const)('shows %s outside the teacher feedback editor', async code => {
+  await mount('/correcciones/55', {role: 'teacher', status: 'submitted', language: 'es', intercept: path => path === '/api/assessments/submissions/55' ? json({...submission, system_notices: [code], feedback: 'Comentario docente.'}) : undefined});
+  expect(await screen.findByRole('heading', {name: 'Avisos del sistema'})).toBeInTheDocument();
+  expect(screen.getByText(locales.es[code])).toBeInTheDocument();
+  expect(screen.getByLabelText('Comentarios')).toHaveValue('Comentario docente.');
+ });
+});
+
+describe('automatic question notice localization', () => {
+ it.each(['question_unanswered', 'answer_key_unavailable', 'automatic_grading_unavailable'] as const)('renders %s in Spanish independently of teacher feedback', async code => {
+  await mount('/envios/55', {status: 'submitted', language: 'es', intercept: path => path === '/api/assessments/submissions/55' ? json({...submission, answers: [{...submission.answers[1], system_notices: [code], feedback: 'Corrección docente intacta.'}]}) : undefined});
+  expect(await screen.findByText(locales.es[code])).toBeInTheDocument();
+  expect(screen.getByText('Corrección docente intacta.')).toBeInTheDocument();
+ });
+ it('retains ambiguous historical wording with a localized provenance explanation', async () => {
+  await mount('/envios/55', {status: 'graded', language: 'es', intercept: path => path === '/api/assessments/submissions/55' ? json({...submission, system_notices: ['attempt_time_exceeded', 'legacy_feedback_unattributed'], feedback: 'Time limit exceeded. Answers preserved for teacher review.'}) : undefined});
+  expect(await screen.findByText(locales.es.legacy_feedback_unattributed)).toBeInTheDocument();
+  expect(screen.getByText('Time limit exceeded. Answers preserved for teacher review.')).toBeInTheDocument();
+ });
+});

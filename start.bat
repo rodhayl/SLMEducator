@@ -43,14 +43,11 @@ set SLM_DATA_DIR=data
 set SLM_EXPORTS_DIR=exports
 set SLM_TEMP_DIR=temp
 
-REM Bootstrap creates a missing admin only; existing accounts are never reset.
-REM Without an explicit initial password, the seeder prints a random one once.
-if "%SLM_INITIAL_ADMIN_EMAIL%"=="" (
-    set "SLM_INITIAL_ADMIN_EMAIL=admin@example.invalid"
-)
-python scripts\seed_admin.py
+REM Local first-run setup completes before any HTTP listener is started.
+REM The owner chooses a password; established installations are never reset.
+python scripts\seed_admin.py --interactive
 if errorlevel 1 (
-    echo ERROR: Admin seeding failed.
+    echo Initial administrator setup was cancelled or could not complete.
     pause
     exit /b 1
 )

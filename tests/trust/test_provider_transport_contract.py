@@ -108,16 +108,20 @@ def test_cloud_adapter_requires_credential_before_transport(provider_service, pr
         (403, "forbidden"),
         (503, "temporarily unavailable"),
         (502, "server error"),
-        (400, "Invalid synthetic input"),
+        (400, "HTTP 400"),
     ],
 )
-def test_openrouter_status_failures_remain_errors(provider_service, status, expected):
+def test_openrouter_status_failures_remain_errors(provider_service, status, expected, caplog):
     service = provider_service("openrouter")
     service._client.post.return_value = reply(
         {"error": {"message": "Invalid synthetic input"}}, status, {"retry-after": "11"}
     )
-    with pytest.raises(AIServiceError, match=expected):
-        service._call_ai("Question")
+    with caplog.at_level(logging.DEBUG):
+        with pytest.raises(AIServiceError, match=expected) as failure:
+            service._call_ai("Question")
+    assert "Invalid synthetic input" not in str(failure.value) + caplog.text
+    assert "synthetic-adapter-token" not in str(failure.value) + caplog.text
+    assert service._client.post.call_count == 1
     assert not hasattr(service, "last_response")
 
 

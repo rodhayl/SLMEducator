@@ -22,9 +22,9 @@ export function CourseListPage() {
   return <div className="stack">
     <PageHeader title={t(staff ? 'title' : 'myCourses')} description={t(staff ? 'subtitle' : 'studentSubtitle')} actions={staff ? <Link to="/cursos/nuevo">{t('newCourse')}</Link> : undefined} />
     <nav className="cluster" aria-label={t('catalog')}><Link to="/cursos" aria-current="page">{t('title')}</Link><Link to="/materiales">{t('materials')}</Link></nav>
-    <Field label={t('search')}><Input value={search} onChange={event => {const next=new URLSearchParams();if(event.target.value)next.set('q',event.target.value);setParams(next,{replace:true,preventScrollReset:true});}} type="search" /></Field>
+    <Field label={t('search')}><Input value={search} onChange={event => {const next=new URLSearchParams();if(event.target.value)next.set('q',event.target.value);setParams(next,{replace:true,preventScrollReset:true,flushSync:true});}} type="search" /></Field>
     {courses.isPending ? <LoadingState/> : courses.error ? <ErrorState error={courses.error} retry={()=>void courses.refetch()}/> : !items || !filtered ? <ErrorState error={invalidResponse()}/> : !items.length ? <EmptyState title={t('empty')} description={t(staff ? 'emptyDescription' : 'studentEmpty')} /> : !filtered.length ? <EmptyState title={t('noMatches')} /> :
-      <div className="grid">{filtered.map(course => <Card key={course.id}><div className="stack"><Badge>{t(course.is_public ? 'public' : 'private')}</Badge><h2><Link id={`course-${course.id}`} to={`/cursos/${course.id}${suffix}`} state={{listOrigin:'/cursos'}}>{course.title}</Link></h2>{course.description && <p>{course.description}</p>}</div></Card>)}</div>}
+      <div className="grid">{filtered.map(course => <Card key={course.id}><div className="stack"><Badge>{t(course.is_public ? 'public' : 'private')}</Badge><h2><Link id={`course-${course.id}`} aria-describedby={`course-identity-${course.id}`} to={`/cursos/${course.id}${suffix}`} state={{listOrigin:'/cursos'}}>{course.title}</Link></h2><span id={`course-identity-${course.id}`}>{t('courseIdentifier',{id:course.id})}</span>{course.description && <p>{course.description}</p>}</div></Card>)}</div>}
   </div>;
 }
 

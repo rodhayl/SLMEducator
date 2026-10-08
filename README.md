@@ -21,7 +21,7 @@ Use demonstration data for evaluation. Students can ask the tutor or Q&A without
 
 ## Quick Start (Windows)
 
-Clone this repository and open PowerShell in its root. Before launching, prepare the [React frontend build](#react-frontend-build) and review [Initial Admin Account](#initial-admin-account). For a new database, supply your own initial credential or privately save the one-time generated password printed during startup.
+Clone this repository and open PowerShell in its root. Before launching, prepare the [React frontend build](#react-frontend-build) and review [Initial Admin Account](#initial-admin-account). For a new installation, a local first-run dialog lets you choose the administrator username and password before the server starts.
 
 ```powershell
 .\install_dependencies.bat
@@ -35,21 +35,18 @@ Application URL: `http://127.0.0.1:8080`
 - Activates `venv`
 - Creates runtime folders (`logs`, `data`, `exports`, `temp`)
 - Sets local runtime environment variables
-- Calls create-only admin seeding on each launch; existing accounts and their security state are preserved
+- Opens local first-administrator setup only for a verified fresh installation; existing accounts and their security state are preserved
 - Starts FastAPI with Uvicorn on port `8080`
 
 ## Manual Run (Alternative)
 
 Prepare the [React frontend build](#react-frontend-build) and review
-[Initial Admin Account](#initial-admin-account) before starting. The create-only
-seeder below supplies the first account for a new database and preserves existing
-accounts. Keep any one-time generated password private and save it before closing
-the terminal.
+[Initial Admin Account](#initial-admin-account) before starting. The local setup below lets the installation owner choose the first account and preserves existing accounts. Canceling setup stops startup. Use --console instead of --interactive on a machine with an interactive terminal but no native window.
 
 ```powershell
 python -m venv venv
 .\venv\Scripts\python.exe -m pip install -r requirements.txt
-.\venv\Scripts\python.exe scripts\seed_admin.py
+.\venv\Scripts\python.exe scripts\seed_admin.py --interactive
 .\venv\Scripts\python.exe -m uvicorn src.api.main:app --host 127.0.0.1 --port 8080 --reload
 ```
 
@@ -126,13 +123,31 @@ deployment considerations.
 
 ## Initial Admin Account
 
-`start.bat` calls [scripts/seed_admin.py](scripts/seed_admin.py) on every launch. The seeder creates an account only when the username `admin` is absent. If that username already exists, it leaves the password, email, role, active status, lockout state and authentication attempts unchanged. Bootstrap environment variables are ignored for existing accounts, even if a password value is invalid. Restarting therefore preserves a password changed in the UI.
+Fresh production packages contain no administrator account or password. Before
+starting the HTTP server, the native launcher opens a local setup dialog for the
+installation owner to choose a username and password and confirm it. Passwords
+are masked and never printed, logged, placed in a URL, or sent to an HTTP setup
+endpoint. Cancel closes setup without starting the server. The console fallback
+requires an interactive local terminal and uses hidden password entry.
 
-For an explicit first-run credential, set `SLM_INITIAL_ADMIN_PASSWORD` to your own unique password of at least 12 characters in the launcher's process environment. `SLM_INITIAL_ADMIN_EMAIL` optionally sets the new account's email. These variables are for initial creation only, not password recovery. Treat the password as a secret: do not place a real value in shared commands, documentation or commits.
+`start.bat` uses `scripts/seed_admin.py --interactive` for the same setup. The
+headless launcher uses the terminal flow. For manual source startup, finish this
+step before running Uvicorn. Once an administrator exists, launch leaves all
+accounts, passwords, roles, lockout and authentication history unchanged.
 
-The launcher no longer supplies a shared default password. With no nonblank password override, the seeder generates a random password for a new administrator and prints it once, whether invoked by the launcher or directly. Keep that output private and save it before closing the terminal. A later launch will not print or recover it. Sign in and rotate the initial credential. These development provisioning paths need review before use with real student information.
+Setup eligibility is marked only when this local bootstrap creates a brand-new
+database (or when a production package prepares an account-free database). The
+first account and completed marker are committed under one SQLite write lock.
+Concurrent submissions cannot create two initial administrators. An existing
+empty/unrecognized database, or a configured installation with its administrators
+removed, requires authorized recovery; setup does not reopen.
 
-Packaging uses the same create-only seeder in disposable staging. It does not delete or seed the working database, copy local configuration, supply a shared password, or stop running applications. See [Build Packages](#build-packages) for credential handling and explicit test-data snapshots.
+The older explicit `python scripts/seed_admin.py` command remains a development
+provisioning tool. It preserves any existing `admin` username; for a missing one
+it accepts `SLM_INITIAL_ADMIN_PASSWORD` or generates a one-time credential. Normal
+launch and production packaging no longer use that automatic-account path. Never
+put credentials in shared commands, reports or commits. Production packages ignore
+build-time bootstrap password/email variables and let each local owner choose.
 
 ## Testing
 
@@ -246,8 +261,8 @@ automatically triggering another model-selection or scoring campaign.
 ```
 
 Modes and data boundaries:
-- `--prod`: Creates a new database in disposable staging and seeds its initial
-  admin with the existing seeder. The working database, WAL/SHM files and local
+- `--prod`: Creates an account-free database in disposable staging and marks it
+  eligible for local first-launch administrator setup. The working database, WAL/SHM files and local
   configuration are not read or changed. No running app is stopped.
 - `--test --database PATH`: Requires an explicit existing SQLite database.
   SQLite's online backup API includes committed WAL data in a consistent,
@@ -267,13 +282,11 @@ Modes and data boundaries:
   Choose a new `--output-dir` for each rebuild. Staging and build caches are
   isolated and cleaned after success or failure.
 
-For production, set `SLM_INITIAL_ADMIN_PASSWORD` to a unique password of at least
-12 characters in the build process environment, or save the random password
-printed once by the seeder. `SLM_INITIAL_ADMIN_EMAIL` optionally sets the new
-account email. No plaintext credential file is included. Sign in as `admin` and
-rotate the initial credential. Build separately for each installation: copying a
-seeded package also copies its account and password hash. A bootstrap failure is
-fatal; the builder will not report success for an unseeded package.
+Production builds never create or bundle a shared login. Each installation owner
+chooses credentials locally on first launch. Do not redistribute a database after
+setup: it contains that installation's accounts and private data. Test snapshots
+retain their explicitly selected accounts and are never converted into a new
+first-run installation.
 
 The frozen launcher uses the executable's directory for relative runtime paths,
 so the packaged admin database and configuration work when launched from another
@@ -286,7 +299,7 @@ settings. Use synthetic data and do not distribute them. Encryption keys are not
 exported; encrypted records require the matching key in the test runtime.
 
 The `--prod` label is a build mode, not a production-readiness certification.
-Automated packaging tests exercise real SQLite and the real seeder with a
+Automated packaging tests exercise real SQLite and first-run preparation with a
 simulated freezer. A native Windows build and packaged startup/login smoke test
 are still required before distributing an executable.
 
@@ -302,7 +315,7 @@ compiles `installer/SLMEducator.iss` with Inno Setup 6 (`ISCC.exe`).
 
 Both directories must be new and absolute. The installer installs under
 `%LOCALAPPDATA%\Programs\SLMEducator` without administrator rights, keeps the
-seeded database and generated `env.properties` as user data across reinstall
+installation database and generated `env.properties` as user data across reinstall
 and uninstall, and refuses to update an existing installation in place.
 See [the installer recipe](docs/WINDOWS_INSTALLER.md) for boundaries and limits.
 
@@ -341,7 +354,7 @@ python -m venv venv
 - A missing initial admin can be created directly with the same first-run behavior described above:
 
 ```powershell
-.\venv\Scripts\python.exe scripts\seed_admin.py
+.\venv\Scripts\python.exe scripts\seed_admin.py --interactive
 ```
 
 This command never resets an existing account or clears a lockout. For a known password, use the application's password-change flow after signing in. If access is lost or the account is disabled, stop and arrange an explicit recovery procedure with the administrator; changing bootstrap variables will not recover the account. Do not delete the database to regain access.

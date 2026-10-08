@@ -60,7 +60,7 @@ def test_single_lesson_rejects_unusable_provider_objects(lesson_client, output):
     client, response_body = lesson_client
     response_body.update(output)
     response = request_lesson(client)
-    assert response.status_code == 500
+    assert response.status_code == 502
     assert response.json().get("detail")
 
 

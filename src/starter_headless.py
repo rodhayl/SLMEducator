@@ -10,7 +10,7 @@ SRC_PATH = Path(__file__).parent
 sys.path.insert(0, str(SRC_PATH))
 sys.path.insert(0, str(SRC_PATH.parent))
 
-from src.starter import run_console, run_server
+from src.starter import ensure_initial_admin, run_console, run_server
 from src.startup_utils import setup_frozen_logging, setup_frozen_working_directory
 
 
@@ -19,6 +19,8 @@ def main() -> int:
     multiprocessing.freeze_support()
     setup_frozen_working_directory()
     setup_frozen_logging()
+    if not ensure_initial_admin(gui=False):
+        return 1
     return run_console(run_server, port=8000, no_browser=True)
 
 

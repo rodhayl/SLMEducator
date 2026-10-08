@@ -30,7 +30,7 @@
             "content": "Which corrected source confirms thirteen or nineteen?"
           },
           {
-            "title": "Lesson",
+            "title": "",
             "content": "Two records differ."
           }
         ]
@@ -62,7 +62,7 @@
             "content": "Which corrected source confirms thirteen or nineteen?"
           },
           {
-            "title": "Lesson",
+            "title": "",
             "content": "<!-- Which corrected source confirms thirteen or nineteen? -->\n\nTwo records differ."
           }
         ]
@@ -94,7 +94,7 @@
             "content": "&#60;script&#62;Which corrected source confirms thirteen or nineteen?&#60;&#47;script&#62;"
           },
           {
-            "title": "Lesson",
+            "title": "",
             "content": "Two records differ."
           }
         ]
@@ -126,7 +126,7 @@
             "content": "&#91;Which corrected source confirms thirteen or nineteen?&#93;&#58; https&#58;&#47;&#47;example&#46;test"
           },
           {
-            "title": "Lesson",
+            "title": "",
             "content": "Two records differ."
           }
         ]
@@ -158,7 +158,7 @@
             "content": "Is 2 &#60; 4 the intended comparison?"
           },
           {
-            "title": "Lesson",
+            "title": "",
             "content": "The comparison needs confirmation."
           }
         ]
@@ -194,7 +194,7 @@
             "content": "Which corrected source confirms thirteen or nineteen?"
           },
           {
-            "title": "Lesson",
+            "title": "",
             "content": "Two records differ."
           }
         ]
@@ -226,7 +226,7 @@
             "content": "Which corrected source confirms thirteen or nineteen?"
           },
           {
-            "title": "Lesson",
+            "title": "",
             "content": "Two records differ.\n\n<!--"
           }
         ]
@@ -258,7 +258,7 @@
             "content": "Which corrected source confirms thirteen or nineteen?"
           },
           {
-            "title": "Lesson",
+            "title": "",
             "content": "Two records differ.\n\n<script>"
           }
         ]
@@ -290,7 +290,7 @@
             "content": "Which corrected source confirms thirteen or nineteen?"
           },
           {
-            "title": "Lesson",
+            "title": "",
             "content": "Two records differ.\n\n```html"
           }
         ]

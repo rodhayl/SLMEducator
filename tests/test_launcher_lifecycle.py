@@ -12,6 +12,8 @@ from src import starter, starter_headless, startup_utils as utils
 def synthetic_fixed_ports(monkeypatch):
     """Console-controller tests never reserve a real port."""
     monkeypatch.setattr(starter, "check_port_available", lambda port: True)
+    monkeypatch.setattr(starter, "ensure_initial_admin", lambda **kwargs: True)
+    monkeypatch.setattr(starter_headless, "ensure_initial_admin", lambda **kwargs: True)
 
 
 class Child:

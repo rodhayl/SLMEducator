@@ -410,7 +410,8 @@ class AuthService:
             )
         return recent_attempts < self.rate_limit_max_attempts
 
-    def validate_password(self, password: str) -> bool:
+    @staticmethod
+    def validate_password(password: str) -> bool:
         """Validate password strength"""
         # Check minimum length
         if len(password) < 8 or len(password.encode("utf-8")) > 72:

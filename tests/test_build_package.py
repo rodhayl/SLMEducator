@@ -71,7 +71,7 @@ def project(tmp_path: Path) -> Path:
             project / directory,
             ignore=shutil.ignore_patterns("__pycache__"),
         )
-    for name in ("__init__.py", "starter.py", "starter_headless.py", "startup_utils.py", "frontend_delivery.py"):
+    for name in ("__init__.py", "starter.py", "starter_headless.py", "startup_utils.py", "frontend_delivery.py", "first_run_setup.py"):
         shutil.copyfile(source / "src" / name, project / "src" / name)
     make_frontend(project)
     (project / "scripts").mkdir()
@@ -169,8 +169,8 @@ def test_production_preserves_working_data_and_excludes_private_configuration(
     output = builder.build_package(project, tmp_path / "package")
     assert {path: path.read_bytes() for path in files} == files
     assert not (project / "logs").exists()
-    assert len(read_users(output / "slm_educator.db")) == 1
-    assert "Generated Password:" in capfd.readouterr().out
+    assert read_users(output / "slm_educator.db") == []
+    assert "Generated Password:" not in capfd.readouterr().out
     for path in output.rglob("*"):
         if path.is_file():
             assert private.encode() not in path.read_bytes()
@@ -182,63 +182,37 @@ def test_production_preserves_working_data_and_excludes_private_configuration(
     assert all(not cwd.exists() for _, cwd in fake_freezer)
 
 
-def test_fresh_builds_get_distinct_usable_admin_passwords(
-    project: Path,
-    tmp_path: Path,
-    fake_freezer: list[Any],
-    capfd: pytest.CaptureFixture[str],
+def test_production_builds_have_no_accounts_or_inherited_passwords(
+    project: Path, tmp_path: Path, fake_freezer: list[Any],
+    capfd: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from src.core.security import verify_password
-
-    passwords = []
-    for name in ("first", "second"):
-        output = builder.build_package(project, tmp_path / name)
-        password_match = re.search(r"Generated Password: (\S+)", capfd.readouterr().out)
-        assert password_match is not None
-        password = password_match.group(1)
-        username, email, password_hash = read_users(output / "slm_educator.db")[0]
-        assert (username, email) == ("admin", "admin@example.invalid")
-        assert len(password) == 20
-        assert verify_password(password, password_hash)
-        passwords.append(password)
-    assert passwords[0] != passwords[1]
-
-
-def test_production_honors_explicit_bootstrap_password_without_bundling_it(
-    project: Path,
-    tmp_path: Path,
-    fake_freezer: list[Any],
-    monkeypatch: pytest.MonkeyPatch,
-    capfd: pytest.CaptureFixture[str],
-) -> None:
-    from src.core.security import verify_password
-
+    """Every copied distribution starts pending, with no seeded login to share."""
+    import json
     password = "SyntheticPackagePass123!"
     monkeypatch.setenv("SLM_INITIAL_ADMIN_PASSWORD", password)
-    output = builder.build_package(project, tmp_path / "package")
-    assert verify_password(password, read_users(output / "slm_educator.db")[0][2])
-    assert password not in capfd.readouterr().out
-    assert all(
-        password.encode() not in path.read_bytes()
-        for path in output.rglob("*")
-        if path.is_file()
-    )
+    for name in ("first", "second"):
+        output = builder.build_package(project, tmp_path / name)
+        assert read_users(output / "slm_educator.db") == []
+        with closing(sqlite3.connect(output / "slm_educator.db")) as connection:
+            details = json.loads(connection.execute("SELECT details FROM audit_logs").fetchone()[0])
+            assert details == {"bootstrap": "local_first_admin_setup_v1", "state": "pending"}
+        assert password not in capfd.readouterr().out
+        assert all(password.encode() not in path.read_bytes() for path in output.rglob("*") if path.is_file())
 
 
-def test_invalid_bootstrap_fails_without_freezing_or_publishing(
-    project: Path,
-    tmp_path: Path,
-    fake_freezer: list[Any],
-    monkeypatch: pytest.MonkeyPatch,
-    capfd: pytest.CaptureFixture[str],
+def test_failed_first_run_preparation_never_freezes_or_publishes(
+    project: Path, tmp_path: Path, fake_freezer: list[Any], monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("SLM_INITIAL_ADMIN_PASSWORD", "short")
+    run = builder.subprocess.run
+    def fail(command, **kwargs):
+        if "--prepare-only" in command:
+            raise subprocess.CalledProcessError(1, command)
+        return run(command, **kwargs)
+    monkeypatch.setattr(builder.subprocess, "run", fail)
     with pytest.raises(subprocess.CalledProcessError):
         builder.build_package(project, tmp_path / "package")
     assert not (tmp_path / "package").exists()
-    assert len(fake_freezer) == 2
-    assert all(not cwd.exists() for _, cwd in fake_freezer)
-    assert "at least 12 characters" in capfd.readouterr().out
+    assert len(fake_freezer) == 1
 
 
 @pytest.fixture
@@ -394,7 +368,7 @@ def test_batch_wrapper_has_no_destructive_legacy_steps() -> None:
     assert "scripts\\build_package.py %*" in script
 
 
-def test_packaged_first_run_resolves_seeded_database_from_other_directory(
+def test_packaged_first_run_resolves_account_free_database_from_other_directory(
     project: Path,
     tmp_path: Path,
     fake_freezer: list[Any],
@@ -437,7 +411,7 @@ def test_packaged_first_run_resolves_seeded_database_from_other_directory(
         with database.get_session() as session:
             from src.core.models import User
 
-            assert session.query(User).one().username == "admin"
+            assert session.query(User).count() == 0
     finally:
         database.close()
     assert not (other / "slm_educator.db").exists()

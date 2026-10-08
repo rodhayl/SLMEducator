@@ -1,0 +1,356 @@
+{
+  "date": "2026-10-08",
+  "base_commit": "e55e618e6a7d456b143886ae1cda3cc1bd896f29",
+  "branch": "fix/react-functional-continuation-20261007",
+  "mode": "batched full collected offline scope; independent pytest processes",
+  "source_identity": "0c5b56dd3c350d64b1d0348bb4cd7955ac21cbfe53e2b91112330d963bee194b",
+  "frozen_manifest_sha256": "a88076ebec7e598a56f21cc503740072cfe6be46f76a234647aeb9e2c926dda8",
+  "collection_inventory_sha256": "fa4f4f8b45b0839f120db3af589369e3b64b06677ace6b88d091137944171fd7",
+  "final_gate_receipt_sha256": "4ad5864bba83610f7272877d14747bc223d4e7e8d541ef568e06468a09dadb38",
+  "planned_nodes": 1778,
+  "executed_unique_nodes": 1778,
+  "module_files": 124,
+  "deselected_real_ai": 5,
+  "counts": {
+    "passed": 1721,
+    "skipped": 57
+  },
+  "no_omissions": true,
+  "no_double_counted_nodes": true,
+  "coverage": {
+    "covered_lines": 8403,
+    "executable_lines": 9691,
+    "missing_lines": 1288,
+    "excluded_lines": 58,
+    "percent": 86.70931792384687,
+    "required_percent": 80,
+    "exit_code": 0,
+    "combined_data_sha256": "25eb314f6295d43854e89621c533629e46d14c21e9341e2516e78dc28dda7a31"
+  },
+  "skips_by_recorded_reason": {
+    "Configured AI provider (lm_studio) not available": 23,
+    "Explicit isolated browser acceptance only": 18,
+    "Requires actual Windows cmd and CHOICE": 10,
+    "Requires actual Windows cmd": 3,
+    "Requires SLM_INSTALLER_SETUP pointing at a newly built Windows installer": 1,
+    "Requires an explicit newly built synthetic Windows package": 1,
+    "Explicit native Windows package acceptance only": 1
+  },
+  "batches": [
+    {
+      "id": 1,
+      "module_paths": [
+        "tests/ai/test_ai_background_processes.py",
+        "tests/ai/test_ai_boundary_conditions.py",
+        "tests/ai/test_ai_complete_workflows.py",
+        "tests/ai/test_ai_comprehensive_e2e.py",
+        "tests/ai/test_ai_configuration_management.py",
+        "tests/ai/test_ai_context.py",
+        "tests/ai/test_ai_data_persistence.py",
+        "tests/ai/test_ai_error_handling.py",
+        "tests/ai/test_ai_error_recovery.py",
+        "tests/ai/test_ai_grading_logic.py",
+        "tests/ai/test_ai_model_behaviors.py",
+        "tests/ai/test_ai_multiuser_scenarios.py",
+        "tests/ai/test_ai_performance.py",
+        "tests/ai/test_ai_performance_scenarios.py",
+        "tests/ai/test_ai_security.py",
+        "tests/ai/test_ai_tutor_context_integration.py",
+        "tests/ai/test_ai_tutor_e2e.py",
+        "tests/ai/test_ai_tutor_multiturn_core.py",
+        "tests/browser/test_assessment_feedback_journey.py",
+        "tests/browser/test_best_effort_journey.py",
+        "tests/browser/test_harness_contracts.py"
+      ],
+      "selected_nodes": 202,
+      "counts": {
+        "passed": 176,
+        "skipped": 26
+      },
+      "exit_code": 0,
+      "collection_matches": true,
+      "source_changed": false,
+      "started_utc": "2026-10-08T18:46:10.816737+00:00",
+      "finished_utc": "2026-10-08T18:47:01.143422+00:00",
+      "receipt_sha256": "3bf5501fb1bfea5d375359fffd7c621f25872d9409248851dc774daa0fee4912",
+      "node_and_phase_evidence_sha256": "6404c81db8e28fdb67fa7bf9f5d189d270bb240bb882a2fb2a10a25a77c2dc84",
+      "raw_log_sha256": "4c0d9b2c857171e631c85078c6ebf63c8147891b7254b96c85dba88e2544427b",
+      "raw_coverage_sha256": "c03dd3fc5248c7f4b352865b44ae960eee5bba9d0a6fc376d09bddee5c486687"
+    },
+    {
+      "id": 2,
+      "module_paths": [
+        "tests/browser/test_live_journeys.py",
+        "tests/browser/test_native_zoom.py",
+        "tests/browser/test_practice_option_preview.py",
+        "tests/browser/test_service_worker_update.py",
+        "tests/browser/test_source_clarification_journey.py",
+        "tests/core/test_auth.py",
+        "tests/core/test_classroom_messages.py",
+        "tests/core/test_content_ordering.py",
+        "tests/core/test_database.py",
+        "tests/core/test_roles.py",
+        "tests/core/test_security_utils.py",
+        "tests/features/test_gamification_mastery_annotations.py",
+        "tests/features/test_guided_learning.py",
+        "tests/features/test_help_queue.py",
+        "tests/features/test_student_permissions.py",
+        "tests/features/test_study_plan_retrieval.py",
+        "tests/features/test_teacher_create_ai_core.py",
+        "tests/fixtures/test_fixture_autouse_aiservice.py",
+        "tests/integration/test_advanced_generation.py",
+        "tests/integration/test_ai_settings_and_grading.py",
+        "tests/integration/test_auth_pages.py",
+        "tests/integration/test_auth_registration_contract.py",
+        "tests/integration/test_auth_role_contract.py",
+        "tests/integration/test_auth_user_detail.py",
+        "tests/integration/test_daily_goal_regression.py",
+        "tests/integration/test_dashboard_studyplan_assessment.py",
+        "tests/integration/test_frontend_vertical_contract.py",
+        "tests/integration/test_handout_instructional_fields.py",
+        "tests/integration/test_learning_session_api.py"
+      ],
+      "selected_nodes": 205,
+      "counts": {
+        "skipped": 15,
+        "passed": 190
+      },
+      "exit_code": 0,
+      "collection_matches": true,
+      "source_changed": false,
+      "started_utc": "2026-10-08T18:47:01.201420+00:00",
+      "finished_utc": "2026-10-08T18:49:51.175930+00:00",
+      "receipt_sha256": "74f1ebe3dc23d68ae7dd7ebd0744c6bef7c47fc928e71dd93a7e051085eeb070",
+      "node_and_phase_evidence_sha256": "82ee2d0b6aa94c669e11bc7de677e130438035d2f026fc128d39cf8e1be41618",
+      "raw_log_sha256": "52fa0d1868f980545f2944923e8075a5b87694daa8fe0ab675b84a1876999071",
+      "raw_coverage_sha256": "932214f45c4ea25faf76872ec2e0956de02ca7c71910cefa1448ba26a130345c"
+    },
+    {
+      "id": 3,
+      "module_paths": [
+        "tests/integration/test_operational_recovery.py",
+        "tests/integration/test_portability_recovery.py",
+        "tests/integration/test_settings_comprehensive.py",
+        "tests/integration/test_student_pages.py",
+        "tests/integration/test_teacher_pages.py",
+        "tests/integration/test_temporal_migration.py",
+        "tests/integration/test_trustworthy_scoring_sessions.py",
+        "tests/integration/test_tutor_response_selection.py",
+        "tests/test_build_installer.py",
+        "tests/test_build_package.py"
+      ],
+      "selected_nodes": 195,
+      "counts": {
+        "passed": 195
+      },
+      "exit_code": 0,
+      "collection_matches": true,
+      "source_changed": false,
+      "started_utc": "2026-10-08T18:49:51.242136+00:00",
+      "finished_utc": "2026-10-08T18:51:35.815697+00:00",
+      "receipt_sha256": "72bf6878123138bf4d3ab75e7dde74a3c2fcb64b61a68dd345619fdb246d1e43",
+      "node_and_phase_evidence_sha256": "ec5aeed93f94b6ff8b43f2a5f07a9b16fcb78e3a4894a5877636ad057a9d2283",
+      "raw_log_sha256": "05103b16fa36a0906b3c1a41ea3c48f434401690e2a2d686aaacc1fb559dd493",
+      "raw_coverage_sha256": "f57ea1e33c0732943a2f477dcc376b54ae40b635726b4a439eb725e21f08cc7c"
+    },
+    {
+      "id": 4,
+      "module_paths": [
+        "tests/test_first_run_setup.py",
+        "tests/test_frontend_build_identity.py",
+        "tests/test_frontend_delivery.py",
+        "tests/test_generation_diagnostics.py",
+        "tests/test_installer_lifecycle_contract.py"
+      ],
+      "selected_nodes": 204,
+      "counts": {
+        "passed": 204
+      },
+      "exit_code": 0,
+      "collection_matches": true,
+      "source_changed": false,
+      "started_utc": "2026-10-08T18:51:35.871804+00:00",
+      "finished_utc": "2026-10-08T18:52:19.207402+00:00",
+      "receipt_sha256": "0aa1ae150cd110d928d1fe0eac68e268d13a7ec021e0508331104190ed3feb5e",
+      "node_and_phase_evidence_sha256": "cb21937c9dd35bd62b0eb0fec737a96e97d29329dd29aa68fdaf73d7f65afe52",
+      "raw_log_sha256": "2535faca397941f62bb08cd63dadf68bd079f6021bb6df731fb3334a480e9295",
+      "raw_coverage_sha256": "df424183ce9a708c6d7d9f19a8c21ae7924f509f50330bc292065d9694060813"
+    },
+    {
+      "id": 5,
+      "module_paths": [
+        "tests/test_launcher_lifecycle.py",
+        "tests/test_lesson_generation_contract.py",
+        "tests/test_lesson_visible_fields.py",
+        "tests/test_local_provider_server_isolation.py",
+        "tests/test_operational_documentation.py",
+        "tests/test_practice_option_contract.py",
+        "tests/test_seed_admin.py",
+        "tests/test_v10_evaluation_replay_guard.py",
+        "tests/test_windows_test_runner.py",
+        "tests/trust/test_admin_account_recovery.py"
+      ],
+      "selected_nodes": 200,
+      "counts": {
+        "passed": 187,
+        "skipped": 13
+      },
+      "exit_code": 0,
+      "collection_matches": true,
+      "source_changed": false,
+      "started_utc": "2026-10-08T18:52:19.259897+00:00",
+      "finished_utc": "2026-10-08T18:53:14.108371+00:00",
+      "receipt_sha256": "48a9042760cce1d3ce9e02dab9f5b58bfa0a5a11f8081abf8f1e8e289b1ea98d",
+      "node_and_phase_evidence_sha256": "eda2cb18d6f1d373f639a15fc53ca106a4c96ee04d28ac71bf639474c52daf98",
+      "raw_log_sha256": "3f09f09fb632272712c5643fc2485f17f657e80dd6739e2dbf90b83464322af3",
+      "raw_coverage_sha256": "1acd29963327ddccadbfb8cbccb068974ffa448d2af384e5eb107e28b723a2b6"
+    },
+    {
+      "id": 6,
+      "module_paths": [
+        "tests/trust/test_ai_generation_boundaries.py",
+        "tests/trust/test_ai_request_lifecycle.py",
+        "tests/trust/test_annotation_mutation_contract.py",
+        "tests/trust/test_assessment_authoring_fidelity.py",
+        "tests/trust/test_assessment_returned_ux.py",
+        "tests/trust/test_assessment_review_fixes.py",
+        "tests/trust/test_assessment_revision_contract.py",
+        "tests/trust/test_assistance_policy.py"
+      ],
+      "selected_nodes": 193,
+      "counts": {
+        "passed": 193
+      },
+      "exit_code": 0,
+      "collection_matches": true,
+      "source_changed": false,
+      "started_utc": "2026-10-08T18:53:14.170322+00:00",
+      "finished_utc": "2026-10-08T18:54:26.359124+00:00",
+      "receipt_sha256": "395dca8cecfac74f04a032dc7d361358e739c2d586e5a532b0cf8552953d331b",
+      "node_and_phase_evidence_sha256": "3c1db9753a7e4516dcca8dc32153d9ee8a2c18ba15e3824c625f0217a05c2172",
+      "raw_log_sha256": "439d2f18dded48c1ef07ca9f9201450ec767413b706b702fe7568459470cb806",
+      "raw_coverage_sha256": "2ecc19eee05c796589d0cf38e203601bb00de32bf3a1cde3812ba736ce0ba0d8"
+    },
+    {
+      "id": 7,
+      "module_paths": [
+        "tests/trust/test_content_ingress_contract.py",
+        "tests/trust/test_content_service_storage.py",
+        "tests/trust/test_course_workflow.py",
+        "tests/trust/test_database_service_contract.py",
+        "tests/trust/test_explicit_setup.py",
+        "tests/trust/test_feature_database_isolation.py",
+        "tests/trust/test_file_extraction_boundaries.py",
+        "tests/trust/test_generation_ingress_contract.py",
+        "tests/trust/test_generation_prompt_budget.py",
+        "tests/trust/test_generation_request_protocol.py",
+        "tests/trust/test_generation_sources.py",
+        "tests/trust/test_gui_api_contracts.py",
+        "tests/trust/test_leaderboard_scope.py",
+        "tests/trust/test_lesson_instruction_consistency.py"
+      ],
+      "selected_nodes": 191,
+      "counts": {
+        "passed": 191
+      },
+      "exit_code": 0,
+      "collection_matches": true,
+      "source_changed": false,
+      "started_utc": "2026-10-08T18:54:26.415301+00:00",
+      "finished_utc": "2026-10-08T18:55:36.498471+00:00",
+      "receipt_sha256": "9c9bf82e2b3bb49e79b8e750e38a278453fe070e920d617af9428fa6277080df",
+      "node_and_phase_evidence_sha256": "11a8742f627015006017c5d110b353ebdaa93419bbcf7cdfe7130621819dce55",
+      "raw_log_sha256": "3c41ba832905b5884e74d8109a2fb28512bfccc015a094fe4db2334192292311",
+      "raw_coverage_sha256": "31a44f95864a393376ed1c4b0fe1e26de940c20d703996ab1d94f3b0c9a59277"
+    },
+    {
+      "id": 8,
+      "module_paths": [
+        "tests/trust/test_lesson_source_review.py",
+        "tests/trust/test_logging_directory_contract.py",
+        "tests/trust/test_model_discovery_boundary.py",
+        "tests/trust/test_observed_review.py",
+        "tests/trust/test_offline_gate.py",
+        "tests/trust/test_personal_qa_lifecycle.py",
+        "tests/trust/test_pilot_tooling.py",
+        "tests/trust/test_private_note_retention.py",
+        "tests/trust/test_product_journeys.py",
+        "tests/trust/test_product_privacy_contracts.py"
+      ],
+      "selected_nodes": 202,
+      "counts": {
+        "passed": 202
+      },
+      "exit_code": 0,
+      "collection_matches": true,
+      "source_changed": false,
+      "started_utc": "2026-10-08T18:55:36.549966+00:00",
+      "finished_utc": "2026-10-08T18:56:41.735257+00:00",
+      "receipt_sha256": "41e886ccdeff5fb0dcd2ee29b2b185bb796068fe4660a13b8bd2cfe2056a5d95",
+      "node_and_phase_evidence_sha256": "cbc07c654d95722ea3909321231101175f91e171deae0e4f937a28528eef3f9c",
+      "raw_log_sha256": "ab23bf07c77aaeed4679ce13b374a15168b86e3a210e8a18856cb9ba64042a5e",
+      "raw_coverage_sha256": "02255899ee99f4908fb8096d944958a0f5bcaf88fe04375d4ce2bb41f1b21efd"
+    },
+    {
+      "id": 9,
+      "module_paths": [
+        "tests/trust/test_progress_service_contract.py",
+        "tests/trust/test_provider_transport_contract.py",
+        "tests/trust/test_pytest_database_isolation.py",
+        "tests/trust/test_readable_portability.py",
+        "tests/trust/test_resource_contracts.py",
+        "tests/trust/test_review_null_identity.py",
+        "tests/trust/test_settings_file_contract.py",
+        "tests/trust/test_source_documents.py",
+        "tests/trust/test_temporal_contract.py",
+        "tests/trust/test_three_lesson_journey.py",
+        "tests/trust/test_tutor_text_fallback.py",
+        "tests/trust/test_typed_domain_boundaries.py",
+        "tests/unit/test_grading_modes.py",
+        "tests/unit/test_translation_service.py",
+        "tests/windows/test_installer_lifecycle.py",
+        "tests/windows/test_packaged_bootstrap.py",
+        "tests/windows/test_packaged_recovery.py"
+      ],
+      "selected_nodes": 186,
+      "counts": {
+        "passed": 183,
+        "skipped": 3
+      },
+      "exit_code": 0,
+      "collection_matches": true,
+      "source_changed": false,
+      "started_utc": "2026-10-08T18:56:41.835756+00:00",
+      "finished_utc": "2026-10-08T18:57:53.093573+00:00",
+      "receipt_sha256": "ff5d4bdd16687567d8215ae7da716dfdd2515d4d955f0d1bee9b31334c899b1c",
+      "node_and_phase_evidence_sha256": "8042b40d0f71e02cad2de37ec4bac70a3cdec8c0653b6578d4e9833e38ae70ed",
+      "raw_log_sha256": "f5a58d2a68424712fbc8d6e71c0221358d1173c1084fe8b48a0c162941a86b78",
+      "raw_coverage_sha256": "17e0da9e568758b8458019bceafa626c54891af49cbffc8b082aff552ae615c2"
+    }
+  ],
+  "frontend": {
+    "tests_passed": 953,
+    "test_files": 52,
+    "typescript": "PASS",
+    "eslint": "PASS",
+    "production_build": "PASS",
+    "local_assets": 26,
+    "license_records": 29,
+    "raw_log_sha256": "7621e6c1c8142a526a204d4a39e370f78489a9b0439a300e4a56e33e16aabb32"
+  },
+  "python_critical_lint": "PASS",
+  "python_mypy_scopes": 7,
+  "documentation_tests_passed_after_doc_only_update": 13,
+  "independent_review_approved_sha256": {
+    "scripts/seed_admin.py": "c47853fe6e59c3ffdf4e97475f60559f4d090870bdc409a5d3e65b405ef9ca7c",
+    "src/frontend/src/features/learning/LessonContent.tsx": "edb7ba2bacea12b7ef09ed2952f43372bdd0ab7243213c68b6879d6883920018"
+  },
+  "limits": [
+    "Independent pytest processes do not prove monolithic order/cross-module state behavior.",
+    "Native/browser/real-provider skips remain unverified.",
+    "Original generation 500 cause remains unknown: cited provider log was not committed.",
+    "Native first-run dialog and installer acceptance remain unverified.",
+    "Former-teacher note access remains enrollment-bound pending a product decision.",
+    "No actual account credential was created or changed for an owner; private entry/rotation requires owner handoff."
+  ]
+}

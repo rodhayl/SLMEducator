@@ -27,7 +27,7 @@ def test_generated_multiple_choice_rejects_invalid_option_containers(
     response = client.post("/api/generate/exercise", json={
         "topic": "Synthetic options", "difficulty": "easy", "exercise_type": "multiple_choice",
     })
-    assert response.status_code == 500
+    assert response.status_code == 502
 
 
 @pytest.mark.parametrize("type_field", ["type", "question_type"])

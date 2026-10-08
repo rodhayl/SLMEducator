@@ -102,6 +102,8 @@ class QuestionResponseModel(BaseModel):
 
 
 class FullAssessmentResponse(AssessmentResponse):
+    study_plan_id: Optional[int] = None
+    topic_id: Optional[int] = None
     questions: List[QuestionResponseModel]
     time_limit_minutes: Optional[int] = None
     max_attempts: int = 1
@@ -139,6 +141,7 @@ class AnswerDetail(BaseModel):
     ai_suggested_feedback: Optional[str] = None
     ai_confidence: Optional[float] = None
     teacher_override: bool = False
+    system_notices: List[str] = Field(default_factory=list)
 
 
 class SubmissionListItem(BaseModel):
@@ -177,6 +180,7 @@ class SubmissionDetail(BaseModel):
     timing_provenance: str
     time_limit_minutes: Optional[int]
     answers: List[AnswerDetail]
+    system_notices: List[str] = Field(default_factory=list)
 
 
 class GradeSubmit(BaseModel):
@@ -323,6 +327,9 @@ async def list_assessments(
 class AssessmentUpdate(BaseModel):
     """Update model for assessments - all fields optional"""
 
+    study_plan_id: Optional[int] = Field(default=None, gt=0)
+    topic_id: Optional[int] = Field(default=None, gt=0)
+
     title: Optional[str] = None
     description: Optional[str] = None
     time_limit_minutes: Optional[int] = Field(default=None, gt=0, le=1440)
@@ -377,6 +384,8 @@ async def update_assessment(
         "passing_score",
         "grading_mode",
         "time_limit_minutes",
+        "study_plan_id",
+        "topic_id",
     }
     if has_attempts and grading_fields.intersection(update_data.model_fields_set):
         raise HTTPException(
@@ -402,6 +411,17 @@ async def update_assessment(
             raise HTTPException(
                 status_code=409, detail="Question authoring assets must be preserved when replacing questions"
             )
+
+    # Explicit null clears a link; omitted fields preserve their existing value.
+    if "study_plan_id" in update_data.model_fields_set:
+        if update_data.study_plan_id is not None:
+            require_allowed(can_manage_plan(db, current_user, db.get(StudyPlan, update_data.study_plan_id)))
+    if "topic_id" in update_data.model_fields_set:
+        if update_data.topic_id is not None:
+            require_allowed(can_reuse_content(db, current_user, db.get(Content, update_data.topic_id)))
+    for field in ("study_plan_id", "topic_id"):
+        if field in update_data.model_fields_set:
+            setattr(assessment, field, getattr(update_data, field))
 
     # Update basic fields
     if update_data.title is not None:
@@ -615,9 +635,13 @@ async def get_submission_details(
                 is_correct=resp.is_correct,
                 points=resp.score,
                 max_points=question.points,
-                feedback=resp.feedback,
+                feedback=_response_feedback(resp),
+                system_notices=_response_notices(resp),
                 ai_suggested_score=resp.ai_suggested_score,
-                ai_suggested_feedback=resp.ai_suggested_feedback,
+                ai_suggested_feedback=(
+                    None if resp.ai_suggested_feedback == _AUTOMATIC_GRADING_UNAVAILABLE
+                    and resp.ai_suggested_score is None else resp.ai_suggested_feedback
+                ),
                 ai_confidence=resp.ai_confidence,
                 teacher_override=(
                     resp.teacher_override if resp.teacher_override else False
@@ -638,7 +662,8 @@ async def get_submission_details(
         ),
         score=submission.score,
         total_points=submission.total_points,
-        feedback=submission.feedback,
+        feedback=_submission_feedback(submission),
+        system_notices=_submission_notices(submission),
         submitted_at=submission.submitted_at,
         graded_at=submission.graded_at,
         **_attempt_timing(submission),
@@ -854,6 +879,8 @@ async def get_assessment(
         question_count=len(questions),
         can_manage=can_manage_assessment(db, current_user, assessment),
         questions=questions,
+        study_plan_id=assessment.study_plan_id if can_manage_assessment(db, current_user, assessment) else None,
+        topic_id=assessment.topic_id if can_manage_assessment(db, current_user, assessment) else None,
         time_limit_minutes=assessment.time_limit_minutes,
         max_attempts=assessment.max_attempts,
         grading_mode=assessment.grading_mode.value,
@@ -1054,6 +1081,78 @@ def _attempt_timing(submission: Submission) -> dict:
     }
 
 
+_LEGACY_RESPONSE_NOTICES = {
+    "question_unanswered": "Unanswered question: zero points.",
+    "answer_key_unavailable": "Answer key unavailable; teacher review required.",
+}
+_AUTOMATIC_GRADING_UNAVAILABLE = "Automatic grading was unavailable or invalid. Teacher review is required."
+
+
+def _response_notices(response: QuestionResponse) -> list[str]:
+    """Identify fixed automatic messages without reclassifying graded teacher text."""
+    notices = [code for code, text in _LEGACY_RESPONSE_NOTICES.items()
+               if response.graded_at is None and response.feedback == text]
+    if (
+        response.score is None and response.graded_at is None
+        and response.ai_suggested_score is None
+        and response.ai_suggested_feedback == _AUTOMATIC_GRADING_UNAVAILABLE
+    ):
+        notices.append("automatic_grading_unavailable")
+    return notices
+
+
+def _response_feedback(response: QuestionResponse) -> Optional[str]:
+    """Keep explicit teacher feedback and separate machine-authored placeholders."""
+    if response.graded_at is None and response.feedback in _LEGACY_RESPONSE_NOTICES.values():
+        return None
+    return response.feedback
+
+
+# Compatibility is exact and read-only: arbitrary teacher text is never translated.
+_LEGACY_ATTEMPT_NOTICES = {
+    "attempt_closed": "Attempt explicitly closed without submission or grade. The reserved attempt remains consumed.",
+    "attempt_timezone_unknown": "Original attempt timezone unknown. Answers preserved for teacher review.",
+    "attempt_time_exceeded": "Time limit exceeded. Answers preserved for teacher review.",
+}
+
+
+def _attempt_notice_codes(submission: Submission) -> list[str]:
+    """Derive lifecycle notices from immutable attempt facts, independent of grades."""
+    if submission.status == SubmissionStatus.ABANDONED:
+        return ["attempt_closed"]
+    minutes = submission.assessment.time_limit_minutes
+    if not minutes or submission.status == SubmissionStatus.DRAFT:
+        return []
+    start = submission.started_at
+    if not known_instant(start):
+        return ["attempt_timezone_unknown"]
+    end = submission.submitted_at
+    if known_instant(end) and end > start + timedelta(minutes=minutes):
+        return ["attempt_time_exceeded"]
+    return []
+
+
+def _matches_legacy_notice(submission: Submission) -> bool:
+    """Require both exact legacy wording and matching persisted lifecycle facts."""
+    return any(submission.feedback == _LEGACY_ATTEMPT_NOTICES[code]
+               for code in _attempt_notice_codes(submission))
+
+
+def _submission_notices(submission: Submission) -> list[str]:
+    """Keep post-review legacy wording visible when historical authorship is ambiguous."""
+    notices = _attempt_notice_codes(submission)
+    if submission.teacher_approved and _matches_legacy_notice(submission):
+        notices.append("legacy_feedback_unattributed")
+    return notices
+
+
+def _submission_feedback(submission: Submission) -> Optional[str]:
+    """Separate unreviewed legacy status text, preserving any explicit teacher decision."""
+    if not submission.teacher_approved and _matches_legacy_notice(submission):
+        return None
+    return submission.feedback
+
+
 def _submission_result(submission: Submission) -> dict:
     """Serialize persisted state consistently for initial responses and retries."""
     return {
@@ -1123,7 +1222,6 @@ def close_assessment_attempt(
                 db.add(response)
             response.set_encrypted_response(text)
     submission.status = SubmissionStatus.ABANDONED
-    submission.feedback = "Attempt explicitly closed without submission or grade. The reserved attempt remains consumed."
     db.commit()
     return _submission_result(submission)
 
@@ -1239,7 +1337,7 @@ def _collect_suggestions(ai_service, jobs: list[dict]) -> list[dict]:
             result = {
                 "response_id": job["response_id"],
                 "points": None,
-                "feedback": "Automatic grading was unavailable or invalid. Teacher review is required.",
+                "feedback": _AUTOMATIC_GRADING_UNAVAILABLE,
             }
             try:
                 suggestion = ai_service.grade_answer(**job["grading_input"])
@@ -1386,12 +1484,6 @@ def submit_assessment(
         submission.graded_at = utc_now()
     else:
         submission.score = None
-        if timing_unknown:
-            submission.feedback = "Original attempt timezone unknown. Answers preserved for teacher review."
-        elif late:
-            submission.feedback = (
-                "Time limit exceeded. Answers preserved for teacher review."
-            )
     # Persist the attempt and its reward before any potentially slow provider call.
     award_activity_xp(db, current_user.id, 25)
     record_assessed_mastery(db, submission)

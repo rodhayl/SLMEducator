@@ -22,18 +22,21 @@ bucle autónomo indefinido, campañas de modelos ni una arquitectura nueva.
    `implementation_documents/react_redesign_20261007/CONTINUITY_GAPS_20261007.md`.
    El plan describe objetivos; las etiquetas y contratos vigentes se verifican
    en el código actual, no se deducen de sus maquetas.
-2. Base de producto de esta revisión:
+2. Base histórica de comparación, no candidato vigente:
    `642966a93e7e9c9f9c5e93cce0bc842f538846fb`, árbol
    `e0a3966bddc8bbd4cfc2ab4041668c3162ce86f7`, rama
    `fix/react-functional-continuation-20261007`.
    [Fuente identificada](https://github.com/rodhayl/SLMEducator/commit/642966a93e7e9c9f9c5e93cce0bc842f538846fb).
-   Incluye la GUI React y los arreglos G1–G5 de continuidad, navegación y
-   movimiento guardado. Comprueba HEAD, árbol y archivos modificados. Puedes
-   usar un descendiente cuya diferencia respecto a esa base sea únicamente
-   estas guías; registra su SHA real. Si hay otros cambios de producto, para y
-   pide elegir el candidato. No cambies a `main` ni a otra rama por costumbre.
-3. Trabaja en una rama/worktree aislada derivada del candidato verificado. No
-   descartes cambios ajenos. Los manuales 1 y 2 procedían de
+   Esa base incluye la GUI React y G1–G5, pero no la reparación devuelta ni la
+   primera configuración local de 2026-10-08. Usa el SHA autorizado para el
+   encargo actual en la misma rama, verifica HEAD/árbol y revisa
+   `implementation_documents/returned_defects_repair_20261008.md` junto con
+   `src/first_run_setup.py`. Registra la identidad exacta; si no está claro qué
+   candidato se autorizó, resuelve esa duda antes de construir. No selecciones
+   automáticamente `642966a…`, `main` ni otra rama.
+3. Prepara un checkout/worktree de construcción aislado del SHA verificado,
+   sin crear otra rama remota. Los informes van a la misma rama autorizada solo
+   cuando el otro agente ya no trabaje allí. No descartes cambios ajenos. Los manuales 1 y 2 procedían de
    `docs/manual-tests-windows-20261006`; sus antiguas referencias a `5e839d2…`
    no seleccionan el producto actual. El handoff de
    `implementation_documents/manual_windows_20261006/MANUAL_TEST_HANDOFF.md`
@@ -113,17 +116,15 @@ Reutilízala. No añadas otro instalador, seeder ni framework de migraciones.
 
 ## 2. Crear payload limpio y credencial privada
 
-1. Antes del build, acuerda un mecanismo privado local para la credencial
-   inicial. Si David aporta `SLM_INITIAL_ADMIN_PASSWORD`, debe introducirla
-   localmente en el entorno de proceso, nunca en chat ni comandos compartidos.
-   Debe ser única y de al menos 12 caracteres. Sin override, el seeder imprime
-   una contraseña aleatoria una vez: NO captures esa salida en logs publicables.
-   Si no puedes mantenerla privada, para antes de construir y solicita entrada
-   local segura. No inventes una contraseña de ejemplo.
-2. El bootstrap mantenido crea `admin` solo cuando falta; no sirve para recuperar
-   ni cambiar una cuenta existente. Cambios de contraseña y nuevos accesos
-   persistentes respetan la política de aprobación/handoff de la herramienta.
-   No ejecutes un arnés como forma de saltarte esa política.
+1. El build de producción no crea administrador ni contraseña. Prepara una base
+   sin cuentas, marcada para configuración local en el primer arranque. No pases
+   contraseñas al entorno del build ni generes una credencial para entregarla.
+   Los overrides antiguos de bootstrap no se incorporan al nuevo payload.
+2. El propietario elige usuario y contraseña en el diálogo nativo de su instalación,
+   antes de iniciar el servidor, mediante handoff privado. Cancelar no inicia la app.
+   Una base ya configurada no reabre el alta si pierde sus administradores; eso
+   requiere recuperación autorizada. No uses el seeder ni un arnés para eludir
+   la intervención privada del propietario o cambiar cuentas existentes.
 3. Define dos rutas absolutas nuevas, bajo un directorio de builds autorizado,
    y verifica que no existen. El siguiente es un patrón: sustituye las rutas
    por las que acabas de comprobar, no pidas al usuario que copie el ejemplo:
@@ -137,14 +138,14 @@ Reutilízala. No añadas otro instalador, seeder ni framework de migraciones.
    esperado es `SLMEducator-Setup-<version>-<build-id>.exe`, no el EXE aislado.
 4. Congela el payload prístino y calcula SHA-256 del Setup y de
    `SLMEducator.exe`, tamaño y nombre de cada artefacto, e identidad del dist.
-   El payload contiene solo base nueva/admin y configuración pública generada,
+   El payload contiene solo base nueva sin cuentas y configuración pública generada,
    sin alumnos, cursos, claves, archivos personales ni logs del smoke.
-   Guarda el mecanismo de acceso privado fuera del repo; el handoff describe
-   cómo consultarlo, nunca incluye el secreto ni lo adjunta.
+   El handoff indica que el propietario completará la configuración inicial;
+   no incluye secretos, hashes ni archivos de contraseña.
 5. Ejecuta los smokes sobre una COPIA instalada desechable. La rotación, los
    cursos o logs de esa copia jamás vuelven al payload ni al instalador.
-   Construye por instalación de evaluación: copiar un paquete sembrado copia
-   también el hash y la cuenta de administrador; no es un binario universal.
+   No devuelvas una base configurada al payload distribuible: copiarla
+   copiaría sus cuentas y hashes. Conserva prístino el payload sin cuentas.
 
 ## 3. Verificar antes de entregar
 
@@ -158,8 +159,14 @@ Reutilízala. No añadas otro instalador, seeder ni framework de migraciones.
    arranque desde fuera del repo sin Python/venv/Node del desarrollo, uso de
    datos de esa copia y servicio listo. Anota la URL que expone SU launcher;
    no supongas 8000, 8080, `localhost` ni `127.0.0.1` como origen de la sesión.
-3. Comprueba login, cambio de contraseña autorizado en copia sintética y
+3. Comprueba primero el diálogo de primera instalación con el propietario:
+   cancelar/reabrir, requisitos legibles, entrada oculta y creación antes del servidor.
+   Esa aceptación es nativa y todavía requiere un build nuevo; no la marques PASS
+   por pruebas de SQLite o DOM. Después comprueba login, cambio de contraseña autorizado en copia sintética y
    reinicio/persistencia según `tests/windows/test_packaged_bootstrap.py`.
+   Ese arnés usa una fixture `admin` ya creada por el propietario y prueba solo
+   login/rotación/reinicio posteriores; no prueba el diálogo inicial ni obtiene
+   una contraseña del build. Un skip no acredita primer arranque.
    Lee su contrato y variables antes de invocarlo: no inventes sus argumentos,
    no lo apuntes a la copia prístina ni a datos del usuario. Si una intervención
    de autenticación requiere handoff, pausa esa parte. Terminar un PID no prueba
@@ -196,15 +203,18 @@ breve; el nombre del nuevo handoff no renumera los manuales 1/2.
 
 El handoff debe permitir decidir LISTO o BLOCKED sin investigación adicional:
 
-- Fecha, rama, SHA/árbol de origen y construcción, estado del checkout, diferencia
-  documental permitida respecto a `642966a…`, versiones y comandos sin secretos.
+- Fecha, rama, SHA/árbol actuales de origen y construcción, estado del checkout,
+  cambios de producto/documentación respecto a la base histórica `642966a…`,
+  versiones y comandos sin secretos. El nuevo candidato debe incluir la reparación
+  y la primera configuración local; no basta un descendiente solo documental.
 - Ruta absoluta real del Setup, nombre, versión/build, tamaño, SHA-256; payload
   prístino, hash del EXE e identidad del dist. Separa instalador, programa
   instalado y portable. Nunca llames «instalador» a una carpeta o ZIP.
 - Destino de evaluación nuevo y ubicación de datos/configuración. Inventario
   no sensible de registros/accesos preexistentes que bloqueen instalar. Di
   expresamente que no se desinstaló ni reemplazó una instalación anterior.
-- Cómo consultar privadamente la cuenta `admin` inicial. Sin contraseñas, tokens,
+- Que el propietario elige su primera cuenta y contraseña en el diálogo local;
+  no hay una cuenta inicial que consultar en el build. Sin contraseñas, tokens,
   claves API ni base adjunta. Ruta GUI de rotación: «Cuenta y ajustes» →
   «Contraseña»; verifica en `features/settings/locales.ts` del candidato sus
   etiquetas antes de guiar. El usuario introduce y envía sus credenciales.
@@ -230,5 +240,8 @@ ni repitas un smoke por costumbre. Un cambio de producto crea otro candidato.
 
 Termina con un resumen corto de resultado, ruta/hash y bloqueos pendientes.
 Detente: David iniciará `MANUAL_TEST2.md` cuando quiera instalar y probar.
+
+
+Regla de evidencia: ninguna contraseña, aunque sea sintética, puede figurar en matrices, RESUME, handoffs, informes, comandos, logs o capturas. Revisa texto e imágenes antes de publicar. Si se expuso un valor, su propietario debe rotarlo por vía privada; una redacción posterior no borra el historial.
 
 FIN

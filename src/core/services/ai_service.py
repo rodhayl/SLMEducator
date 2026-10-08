@@ -27,6 +27,7 @@ from ..exceptions import (
     AIServiceError,
     ConfigurationError,
     AIResponseParseError,
+    AIOutputLimitError,
     AIContentValidationError,
 )
 from ..security_utils import sanitize_input, sanitize_prompt
@@ -206,10 +207,30 @@ def require_complete_response(result: dict) -> None:
     if result.get("choices"):
         reason = result["choices"][0].get("finish_reason")
     if reason in {"length", "max_tokens"}:
-        raise AIResponseParseError(
+        raise AIOutputLimitError(
             "Provider reached the output limit; shorten the request or increase "
             "the configured budget and retry. No complete response was confirmed."
         )
+
+
+def safe_provider_failure(error: Exception) -> str:
+    """Keep useful failure categories without echoing provider/network values."""
+    if isinstance(error, ConfigurationError):
+        if str(error) in {"OpenAI API key not configured", "OpenRouter API key not configured"}:
+            return "AI provider API key not configured. Add it in the provider settings."
+        return "Unsupported or invalid AI provider configuration. Check the provider settings."
+    if isinstance(error, (httpx.TimeoutException, TimeoutError)):
+        return "Request timed out (timeout). Check the provider and retry when ready."
+    if isinstance(error, (httpx.ConnectError, httpx.ProxyError)):
+        return "AI connection failed. Check network/DNS, proxy and TLS certificate settings."
+    if isinstance(error, httpx.HTTPStatusError):
+        status = error.response.status_code
+        if type(status) is int and 100 <= status <= 599:
+            return f"AI provider returned HTTP {status}. Check provider access and availability."
+        return "AI provider HTTP request failed. Check authentication, rate limits and server errors."
+    if isinstance(error, (ValueError, KeyError, TypeError)):
+        return "AI provider response is unreadable (invalid JSON or fields). Check response format and retry."
+    return "AI service unavailable. Check the provider and retry when ready."
 
 
 class _JSONLiteralNames(ast.NodeTransformer):
@@ -1082,8 +1103,8 @@ class AIService:
         except AIServiceError:
             raise
         except Exception as e:
-            self.logger.error(f"AI call failed: {e}")
-            raise AIServiceError(f"AI service unavailable: {e}")
+            self.logger.error("AI call failed; type=%s", type(e).__name__)
+            raise AIServiceError(safe_provider_failure(e)) from e
 
     def _call_openai(
         self,
@@ -1276,10 +1297,7 @@ class AIService:
                 self.logger.error(
                     f"OpenRouter rate limit exceeded: {response.status_code}"
                 )
-                retry_after = response.headers.get("retry-after", "60")
-                raise AIServiceError(
-                    f"Rate limit exceeded. Please try again in {retry_after} seconds."
-                )
+                raise AIServiceError("Rate limit exceeded. Please try again later.")
             elif response.status_code == 401:
                 # Authentication error
                 self.logger.error(
@@ -1313,14 +1331,8 @@ class AIService:
             elif response.status_code >= 400:
                 # Client errors
                 self.logger.error(f"OpenRouter client error: {response.status_code}")
-                error_detail = ""
-                try:
-                    error_data = response.json()
-                    error_detail = f": {error_data.get('error', {}).get('message', 'Unknown error')}"
-                except Exception:
-                    error_detail = f": {response.text[:200]}"
                 raise AIServiceError(
-                    f"Request failed ({response.status_code}){error_detail}"
+                    f"Request failed (HTTP {response.status_code}). Check model and provider settings."
                 )
 
             response.raise_for_status()
@@ -1357,17 +1369,17 @@ class AIService:
                 "Request timed out. The AI service is taking too long to respond."
             )
         except httpx.ConnectError as e:
-            self.logger.error(f"OpenRouter connection failed: {e}")
+            self.logger.error("OpenRouter connection failed; type=%s", type(e).__name__)
             raise AIServiceError(
                 "Failed to connect to OpenRouter. Please check your internet connection."
             )
         except httpx.HTTPStatusError as e:
             # This should have been handled above, but as a fallback
-            self.logger.error(f"OpenRouter HTTP error: {e}")
-            raise AIServiceError(f"HTTP error ({e.response.status_code}): {str(e)}")
+            self.logger.error("OpenRouter HTTP error; status=%s", e.response.status_code)
+            raise AIServiceError(safe_provider_failure(e)) from e
         except Exception as e:
-            self.logger.error(f"OpenRouter unexpected error: {e}")
-            raise AIServiceError(f"Unexpected error: {str(e)}")
+            self.logger.error("OpenRouter unexpected error; type=%s", type(e).__name__)
+            raise AIServiceError(safe_provider_failure(e)) from e
 
     def _build_study_plan_prompt(
         self,
