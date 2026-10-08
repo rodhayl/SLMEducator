@@ -239,5 +239,5 @@
   "next_action": "Ninguna pendiente en este entorno. Lo que sigue exige: control de escritorio/VM, Setup vigente, lector, fixtures de escala/legacy, autorizacion de descargas, o correccion de producto (nuevo candidato y campana).",
   "no_secrets_stored": true,
   "publication": "no publicada; falta autorizacion concreta de la rama",
-  "credentials_note": "T1 docente_auto08 rotada a NuevaSintetica#2026Bb (sintetica desechable). Resto de claves en RUN.md y HANDOFF sesion 6."
+  "credentials_note": "T1 docente_auto08 rotada a [REDACTED TEST CREDENTIAL] (sintetica desechable). Resto de claves en RUN.md y HANDOFF sesion 6."
 }

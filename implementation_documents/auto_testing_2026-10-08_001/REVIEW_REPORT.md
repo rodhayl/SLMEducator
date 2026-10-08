@@ -59,8 +59,8 @@ ahora error por campo legible).
 
 - Cuentas: `admin` (ID 1) · `docente_auto08` (ID 2, T1) · `alba_auto08` (ID 3, S1, matriculada con T2) ·
   `bruno_auto08` (ID 4, S2) · `contraste_auto08` (ID 5, T2) · `temporal_auto08` (ID 6, reactivada)
-- Claves sintéticas desechables: `admin` = `AutoTest2026Disposable`; resto = `Fracciones#2026Aa`,
-  **excepto T1 rotada a `NuevaSintetica#2026Bb`** durante AUTO-AUTH-02
+- Claves sintéticas desechables: `admin` = `[REDACTED TEST CREDENTIAL]`; resto = `[REDACTED TEST CREDENTIAL]`,
+  **excepto T1 rotada a `[REDACTED TEST CREDENTIAL]`** durante AUTO-AUTH-02
 - Materiales 1–5, cursos 1 (borrador duplicado accidental de la campaña), 2 (publicado V1, asignado a
   S1), 3 (revisión en borrador), evaluaciones 1 (publicada, envío 1 con 9/10) y 3 (publicada, 1 min,
   envíos 2 con 10/10 y 3 cerrado sin envío), solicitud de ayuda 1 (resuelta), 2 mensajes sintéticos

@@ -62,9 +62,9 @@ ni reseteó ninguna cuenta existente). Credenciales sintéticas desechables, sin
 
 | ID | Usuario | Rol | Contraseña sintética | Creación |
 |---|---|---|---|---|
-| 1 | `admin` | Administrador | `AutoTest2026Disposable` | bootstrap sobre base nueva |
-| 2 | `docente_auto08` | Docente (T1 «Docente Demo») | `Fracciones#2026Aa` | GUI, Admin → Personas → Crear cuenta |
-| 3 | `alba_auto08` | Estudiante (S1 «Alba Demo») | `Fracciones#2026Aa` | GUI, Admin → Personas → Crear cuenta |
+| 1 | `admin` | Administrador | `[REDACTED TEST CREDENTIAL]` | bootstrap sobre base nueva |
+| 2 | `docente_auto08` | Docente (T1 «Docente Demo») | `[REDACTED TEST CREDENTIAL]` | GUI, Admin → Personas → Crear cuenta |
+| 3 | `alba_auto08` | Estudiante (S1 «Alba Demo») | `[REDACTED TEST CREDENTIAL]` | GUI, Admin → Personas → Crear cuenta |
 
 T2 (traspaso) y S2 (Bruno) están pendientes de crear en el corte básico.
 

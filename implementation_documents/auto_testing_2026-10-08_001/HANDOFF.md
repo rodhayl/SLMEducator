@@ -67,10 +67,10 @@ candidato.
 
 | ID | Usuario | Rol | Nombre | Contraseña sintética | Creación |
 |---|---|---|---|---|---|
-| 1 | `admin` | Administrador | Administrator | `AutoTest2026Disposable` | bootstrap `scripts/seed_admin.py` sobre base **nueva** |
-| 2 | `docente_auto08` | Docente (T1) | Docente Demo | `Fracciones#2026Aa` | GUI, admin |
-| 3 | `alba_auto08` | Estudiante (S1) | Alba Demo | `Fracciones#2026Aa` | GUI, admin; matrícula T1 |
-| 4 | `bruno_auto08` | Estudiante (S2) | Bruno Demo | `Fracciones#2026Aa` | GUI, docente T1 |
+| 1 | `admin` | Administrador | Administrator | `[REDACTED TEST CREDENTIAL]` | bootstrap `scripts/seed_admin.py` sobre base **nueva** |
+| 2 | `docente_auto08` | Docente (T1) | Docente Demo | `[REDACTED TEST CREDENTIAL]` | GUI, admin |
+| 3 | `alba_auto08` | Estudiante (S1) | Alba Demo | `[REDACTED TEST CREDENTIAL]` | GUI, admin; matrícula T1 |
+| 4 | `bruno_auto08` | Estudiante (S2) | Bruno Demo | `[REDACTED TEST CREDENTIAL]` | GUI, docente T1 |
 
 Son credenciales **sintéticas y desechables**, elegidas así a propósito para que ninguna contraseña
 real viaje por el chat, los informes o Git. No las apliques a ninguna instalación real.
@@ -354,7 +354,7 @@ Sin cambios en producto, sin cambios de preferencias.
 
 | Caso | Resultado | Evidencia observada |
 |---|---|---|
-| `AUTO-REG-07.navegacion_rutas` | **PASS** | Atrás/adelante conservan el criterio (`/cursos/3?q=Fracciones` ↔ `/cursos?q=Fracciones#course-3`); deep-link inexistente (`/cursos/999999`) → «No tienes acceso o el recurso ya no está disponible.»; un alumno que aterriza en ruta administrativa recibe «Este recurso no está disponible» |
+| `AUTO-REG-07.navegacion_rutas` | **PASS** | Atrás/adelante conservan el criterio (`/cursos/3?q=Fracciones` ↔ `/cursos?q=[REDACTED TEST CREDENTIAL]-3`); deep-link inexistente (`/cursos/999999`) → «No tienes acceso o el recurso ya no está disponible.»; un alumno que aterriza en ruta administrativa recibe «Este recurso no está disponible» |
 | `AUTO-CRS-06.buscar_detalle_volver` | PARTIAL | Búsqueda «Fracciones» con pulsaciones reales → 3 coincidencias correctas, criterio conservado en la URL y tras «Todos los cursos». **Scroll real no verificable** con solo 3 cursos: no se declara cumplido |
 | `AUTO-PEO-05.desactivar` | PARTIAL | Cuenta desechable `temporal_auto08` (ID 6): desactivar con confirmación y foco en «Cancelar», aviso de que el historial se conserva; **acceso real verificado** (login → «El usuario o la contraseña no son correctos»); reactivar con confirmación y aviso de que **se revocan las sesiones existentes**; tras reactivar el acceso funciona («Hola, Temporal») |
 
@@ -406,7 +406,7 @@ guardado y persistente, restaurado después; salir sin guardar no muestra diálo
 (AUTH-02.perfil PASS). Rotación de contraseña sintética con aviso de revocación, rechazo de actual
 incorrecta y reentrada verificada (AUTH-02.password PASS).
 
-**Aviso importante**: la clave de T1 cambió a `NuevaSintetica#2026Bb`. Quien continúe debe usar esa.
+**Aviso importante**: la clave de T1 cambió a `[REDACTED TEST CREDENTIAL]`. Quien continúe debe usar esa.
 
 ---
 
