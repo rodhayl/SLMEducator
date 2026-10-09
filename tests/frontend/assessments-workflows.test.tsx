@@ -306,3 +306,48 @@ describe('automatic question notice localization', () => {
   expect(screen.getByText('Time limit exceeded. Answers preserved for teacher review.')).toBeInTheDocument();
  });
 });
+
+describe('rubric save and reopen continuity', () => {
+ it.each(['en', 'es'] as const)('preserves saved authored feedback and starts an explicit fresh rubric draft in %s', async language => {
+  const data = structuredClone(assessment);
+  data.questions[1].rubrics = [{name: 'Private teacher rubric', criteria: [{name: 'Reasoning', description: null, max_points: 2}]}];
+  const h = await mount('/correcciones/55', {role: 'teacher', status: 'submitted', language, intercept: path => path === '/api/assessments/10' ? json(data) : undefined});
+  const labels = locales[language];
+  const heading = language === 'en' ? 'Grade question 2' : 'Calificar pregunta 2';
+  const applyLabel = language === 'en' ? 'Apply rubric to grade draft' : 'Aplicar rúbrica al borrador de calificación';
+  const original = 'Comentario docente: conserva «Lesson», 0 puntos y mi explicación.';
+  const section = () => screen.getByRole('heading', {name: heading}).closest('section')!;
+  await screen.findByText('Private teacher rubric');
+  await h.user.type(within(section()).getByLabelText(labels.optionalFeedback), original);
+  await h.user.type(within(section()).getByLabelText('Reasoning (0–2)'), '0');
+  await h.user.click(within(section()).getByRole('button', {name: applyLabel}));
+  expect(mutations(h.calls)).toHaveLength(0);
+  await h.user.click(within(section()).getByRole('button', {name: labels.saveQuestion}));
+  await h.user.click(within(screen.getByRole('dialog')).getByRole('button', {name: labels.save}));
+  await waitFor(() => expect(mutations(h.calls)).toHaveLength(1));
+  const saved = h.sub.answers[1].feedback!;
+  expect(saved).toContain(original);
+  expect(saved).toContain('Reasoning: 0 / 2');
+  expect(h.sub.answers[1].points).toBe(0);
+  await act(async () => { await h.router.navigate('/correcciones?filter=all'); });
+  await screen.findByRole('link', {name: 'Fractions · Sam Student'});
+  await act(async () => { await h.router.navigate('/correcciones/55'); });
+  await screen.findByText('Private teacher rubric');
+  expect(within(section()).getByLabelText(labels.optionalFeedback)).toHaveValue(saved);
+  expect(within(section()).getByLabelText('Reasoning (0–2)')).toHaveValue(null);
+  expect(within(section()).getByLabelText(labels.score)).toHaveValue(0);
+  expect(mutations(h.calls)).toHaveLength(1);
+  await h.user.type(within(section()).getByLabelText('Reasoning (0–2)'), '2');
+  await h.user.click(within(section()).getByRole('button', {name: applyLabel}));
+  const draft = (within(section()).getByLabelText(labels.optionalFeedback) as HTMLTextAreaElement).value;
+  expect(draft.startsWith(saved)).toBe(true);
+  expect(draft).toContain('Reasoning: 2 / 2');
+  expect(h.sub.answers[1].feedback).toBe(saved);
+  expect(mutations(h.calls)).toHaveLength(1);
+  await h.user.click(within(section()).getByRole('button', {name: labels.saveQuestion}));
+  await h.user.click(within(screen.getByRole('dialog')).getByRole('button', {name: labels.save}));
+  await waitFor(() => expect(mutations(h.calls)).toHaveLength(2));
+  expect(h.sub.answers[1].feedback).toBe(draft);
+  expect(h.sub.answers[1].points).toBe(10);
+ });
+});

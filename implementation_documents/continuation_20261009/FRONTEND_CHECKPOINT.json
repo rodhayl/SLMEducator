@@ -1,0 +1,54 @@
+{
+  "base_commit": "9491f1440d60bef465f8b64cd61321dce1f35df0",
+  "scope": "Prevent conflicting source operations during extraction; preserve explicit adoption/save and rubric reopen feedback",
+  "files": [
+    {
+      "path": "src/frontend/src/features/authoring/SourcePage.tsx",
+      "sha256": "8cfc78ad6b87f912286ebe368db69aa58c28469bcd6e22a21c987655e167f273"
+    },
+    {
+      "path": "tests/frontend/source-operation-continuity.test.tsx",
+      "sha256": "ffb524e77f515c44fc921e5135aa835f985147cf141f8fa9a885ec6b8eec88a5"
+    },
+    {
+      "path": "tests/frontend/assessments-workflows.test.tsx",
+      "sha256": "c7c230df599b4b20433b8f6964f3ef0876b11c448c5644691e3d05dd26186aad"
+    }
+  ],
+  "source_race_red": {
+    "failed": 9,
+    "passed": 3
+  },
+  "source_race_green": {
+    "passed": 12
+  },
+  "affected_authoring": {
+    "passed": 167
+  },
+  "rubric_workflows": {
+    "passed": 51,
+    "new_cases": 2,
+    "languages": [
+      "en",
+      "es"
+    ]
+  },
+  "canonical_frontend": {
+    "command": "npm run check",
+    "exit_code": 0,
+    "typecheck": "PASS",
+    "lint": "PASS",
+    "test_files_passed": 53,
+    "tests_passed": 967,
+    "build": "PASS",
+    "verified_local_assets": 26,
+    "verified_license_records": 29
+  },
+  "counts_are_not_additive": true,
+  "real_gui_and_native_windows": "NOT_RUN in this continuation",
+  "independent_review": {
+    "material_defects": 0,
+    "focused_passed": 14,
+    "native_acceptance": false
+  }
+}
