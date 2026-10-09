@@ -191,6 +191,7 @@ def run_server(port: int) -> None:
         logging.basicConfig(
             level=logging.INFO,
             filename=str(log_path),
+            encoding="utf-8",
             format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         )
 

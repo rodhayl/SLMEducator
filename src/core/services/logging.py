@@ -42,12 +42,12 @@ class LoggingService:
     def _setup_handlers(self):
         """Set up logging handlers"""
         # Main application log
-        main_handler = logging.FileHandler(self.log_dir / "slm_educator.log")
+        main_handler = logging.FileHandler(self.log_dir / "slm_educator.log", encoding="utf-8")
         main_handler.setLevel(logging.DEBUG)
         main_handler.setFormatter(logging.Formatter("%(message)s"))
 
         # Error log
-        error_handler = logging.FileHandler(self.log_dir / "errors.log")
+        error_handler = logging.FileHandler(self.log_dir / "errors.log", encoding="utf-8")
         error_handler.setLevel(logging.WARNING)
         error_handler.setFormatter(logging.Formatter("%(message)s"))
 

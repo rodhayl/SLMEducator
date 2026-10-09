@@ -147,17 +147,32 @@ def test_log_dir(test_data_dir):
 def cp1252_text_locale(monkeypatch):
     """Model Windows ANSI Path I/O even on a UTF-8 host or Python UTF-8 mode."""
     original_open = Path.open
+    original_read_text = Path.read_text
+    original_write_text = Path.write_text
+
+    def text_encoding(encoding):
+        return "cp1252" if encoding in (None, "locale") else encoding
 
     def open_with_cp1252_default(
         path, mode="r", buffering=-1, encoding=None, errors=None, newline=None
     ):
-        if "b" not in mode and encoding in (None, "locale"):
-            encoding = "cp1252"
+        if "b" not in mode:
+            encoding = text_encoding(encoding)
         return original_open(
             path, mode, buffering, encoding=encoding, errors=errors, newline=newline
         )
 
+    # Intercept before pathlib resolves an omitted codec through io.text_encoding;
+    # in Python UTF-8 mode that resolution would hide the implicit default.
+    def read_text_with_cp1252_default(path, encoding=None, errors=None, **kwargs):
+        return original_read_text(path, encoding=text_encoding(encoding), errors=errors, **kwargs)
+
+    def write_text_with_cp1252_default(path, data, encoding=None, errors=None, **kwargs):
+        return original_write_text(path, data, encoding=text_encoding(encoding), errors=errors, **kwargs)
+
     monkeypatch.setattr(Path, "open", open_with_cp1252_default)
+    monkeypatch.setattr(Path, "read_text", read_text_with_cp1252_default)
+    monkeypatch.setattr(Path, "write_text", write_text_with_cp1252_default)
 
 
 @pytest.fixture(autouse=True)

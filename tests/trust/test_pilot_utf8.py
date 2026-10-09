@@ -19,7 +19,15 @@ def test_locale_fixture_changes_only_implicit_text_io(tmp_path):
     path.write_bytes(raw)
     assert path.read_bytes() == raw
     assert path.read_text(encoding="utf-8") == "Recuperación • 中文"
-    assert path.read_text() != path.read_text(encoding="utf-8")
+    assert path.read_text() == raw.decode("cp1252")
+    assert path.read_text(encoding="locale") == raw.decode("cp1252")
+    with path.open() as stream:
+        assert stream.read() == raw.decode("cp1252")
+    written = tmp_path / "ansi.txt"
+    written.write_text("Recuperación")
+    assert written.read_bytes() == "Recuperación".encode("cp1252")
+    written.write_text("Recuperación", encoding="utf-8")
+    assert written.read_bytes() == "Recuperación".encode("utf-8")
 
 
 def test_pilot_seed_persists_exact_utf8_fixture_titles(tmp_path, monkeypatch, capsys):
