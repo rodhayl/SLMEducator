@@ -1,5 +1,6 @@
 """Real provider adapters exercised with synthetic HTTP responses, never sockets."""
 
+import json
 import logging
 from unittest.mock import MagicMock
 
@@ -75,6 +76,51 @@ def test_adapters_deliver_configured_limits_and_report_real_usage(
             assert call.args[0] == "https://synthetic.invalid/v1/chat/completions"
         else:
             assert call.kwargs["headers"]["Authorization"] == "Bearer synthetic-adapter-token"
+
+
+@pytest.mark.parametrize("provider", ["openai", "openrouter", "lm_studio", "ollama"])
+@pytest.mark.parametrize(
+    "operation,configured,expected",
+    [("lesson", 1000, 1000), ("lesson", 4000, 4000),
+     ("tutor", 1000, 1000), ("tutor", 4000, 1200)],
+)
+def test_operation_budget_is_enforced_at_provider_transport(
+    provider_service, provider, operation, configured, expected
+):
+    service = provider_service(provider, max_tokens=configured)
+    payload = {"explanation": "Synthetic suggestion"}
+    if operation == "lesson":
+        payload = {
+            "title": "Synthetic lesson",
+            "sections": [{"title": "Observation", "content": "A synthetic observation."}],
+            "summary": "A synthetic observation.",
+        }
+    content = json.dumps(payload)
+    response = {
+        "model": "synthetic-model",
+        "choices": [{"message": {"content": content}, "finish_reason": "stop"}],
+    }
+    if provider == "ollama":
+        response = {"response": content, "done_reason": "stop"}
+    service._client.post.return_value = reply(response)
+
+    if operation == "lesson":
+        result = service.generate_lesson("Observation", "adult", ["Describe the observation"])
+        assert result["title"] == payload["title"]
+    else:
+        result = service.provide_tutoring({"id": 1, "grade_level": "adult"}, "Explain fractions")
+        assert result["explanation"] == payload["explanation"]
+
+    service._client.post.assert_called_once()
+    body = service._client.post.call_args.kwargs["json"]
+    if provider == "ollama":
+        assert body["options"]["num_predict"] == expected
+        instruction = body.get("system", "")
+    else:
+        assert body["max_tokens"] == expected
+        instruction = body["messages"][0]["content"]
+    if operation == "lesson":
+        assert f"within {expected} output tokens" in instruction
 
 
 @pytest.mark.parametrize("provider", ["openai", "openrouter"])

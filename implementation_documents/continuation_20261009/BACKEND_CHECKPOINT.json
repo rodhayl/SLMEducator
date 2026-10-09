@@ -1,0 +1,48 @@
+{
+  "baseline": "abd33afd1bf2708064f3f80466fa993f360d3490",
+  "scope": "UTF8 repair plus real-adapter budget, receipt, private-note retention and stored-title regressions",
+  "contract_files": [
+    {
+      "path": "tests/trust/test_provider_transport_contract.py",
+      "group": "contracts",
+      "sha256": "69c40033faa68c3648ca435bff69ee9f4a7707c92c5cbbfcead8a65cccc148e2",
+      "base_blob_sha": "5962146506d257ae43a82192320e3a59df97f0cd"
+    },
+    {
+      "path": "tests/trust/test_ai_request_lifecycle.py",
+      "group": "contracts",
+      "sha256": "d8b8c9de2eb442ace96561311cdf446855cabdb753968c7998f6501aa99575f7",
+      "base_blob_sha": "ae0af421f742d8d445cab6796eb81daec74051dc"
+    },
+    {
+      "path": "tests/trust/test_private_note_retention.py",
+      "group": "contracts",
+      "sha256": "06653646f292fc2b0d74f8dee90b688702e25909b74ac9b7f5ea7b8fed9893ee",
+      "base_blob_sha": "81f3089fa60cf047b3c778b7ef3c3ca74aeca43a"
+    },
+    {
+      "path": "tests/trust/test_stored_lesson_titles.py",
+      "group": "contracts",
+      "sha256": "6e79f6022c251ec798f90106f169ec4987fd04d4f6b136fd3f492638c10c189b",
+      "base_blob_sha": null
+    }
+  ],
+  "full_offline_python": {
+    "passed": 1750,
+    "skipped": 57,
+    "deselected": 5,
+    "warnings": 1,
+    "failed": 0,
+    "exit_code": 0,
+    "seconds": 1430.78,
+    "coverage_percent": 86.72,
+    "required_coverage_percent": 80,
+    "source_statements": 9691,
+    "missed_statements": 1287
+  },
+  "focused_contracts_passed": 74,
+  "independent_backend_cases_passed": 36,
+  "overlapping_counts_not_additive": true,
+  "real_provider_native_browser_windows_installer": "NOT_RUN or explicitly skipped; not included in PASS",
+  "later_logging_fix": "Not included in this checkpoint; separately reproduced and tested later"
+}
