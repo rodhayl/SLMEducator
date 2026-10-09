@@ -1,0 +1,39 @@
+{
+  "review_date": "2026-10-09",
+  "source_report_commit": "abd33afd1bf2708064f3f80466fa993f360d3490",
+  "source_product_candidate": "19909e6038c180ce15f5e987928934d34dfc797e",
+  "source_campaign": "auto-2026-10-09-002",
+  "source_coverage_total": 126,
+  "source_coverage_counts": {
+    "NOT_RUN": 114,
+    "PASS": 7,
+    "PARTIAL": 1,
+    "BLOCKED": 2,
+    "FAIL": 2
+  },
+  "reviewed_counts": {
+    "PASS": 6,
+    "PARTIAL": 2,
+    "FAIL": 2,
+    "BLOCKED": 2,
+    "NOT_RUN": 114
+  },
+  "adjustments": [
+    {
+      "case_id": "AUTO-GEN-02.modos",
+      "reported": "PASS",
+      "reviewed": "PARTIAL",
+      "reason": "Five modes inventoried; only lesson executed. Referenced shot-generar.png absent from published tree."
+    }
+  ],
+  "historical_files_modified": false,
+  "new_native_execution": false,
+  "new_real_provider_execution": false,
+  "acceptance": "INCOMPLETE",
+  "remaining_environment_requirements": [
+    "Native Windows input on identified installed candidate",
+    "Isolated installation and uninstall lifecycle",
+    "Owner-entered first administrator credentials when setup is required"
+  ],
+  "note": "Technical regressions in this continuation are separate from the 126 historical GUI campaign rows; they do not convert NOT_RUN rows to PASS."
+}

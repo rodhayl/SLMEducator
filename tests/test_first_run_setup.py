@@ -120,10 +120,11 @@ def test_noninteractive_setup_never_reads_passwords(isolated, monkeypatch, capsy
     assert seed_admin.prepare_first_run() == 'needed'
 
 
+@pytest.mark.usefixtures("cp1252_text_locale")
 def test_native_errors_are_allowlisted_and_password_fields_are_masked():
     assert first_run_setup._error_key(RuntimeError('sensitive payload')) == 'failed'
     assert first_run_setup._error_key(ValueError('repeat')) == 'invalid_repeat'
-    source = Path(first_run_setup.__file__).read_text()
+    source = Path(first_run_setup.__file__).read_text(encoding="utf-8")
     assert "show='' if key == 'username' else '•'" in source
     assert 'create_first_admin' in source and 'HTTPServer' not in source
 

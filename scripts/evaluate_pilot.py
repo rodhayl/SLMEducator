@@ -12,7 +12,7 @@ CRITICAL = ("lost_work", "false_save", "unauthorized_exposure", "invalid_final_g
 
 def summarize(record: dict) -> dict:
     """Compute bounded counts and a conservative evidence gate, not efficacy."""
-    cases = json.loads((ROOT / "docs/pilot/evaluation_cases.json").read_text())["cases"]
+    cases = json.loads((ROOT / "docs/pilot/evaluation_cases.json").read_text(encoding="utf-8"))["cases"]
     required = {case["id"] for case in cases}
     ratings = record.get("case_ratings", [])
     ids = [row["case_id"] for row in ratings]
@@ -85,7 +85,10 @@ def summarize(record: dict) -> dict:
             median(measured) if measured else None
         ),
         "evidence_mode": record.get("evidence_mode", "not_recorded"),
-        "limitation": "This small task evaluation does not establish educational efficacy, child suitability, accessibility conformance, or legal acceptance.",
+        "limitation": (
+            "This small task evaluation does not establish educational efficacy, "
+            "child suitability, accessibility conformance, or legal acceptance."
+        ),
     }
 
 
@@ -95,7 +98,7 @@ def main() -> int:
     args = parser.parse_args()
     try:
         print(
-            json.dumps(summarize(json.loads(args.observations.read_text())), indent=2)
+            json.dumps(summarize(json.loads(args.observations.read_text(encoding="utf-8"))), indent=2)
         )
         return 0
     except (ValueError, KeyError, TypeError) as exc:

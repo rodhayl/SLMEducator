@@ -70,7 +70,7 @@ def seed_pilot(database: Path) -> dict:
         )
         credentials.append({"username": name, "password": password, "role": role.value})
     fixture = json.loads(
-        (ROOT / "tests/fixtures/pilot/fractions_course.json").read_text()
+        (ROOT / "tests/fixtures/pilot/fractions_course.json").read_text(encoding="utf-8")
     )
     with get_db_service().get_session() as db:
         plan = StudyPlan(
@@ -137,7 +137,11 @@ def seed_pilot(database: Path) -> dict:
             "plan_id": plan.id,
             "assessment_id": assessment.id,
             "credentials": credentials,
-            "next": "Sign in as teacher_a; inspect lessons and assessment answers, publish the assessment first, then review/publish/assign the course to learner_a. Credentials printed once; keep output private.",
+            "next": (
+                "Sign in as teacher_a; inspect lessons and assessment answers, "
+                "publish the assessment first, then review/publish/assign the course "
+                "to learner_a. Credentials printed once; keep output private."
+            ),
         }
 
 

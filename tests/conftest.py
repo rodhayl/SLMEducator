@@ -143,6 +143,23 @@ def test_log_dir(test_data_dir):
     return log_dir
 
 
+@pytest.fixture
+def cp1252_text_locale(monkeypatch):
+    """Model Windows ANSI Path I/O even on a UTF-8 host or Python UTF-8 mode."""
+    original_open = Path.open
+
+    def open_with_cp1252_default(
+        path, mode="r", buffering=-1, encoding=None, errors=None, newline=None
+    ):
+        if "b" not in mode and encoding in (None, "locale"):
+            encoding = "cp1252"
+        return original_open(
+            path, mode, buffering, encoding=encoding, errors=errors, newline=newline
+        )
+
+    monkeypatch.setattr(Path, "open", open_with_cp1252_default)
+
+
 @pytest.fixture(autouse=True)
 def block_offline_http_transport(monkeypatch):
     """Fail closed on real HTTP transports in the explicit synthetic CI gate."""

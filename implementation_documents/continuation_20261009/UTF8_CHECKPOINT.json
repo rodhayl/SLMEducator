@@ -1,0 +1,56 @@
+{
+  "base_commit": "abd33afd1bf2708064f3f80466fa993f360d3490",
+  "scope": "Explicit UTF-8 pilot JSON and operational-test reads; no existing database mutation",
+  "files": [
+    {
+      "path": "scripts/seed_pilot.py",
+      "group": "encoding",
+      "sha256": "23d3a8c9cfe2ca1b2318652f7e7ea2d8762afbe69b67ef328c8780abb0d6d542",
+      "base_blob_sha": "c0045483460fc463e9722e1fd48fbb269bb1c5c2"
+    },
+    {
+      "path": "scripts/evaluate_pilot.py",
+      "group": "encoding",
+      "sha256": "e81eb5ee606f7998a3c39252f25362150d64c9fc6b4df24b8c3a08ad87367354",
+      "base_blob_sha": "b0860a1ab4869d9977cf64589e2fcd96e4dd415c"
+    },
+    {
+      "path": "tests/conftest.py",
+      "group": "encoding",
+      "sha256": "cec1ba421787f9121d7063e636aa92de8de0b4b05805a96ae707d58666cb1d56",
+      "base_blob_sha": "d96bb82b038351c3452f481fc60517b0ad8ac2f1"
+    },
+    {
+      "path": "tests/test_first_run_setup.py",
+      "group": "encoding",
+      "sha256": "3182301ac9ce4b2bc5d77213deea2f649af139c02e79a65eae15cd4126a1f10b",
+      "base_blob_sha": "bd982cd1f8f1a4134f6407de0b9f226cceafbc47"
+    },
+    {
+      "path": "tests/test_operational_documentation.py",
+      "group": "encoding",
+      "sha256": "438ec38d0f502a9ab900a3bdd78bec6a3e8781a44f6b053ce1dccc483d10ef0b",
+      "base_blob_sha": "bbf514fa2569cafd4c8b8d4bef3a4f1be447883b"
+    },
+    {
+      "path": "tests/trust/test_pilot_utf8.py",
+      "group": "encoding",
+      "sha256": "6356bc3f93ca160731eaea1654cfd943f5d4a3833e1195c9bcaf7871856afb1e",
+      "base_blob_sha": null
+    }
+  ],
+  "regression_red": {
+    "failed": 5,
+    "passed": 13,
+    "environment": "Linux synthetic Path text default cp1252"
+  },
+  "independent_review": "No material defects in exact backend checkpoint; final bounded rerun recorded before publication",
+  "native_windows_retest": "NOT_RUN",
+  "real_ai_calls": "NOT_RUN",
+  "full_backend_suite": "IN_PROGRESS, separate result; not a PASS claim",
+  "focused_green": {
+    "passed": 85,
+    "duration_seconds": 17.03,
+    "final_source_hashes_verified": true
+  }
+}
