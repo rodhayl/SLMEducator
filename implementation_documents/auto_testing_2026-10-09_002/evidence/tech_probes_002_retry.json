@@ -1,0 +1,29 @@
+{
+  "run": "auto-2026-10-09-002",
+  "kind": "technical_api_probe_retry_4000",
+  "settings_post": {
+    "status": 200,
+    "max_tokens": 4000
+  },
+  "generate_lesson_retry": {
+    "status": 200,
+    "elapsed_s": 131.86,
+    "content_type": "application/json",
+    "top_keys": [
+      "_source_usage",
+      "discussion_questions",
+      "objectives",
+      "sections",
+      "summary",
+      "title",
+      "vocabulary"
+    ],
+    "sections_count": 2,
+    "section_titles": [
+      "Understanding Equivalence",
+      "Identifying Equivalent Fractions"
+    ],
+    "vocabulary_count": 3,
+    "key_points_count": 0
+  }
+}

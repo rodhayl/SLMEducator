@@ -1,0 +1,110 @@
+{
+  "run_id": "auto-2026-10-09-002",
+  "campaign": "AUTO_TEST.md",
+  "date_local": "2026-10-09",
+  "state": "in_progress",
+  "candidate": {
+    "kind": "installed-setup-plus-checkout-runtime",
+    "branch": "fix/react-functional-continuation-20261007",
+    "head": "19909e6038c180ce15f5e987928934d34dfc797e",
+    "tree": "e13ba1248a22294582670eade6e27754af8b94a0",
+    "base_before_run": "16a2dd9ba84fbaf103aff056fee8b07372c5102e",
+    "delta_integrated": [
+      "e55e618 [DOCS] Redact campaign test credentials [skip ci]",
+      "19909e6 [FIX] Repair returned defects and setup [skip ci]"
+    ],
+    "product_base": "642966a93e7e9c9f9c5e93cce0bc842f538846fb",
+    "setup_path": "C:\\builds\\slm-setup-19909e6\\SLMEducator-Setup-2.0.0-19909e6038c1.exe",
+    "setup_sha256": "66839a0752e3b43b597d328b3a4afc4d7d5098ae9501842963a24aaaac6115b6",
+    "setup_size": 28924575,
+    "payload_dir": "C:\\builds\\slm-payload-19909e6",
+    "payload_exe_sha256": "38b7fe64f87bca860c714d82db53dfb19e8d11f04b77b3ae0ff1ce9a7e5b8697",
+    "payload_db_users": 0,
+    "payload_db_tables": 27,
+    "frontend_built_this_run": true,
+    "frontend_check": {
+      "typecheck": "PASS",
+      "lint": "PASS",
+      "tests": "PASS 953/953 in 52 files",
+      "build": "PASS 26 local assets, 29 licenses"
+    },
+    "build_python": "3.13.15 (venv C:\\builds\\slm-pkg-venv-19909e6, Tcl/Tk directories, no zipfs)",
+    "installer_compiler": "Inno Setup 6 ISCC.exe (%LOCALAPPDATA%\\Programs\\Inno Setup 6)",
+    "installed_tested": false,
+    "installed_blocker": "BLK-INSTALL-DESTINATION",
+    "portable_tested": false
+  },
+  "evidence_mode": "MIXED_NATIVE_VISION_NO_INPUT",
+  "evidence_mode_note": "Vision confirmed: native screen capture (System.Drawing.CopyFromScreen) plus direct image inspection of the 2560x1440 primary screen. Input tools exist (Win32 SendKeys/mouse_event) but were NOT used: the desktop shows another active session (recent ChatGPT activity plus another project terminal), so exclusivity required by AUTO_TEST section 1 and the owner instruction is absent. Every GUI walkthrough needing input or focus is BLOCKED until the owner grants exclusivity. API/DOM evidence is complementary only.",
+  "coverage_totals": {
+    "rows": 118,
+    "NOT_RUN": 118,
+    "PASS": 0,
+    "PARTIAL": 0,
+    "FAIL": 0,
+    "BLOCKED": 0,
+    "NOT_APPLICABLE": 0,
+    "historical_rows_preserved": 117,
+    "historical_source": "implementation_documents/auto_testing_2026-10-08_001/COVERAGE.csv"
+  },
+
+  "technical_evidence": {
+    "pytest_batchA": "353 passed, 1 failed (SLM-AUTO-014 encoding), 112.05s",
+    "pytest_batchB": "153 passed, 1 failed (SLM-AUTO-014 encoding), 22.12s",
+    "frontend_vitest": "953 passed in 52 files, 192.39s",
+    "synthetic_runtime": {
+      "dir": "C:\\Users\\dhays\\AppData\\Local\\Temp\\opencode\\slm-auto-2026-10-09-002",
+      "db": "slm_educator.db (synthetic, created this run, 1 admin via scripts/seed_admin.py create-only)",
+      "url": "http://127.0.0.1:8000",
+      "server_pid": 52180,
+      "config": "campaign-local synthetic env.properties (default_provider=lm_studio, model slm-production-evaluation); the repository-root private env.properties failed to parse with MissingSectionHeaderError in the fallback path and was never read or modified"
+    },
+    "api_probes": {
+      "login_admin": "200",
+      "settings_ai_get": "200 lm_studio/slm-production-evaluation",
+      "settings_ai_post": "200 lm_studio/slm-production-evaluation; max_tokens 1000 then 4000",
+      "generate_lesson_attempt1_max1000": "502 generation_output_limit saved=false after 83.4s; server log records category+class+frames without values (require_complete_response)",
+      "generate_lesson_attempt2_max4000": "200 after 131.86s with complete structure: title, 2 sections with headings, 3 vocabulary entries, objectives, summary, discussion_questions",
+      "tutor_route_probe": "GET /tutor -> 200 text/html SPA document (historical SLM-AUTO-004 404 not reproduced at delivery level)"
+    },
+    "lm_studio": {
+      "endpoint": "http://localhost:1234",
+      "catalog_models": 4,
+      "model": "slm-production-evaluation",
+      "authorized_local_runtime": true
+    }
+  },
+  "defects_opened_this_run": [
+    "SLM-AUTO-014 S4 two Python tests unreadable on Windows cp1252 locale (read_text without encoding)"
+  ],
+  "blockers": [
+    {
+      "id": "BLK-SHARED-SCREEN",
+      "detail": "The primary screen hosts another active session; no exclusivity for mouse/keyboard/window focus. All GUI input cases (AUTO-* walks, GUI re-verification of the 13 historical defects, AUTO-BOOT-06 dialog interaction, keyboard/DPI/zoom/screen-reader) are BLOCKED, not PASS.",
+      "minimal_action": "Owner confirms the desktop is free for this campaign or provides an isolated session/VM."
+    },
+    {
+      "id": "BLK-INSTALL-DESTINATION",
+      "detail": "An existing per-user installation SLMEducator 2.0.0 build fe954cab4655 (owner data: slm_educator.db and env.properties present) occupies %LOCALAPPDATA%\\Programs\\SLMEducator and its HKCU registration. AUTO_TEST section 2 forbids in-place updates and uninstalling the user; the per-user guard would refuse the new candidate. Install/update/uninstall lifecycle BLOCKED pending authorized isolation.",
+      "minimal_action": "Owner uninstalls his installation first (its data is preserved by design) and accepts a fresh candidate install, or provides an isolated Windows profile."
+    },
+    {
+      "id": "BLK-HANDOFF-CREDENTIALS",
+      "detail": "AUTO-BOOT-06 and login/rotation steps require the owner to type and submit credentials through a secure handoff; the agent never enters or receives them in chat.",
+      "minimal_action": "Owner performs credential entry on the native dialogs when the two blockers above are cleared."
+    },
+    {
+      "id": "BLK-AI-GENERATION-ORIGINAL-500",
+      "detail": "The original HTTP-500 cause remains undemonstrated: the cited evidence/ai_generation_failure.log is absent from the published tree. This run reproduced only the NEW classified paths: 502 generation_output_limit (saved=false, diagnostic frames without values) at budget 1000 and 200 with complete structure at budget 4000. No diagnosis of the historical 500 is invented.",
+      "minimal_action": "GUI-visible generation still pending exclusivity; keep the original 500 as unexplained."
+    }
+  ],
+  "own_resources_open": [
+    "synthetic server 127.0.0.1:8000 PID 52180 (stop only by verified PID tree)",
+    "synthetic database in the isolated temp directory of this run",
+    "local-only fixture credential file C:\\builds\\seed-out.txt (NEVER commit, never publish, never reuse)"
+  ],
+  "next_action": "1) Update coverage rows with the technical evidence collected. 2) Single combined owner handoff: screen exclusivity, install destination decision, native credential entry. 3) When granted: install candidate, run AUTO-BOOT-06, walk the 13 historical defects plus AUTO_TEST passes with native input, then publish sanitized reports with [skip ci].",
+  "no_secrets_stored": true,
+  "credentials_note": "No credential value appears in any campaign artifact. The fixture password exists only in a local file outside the repository. Historical published credentials are not reused, rotated or purged by the agent."
+}
