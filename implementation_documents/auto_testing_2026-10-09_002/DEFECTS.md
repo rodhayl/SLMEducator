@@ -92,3 +92,105 @@ la excepción en lugar de corromper en silencio.
   campaña).
 - Sonda `C:\builds\probe_encoding.py` con su salida reproduciendo ambos codecs.
 - Qué NO se verificó: el mismo test en Linux (no disponible en este entorno).
+
+---
+
+## SLM-AUTO-015 · `scripts/seed_pilot.py` corrompe contenido no-ASCII al sembrar (read_text sin encoding)
+
+- **Estado**: OPEN
+- **Severidad**: S3 (corrompe datos reales sembrados: los acentos se guardan mojibake en la
+  base; no hay pérdida ni exposición, pero el contenido persistido es incorrecto)
+- **Prioridad**: Media (afecta a la herramienta de pilotaje/onboarding `scripts/` que sí se
+  distribuye; el runtime de peticiones del núcleo no está afectado)
+- **Fecha/run**: 2026-10-09 · `auto-2026-10-09-002`
+- **Candidato**: rama `fix/react-functional-continuation-20261007`, HEAD
+  `19909e6038c180ce15f5e987928934d34dfc797e`, árbol `e13ba1248a22294582670eade6e27754af8b94a0`
+- **Entorno**: Windows 10/11 (10.0.26200), Python 3.13.15 (venv aislado de build),
+  `locale.getpreferredencoding(False) = cp1252`, sin `PYTHONUTF8`
+- **Rol**: teacher_a (GUI sintética sobre `local_provider_server.py`)
+- **Caso relacionado**: mismo clase que SLM-AUTO-014 pero en código de producto/`scripts/`,
+  no en tests. Ficheros: `scripts/seed_pilot.py` (línea 73) y `scripts/evaluate_pilot.py`
+  (línea 15).
+- **Precondiciones**: instalación sintética nueva sembrada con `seed_pilot` sobre el fixture
+  UTF-8 `tests/fixtures/pilot/fractions_course.json` en un Windows con locale ANSI.
+
+### Hecho observado (literal, saneado)
+
+En la GUI del candidato (`/cursos/1`, materiales del curso «Fractions…»), el material 3 se
+renderiza con mojibake mientras los materiales 1 y 2 (sin acentos) se ven correctos:
+
+```
+1. Equal parts / Partes iguales                         (correcto)
+2. Compare common denominators / Comparar denominadores iguales   (correcto)
+3. Independent retrieval / RecuperaciÃ³n independiente   (MOJIBAKE: Ã³ en lugar de ó)
+```
+
+Inspección de la base sintética propia (solo lectura, `synthetic.db` de esta campaña):
+
+```
+contents[3].title raw bytes = b'3. Independent retrieval / Recuperaci\xc3\x83\xc2\xb3n independiente'
+```
+
+El `ó` correcto en UTF-8 es `\xc3\xb3`; la base guarda `\xc3\x83\xc2\xb3` (doble codificación).
+El fixture de origen guarda los bytes CORRECTOS (`\xc3\xb3`) y es UTF-8 válido.
+
+### Causa comprobada (reproducida byte a byte)
+
+`scripts/seed_pilot.py:73`:
+
+```python
+fixture = json.loads(
+    (ROOT / "tests/fixtures/pilot/fractions_course.json").read_text()   # sin encoding
+)
+```
+
+`Path.read_text()` sin `encoding=` usa el codec de locale (cp1252 aquí). Los bytes UTF-8
+`\xc3\xb3` del fixture se decodifican como cp1252 → en memoria queda la cadena `RecuperaciÃ³n`;
+SQLAlchemy la re-codifica a UTF-8 al guardar → `\xc3\x83\xc2\xb3` en la base. Reproducción
+local (sonda `C:\builds\repro_seed_mojibake.py`):
+
+```
+preferred encoding: cp1252
+correct UTF-8 bytes: b'Independent retrieval / Recuperaci\xc3\xb3n independient'
+decoded-as-cp1252 title (in memory): '3. Independent retrieval / Recuperación independiente'
+re-encoded to utf-8 bytes: b'...Recuperaci\xc3\x83\xc2\xb3n independiente'
+MATCHES DB mojibake: True
+```
+
+`scripts/evaluate_pilot.py:15` repite el patrón (`read_text()` sin encoding sobre
+`docs/pilot/evaluation_cases.json`, que también contiene bytes no-ASCII). Allí el daño es de
+lectura/validación, no persistido.
+
+### Esperado / Observado
+
+- Esperado: el contenido sembrado conserva los acentos exactamente como en el fixture UTF-8.
+- Observado: cualquier carácter no-ASCII del fixture se guarda como mojibake de doble
+  codificación; la GUI lo muestra corrupto.
+
+### Frecuencia y efecto
+
+- Frecuencia: 100% en Windows con locale cp1252 al sembrar el piloto con ese fixture.
+- Efecto: contenido persistido incorrecto en instalaciones sembradas con esta herramienta;
+  NO afecta al camino de peticiones del runtime ni a la generación IA en caliente.
+
+### Hecho observado vs causa comprobada
+
+- Hecho: mojibake visible en GUI y bytes doble-codificados en la base sintética propia.
+- Causa comprobada: `read_text()` sin `encoding='utf-8'` en `scripts/seed_pilot.py` (y patrón
+  idéntico en `scripts/evaluate_pilot.py`), con locale cp1252.
+- Clasificado como defecto de PRODUCTO/HERRAMIENTA (no de test), a diferencia de SLM-AUTO-014.
+
+### Alternativa temporal segura
+
+- Ejecutar el sembrado con `PYTHONUTF8=1` mientras no exista el arreglo. El arreglo correcto
+  es `read_text(encoding="utf-8")` en ambos ficheros de `scripts/`.
+
+### Evidencia
+
+- Captura GUI `evidence/shot-course1-mojibake.png` (material 3 con `Ã³`).
+- Salida de la sonda de inspección de la base sintética (bytes crudos de `contents`).
+- Sonda `C:\builds\repro_seed_mojibake.py` (fuera de Git) reproduciendo la transformación.
+- Fixture `tests/fixtures/pilot/fractions_course.json` (UTF-8 válido, bytes de origen correctos).
+- Qué NO se verificó: el mismo sembrado en Linux (no disponible); si el instalador empaquetado
+  arrastra `seed_pilot` al runtime de primera ejecución (requiere ciclo de instalación nativo).
+

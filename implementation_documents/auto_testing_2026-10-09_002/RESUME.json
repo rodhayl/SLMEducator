@@ -104,7 +104,35 @@
     "synthetic database in the isolated temp directory of this run",
     "local-only fixture credential file C:\\builds\\seed-out.txt (NEVER commit, never publish, never reuse)"
   ],
+  "gui_walkthrough_002": {
+    "status": "in_progress",
+    "harness": "CDP over raw WebSocket (cap.js) -> first http page target on 127.0.0.1:9222; Chrome isolated profile, backgrounded to avoid focus steal",
+    "app_server": "127.0.0.1:8091 (local_provider_server.py --test, synthetic DB C:\\builds\\slm-devtools-state-002\\synthetic.db)",
+    "ai_provider": "real LM Studio at http://localhost:1234 (HTTP 200 confirmed this session)",
+    "login_confirmed": {
+      "route": "http://127.0.0.1:8091/entrar?return=%2F (Te damos la bienvenida)",
+      "user": "teacher_a (synthetic fixture, credentials local-only)",
+      "landed": "http://127.0.0.1:8091/inicio (Hola, Synthetic; full teacher nav present)"
+    },
+    "note": "First desktop screenshot was misleading (foreground ChatGPT window); app verified healthy via CDP /json/list title+url and Runtime.evaluate DOM. Subsequent evidence uses CDP captureScreenshot of the page target, not the desktop.",
+    "credentials_note": "fixture.json passwords used only transiently in CDP input setters; never written to campaign artifacts."
+  },
   "next_action": "1) Update coverage rows with the technical evidence collected. 2) Single combined owner handoff: screen exclusivity, install destination decision, native credential entry. 3) When granted: install candidate, run AUTO-BOOT-06, walk the 13 historical defects plus AUTO_TEST passes with native input, then publish sanitized reports with [skip ci].",
+  "gui_next": [
+    "defect_011: write note as teacher_a, reassign course to teacher_b, confirm former teacher loses access and note is NOT inherited (policy verified by tests/trust/test_private_note_retention.py; GUI optional)",
+    "defect_013: confirm no historical stored title is rewritten by normalization",
+    "walk /tutor, quick search, homonymous courses, empty fields, rubric & save, author evaluation links, translated notices, invalid files, error recovery, double-click/navigation",
+    "run real AI generation via GUI (LM Studio) and capture evidence"
+  ],
+  "gui_findings_002": {
+    "defect_004_tutor": "REPAIRED at GUI: GET /tutor -> 200, title 'Tutor y preguntas', has404=false, full form renders (evidence/shot-tutor.png).",
+    "defect_001_rapid_search": "REPAIRED at GUI: typing 'Fractions' char-by-char same-tick preserved all 9 chars (match=true), live filter ?q=Fractions applied (evidence/shot-search-rapid.png).",
+    "courses_page": "PASS: search box present, course list with stable 'ID del curso 1' shown on card (defect_006 identity visible).",
+    "defect_015_new": "OPEN S3: scripts/seed_pilot.py read_text() without encoding corrupts non-ASCII on cp1252; GUI shows material 3 'RecuperaciÃ³n' mojibake; root cause reproduced byte-for-byte. See DEFECTS.md SLM-AUTO-015 (evidence/shot-course1-mojibake.png).",
+    "ai_generation_gui_SUCCESS": "REAL generation via GUI + local LM Studio succeeded: mode=lesson, subject/topic/objectives filled, 'Generar con IA' clicked. Provider returned HTTP 200 finish_reason=stop, 1909 content chars, 1248 completion tokens (inference.jsonl line 2). GUI rendered editable draft: 2 sections ('Comparando los Numeradores' etc.) with correct pedagogy explaining 5/8>3/8 via equal parts, vocabulary (numerador/denominador), discussion questions, summary; section add/remove/reorder + 'Guardar borrador'/'Vista previa' present (evidence/shot-gen-proposal.png).",
+    "defect_005_boundary_CONFIRMED": "First GUI attempt at default max_tokens=1000 hit provider output limit: HTTP 200 finish_reason=length, 0 content chars. Product showed 'El modelo alcanzó su límite de salida. No se guardó ninguna propuesta' with retry, saved=false, input preserved, NO false success. After raising max_tokens to 4000 (verified via /api/settings/ai), generation completed with full content. This reproduces the exact defect-005 boundary (HTTP-200 != usable content) AND shows it is a configuration-budget effect, not the original historical 500.",
+    "session_expiry_artifact": "30-min JWT TTL (exp-iat=1800s) expired mid-session during the long GUI walkthrough; product showed 'Vuelve a entrar' + 'El resultado es desconocido. Tu texto se conserva' (honest unknown, input preserved). Re-login resumed. Environmental artifact of the long CDP session, not a product defect."
+  },
   "no_secrets_stored": true,
   "credentials_note": "No credential value appears in any campaign artifact. The fixture password exists only in a local file outside the repository. Historical published credentials are not reused, rotated or purged by the agent."
 }

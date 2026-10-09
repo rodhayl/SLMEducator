@@ -30,24 +30,27 @@ evidencia sigue pendiente.
 |---|---|
 | Sistema | Windows 10/11 (10.0.26200), 64 bits — ordenador del usuario |
 | Visión nativa | DISPONIBLE y verificada: captura `System.Drawing.CopyFromScreen` (2560×1440) + inspección directa de la imagen |
-| Entrada nativa (ratón/teclado) | Herramienta disponible (Win32 SendKeys/mouse_event) pero **NO usada**: el escritorio muestra otra sesión activa (conversación ChatGPT con actividad reciente y terminal de otro proyecto) → sin exclusividad → §1 exige suspender |
-| Exclusividad | NO concedida todavía → todos los recorridos GUI con entrada quedan BLOCKED, no PASS |
-| Navegador/headless | Sin Playwright/CDP/DOM para simular recorridos; la evidencia API/DOM existente es solo complementaria (pruebas ofline) |
-| Lector de pantalla / zoom nativo / audio | No usados (requieren exclusividad) |
+| Entrada nativa (ratón/teclado) | Herramienta disponible (Win32 SendKeys/mouse_event) pero **NO usada sobre el escritorio del usuario**: el escritorio muestra otra sesión activa → sin exclusividad → §1 exige suspender la entrada nativa |
+| Exclusividad de escritorio | NO concedida → la entrada nativa (ratón/teclado/foco) queda BLOCKED, no PASS |
+| CDP sobre navegador aislado | **USADO** (pivote autorizado por el propietario): driver CDP propio sin dependencias sobre WebSocket crudo; Chrome con perfil aislado en `--remote-debugging-port=9222`, ventana visible pero en **segundo plano** para no robar foco. App sintética (`local_provider_server.py`, puerto 8091) abierta en una pestaña. Entrada simulada vía `Runtime.evaluate` (setters nativos + eventos `input`/`change`, compatibles con React) y evidencia con `Page.captureScreenshot` **de la página**, no del escritorio |
+| Lector de pantalla / zoom nativo / audio | No usados (requieren exclusividad de escritorio) |
 | LM Studio | `http://localhost:1234`, catálogo de 4 modelos, `slm-production-evaluation` — runtime local ya autorizado; sin proveedores de pago ni descargas |
 
-## 3. Cobertura (124 filas; denominador explícito)
+## 3. Cobertura (126 filas; denominador explícito)
 
 | Estado | Filas |
 |---|---|
-| PASS | 4 (todas `TECH-*`, alcance técnico declarado) |
-| PARTIAL | 1 (`AUTO-GEN-01.leccion`, solo API) |
-| FAIL | 1 (`TECH-PYTEST-AFFECTED`, por SLM-AUTO-014) |
+| PASS | 7 (4 `TECH-*` + `AUTO-GEN-01.leccion`, `AUTO-GEN-02.modos`, `GUI-SEARCH-HOMONYM`; alcance declarado en cada fila) |
+| PARTIAL | 1 (`AUTO-TUT-01.libre_contextual`: superficie y envío real OK; contextual+modo Explicación pendientes) |
+| FAIL | 2 (`TECH-PYTEST-AFFECTED` por SLM-AUTO-014; `GUI-SEED-ENCODING` por el nuevo SLM-AUTO-015) |
 | BLOCKED | 2 (`TECH-SETUP-INSTALL`, `AUTO-BOOT-06`) |
-| NOT_RUN | 116 |
+| NOT_RUN | 114 |
 | Históricas conservadas | 117 filas de `auto-2026-10-08_001` re-listadas en NOT_RUN para este candidato; sus estados originales no se tocaron |
 
-Las 23 filas PLAN-E/D/A/X y los recorridos GUI arrancan cuando haya exclusividad.
+Recorridos GUI realizados por CDP (no entrada nativa): login teacher_a, `/inicio`, `/tutor`,
+`/cursos`, búsqueda rápida same-tick, detalle de curso `/cursos/1` con 3 materiales, formulario
+`/generar` y generación real de lección. Quedan NOT_RUN los flujues que exigen entrada nativa,
+instalación, BOOT-06 o los recorridues de estudiante/admin aún no abordados.
 
 ## 4. Defectos
 
@@ -56,6 +59,7 @@ Las 23 filas PLAN-E/D/A/X y los recorridos GUI arrancan cuando haya exclusividad
 | ID | Sev | Hecho observado |
 |---|---|---|
 | `SLM-AUTO-014` | S4 | Dos tests Python leen con `Path.read_text()` sin `encoding='utf-8'` y en Windows cp1252 fallan: `test_first_run_setup…password_fields_are_masked` (assert silencioso) y `test_operational_documentation…removed_qt_modules` (`UnicodeDecodeError` en `docs/CONTRIBUTING.md`). Producto intacto; reproducción, diagnóstico por decodificación dual y mitigación (`PYTHONUTF8=1`) en DEFECTS.md. La verificación publicada fue en Linux y no lo reproduce. |
+| `SLM-AUTO-015` | S3 | **Nuevo, encontrado por GUI.** `scripts/seed_pilot.py:73` (y mismo patrón en `scripts/evaluate_pilot.py:15`) leen un fixture JSON UTF-8 con `read_text()` sin `encoding`; en locale cp1252 el `ó` correcto (`c3 b3`) se decodifica como cp1252 y se persiste doble-codificado (`c3 83 c2 b3`). La GUI del candidato muestra el material 3 como `RecuperaciÃ³n` mientras 1 y 2 (sin acentos) se ven bien. Reproducido byte a byte con sonda local sobre la base sintética propia. Corrompe datos sembrados por la herramienta de pilotaje/onboarding que sí se distribuye; el runtime de peticiones del núcleo no está afectado. Detalle y reproducción en DEFECTS.md. |
 
 ### Históricos 001–013 · estado en ESTE candidato (evidencia técnica; GUI pendiente)
 
@@ -89,15 +93,23 @@ suspendidos por exclusividad.
 
 ## 6. IA real (LM Studio, runtime local autorizado)
 
+Verificado **por GUI real** (CDP) y por API.
+
 - Ajustes por cuenta guardados vía API (200): `lm_studio` + `slm-production-evaluation`.
-- Truncado/limitado → **502 `generation_output_limit`, `saved:false`** con categorías
-  fijas y frames en el log, sin valores de prompt/respuesta; sin reintento automático.
-- Presupuesto suficiente → **200 con estructura completa** (título, 2 secciones,
-  vocabulario 3, objetivos, resumen, preguntas) en 131.9s.
-- Alcance: evidencia técnica API. La utilidad visible en GUI y la causa del 500
-  histórico siguen abiertas. No se confundió la configuración de ejemplo (`env.properties`
-  del repo, que además falla con `MissingSectionHeaderError` en el fallback y **no se
-  leyó ni modificó**) con la efectiva de la cuenta.
+- **Frontera del defecto 005 reproducida en GUI:** con `max_tokens` por defecto (1000), el proveedor
+  devolvió HTTP 200 `finish_reason=length` con 0 caracteres; el producto mostró *«El modelo alcanzó
+  su límite de salida. No se guardó ninguna propuesta»* con reintentar, `saved=false`, entrada
+  conservada y **sin éxito falso**.
+- **Generación completa en GUI:** tras subir `max_tokens` a 4000 (verificado en `/api/settings/ai`),
+  el proveedor devolvió HTTP 200 `finish_reason=stop` (1909 chars, 1248 tokens) y la GUI renderizó un
+  borrador editable con 2 secciones (`Comparando los Numeradores`…) que explica correctamente por qué
+  5/8 > 3/8 con partes iguales, más vocabulario (numerador/denominador), preguntas de discusión y
+  resumen, con controles de sección y `Guardar borrador`/`Vista previa`. Evidencia:
+  `evidence/shot-gen-proposal.png`.
+- Alcance: el **500 histórico sigue sin causa demostrada** (su log citado no existe); lo reproducido
+  aquí es la frontera «HTTP-200 ≠ contenido utilizable», que el producto clasifica honestamente. No
+  se confundió la configuración de ejemplo del repo (no leída ni modificada) con la efectiva de la
+  cuenta.
 
 ## 7. Bloqueos pendientes
 
