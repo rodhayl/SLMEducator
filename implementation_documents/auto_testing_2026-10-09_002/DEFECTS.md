@@ -194,3 +194,29 @@ lectura/validación, no persistido.
 - Qué NO se verificó: el mismo sembrado en Linux (no disponible); si el instalador empaquetado
   arrastra `seed_pilot` al runtime de primera ejecución (requiere ciclo de instalación nativo).
 
+
+## Revalidación nativa del candidato `29df5ed` · Windows cp1252 (2026-10-10)
+
+Resultados tras probar el candidato final `fix/react-functional-continuation-20261007`
+HEAD `29df5ed` (árbol `7c5e9139`) en Windows 10/11 con locale ANSI cp1252
+(`PYTHONUTF8` no definido, `sys.flags.utf8_mode = 0`):
+
+| Defecto | Resultado nativo | Evidencia |
+|---|---|---|
+| SLM-AUTO-014 · tests de configuración nativa y documentación sin codificación explícita (test_first_run_setup, test_operational_documentation) | **GREEN**: 39 pasados, 0 fallos en lotes A+B (antes 2 FALLOS) | `C:\builds\slm-utf8-full.log` (39 passed / 14.71s) |
+| SLM-AUTO-015 · sembrado de piloto con acentos → UTF-8 exacto (seed_pilot + fixture) | **GREEN**: fixture y DB con bytes `c3 b3` (ó correcto), sin doble codificación; sembrado con destino nuevo y credenciales impresas una sola vez | `C:\builds\slm-newpilot4.result`, `C:\builds\slm-newpilot4.seed.log` |
+| SLM-AUTO-014 reproducción de 5 fallos bajo Path.cp1252 que fue la causa (test_pilot_utf8 + test_logging_utf8, 8 pasados) | **GREEN** | `C:\builds\slm-utf8-tests.log` (8 passed / 11.42s) |
+| Contratos 011/013/provider/tutor (notas privadas, títulos históricos, límites de transporte) | **GREEN**: 74 pasados, 1 advertencia | `C:\builds\slm-contract-tests.log` |
+
+Verificación de bytes autoritativa (hex): fixture `…Recuperaci c3 b3 n…` y título
+guardado en la base `…Recuperaci c3 b3 n…` (ó correcto, `c3 b3` en ambos); sin
+`c3 83 c2 b3` (doble codificación). El `�` que se ve en algunas capturas de
+consola es un artefacto de la redacción de la salida, no de los datos.
+
+Primera evidencia de la campaña anterior (`evidence/shot-course1-mojibake.png`,
+`RecuperaciÃ³n`) **conservada intacta**; este resultado aplica al candidato nuevo,
+no reescribe la causa original. Las pruebas de encoding del runner (tests/trust/)
+son evidencia técnica; la aceptación de la primer creación sigue
+requiriendo el primer arranque del ejecutable instalado (paso humano con la
+credencial del propietario).
+
