@@ -1,0 +1,84 @@
+{
+  "reviewed_remote": "386593bf6d40f444c2428423d7bb8163bd7fad50",
+  "product_sha": "29df5ed6674f660f37337d8ea69616e31600a09f",
+  "changes": [
+    {
+      "case_id": "AUTO-AUTH-02.password",
+      "before": "PASS",
+      "after": "PARTIAL",
+      "reason": "REVISIÓN 2026-10-11: La captura citada no muestra el formulario de seguridad. Falta intervención privada para validaciones, rotación y reentrada.",
+      "evidence": "evidence/shot-auth-02-perfil.png"
+    },
+    {
+      "case_id": "AUTO-GEN-02.modos",
+      "before": "PASS",
+      "after": "PARTIAL",
+      "reason": "REVISIÓN 2026-10-11: Inventario de cinco modos no equivale a petición pequeña en cada modo.",
+      "evidence": "evidence/shot-gen-proposal.png"
+    },
+    {
+      "case_id": "AUTO-GEN-03.parcial",
+      "before": "PASS",
+      "after": "PARTIAL",
+      "reason": "REVISIÓN 2026-10-11: La captura muestra espera activa, no lote parcial 3/5, fallo, parar/reintentar ni edición concurrente.",
+      "evidence": "evidence/shot-gen-03-proposal.png"
+    },
+    {
+      "case_id": "AUTO-TUT-01.libre_contextual",
+      "before": "PASS",
+      "after": "PARTIAL",
+      "reason": "REVISIÓN 2026-10-11: Captura observada: No se confirmó una sugerencia utilizable. Manejo honesto observado, éxito útil libre/contextual pendiente.",
+      "evidence": "evidence/shot-tut-01-respuesta.png"
+    },
+    {
+      "case_id": "AUTO-MSG-02.seleccion_masiva",
+      "before": "PASS",
+      "after": "PARTIAL",
+      "reason": "REVISIÓN 2026-10-11: Responder un hilo no demuestra selección masiva, resultado parcial ni archivado compartido.",
+      "evidence": "evidence/shot-msg-02-docente.png"
+    },
+    {
+      "case_id": "AUTO-PORT-04.reabrir_descargas",
+      "before": "PASS",
+      "after": "PARTIAL",
+      "reason": "REVISIÓN 2026-10-11: Captura de página exportar no demuestra abrir archivo descargado en visor nativo.",
+      "evidence": "evidence/shot-port-01-estudiante.png"
+    },
+    {
+      "case_id": "AUTO-VIS-04.zoom",
+      "before": "PASS",
+      "after": "PARTIAL",
+      "reason": "REVISIÓN 2026-10-11: Faltan menú nativo 100/200/400% y pantallas críticas; diseño fluido no equivale a ejecución.",
+      "evidence": "evidence/shot-vis-01-menu-jerarquia.png"
+    },
+    {
+      "case_id": "AUTO-VIS-06.lector",
+      "before": "PASS",
+      "after": "PARTIAL",
+      "reason": "REVISIÓN 2026-10-11: ARIA y headings no equivalen a lector real; faltan producto/versión/lectura y foco.",
+      "evidence": "evidence/shot-vis-03-keyboard.png"
+    },
+    {
+      "case_id": "AUTO-SW-01.migracion",
+      "before": "PASS",
+      "after": "NOT_RUN",
+      "reason": "REVISIÓN 2026-10-11: SQLite no acredita Service Worker. Falta instalación fresca/fixture legacy autorizada y transición de dos pestañas.",
+      "evidence": "evidence/accreditation_29df5ed.md"
+    },
+    {
+      "case_id": "AUTO-SW-02.retiro_cache",
+      "before": "PASS",
+      "after": "NOT_RUN",
+      "reason": "REVISIÓN 2026-10-11: Hash de build no acredita retiro selectivo de los dos caches legacy ni preservación de caches/borradores ajenos.",
+      "evidence": "evidence/accreditation_29df5ed.md"
+    },
+    {
+      "case_id": "PLAN-G6",
+      "before": "PASS",
+      "after": "NOT_RUN",
+      "reason": "REVISIÓN 2026-10-11: G6 es inventario/deuda de código compartido, no honestidad ante límites IA.",
+      "evidence": "evidence/shot-tut-01-respuesta.png"
+    }
+  ],
+  "scope_limit": "This is not a re-execution or exhaustive evidence audit. Unchanged PASS are reported results, not newly independently validated."
+}

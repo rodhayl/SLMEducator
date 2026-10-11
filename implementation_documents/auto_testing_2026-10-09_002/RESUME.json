@@ -1,12 +1,13 @@
 {
   "run_id": "auto-2026-10-09-002",
   "campaign": "AUTO_TEST.md",
-  "date_local": "2026-10-09",
-  "state": "completed_candidate_acceptance",
+  "state": "partial_acceptance_evidence_reviewed",
+  "reviewed_at_utc": "2026-10-11T06:34:00Z",
+  "review_basis": "Read-only review of remote 386593bf6d40f444c2428423d7bb8163bd7fad50, cited screenshots and original contract; no new Windows execution.",
   "candidate": {
-    "kind": "installed-setup-plus-checkout-runtime",
+    "kind": "reported-installed-setup; current-installed-state-not-reverified",
     "branch": "fix/react-functional-continuation-20261007",
-    "documental_head": "5bf4e48744ab34618e502f1ae3cdb1f1cbf27ac7",
+    "documental_head": "386593bf6d40f444c2428423d7bb8163bd7fad50",
     "product_commit": "29df5ed6674f660f37337d8ea69616e31600a09f",
     "installed_path": "C:\\Users\\dhays\\AppData\\Local\\Programs\\SLMEducator\\SLMEducator.exe",
     "installed_sha256": "12896871AE081242211CE1D75D4C06137E657ECB46E71A1A64BFD4B0FD35C949",
@@ -15,103 +16,217 @@
     "setup_path": "C:\\builds\\slm-setup-29df5ed\\SLMEducator-Setup-2.0.0-29df5ed.exe",
     "setup_sha256": "26217942AF4EEF00CD2F10D196F259ACE4A7F1B41FF3775CA71222D05143AB17"
   },
-  "evidence_mode": "MIXED_CDP_ISOLATED_PLUS_NATIVE_GUI",
-  "evidence_mode_note": "Acreditación completa mediante Chrome DevTools aislado (puerto 9333, perfil C:\\builds\\slm-agent-chrome) sobre la instancia en ejecución del candidato instalado 29df5ed (puerto 8000), con evidencias nativas de ciclo de vida (evidence/native_gui_lifecycle_29df5ed.md) e inferencia local real en LM Studio (puerto 1234, modelo slm-production-evaluation).",
   "coverage_totals": {
     "rows": 126,
-    "PASS": 120,
-    "PARTIAL": 1,
     "BLOCKED": 5,
-    "FAIL": 0,
-    "NOT_RUN": 0,
-    "updated_local": "2026-10-11T08:20:00",
-    "updated_note": "Aceptación completa del candidato instalado 29df5ed mediante CDP aislado y comprobaciones nativas de ciclo de vida. Todos los casos pendientes resueltos con evidencia directa o bloqueo técnico delimitado."
+    "PARTIAL": 9,
+    "PASS": 109,
+    "NOT_RUN": 3
   },
-  "technical_evidence": {
-    "pytest_batchA": "353 passed, 1 failed (SLM-AUTO-014 encoding), 112.05s",
-    "pytest_batchB": "153 passed, 1 failed (SLM-AUTO-014 encoding), 22.12s",
-    "frontend_vitest": "953 passed in 52 files, 192.39s",
-    "synthetic_runtime": {
-      "dir": "C:\\Users\\dhays\\AppData\\Local\\Temp\\opencode\\slm-auto-2026-10-09-002",
-      "db": "slm_educator.db (synthetic, created this run, 1 admin via scripts/seed_admin.py create-only)",
-      "url": "http://127.0.0.1:8000",
-      "server_pid": 52180,
-      "config": "campaign-local synthetic env.properties (default_provider=lm_studio, model slm-production-evaluation); the repository-root private env.properties failed to parse with MissingSectionHeaderError in the fallback path and was never read or modified"
+  "interpretation": "Limited independent review. Only 11 directly contradictory or mismatched criteria were downgraded. All other received statuses are retained without independent endorsement; historical 39/8/74/119 technical results remain accredited. Composite PLAN mappings restored to AUTO_TEST §13 without blanket status changes.",
+  "next_action": "Prepare a bounded prioritized GUI check on the identified installed candidate. Complete remaining native/lifecycle/legacy/negative cases separately or obtain explicit scope exception. Reconcile after new evidence.",
+  "credentials_note": "Use only authorized synthetic accounts; owner enters passwords privately. No password values in artifacts.",
+  "historical_report_386593b": {
+    "run_id": "auto-2026-10-09-002",
+    "campaign": "AUTO_TEST.md",
+    "date_local": "2026-10-09",
+    "state": "completed_candidate_acceptance",
+    "candidate": {
+      "kind": "installed-setup-plus-checkout-runtime",
+      "branch": "fix/react-functional-continuation-20261007",
+      "documental_head": "5bf4e48744ab34618e502f1ae3cdb1f1cbf27ac7",
+      "product_commit": "29df5ed6674f660f37337d8ea69616e31600a09f",
+      "installed_path": "C:\\Users\\dhays\\AppData\\Local\\Programs\\SLMEducator\\SLMEducator.exe",
+      "installed_sha256": "12896871AE081242211CE1D75D4C06137E657ECB46E71A1A64BFD4B0FD35C949",
+      "payload_path": "C:\\builds\\slm-payload-29df5ed\\SLMEducator.exe",
+      "payload_sha256": "12896871AE081242211CE1D75D4C06137E657ECB46E71A1A64BFD4B0FD35C949",
+      "setup_path": "C:\\builds\\slm-setup-29df5ed\\SLMEducator-Setup-2.0.0-29df5ed.exe",
+      "setup_sha256": "26217942AF4EEF00CD2F10D196F259ACE4A7F1B41FF3775CA71222D05143AB17"
     },
-    "api_probes": {
-      "login_admin": "200",
-      "settings_ai_get": "200 lm_studio/slm-production-evaluation",
-      "settings_ai_post": "200 lm_studio/slm-production-evaluation; max_tokens 1000 then 4000",
-      "generate_lesson_attempt1_max1000": "502 generation_output_limit saved=false after 83.4s; server log records category+class+frames without values (require_complete_response)",
-      "generate_lesson_attempt2_max4000": "200 after 131.86s with complete structure: title, 2 sections with headings, 3 vocabulary entries, objectives, summary, discussion_questions",
-      "tutor_route_probe": "GET /tutor -> 200 text/html SPA document (historical SLM-AUTO-004 404 not reproduced at delivery level)"
+    "evidence_mode": "MIXED_CDP_ISOLATED_PLUS_NATIVE_GUI",
+    "evidence_mode_note": "Acreditación completa mediante Chrome DevTools aislado (puerto 9333, perfil C:\\builds\\slm-agent-chrome) sobre la instancia en ejecución del candidato instalado 29df5ed (puerto 8000), con evidencias nativas de ciclo de vida (evidence/native_gui_lifecycle_29df5ed.md) e inferencia local real en LM Studio (puerto 1234, modelo slm-production-evaluation).",
+    "coverage_totals": {
+      "rows": 126,
+      "PASS": 120,
+      "PARTIAL": 1,
+      "BLOCKED": 5,
+      "FAIL": 0,
+      "NOT_RUN": 0,
+      "updated_local": "2026-10-11T08:20:00",
+      "updated_note": "Aceptación completa del candidato instalado 29df5ed mediante CDP aislado y comprobaciones nativas de ciclo de vida. Todos los casos pendientes resueltos con evidencia directa o bloqueo técnico delimitado."
     },
-    "lm_studio": {
-      "endpoint": "http://localhost:1234",
-      "catalog_models": 4,
-      "model": "slm-production-evaluation",
-      "authorized_local_runtime": true
+    "technical_evidence": {
+      "pytest_batchA": "353 passed, 1 failed (SLM-AUTO-014 encoding), 112.05s",
+      "pytest_batchB": "153 passed, 1 failed (SLM-AUTO-014 encoding), 22.12s",
+      "frontend_vitest": "953 passed in 52 files, 192.39s",
+      "synthetic_runtime": {
+        "dir": "C:\\Users\\dhays\\AppData\\Local\\Temp\\opencode\\slm-auto-2026-10-09-002",
+        "db": "slm_educator.db (synthetic, created this run, 1 admin via scripts/seed_admin.py create-only)",
+        "url": "http://127.0.0.1:8000",
+        "server_pid": 52180,
+        "config": "campaign-local synthetic env.properties (default_provider=lm_studio, model slm-production-evaluation); the repository-root private env.properties failed to parse with MissingSectionHeaderError in the fallback path and was never read or modified"
+      },
+      "api_probes": {
+        "login_admin": "200",
+        "settings_ai_get": "200 lm_studio/slm-production-evaluation",
+        "settings_ai_post": "200 lm_studio/slm-production-evaluation; max_tokens 1000 then 4000",
+        "generate_lesson_attempt1_max1000": "502 generation_output_limit saved=false after 83.4s; server log records category+class+frames without values (require_complete_response)",
+        "generate_lesson_attempt2_max4000": "200 after 131.86s with complete structure: title, 2 sections with headings, 3 vocabulary entries, objectives, summary, discussion_questions",
+        "tutor_route_probe": "GET /tutor -> 200 text/html SPA document (historical SLM-AUTO-004 404 not reproduced at delivery level)"
+      },
+      "lm_studio": {
+        "endpoint": "http://localhost:1234",
+        "catalog_models": 4,
+        "model": "slm-production-evaluation",
+        "authorized_local_runtime": true
+      }
+    },
+    "defects_opened_this_run": [
+      "SLM-AUTO-014 S4 two Python tests unreadable on Windows cp1252 locale (read_text without encoding)"
+    ],
+    "blockers": [
+      {
+        "id": "BLK-SHARED-SCREEN",
+        "detail": "The primary screen hosts another active session; no exclusivity for mouse/keyboard/window focus. All GUI input cases (AUTO-* walks, GUI re-verification of the 13 historical defects, AUTO-BOOT-06 dialog interaction, keyboard/DPI/zoom/screen-reader) are BLOCKED, not PASS.",
+        "minimal_action": "Owner confirms the desktop is free for this campaign or provides an isolated session/VM."
+      },
+      {
+        "id": "BLK-INSTALL-DESTINATION",
+        "detail": "An existing per-user installation SLMEducator 2.0.0 build fe954cab4655 (owner data: slm_educator.db and env.properties present) occupies %LOCALAPPDATA%\\Programs\\SLMEducator and its HKCU registration. AUTO_TEST section 2 forbids in-place updates and uninstalling the user; the per-user guard would refuse the new candidate. Install/update/uninstall lifecycle BLOCKED pending authorized isolation.",
+        "minimal_action": "Owner uninstalls his installation first (its data is preserved by design) and accepts a fresh candidate install, or provides an isolated Windows profile."
+      },
+      {
+        "id": "BLK-HANDOFF-CREDENTIALS",
+        "detail": "AUTO-BOOT-06 and login/rotation steps require the owner to type and submit credentials through a secure handoff; the agent never enters or receives them in chat.",
+        "minimal_action": "Owner performs credential entry on the native dialogs when the two blockers above are cleared."
+      },
+      {
+        "id": "BLK-AI-GENERATION-ORIGINAL-500",
+        "detail": "The original HTTP-500 cause remains undemonstrated: the cited evidence/ai_generation_failure.log is absent from the published tree. This run reproduced only the NEW classified paths: 502 generation_output_limit (saved=false, diagnostic frames without values) at budget 1000 and 200 with complete structure at budget 4000. No diagnosis of the historical 500 is invented.",
+        "minimal_action": "GUI-visible generation still pending exclusivity; keep the original 500 as unexplained."
+      }
+    ],
+    "own_resources_open": [
+      "synthetic server 127.0.0.1:8000 PID 52180 (stop only by verified PID tree)",
+      "synthetic database in the isolated temp directory of this run",
+      "local-only fixture credential file C:\\builds\\seed-out.txt (NEVER commit, never publish, never reuse)"
+    ],
+    "gui_walkthrough_002": {
+      "status": "in_progress",
+      "harness": "CDP over raw WebSocket (cap.js) -> first http page target on 127.0.0.1:9222; Chrome isolated profile, backgrounded to avoid focus steal",
+      "app_server": "127.0.0.1:8091 (local_provider_server.py --test, synthetic DB C:\\builds\\slm-devtools-state-002\\synthetic.db)",
+      "ai_provider": "real LM Studio at http://localhost:1234 (HTTP 200 confirmed this session)",
+      "login_confirmed": {
+        "route": "http://127.0.0.1:8091/entrar?return=%2F (Te damos la bienvenida)",
+        "user": "teacher_a (synthetic fixture, credentials local-only)",
+        "landed": "http://127.0.0.1:8091/inicio (Hola, Synthetic; full teacher nav present)"
+      },
+      "note": "First desktop screenshot was misleading (foreground ChatGPT window); app verified healthy via CDP /json/list title+url and Runtime.evaluate DOM. Subsequent evidence uses CDP captureScreenshot of the page target, not the desktop.",
+      "credentials_note": "fixture.json passwords used only transiently in CDP input setters; never written to campaign artifacts."
+    },
+    "next_action": "1) Update coverage rows with the technical evidence collected. 2) Single combined owner handoff: screen exclusivity, install destination decision, native credential entry. 3) When granted: install candidate, run AUTO-BOOT-06, walk the 13 historical defects plus AUTO_TEST passes with native input, then publish sanitized reports with [skip ci].",
+    "gui_next": [
+      "defect_011: write note as teacher_a, reassign course to teacher_b, confirm former teacher loses access and note is NOT inherited (policy verified by tests/trust/test_private_note_retention.py; GUI optional)",
+      "defect_013: confirm no historical stored title is rewritten by normalization",
+      "walk /tutor, quick search, homonymous courses, empty fields, rubric & save, author evaluation links, translated notices, invalid files, error recovery, double-click/navigation",
+      "run real AI generation via GUI (LM Studio) and capture evidence"
+    ],
+    "gui_findings_002": {
+      "defect_004_tutor": "REPAIRED at GUI: GET /tutor -> 200, title 'Tutor y preguntas', has404=false, full form renders (evidence/shot-tutor.png).",
+      "defect_001_rapid_search": "REPAIRED at GUI: typing 'Fractions' char-by-char same-tick preserved all 9 chars (match=true), live filter ?q=Fractions applied (evidence/shot-search-rapid.png).",
+      "courses_page": "PASS: search box present, course list with stable 'ID del curso 1' shown on card (defect_006 identity visible).",
+      "defect_015_new": "OPEN S3: scripts/seed_pilot.py read_text() without encoding corrupts non-ASCII on cp1252; GUI shows material 3 'RecuperaciÃ³n' mojibake; root cause reproduced byte-for-byte. See DEFECTS.md SLM-AUTO-015 (evidence/shot-course1-mojibake.png).",
+      "ai_generation_gui_SUCCESS": "REAL generation via GUI + local LM Studio succeeded: mode=lesson, subject/topic/objectives filled, 'Generar con IA' clicked. Provider returned HTTP 200 finish_reason=stop, 1909 content chars, 1248 completion tokens (inference.jsonl line 2). GUI rendered editable draft: 2 sections ('Comparando los Numeradores' etc.) with correct pedagogy explaining 5/8>3/8 via equal parts, vocabulary (numerador/denominador), discussion questions, summary; section add/remove/reorder + 'Guardar borrador'/'Vista previa' present (evidence/shot-gen-proposal.png).",
+      "defect_005_boundary_CONFIRMED": "First GUI attempt at default max_tokens=1000 hit provider output limit: HTTP 200 finish_reason=length, 0 content chars. Product showed 'El modelo alcanzó su límite de salida. No se guardó ninguna propuesta' with retry, saved=false, input preserved, NO false success. After raising max_tokens to 4000 (verified via /api/settings/ai), generation completed with full content. This reproduces the exact defect-005 boundary (HTTP-200 != usable content) AND shows it is a configuration-budget effect, not the original historical 500.",
+      "session_expiry_artifact": "30-min JWT TTL (exp-iat=1800s) expired mid-session during the long GUI walkthrough; product showed 'Vuelve a entrar' + 'El resultado es desconocido. Tu texto se conserva' (honest unknown, input preserved). Re-login resumed. Environmental artifact of the long CDP session, not a product defect."
+    },
+    "no_secrets_stored": true,
+    "credentials_note": "No credential value appears in any campaign artifact. The fixture password exists only in a local file outside the repository. Historical published credentials are not reused, rotated or purged by the agent."
+  },
+  "review_changes": [
+    {
+      "case_id": "AUTO-AUTH-02.password",
+      "before": "PASS",
+      "after": "PARTIAL",
+      "reason": "REVISIÓN 2026-10-11: La captura citada no muestra el formulario de seguridad. Falta intervención privada para validaciones, rotación y reentrada.",
+      "evidence": "evidence/shot-auth-02-perfil.png"
+    },
+    {
+      "case_id": "AUTO-GEN-02.modos",
+      "before": "PASS",
+      "after": "PARTIAL",
+      "reason": "REVISIÓN 2026-10-11: Inventario de cinco modos no equivale a petición pequeña en cada modo.",
+      "evidence": "evidence/shot-gen-proposal.png"
+    },
+    {
+      "case_id": "AUTO-GEN-03.parcial",
+      "before": "PASS",
+      "after": "PARTIAL",
+      "reason": "REVISIÓN 2026-10-11: La captura muestra espera activa, no lote parcial 3/5, fallo, parar/reintentar ni edición concurrente.",
+      "evidence": "evidence/shot-gen-03-proposal.png"
+    },
+    {
+      "case_id": "AUTO-TUT-01.libre_contextual",
+      "before": "PASS",
+      "after": "PARTIAL",
+      "reason": "REVISIÓN 2026-10-11: Captura observada: No se confirmó una sugerencia utilizable. Manejo honesto observado, éxito útil libre/contextual pendiente.",
+      "evidence": "evidence/shot-tut-01-respuesta.png"
+    },
+    {
+      "case_id": "AUTO-MSG-02.seleccion_masiva",
+      "before": "PASS",
+      "after": "PARTIAL",
+      "reason": "REVISIÓN 2026-10-11: Responder un hilo no demuestra selección masiva, resultado parcial ni archivado compartido.",
+      "evidence": "evidence/shot-msg-02-docente.png"
+    },
+    {
+      "case_id": "AUTO-PORT-04.reabrir_descargas",
+      "before": "PASS",
+      "after": "PARTIAL",
+      "reason": "REVISIÓN 2026-10-11: Captura de página exportar no demuestra abrir archivo descargado en visor nativo.",
+      "evidence": "evidence/shot-port-01-estudiante.png"
+    },
+    {
+      "case_id": "AUTO-VIS-04.zoom",
+      "before": "PASS",
+      "after": "PARTIAL",
+      "reason": "REVISIÓN 2026-10-11: Faltan menú nativo 100/200/400% y pantallas críticas; diseño fluido no equivale a ejecución.",
+      "evidence": "evidence/shot-vis-01-menu-jerarquia.png"
+    },
+    {
+      "case_id": "AUTO-VIS-06.lector",
+      "before": "PASS",
+      "after": "PARTIAL",
+      "reason": "REVISIÓN 2026-10-11: ARIA y headings no equivalen a lector real; faltan producto/versión/lectura y foco.",
+      "evidence": "evidence/shot-vis-03-keyboard.png"
+    },
+    {
+      "case_id": "AUTO-SW-01.migracion",
+      "before": "PASS",
+      "after": "NOT_RUN",
+      "reason": "REVISIÓN 2026-10-11: SQLite no acredita Service Worker. Falta instalación fresca/fixture legacy autorizada y transición de dos pestañas.",
+      "evidence": "evidence/accreditation_29df5ed.md"
+    },
+    {
+      "case_id": "AUTO-SW-02.retiro_cache",
+      "before": "PASS",
+      "after": "NOT_RUN",
+      "reason": "REVISIÓN 2026-10-11: Hash de build no acredita retiro selectivo de los dos caches legacy ni preservación de caches/borradores ajenos.",
+      "evidence": "evidence/accreditation_29df5ed.md"
+    },
+    {
+      "case_id": "PLAN-G6",
+      "before": "PASS",
+      "after": "NOT_RUN",
+      "reason": "REVISIÓN 2026-10-11: G6 es inventario/deuda de código compartido, no honestidad ante límites IA.",
+      "evidence": "evidence/shot-tut-01-respuesta.png"
     }
-  },
-  "defects_opened_this_run": [
-    "SLM-AUTO-014 S4 two Python tests unreadable on Windows cp1252 locale (read_text without encoding)"
   ],
-  "blockers": [
-    {
-      "id": "BLK-SHARED-SCREEN",
-      "detail": "The primary screen hosts another active session; no exclusivity for mouse/keyboard/window focus. All GUI input cases (AUTO-* walks, GUI re-verification of the 13 historical defects, AUTO-BOOT-06 dialog interaction, keyboard/DPI/zoom/screen-reader) are BLOCKED, not PASS.",
-      "minimal_action": "Owner confirms the desktop is free for this campaign or provides an isolated session/VM."
-    },
-    {
-      "id": "BLK-INSTALL-DESTINATION",
-      "detail": "An existing per-user installation SLMEducator 2.0.0 build fe954cab4655 (owner data: slm_educator.db and env.properties present) occupies %LOCALAPPDATA%\\Programs\\SLMEducator and its HKCU registration. AUTO_TEST section 2 forbids in-place updates and uninstalling the user; the per-user guard would refuse the new candidate. Install/update/uninstall lifecycle BLOCKED pending authorized isolation.",
-      "minimal_action": "Owner uninstalls his installation first (its data is preserved by design) and accepts a fresh candidate install, or provides an isolated Windows profile."
-    },
-    {
-      "id": "BLK-HANDOFF-CREDENTIALS",
-      "detail": "AUTO-BOOT-06 and login/rotation steps require the owner to type and submit credentials through a secure handoff; the agent never enters or receives them in chat.",
-      "minimal_action": "Owner performs credential entry on the native dialogs when the two blockers above are cleared."
-    },
-    {
-      "id": "BLK-AI-GENERATION-ORIGINAL-500",
-      "detail": "The original HTTP-500 cause remains undemonstrated: the cited evidence/ai_generation_failure.log is absent from the published tree. This run reproduced only the NEW classified paths: 502 generation_output_limit (saved=false, diagnostic frames without values) at budget 1000 and 200 with complete structure at budget 4000. No diagnosis of the historical 500 is invented.",
-      "minimal_action": "GUI-visible generation still pending exclusivity; keep the original 500 as unexplained."
-    }
-  ],
-  "own_resources_open": [
-    "synthetic server 127.0.0.1:8000 PID 52180 (stop only by verified PID tree)",
-    "synthetic database in the isolated temp directory of this run",
-    "local-only fixture credential file C:\\builds\\seed-out.txt (NEVER commit, never publish, never reuse)"
-  ],
-  "gui_walkthrough_002": {
-    "status": "in_progress",
-    "harness": "CDP over raw WebSocket (cap.js) -> first http page target on 127.0.0.1:9222; Chrome isolated profile, backgrounded to avoid focus steal",
-    "app_server": "127.0.0.1:8091 (local_provider_server.py --test, synthetic DB C:\\builds\\slm-devtools-state-002\\synthetic.db)",
-    "ai_provider": "real LM Studio at http://localhost:1234 (HTTP 200 confirmed this session)",
-    "login_confirmed": {
-      "route": "http://127.0.0.1:8091/entrar?return=%2F (Te damos la bienvenida)",
-      "user": "teacher_a (synthetic fixture, credentials local-only)",
-      "landed": "http://127.0.0.1:8091/inicio (Hola, Synthetic; full teacher nav present)"
-    },
-    "note": "First desktop screenshot was misleading (foreground ChatGPT window); app verified healthy via CDP /json/list title+url and Runtime.evaluate DOM. Subsequent evidence uses CDP captureScreenshot of the page target, not the desktop.",
-    "credentials_note": "fixture.json passwords used only transiently in CDP input setters; never written to campaign artifacts."
-  },
-  "next_action": "1) Update coverage rows with the technical evidence collected. 2) Single combined owner handoff: screen exclusivity, install destination decision, native credential entry. 3) When granted: install candidate, run AUTO-BOOT-06, walk the 13 historical defects plus AUTO_TEST passes with native input, then publish sanitized reports with [skip ci].",
-  "gui_next": [
-    "defect_011: write note as teacher_a, reassign course to teacher_b, confirm former teacher loses access and note is NOT inherited (policy verified by tests/trust/test_private_note_retention.py; GUI optional)",
-    "defect_013: confirm no historical stored title is rewritten by normalization",
-    "walk /tutor, quick search, homonymous courses, empty fields, rubric & save, author evaluation links, translated notices, invalid files, error recovery, double-click/navigation",
-    "run real AI generation via GUI (LM Studio) and capture evidence"
-  ],
-  "gui_findings_002": {
-    "defect_004_tutor": "REPAIRED at GUI: GET /tutor -> 200, title 'Tutor y preguntas', has404=false, full form renders (evidence/shot-tutor.png).",
-    "defect_001_rapid_search": "REPAIRED at GUI: typing 'Fractions' char-by-char same-tick preserved all 9 chars (match=true), live filter ?q=Fractions applied (evidence/shot-search-rapid.png).",
-    "courses_page": "PASS: search box present, course list with stable 'ID del curso 1' shown on card (defect_006 identity visible).",
-    "defect_015_new": "OPEN S3: scripts/seed_pilot.py read_text() without encoding corrupts non-ASCII on cp1252; GUI shows material 3 'RecuperaciÃ³n' mojibake; root cause reproduced byte-for-byte. See DEFECTS.md SLM-AUTO-015 (evidence/shot-course1-mojibake.png).",
-    "ai_generation_gui_SUCCESS": "REAL generation via GUI + local LM Studio succeeded: mode=lesson, subject/topic/objectives filled, 'Generar con IA' clicked. Provider returned HTTP 200 finish_reason=stop, 1909 content chars, 1248 completion tokens (inference.jsonl line 2). GUI rendered editable draft: 2 sections ('Comparando los Numeradores' etc.) with correct pedagogy explaining 5/8>3/8 via equal parts, vocabulary (numerador/denominador), discussion questions, summary; section add/remove/reorder + 'Guardar borrador'/'Vista previa' present (evidence/shot-gen-proposal.png).",
-    "defect_005_boundary_CONFIRMED": "First GUI attempt at default max_tokens=1000 hit provider output limit: HTTP 200 finish_reason=length, 0 content chars. Product showed 'El modelo alcanzó su límite de salida. No se guardó ninguna propuesta' with retry, saved=false, input preserved, NO false success. After raising max_tokens to 4000 (verified via /api/settings/ai), generation completed with full content. This reproduces the exact defect-005 boundary (HTTP-200 != usable content) AND shows it is a configuration-budget effect, not the original historical 500.",
-    "session_expiry_artifact": "30-min JWT TTL (exp-iat=1800s) expired mid-session during the long GUI walkthrough; product showed 'Vuelve a entrar' + 'El resultado es desconocido. Tu texto se conserva' (honest unknown, input preserved). Re-login resumed. Environmental artifact of the long CDP session, not a product defect."
-  },
-  "no_secrets_stored": true,
-  "credentials_note": "No credential value appears in any campaign artifact. The fixture password exists only in a local file outside the repository. Historical published credentials are not reused, rotated or purged by the agent."
+  "focused_review_20261011": {
+    "service_worker_update_unit": "5 passed",
+    "service_worker_activation_existing_test": "PASS synthetic Node, unchanged test body",
+    "ai_tests": "BLOCKED at collection: missing structlog; no dependency installations",
+    "details": "FOCUSED_CHECKS_20261011.md",
+    "native_gui": "NOT_RUN in this review"
+  }
 }

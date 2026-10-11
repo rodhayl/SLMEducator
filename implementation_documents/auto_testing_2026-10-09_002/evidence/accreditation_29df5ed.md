@@ -1,5 +1,8 @@
 # Acreditación técnica · candidato 29df5ed (2026-10-10)
 
+> Revisión independiente 2026-10-11: este documento conserva el registro histórico comunicado por el ejecutor. No acredita aceptación completa. La matriz corregida y RESUME.json distinguen los subcasos no demostrados. Se verificó por GitHub que 29df5ed..386593b solo cambia documentación/evidencia; no se reabrió ni probó el instalado durante esta revisión.
+
+
 Fecha local: 2026-10-10. Sin reconstrucción ni reinstalación por rutina.
 HEAD 5bf4e48 sólo añade 26 líneas a DEFECTS.md sobre 29df5ed (documental).
 
@@ -97,3 +100,4 @@ pendiente de autorización de escritura (esta pasada ya permite doc local sin co
    del instalado existente (arranque fuera de checkout, X/cancelar,
    Detener/Iniciar, relanzamiento, persistencia, recorridos sintéticos),
    respetando procesos AAC ajenos (uvicorn/browser/verify_pr conservados).
+

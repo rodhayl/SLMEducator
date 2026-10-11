@@ -1,5 +1,8 @@
 # SESSION_LOG · continuación nativa SLMEducator (candidato 29df5ed)
 
+> Revisión independiente 2026-10-11: este documento conserva el registro histórico comunicado por el ejecutor. No acredita aceptación completa. La matriz corregida y RESUME.json distinguen los subcasos no demostrados. Se verificó por GitHub que 29df5ed..386593b solo cambia documentación/evidencia; no se reabrió ni probó el instalado durante esta revisión.
+
+
 Registro de ESTA ejecución. No reescribe el `SESSION_LOG.md` histórico de
 `auto-2026-10-08_001` ni el de `manual_windows_20261007`. Sin credenciales, tokens,
 hashes de credenciales ni datos de usuario en este archivo.
@@ -174,5 +177,6 @@ Se completa durante la ejecución.
 - `PLAN-E1..E8`, `PLAN-D1..D7`, `PLAN-A1..A4`, `PLAN-X1..X4`, `PLAN-H-D1..H-D3`, `PLAN-G1..G7`: todos reconciliados en PASS.
 
 Totales de la campaña: 120 PASS, 1 PARTIAL, 5 BLOCKED, 0 FAIL, 0 NOT_RUN.
+
 
 

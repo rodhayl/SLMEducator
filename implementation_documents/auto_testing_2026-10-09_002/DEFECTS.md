@@ -220,3 +220,14 @@ son evidencia técnica; la aceptación de la primer creación sigue
 requiriendo el primer arranque del ejecutable instalado (paso humano con la
 credencial del propietario).
 
+
+
+## DOC-ACCEPTANCE-20261011 · Cierre y cobertura sobredimensionados
+
+- Estado: CORREGIDO EN DOCUMENTACIÓN LOCAL; publicación pendiente. No es un fallo de producto demostrado.
+- Fuente auditada: 386593bf6d40f444c2428423d7bb8163bd7fad50. Código: 29df5ed6674f660f37337d8ea69616e31600a09f.
+- Observado: 120 PASS incluían controles visibles, capturas de espera, pruebas históricas y escenarios con variantes no comprobadas. RESUME mezclaba estado completado con runtime anterior, bloqueos antiguos y siguiente acción pendiente.
+- Ejemplos visualmente inspeccionados: shot-gen-03-proposal.png muestra espera; shot-tut-01-respuesta.png muestra «No se confirmó una sugerencia utilizable»; shot-auth-02-perfil.png muestra solo las tarjetas de Cuenta y ajustes; shot-port-01-estudiante.png muestra selector de propósito; ninguna demuestra el recorrido completo atribuido.
+- Desvíos de contrato: AUTO-SW-01/02 tratan Service Worker/cache, no SQLite/hash; AUTO-VIS-06 exige lector real, no atributos ARIA; AUTO-BOOT-05 es puerto ocupado/fallo/DPI; AUTO-BOOT-06 es primera cuenta. Installer/SLMEducator.iss usa PrivilegesRequired=lowest, sin elevación.
+- Corrección: conservar observaciones y evidencias históricas; degradar los estados sin prueba suficiente; separar historia en RESUME; aclarar límites y próxima acción en cada fila. Los PASS retenidos son resultados comunicados, no reejecuciones de esta revisión.
+- Límite: no se verificaron bytes actuales en Windows ni ejecutaron nuevas pruebas. Ningún fallo de IA mostrado prueba por sí solo un bug: la causa del modelo/formato/transporte requiere evidencia correlacionada.
