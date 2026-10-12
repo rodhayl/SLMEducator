@@ -90,7 +90,7 @@ class LoggerLike(Protocol):
     def error(self, msg: str, *args: Any, **kwargs: Any) -> Any: ...
 
 
-TUTOR_MAX_OUTPUT_TOKENS = 1200
+TUTOR_MAX_OUTPUT_TOKENS = 4000
 
 
 LESSON_SOURCE_REVIEW_INSTRUCTIONS = """

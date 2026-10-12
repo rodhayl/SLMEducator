@@ -13,7 +13,24 @@ Clases: **producto** (aplicación) · **arnés** (código de prueba/campaña) ·
 
 ## SLM-AUTO-016 · El objetivo diario usa una base de fechas distinta al día local del usuario
 
-- **Estado**: OPEN
+- **Estado**: REPARADO EN TESTS 2026-10-12 (decisión del propietario: Madrid).
+  El default UTC documentado del producto NO se toca (contrato explícito con
+  ~15 fijaciones en tests/frontend/docs; cambiarlo sería refactorización,
+  no corrección mínima).
+- **Clase**: arnés/tests (el producto cumplía su contrato; los tests no
+  fijaban la precondición de zona que el contrato exige)
+- **Severidad original**: S3
+- **Fecha/run**: 2026-10-12 · `auto-2026-10-12-001` (continuación 002)
+- **Reparación**: `tests/integration/test_daily_goal_regression.py` y
+  `tests/integration/test_trustworthy_scoring_sessions.py` fijan ahora
+  `settings.timezone = Europe/Madrid` y calculan el día esperado desde el
+  instante UTC con `ZoneInfo` (nada de `date.today()` del host). Nueva
+  regresión `test_daily_goal_follows_madrid_across_utc_midnight` (instante
+  congelado 23:30Z → meta del 12-10) en verde. Suites temporal+objetivo+
+  scoring: 89 PASS.
+- **Uso real**: verificado por GUI que fijar Europe/Madrid en
+  `/ajustes/zona-horaria` cambia los sellos a `(Europe/Madrid)`.
+- Informe original conservado arriba sin reescritura.
 - **Clase**: producto (candidato 29df5ed / checkout dfbc15a)
 - **Severidad**: S3 — el progreso del objetivo diario se cuenta en el día
   equivocado cerca de medianoche para husos no alineados con la base del
@@ -117,7 +134,18 @@ directorio temporal de colección al salir del pytest anidado.
 
 ## SLM-AUTO-018 · Con el modelo local actual (sustituto, razonador) el tutor contextual y 11 pruebas AI e2e no pueden completarse
 
-- **Estado**: OPEN
+- **Estado**: PARCIALMENTE RESUELTO 2026-10-12 (decisión del propietario: subir
+  el tope del tutor). `TUTOR_MAX_OUTPUT_TOKENS` 1200 → 4000
+  (`src/core/services/ai_service.py:93`) + 3 fijaciones de test actualizadas
+  (lifecycle, transport, boundaries). Regresión 180 PASS. Verificación extremo
+  a extremo: tutor contextual con fuente responde 200 con
+  `max_output_tokens=4000`, `tokens_used=1775` y respuesta útil en 81.5 s.
+- **Resto pendiente (modelo sustituto, no producto)**: suite r2 deja 3 fallos
+  de esta clase — `grade_answer` usa presupuesto propio fijo de 1000
+  (NO modificado: decisión de consistencia de calificación, pendiente del
+  propietario), y dos e2e reciben JSON con caracteres de control del modelo.
+  Sin éxito falso en ningún caso (rechazos honestos).
+- Informe original conservado abajo sin reescritura.
 - **Clase**: entorno/proveedor (con comportamiento de producto honesto)
 - **Severidad**: S3 — funcionalidad degradada real hoy: el tutor contextual con
   fuente devuelve "No se confirmó una sugerencia utilizable" de forma
@@ -174,7 +202,13 @@ contra Ollama inexistente en este entorno).
 
 ## SLM-AUTO-019 · El hook de captura del fixture rompe el catálogo de modelos (GET sin body)
 
-- **Estado**: OPEN
+- **Estado**: REPARADO EN EL ARNÉS 2026-10-12. Helpers
+  `decode_captured_request` / `append_captured_record` en
+  `tests/browser/local_provider_server.py` (body vacío → `request: None`) +
+  `tests/browser/test_capture_hook_regression.py` con 3 casos (7 PASS con
+  harness contracts). Verificación viva con fixture nuevo: catálogo responde
+  «3 nombres de modelos recibidos».
+- Informe original conservado abajo sin reescritura.
 - **Clase**: arnés (`tests/browser/local_provider_server.py`)
 - **Severidad**: S3 para la instrumentación de campaña (bloquea la evidencia
   del catálogo); el producto no está afectado.
@@ -227,7 +261,13 @@ Con prueba fallida primero (hook ejecutado contra un GET sin body).
 
 ## SLM-AUTO-020 · NEEDS_REPRO: respuesta 403 en POST /api/classroom/messages con el mensaje creado
 
-- **Estado**: NEEDS_REPRO
+- **Estado**: NEEDS_REPRO (sin cambios 2026-10-12). 12 envíos controlados más
+  en r4: 0 reproducciones del 403-con-creación (total acumulado 40+).
+  Incidencia de paso: al reutilizar la credencial obsoleta de learner_b tras
+  su rotación, el login devuelve 401 y los reintentos BLOQUEAN la cuenta
+  («Account is locked due to too many failed attempts») — el anti-fuerza
+  bruta funciona; la cuenta sintética queda bloqueada y documentada, sin
+  desbloquearla a mano.
 - **Clase**: producto (sin confirmar)
 - **Severidad**: S3 si se confirma (autorización inconsistente); hoy S4-dado
   que no reaparece.

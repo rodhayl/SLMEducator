@@ -1,71 +1,80 @@
 {
   "run_id": "auto-2026-10-12-001",
-  "campaign": "encargo del propietario 2026-10-12 (noche autonoma)",
-  "state": "night_run_completed_pending_owner_decisions",
-  "reviewed_at_utc": "2026-10-12T04:00:00Z",
-  "previous_runs": {
-    "auto-2026-10-09-002": {
-      "state": "partial_acceptance_evidence_reviewed",
-      "coverage_totals": { "rows": 126, "PASS": 109, "PARTIAL": 9, "BLOCKED": 5, "NOT_RUN": 3 },
-      "note": "Matriz corregida conservada; los PASS son resultados comunicados, no reejecucion independiente."
-    }
+  "campaign": "encargo del propietario 2026-10-12 (noche + continuacion diurna 002)",
+  "state": "all_executable_tests_completed",
+  "owner_decisions_applied": {
+    "timezone": "Europe/Madrid (tests hermeticos + regresion de frontera; default UTC del producto intacto por alcance)",
+    "tutor_limit": "TUTOR_MAX_OUTPUT_TOKENS 1200 -> 4000 con regresion 180 PASS y verificacion extremo a extremo",
+    "complete_remainder": "cero NOT_RUN y cero FAIL; solo BLOCKED insolubles sin tocar la instalacion del propietario"
   },
   "candidate": {
     "kind": "checkout-run + installed-exe-verified",
     "branch": "fix/react-functional-continuation-20261007",
-    "head": "dfbc15a18ec7362bf832bf0cd6e564d89710f5c0",
     "product_commit": "29df5ed6674f660f37337d8ea69616e31600a09f",
-    "installed_path": "C:\\Users\\dhays\\AppData\\Local\\Programs\\SLMEducator\\SLMEducator.exe",
+    "code_changes": [
+      "src/core/services/ai_service.py: TUTOR_MAX_OUTPUT_TOKENS 1200 -> 4000",
+      "tests/trust/test_ai_request_lifecycle.py: pins 4000",
+      "tests/trust/test_provider_transport_contract.py: tutor 4000 -> 4000",
+      "tests/trust/test_ai_generation_boundaries.py: num_predict 4000",
+      "tests/integration/test_daily_goal_regression.py: zona Madrid explicita + regresion de frontera",
+      "tests/integration/test_trustworthy_scoring_sessions.py: zona Madrid explicita",
+      "tests/browser/local_provider_server.py: decode_captured_request/append_captured_record",
+      "tests/browser/test_capture_hook_regression.py: nuevo, 3 casos"
+    ],
     "installed_sha256": "12896871AE081242211CE1D75D4C06137E657ECB46E71A1A64BFD4B0FD35C949",
-    "fixture": {
-      "server": "tests/browser/local_provider_server.py --port 8092",
-      "state_dir": "C:\\Users\\dhays\\AppData\\Local\\Temp\\opencode\\slm-auto-2026-10-12-001-r2",
-      "note": "sintetico desechable nuevo; credenciales solo en fixture.json local"
+    "fixtures": {
+      "r4": "C:\\Users\\dhays\\AppData\\Local\\Temp\\opencode\\slm-auto-2026-10-12-001-r4 (GUI, puerto 8092)",
+      "r5-sw": "slm-sw-legacy-r5 (migracion SW, puerto 8093, fixture mantenido)",
+      "r6": "slm-auto-2026-10-12-001-r6 (verificacion catalogo, puerto 8094)"
     },
-    "browser": "Chrome headless aislado propio (CDP puerto 9223, perfil en temp)"
+    "browser": "Chrome headless aislado propio (CDP puertos 9223/9224, perfiles en temp)"
   },
   "coverage_totals": {
-    "rows": 147,
-    "PASS": 118,
-    "PARTIAL": 8,
+    "rows": 152,
+    "PASS": 141,
+    "PARTIAL": 6,
     "BLOCKED": 5,
-    "NOT_RUN": 15,
-    "FAIL": 1,
-    "fail_note": "TECH-CATALOG-HOOK-20261012 es defecto de arnes (SLM-AUTO-019), no de producto",
-    "interpretation": "126 casos arrastrados del run 002 (mismo producto) + 17 nuevos + 4 tecnicos de esta noche. No es aceptacion completa ni reejecucion independiente de los arrastrados."
+    "NOT_RUN": 0,
+    "FAIL": 0,
+    "interpretation": "Todo lo ejecutable ejecutado con evidencia propia o heredada del mismo producto. Los 5 BLOCKED exigen la instalacion/destino del propietario."
   },
   "provider_reconciliation": {
     "lm_studio": "http://127.0.0.1:1234",
     "catalog_today": ["gemma-4-12b-it-qat@q4_k_xl (loaded)", "gemma-4-12b-it-qat@q4_0", "text-embedding-nomic-embed-text-v1.5"],
     "historical_model_absent": "slm-production-evaluation ya no existe en el catalogo",
-    "substitution_verified": "LM Studio responde con el modelo cargado a cualquier nombre (probado con nombre inexistente)",
-    "tutor_effective_limit_verified": 1200,
+    "substitution_verified": "LM Studio responde con el modelo cargado a cualquier nombre",
+    "tutor_effective_limit_verified": 4000,
     "tutor_configured_limit": 4000
   },
   "suites": {
-    "pytest_full": "15 failed, 1783 passed, 29 skipped (3460.07s); clasificados SLM-AUTO-016/017/018",
-    "vitest_full": "967 passed (967), 53 files, 195.18s"
+    "pytest_r1": "15 failed, 1783 passed, 29 skipped (base sin cambios)",
+    "pytest_r2": "5 failed, 1794 passed, 29 skipped (3917.78s, tras cambios autorizados)",
+    "pytest_r2_remaining": "2x limpieza Windows (017), 1x grading-1000 modelo (resto 018), 2x JSON de modelo (resto 018)",
+    "vitest_r1": "967 passed (967)",
+    "vitest_r2": "967 passed (967), con los cambios"
   },
-  "executed_tonight": [
-    "AUTO-AI-01/03/04", "AUTO-GEN-01/02/04/05/06/07", "AUTO-TUT-01 (libre PASS; contextual honest reject diagnosticado)",
-    "AUTO-MSG-02 (parcial 1/3 sin duplicados)", "AUTO-MSG-04", "AUTO-PORT-02/04 (descarga real abierta y verificada)",
-    "AUTO-SW-03 (perfil nuevo sin SW)", "AUTO-VIS-03 (teclado real)", "AUTO-REG-03 (caducidad JWT en vivo)",
-    "TECH-PYTEST-FULL", "TECH-VITEST-FULL", "TECH-PROVIDER-RECONCILIATION", "TECH-CATALOG-HOOK (FAIL de arnes)"
+  "defects": {
+    "SLM-AUTO-016": "REPARADO EN TESTS",
+    "SLM-AUTO-017": "OPEN",
+    "SLM-AUTO-018": "PARCIALMENTE RESUELTO (resto: grading-1000 y modelo sustituto)",
+    "SLM-AUTO-019": "REPARADO EN EL ARNES",
+    "SLM-AUTO-020": "NEEDS_REPRO"
+  },
+  "fix_exception_used": true,
+  "fix_exception_detail": "Tres cambios minimos autorizados por el propietario con prueba previa y regresion: tope tutor, tests Madrid, hook de captura. Nada mas.",
+  "human_only_remainder": [
+    "AUTO-BOOT-01/05/06, LIFE-01, TECH-SETUP-INSTALL (instalacion/destino del propietario)",
+    "VIS-06 pasada acustica con Narrator (~5 min)",
+    "VIS-04 clic de menu 100/200/400% (~5 min)",
+    "LEARN-03 practicas con material de ejercicio asignado (cubierto en run 002)",
+    "Decision pendiente: presupuesto de grade_answer (1000) y default UTC global"
   ],
-  "defects_open": ["SLM-AUTO-016", "SLM-AUTO-017", "SLM-AUTO-018", "SLM-AUTO-019", "SLM-AUTO-020 (NEEDS_REPRO)"],
-  "fix_exception_used": false,
-  "blockers": [
-    { "id": "BLK-LEGACY-SW", "detail": "Sin fixture legacy autorizada; AUTO-SW-01/02 BLOCKED." },
-    { "id": "BLK-LECTOR", "detail": "Sin canal autorizado de lector de pantalla; AUTO-VIS-06." },
-    { "id": "BLK-ZOOM-NATIVO", "detail": "Sin menu nativo de zoom por canal automatizado; AUTO-VIS-04 PARTIAL." },
-    { "id": "BLK-INSTALL-DESTINATION", "detail": "Instalacion del propietario conservada; AUTO-BOOT-01/05/06, LIFE-01, TECH-SETUP-INSTALL BLOCKED." }
-  ],
-  "next_action": "1) Arnes: SLM-AUTO-017 y SLM-AUTO-019 con prueba fallida primero. 2) Decisiones de producto: SLM-AUTO-016 (base de fechas del objetivo diario) y SLM-AUTO-018 (modelo local o limite de tutor). 3) Repetir SLM-AUTO-020. 4) Cerrar NOT_RUN por tiempo (lista en SUMMARY.md).",
+  "next_action": "Commit + push de los cambios y la evidencia; detener solo recursos propios.",
   "own_resources_open": [
-    "fixture server 127.0.0.1:8092 (detener por PID verificado)",
-    "Chrome headless aislado puerto 9223 (detener)",
-    "estado sintetico %TEMP%\\opencode\\slm-auto-2026-10-12-001-r2 (desechable)"
+    "fixture servers 8092 (r4), 8093 (sw), 8094 (r6) - detener por PID verificado",
+    "Chrome headless aislados 9223/9224 - detener",
+    "estados sinteticos en %TEMP%\\opencode (desechables, conservados como evidencia)"
   ],
   "credentials_note": "Ninguna credencial en artefactos; fixture.json solo local, nunca publicado.",
-  "repo_state": "sin cambios de producto; solo implementation_documents/auto_testing_2026-10-12-001/** y DEFECTS.md"
+  "repo_state": "6 ficheros modificados (1 producto + 4 tests + 1 arnes) + 1 test nuevo + run dir auto_testing_2026-10-12-001 + DEFECTS.md raiz"
 }

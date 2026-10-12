@@ -1,0 +1,43 @@
+Config file C:\Users\dhays\AppData\Local\Temp\opencode\slm-auto-2026-10-12-001-r4\env.properties not found, using defaults
+2026-10-12 08:20:11,490 - src.core.services.settings_config_service - INFO - Configuration loaded from C:\Users\dhays\AppData\Local\Temp\opencode\slm-auto-2026-10-12-001-r4\env.properties
+2026-10-12 08:20:46,045 - src.api.dependencies - INFO - Providing tutoring for user 2
+2026-10-12 08:22:16,061 - src.api.dependencies - ERROR - AI call failed; type=ReadError
+2026-10-12 08:22:32,828 - src.api.dependencies - INFO - Providing tutoring for user 2
+2026-10-12 08:24:02,834 - src.api.dependencies - ERROR - AI call failed; type=ReadError
+2026-10-12 08:26:21,569 - src.api.dependencies - INFO - Providing tutoring for user 2
+2026-10-12 08:27:43,041 - httpx - INFO - HTTP Request: POST http://127.0.0.1:1234/v1/chat/completions "HTTP/1.1 200 OK"
+2026-10-12 08:27:43,044 - src.api.dependencies - INFO - AI call completed in 81.47s, 1775 tokens used
+2026-10-12 08:27:43,044 - src.api.dependencies - INFO - Successfully provided tutoring response
+2026-10-12 08:41:42,102 - src.api.dependencies - INFO - Generating course outline for Matematicas
+2026-10-12 08:43:14,616 - httpx - INFO - HTTP Request: POST http://127.0.0.1:1234/v1/chat/completions "HTTP/1.1 200 OK"
+2026-10-12 08:43:14,620 - src.api.dependencies - INFO - AI call completed in 92.52s, 1324 tokens used
+2026-10-12 08:43:22,194 - src.api.dependencies - INFO - Generating lesson for topic: Sumas y Restas con Números Enteros (Grade Adultos iniciacion)
+2026-10-12 08:48:22,198 - src.api.dependencies - ERROR - AI call failed; type=ReadTimeout
+2026-10-12 08:48:22,205 - src.api.dependencies - INFO - Generating medium multiple_choice exercise for Sumas y Restas con Números Enteros
+2026-10-12 08:50:48,390 - httpx - INFO - HTTP Request: POST http://127.0.0.1:1234/v1/chat/completions "HTTP/1.1 200 OK"
+2026-10-12 08:50:48,394 - src.api.dependencies - INFO - AI call completed in 146.19s, 2041 tokens used
+<unknown>:2: SyntaxWarning: "\$" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\$"? A raw string is also an option.
+<unknown>:6: SyntaxWarning: "\$" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\$"? A raw string is also an option.
+<unknown>:7: SyntaxWarning: "\$" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\$"? A raw string is also an option.
+<unknown>:8: SyntaxWarning: "\$" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\$"? A raw string is also an option.
+<unknown>:9: SyntaxWarning: "\$" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\$"? A raw string is also an option.
+<unknown>:11: SyntaxWarning: "\$" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\$"? A raw string is also an option.
+<unknown>:12: SyntaxWarning: "\$" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\$"? A raw string is also an option.
+<unknown>:15: SyntaxWarning: "\$" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\$"? A raw string is also an option.
+<unknown>:16: SyntaxWarning: "\$" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\$"? A raw string is also an option.
+2026-10-12 08:50:48,398 - src.api.dependencies - INFO - Successfully generated exercise for Sumas y Restas con Números Enteros
+2026-10-12 08:54:49,159 - src.api.dependencies - INFO - Generating lesson for topic: Sumas y Restas con Números Enteros (Grade Adultos iniciacion)
+2026-10-12 08:58:10,467 - httpx - INFO - HTTP Request: POST http://127.0.0.1:1234/v1/chat/completions "HTTP/1.1 200 OK"
+2026-10-12 08:58:10,471 - src.api.dependencies - INFO - AI call completed in 201.31s, 3263 tokens used
+<unknown>:14: SyntaxWarning: "\$" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\$"? A raw string is also an option.
+<unknown>:33: SyntaxWarning: "\$" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\$"? A raw string is also an option.
+<unknown>:35: SyntaxWarning: "\$" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\$"? A raw string is also an option.
+2026-10-12 08:58:10,474 - src.api.dependencies - INFO - Successfully generated lesson for Sumas y Restas con Números Enteros
+2026-10-12 08:58:10,516 - src.api.dependencies - INFO - Generating lesson for topic: Multiplicación y Tablas Básicas (Grade Adultos iniciacion)
+2026-10-12 09:01:38,059 - httpx - INFO - HTTP Request: POST http://127.0.0.1:1234/v1/chat/completions "HTTP/1.1 200 OK"
+2026-10-12 09:01:38,063 - src.api.dependencies - INFO - AI call completed in 207.55s, 3271 tokens used
+2026-10-12 09:01:38,063 - src.api.dependencies - INFO - Successfully generated lesson for Multiplicación y Tablas Básicas
+2026-10-12 09:01:38,078 - src.api.dependencies - INFO - Generating medium multiple_choice exercise for Multiplicación y Tablas Básicas
+2026-10-12 09:03:11,457 - httpx - INFO - HTTP Request: POST http://127.0.0.1:1234/v1/chat/completions "HTTP/1.1 200 OK"
+2026-10-12 09:03:11,461 - src.api.dependencies - INFO - AI call completed in 93.38s, 1423 tokens used
+2026-10-12 09:03:11,461 - src.api.dependencies - INFO - Successfully generated exercise for Multiplicación y Tablas Básicas

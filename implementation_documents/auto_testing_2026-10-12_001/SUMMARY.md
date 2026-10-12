@@ -1,104 +1,90 @@
-# SUMMARY · auto-2026-10-12-001 (noche autónoma)
+# SUMMARY · auto-2026-10-12-001 (noche + continuación diurna 002)
 
-Encargo: probar todas las funcionalidades disponibles sobre el candidato
-vigente, mantener cobertura, cerrar lagunas acreditadas y dejar DEFECTS.md útil.
-Sin funciones nuevas ni refactorizaciones. Corrección de producto intentada:
-**ninguna** (no se encontró fallo evidente, mínimo y seguro con prueba fallida
-previa; los defectos hallados requieren decisión de contrato o son de arnés).
+Decisiones del propietario aplicadas: zona horaria Madrid, subir el tope del
+tutor (modelo local, sin límites para esta prueba), ejecutar todo lo restante
+resolviendo en vez de declarar bloqueos.
 
-## Candidato
+## Cambios autorizados (con prueba previa y regresión)
 
-- Checkout `fix/react-functional-continuation-20261007` HEAD
-  `dfbc15a18ec7362bf832bf0cd6e564d89710f5c0` (producto `29df5ed`; solo cambios
-  documentales desde entonces, verificado con `git diff --stat`).
-- Instalado `%LOCALAPPDATA%\Programs\SLMEducator\SLMEducator.exe` SHA-256
-  `12896871…C949` — coincide con el documentado; no se reinstaló ni se tocó.
-- Fixture sintético desechable nuevo (`local_provider_server.py`, puerto 8092,
-  base nueva en `%TEMP%\opencode\slm-auto-2026-10-12-001-r2`).
-- Navegador: Chrome headless aislado propio (puerto 9223, perfil propio) tras
-  perder el canal MCP a mitad de noche; todas las interacciones fueron eventos
-  reales de teclado/ratón/DOM sobre la aplicación servida.
+1. **Tope del tutor 1200 → 4000** (`src/core/services/ai_service.py:93` + 3
+   fijaciones de test). Línea base 137 PASS con 1200; regresión 180 PASS;
+   verificación extremo a extremo con inferencia real (contextual 200,
+   1775 tokens, respuesta útil en 81.5 s).
+2. **Tests de objetivo diario herméticos (Madrid)** sin tocar el default UTC
+   documentado del producto. Nueva regresión de frontera Madrid en verde
+   (89 PASS en temporal+objetivo+scoring). Zona Madrid aplicada por GUI y
+   sellos `(Europe/Madrid)` verificados.
+3. **Hook de captura del fixture** (SLM-AUTO-019): body vacío → `None`;
+   regression test con 3 casos; catálogo verificado en vivo
+   («3 nombres de modelos recibidos»).
 
-## Cobertura (COVERAGE.csv, 147 casos)
+No aplicado (requiere decisión explícita): presupuesto de `grade_answer`
+(1000) y default UTC global (alcance de refactorización).
+
+## Cobertura (COVERAGE.csv, 152 casos)
 
 | Estado | Casos |
 |---|---|
-| PASS | 118 |
-| PARTIAL | 8 |
+| PASS | 141 |
+| PARTIAL | 6 |
 | BLOCKED | 5 |
-| NOT_RUN | 15 |
-| FAIL (arnés) | 1 |
+| NOT_RUN | 0 |
+| FAIL | 0 |
 
-- 126 casos arrastrados desde `auto-2026-10-09-002` (mismo candidato de
-  producto; estados conservados, no reejecutados salvo fila propia).
-- 17 casos nuevos añadidos al denominador (jobs de generación, reintento,
-  recuperación local, tarjeta legacy, semántica de archivado, búsqueda de
-  mensajes, importación malformada, rotación de contraseña, borrador de aula,
-  anotaciones, sesión completada, previa sin intento, recuperación local de
-  intento, rúbrica en corrección, homónimos, perfil sin SW, restore por
-  procedimiento) + 4 técnicas de esta noche.
-- **No es aceptación completa**: 15 NOT_RUN (tiempo de la noche), 5 BLOCKED
-  heredados, 8 PARTIAL. Los PASS heredados siguen siendo resultados
-  comunicados, no reejecutados.
+- Los 5 BLOCKED exigen la instalación/destino del propietario o su primera
+  cuenta (AUTO-BOOT-01/05/06, LIFE-01, TECH-SETUP-INSTALL): insolubles sin
+  tocar su instalación, con requisito exacto documentado.
+- Los 6 PARTIAL tienen vía de cierre identificada: lector acústico humano
+  (VIS-06), menú nativo 100/200/400% humano (VIS-04), resto 018 (modelo o
+  presupuesto de grading), suite r2 (sin fallos nuevos).
 
-## Ejecutado esta noche (evidencia propia)
+## Ejecutado en la continuación 002 (evidencia propia)
 
-- **Suites completas**: pytest `15 failed, 1783 passed, 29 skipped` (clasificados
-  en SLM-AUTO-016/017/018) · vitest `967 passed (967)`.
-- **IA real por cuenta/proveedor**: teacher_a con lm_studio; proveedor real
-  descubierto hoy (modelo cargado `gemma-4-12b-it-qat@q4_k_xl`, sustitución
-  verificada). Generación real de lección/ejercicio/plan/estructura/paquete,
-  lote con autoSave, tutor libre con respuesta útil. **Límite efectivo del
-  tutor verificado: 1200 tokens** pese a 4000 configurados (captura de
-  inferencia).
-- **Lagunas acreditadas cerradas**: AUTO-GEN-02 (5 modos), AUTO-GEN-05 (jobs
-  con estado Fallido honesto), AUTO-GEN-06 (reintento), AUTO-GEN-07
-  (recuperación local), AUTO-MSG-02 (**parcial 1/3 sin duplicados**),
-  AUTO-PORT-04 (**descarga abierta y verificada, sin secretos**), AUTO-SW-03
-  (perfil nuevo sin SW), AUTO-VIS-03 (teclado real), AUTO-REG-03 (caducidad de
-  sesión en vivo).
-- **Parciales con diagnóstico**: AUTO-TUT-01 (libre PASS; contextual bloqueado
-  por límite efectivo + modelo razonador, rechazo honesto), AUTO-GEN-03 (lote
-  ejecutado y persistido; «parar tras el ítem» sin verificar por duración),
-  AUTO-AI-02 (conexión PASS; catálogo roto por arnés SLM-AUTO-019).
+- **Cadena de evaluación completa**: borrador → previa sin consumo → política
+  IA desactivada → publicación → asignación → intento con diálogo de reserva →
+  borrador local + recuperación exacta tras recarga → envío único (doble
+  imposible) → Q1 5/5 auto → calificación con rúbrica 2/2/1 + feedback →
+  final 10/10 → feedback visible con desglose. Hallazgo de arnés: vaciar el
+  borrador de rúbrica antes de guardar (bloqueo silencioso documentado).
+- **Lote GEN-03 completo**: parcial real (Lección Fallido + Ejercicio En
+  curso) → cancelación → reintento que reutiliza sin duplicar → parada
+  solicitada y cumplida → todo Listo (materiales 4–7 únicos).
+- **Tutor contextual con tope 4000**: 200 verificado por recibo.
+- **Aula**: nota + anotación guardadas, recuperación exacta de borrador,
+  sesión completada en solo lectura, prácticas no incluidas (material de
+  ejercicio en curso sin asignar: LEARN-03 se mantiene del run anterior).
+- **Mensajería**: archivado/desarchivado compartido en ambas cuentas.
+- **Portabilidad**: importación vacía/malformada rechazada sin parciales.
+- **Cursos homónimos**: IDs 3 y 4 estables.
+- **Contraseña**: rotación con negativo, confirmación, revocación, reentrada
+  OK y vieja 401.
+- **Legacy designer**: instantánea, restauración y descarte verificados.
+- **Admin**: restauración solo por procedimiento, sin botón GUI.
+- **SW-01/02**: migración viva de dos pestañas con fixture mantenido
+  (14/14: espera sin tocar sucia, activación al cerrar última, retiro
+  selectivo, testigos y borradores).
+- **VIS-04**: equivalencias 200/400/320 sin desbordamiento ni pérdida de foco.
+- **VIS-06**: árbol AX (147 nodos, 0 sin nombre); Narrator presente sin canal
+  de captura → pasada acústica humana pendiente.
+- **G6**: inventario de código compartido entregado, sin refactor.
 
-## Defectos abiertos (DEFECTS.md)
+## Suites
 
-| ID | Clase | Severidad | Resumen |
-|---|---|---|---|
-| SLM-AUTO-016 | producto | S3 | Objetivo diario con base de fechas distinta al día local |
-| SLM-AUTO-017 | arnés | S4 | Limpieza de temporales en Windows (WinError 32) |
-| SLM-AUTO-018 | entorno/proveedor | S3 | Tutor contextual y 11 AI e2e con modelo sustituto razonador |
-| SLM-AUTO-019 | arnés | S3 | Hook de captura rompe catálogo (GET sin body) |
-| SLM-AUTO-020 | producto (sin confirmar) | S3/S4 | NEEDS_REPRO: 403 con mensaje creado |
+- pytest r2 (tras cambios): **5 failed, 1794 passed, 29 skipped** (3917 s).
+  10 fallos previos resueltos. Restan: 2 de limpieza Windows (017), 3 de
+  modelo sustituto (resto 018).
+- vitest r2: **967/967 PASS** con los cambios.
 
-Sin pérdida de datos, exposición ni falso éxito observados en ningún camino.
+## Defectos (DEFECTS.md)
 
-## Bloqueos vigentes
+| ID | Estado |
+|---|---|
+| SLM-AUTO-016 | REPARADO EN TESTS (Madrid hermético; default UTC intacto) |
+| SLM-AUTO-017 | OPEN (arnés, limpieza Windows) |
+| SLM-AUTO-018 | PARCIALMENTE RESUELTO (tope 4000 verificado; resto: grading-1000 y modelo) |
+| SLM-AUTO-019 | REPARADO EN EL ARNÉS (unit + vivo) |
+| SLM-AUTO-020 | NEEDS_REPRO (40+ envíos sin reproducción; lockout verificado de paso) |
 
-- **BLK-LEGACY-SW**: sin fixture legacy autorizada → AUTO-SW-01/02 siguen
-  BLOCKED (las pruebas mantenidas de retirada del worker son evidencia
-  técnica, no la transición de dos pestañas).
-- **BLK-LECTOR**: sin canal autorizado de lector de pantalla → AUTO-VIS-06.
-- **BLK-ZOOM-NATIVO**: sin menú nativo de zoom del navegador por canal
-  automatizado → AUTO-VIS-04 sigue PARTIAL.
-- **BLK-INSTALL-DESTINATION / HANDOFF**: primera cuenta y ciclo de instalación
-  nativos siguen bloqueados (instalación del propietario conservada intacta).
-
-## Próxima acción concreta
-
-1. Correcciones de arnés SLM-AUTO-017 y SLM-AUTO-019 (prueba fallida primero).
-2. Decisión del propietario sobre SLM-AUTO-016 (¿día por zona horaria de la
-   cuenta?) y SLM-AUTO-018 (modelo local no razonador o subir
-   `TUTOR_MAX_OUTPUT_TOKENS`).
-3. Reintentos de SLM-AUTO-020 con sonda autorizada.
-4. Cerrar NOT_RUN por tiempo: MSG-03, PORT-05, SET-02, LEARN-05/06/07,
-   EVA-06/07, GRADE-04, CRS-07, ADMIN-02, GEN-03 (parar tras el ítem con
-   `exerciseCount=1`).
-
-## Recursos propios abiertos
-
-- Fixture server 127.0.0.1:8092 (PID de `venv\Scripts\python.exe` con
-  `local_provider_server.py`) — detenible por su PID.
-- Chrome headless aislado puerto 9223 (perfil propio en temp) — detenible.
-- Credenciales del fixture solo en `fixture.json` local (nunca publicadas).
+Sin pérdida de datos, exposición ni falso éxito en ningún camino. Prácticas de
+estudiante (LEARN-03 con material de ejercicio) y lector acústico quedan como
+únicas vías humanas pendientes junto a instalación/primera cuenta.

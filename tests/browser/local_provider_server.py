@@ -17,6 +17,27 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 
+def decode_captured_request(request):
+    """Decode a captured provider request body without failing on empty ones.
+
+    Catalog-style GET requests carry no body; ``json.loads(b"")`` would raise
+    inside the capture hook and turn the product's correct 200 into a 500
+    (SLM-AUTO-019). An empty body is recorded as ``None``.
+    """
+    raw = request.content
+    if not raw:
+        return None
+    return json.loads(raw)
+
+
+def append_captured_record(target, response):
+    """Append one inference record; never fail on bodyless requests."""
+    record = {"request": decode_captured_request(response.request),
+              "response": response.json(), "status": response.status_code}
+    with target.open("a", encoding="utf-8") as output:
+        output.write(json.dumps(record, ensure_ascii=False) + "\n")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--state-dir", required=True, type=Path)
@@ -60,10 +81,7 @@ def main() -> None:
             response.read()
             if response.request.url.host != "127.0.0.1" or response.request.url.port != 1234:
                 return
-            record = {"request": json.loads(response.request.content),
-                      "response": response.json(), "status": response.status_code}
-            with (directory / "inference.jsonl").open("a", encoding="utf-8") as output:
-                output.write(json.dumps(record, ensure_ascii=False) + "\n")
+            append_captured_record(directory / "inference.jsonl", response)
 
         service._client.event_hooks["response"].append(capture)
 

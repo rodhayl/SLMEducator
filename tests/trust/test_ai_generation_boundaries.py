@@ -303,7 +303,7 @@ def test_tutor_context_reports_omissions_and_bounds_history(generation_service):
     assert "history-02" in prompt and "history-11" in prompt
     assert "Learning Objectives: Identify, Explain" in prompt
     assert "Use short sentences." in prompt
-    assert request_body(service)["options"]["num_predict"] == 1200
+    assert request_body(service)["options"]["num_predict"] == 4000
 
 
 @pytest.mark.parametrize(

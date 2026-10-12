@@ -14,10 +14,10 @@ Estado de los IDs históricos al cierre de la campaña **auto-2026-10-12-001**
 | SLM-AUTO-005 | ABIERTO como límite de presupuesto (reproducido honestamente 10-12) | producto/entorno | S3 | `finish=length` con 0 contenido; el producto rechaza sin éxito falso | auto_testing_2026-10-12_001 |
 | SLM-AUTO-014 | REPAIRED en 29df5ed (39 tests GREEN) | producto/tests | S4 | `read_text` sin encoding en tests | auto_testing_2026-10-09_002 |
 | SLM-AUTO-015 | REPAIRED en 29df5ed (bytes `c3 b3` verificados) | producto/scripts | S3 | Mojibake en `seed_pilot` | auto_testing_2026-10-09_002 |
-| **SLM-AUTO-016** | **OPEN** | producto | **S3** | El objetivo diario usa una base de fechas distinta al día local del usuario (cruce de medianoche) | auto_testing_2026-10-12_001 |
+| **SLM-AUTO-016** | **REPARADO EN TESTS 2026-10-12** | tests | — | Tests herméticos con zona Madrid explícita + regresión de frontera; default UTC documentado intacto | auto_testing_2026-10-12_001 |
 | **SLM-AUTO-017** | **OPEN** | arnés | **S4** | `test_pytest_database_isolation` falla al limpiar temporales en Windows (WinError 32) | auto_testing_2026-10-12_001 |
-| **SLM-AUTO-018** | **OPEN** | entorno/proveedor | **S3** | Tutor contextual y 11 AI e2e no completan con el modelo local sustituto (razonador); producto honesto | auto_testing_2026-10-12_001 |
-| **SLM-AUTO-019** | **OPEN** | arnés | **S3** | El hook de captura del fixture rompe el catálogo (`json.loads` sobre GET sin body) → 500; evidencia histórica del catálogo a revisar | auto_testing_2026-10-12_001 |
+| **SLM-AUTO-018** | **PARCIALMENTE RESUELTO 2026-10-12** | entorno/proveedor | **S3** | Tope del tutor 1200→4000 verificado extremo a extremo; resto: presupuesto de grading (1000) y modelo sustituto | auto_testing_2026-10-12_001 |
+| **SLM-AUTO-019** | **REPARADO EN EL ARNÉS 2026-10-12** | arnés | — | Hook de captura + regression test + catálogo verificado en vivo | auto_testing_2026-10-12_001 |
 | **SLM-AUTO-020** | **NEEDS_REPRO** | producto (sin confirmar) | S3/S4 | 403 en envío de mensaje con el mensaje creado; 0/28 reproducciones posteriores | auto_testing_2026-10-12_001 |
 
 ## Orden sugerido de reparación

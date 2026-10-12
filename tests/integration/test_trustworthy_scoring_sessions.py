@@ -1,6 +1,7 @@
 """Synthetic regressions for attempt, grading and session trust boundaries."""
 
 from datetime import date, datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 from types import SimpleNamespace
 from unittest.mock import Mock
 
@@ -249,7 +250,12 @@ def test_timed_attempt_contract_and_late_work_preservation(world):
 
 def test_session_start_end_restore_and_rewards_are_idempotent(world):
     world.user = world.learner
-    goal = DailyGoal(user_id=world.learner.id, goal_date=date.today(), goal_type="lessons", target_value=3, current_value=0)
+    # The product resolves the goal day under the user's explicit zone, so the
+    # test supplies Europe/Madrid and seeds the goal on Madrid's date instead
+    # of the host's date (which may already differ from UTC near midnight).
+    world.learner.settings = {"timezone": "Europe/Madrid"}
+    madrid_today = datetime.now(timezone.utc).astimezone(ZoneInfo("Europe/Madrid")).date()
+    goal = DailyGoal(user_id=world.learner.id, goal_date=madrid_today, goal_type="lessons", target_value=3, current_value=0)
     world.db.add(goal)
     world.db.commit()
     start = world.client.post("/api/learning/start", json={"content_id": world.content.id}).json()

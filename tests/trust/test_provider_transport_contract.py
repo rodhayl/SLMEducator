@@ -82,7 +82,7 @@ def test_adapters_deliver_configured_limits_and_report_real_usage(
 @pytest.mark.parametrize(
     "operation,configured,expected",
     [("lesson", 1000, 1000), ("lesson", 4000, 4000),
-     ("tutor", 1000, 1000), ("tutor", 4000, 1200)],
+     ("tutor", 1000, 1000), ("tutor", 4000, 4000)],
 )
 def test_operation_budget_is_enforced_at_provider_transport(
     provider_service, provider, operation, configured, expected

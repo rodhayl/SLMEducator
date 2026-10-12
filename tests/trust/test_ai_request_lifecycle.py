@@ -24,7 +24,7 @@ def identity():
 
 
 @pytest.mark.parametrize(
-    "configured,expected", [(None, 1200), (300, 300), (1000, 1000), (4000, 1200), (5000, 1200)]
+    "configured,expected", [(None, 4000), (300, 300), (1000, 1000), (4000, 4000), (5000, 4000)]
 )
 @pytest.mark.parametrize("route,field", [("chat", "message"), ("answer-question", "question")])
 def test_receipt_output_cap_matches_actual_transport(scenario, monkeypatch, configured, expected, route, field):

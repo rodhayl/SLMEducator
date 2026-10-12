@@ -57,3 +57,15 @@ Registro secuencial real de esta ejecución. Sin credenciales ni secretos.
   SLM-AUTO-018 AI e2e con modelo sustituto). vitest 967/967 PASS.
 - Documentación cerrada: COVERAGE (147 casos), DEFECTS (016–020), SUMMARY,
   RESUME, DEFECTS.md raíz. Commits normales en la rama de trabajo + push.
+- CONTINUACION 002 (diurna, decisiones del propietario: Madrid, tope tutor 4000, ejecutar todo lo restante).
+- Tope tutor 1200->4000 aplicado (constante + 3 pins); linea base 137 PASS, regresion 180 PASS; contextual verificado 200/1775 tokens/81.5s. Dos ReadError a 90 s tratados con honestidad.
+- Tests Madrid hermeticos + regresion de frontera en verde (89 PASS); default UTC intacto; zona aplicada por GUI con sellos Europe/Madrid.
+- GEN-03 completo: parcial real, cancelacion, reintento sin duplicar, parada cumplida (materiales 4-7 unicos).
+- Cadena de evaluacion completa GUI (borrador->previa->politica->publicacion->asignacion->intento->borrador local->envio unico->rubrica->10/10->feedback). Harness: vaciar borrador de rubrica antes de guardar.
+- Aula: nota, anotacion, recuperacion exacta, sesion completada solo-lectura. beforeunload bloquea (verificado); dialogo nativo resuelto por protocolo.
+- Homonimos IDs 3/4; import vacio/malformado rechazado; rotacion learner_b con revocacion y 401 a la vieja (cuenta bloqueada luego por sonda con credencial obsoleta: lockout OK).
+- Archivo/desarchivo compartido verificado en ambas cuentas. Legacy designer restaurado y descartado. Admin sin boton restore.
+- SW-01 migracion viva 14/14 con fixture mantenido; SW-02 retiro selectivo. Cliente CDP endurecido (tabs estables).
+- VIS-04 equivalencias 200/400/320 sin desbordamiento; VIS-06 AX 147 nodos 0 sin nombre, Narrator sin canal de captura.
+- SLM-AUTO-019 reparado (hook + test + vivo). SLM-AUTO-020 sin reproduccion en 40+; G6 inventariado.
+- pytest r2: 5 failed/1794 passed/29 skipped. vitest r2: 967/967.
