@@ -40,7 +40,11 @@
   },
   "provider_reconciliation": {
     "lm_studio": "http://127.0.0.1:1234",
-    "catalog_today": ["gemma-4-12b-it-qat@q4_k_xl (loaded)", "gemma-4-12b-it-qat@q4_0", "text-embedding-nomic-embed-text-v1.5"],
+    "catalog_today": [
+      "gemma-4-12b-it-qat@q4_k_xl (loaded)",
+      "gemma-4-12b-it-qat@q4_0",
+      "text-embedding-nomic-embed-text-v1.5"
+    ],
     "historical_model_absent": "slm-production-evaluation ya no existe en el catalogo",
     "substitution_verified": "LM Studio responde con el modelo cargado a cualquier nombre",
     "tutor_effective_limit_verified": 4000,
@@ -71,9 +75,7 @@
   ],
   "next_action": "Commit + push de los cambios y la evidencia; detener solo recursos propios.",
   "own_resources_open": [
-    "fixture servers 8092 (r4), 8093 (sw), 8094 (r6) - detener por PID verificado",
-    "Chrome headless aislados 9223/9224 - detener",
-    "estados sinteticos en %TEMP%\\opencode (desechables, conservados como evidencia)"
+    "none - fixture servers 8092/8093/8094 and isolated Chrome 9223/9224 stopped 2026-10-12"
   ],
   "credentials_note": "Ninguna credencial en artefactos; fixture.json solo local, nunca publicado.",
   "repo_state": "6 ficheros modificados (1 producto + 4 tests + 1 arnes) + 1 test nuevo + run dir auto_testing_2026-10-12-001 + DEFECTS.md raiz"
