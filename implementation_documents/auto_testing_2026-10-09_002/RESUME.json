@@ -228,5 +228,16 @@
     "ai_tests": "BLOCKED at collection: missing structlog; no dependency installations",
     "details": "FOCUSED_CHECKS_20261011.md",
     "native_gui": "NOT_RUN in this review"
+  },
+  "later_runs": {
+    "auto-2026-10-12-001": {
+      "when": "2026-10-12 (noche)",
+      "kind": "night autonomous run on the same product candidate (29df5ed product; dfbc15a docs-only head)",
+      "dir": "implementation_documents/auto_testing_2026-10-12_001",
+      "headline": "147 coverage rows (118 PASS / 8 PARTIAL / 5 BLOCKED / 15 NOT_RUN / 1 harness FAIL). Accredited gaps closed with new evidence: GEN-02 (five modes), GEN-05 (durable jobs incl. honest Fallido), GEN-06 (retry), GEN-07 (local recovery), MSG-02 (partial 1/3, no duplicates), PORT-04 (download really opened and verified), SW-03 (no SW in fresh profile), VIS-03 (real keyboard), REG-03 (live JWT expiry). Tutor effective limit 1200 verified against configured 4000. Full suites: pytest 15 failed classified (SLM-AUTO-016/017/018), vitest 967/967. New defects SLM-AUTO-016..020. No product fix attempted (fix exception unused).",
+      "candidate_note": "Installed EXE SHA 12896871 re-verified identical; disposable synthetic fixture on port 8092",
+      "provider_note": "LM Studio catalog today no longer contains slm-production-evaluation; the loaded model gemma-4-12b-it-qat@q4_k_xl substitutes any requested model name (verified)",
+      "history_preserved": "Additive block only; every prior field in this file is unchanged."
+    }
   }
 }

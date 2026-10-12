@@ -1,0 +1,159 @@
+Config file C:\Users\dhays\AppData\Local\Temp\opencode\slm-auto-2026-10-12-001-r2\env.properties not found, using defaults
+2026-10-12 00:48:47,351 - src.core.services.settings_config_service - INFO - Configuration loaded from C:\Users\dhays\AppData\Local\Temp\opencode\slm-auto-2026-10-12-001-r2\env.properties
+2026-10-12 00:57:33,278 - httpx - INFO - HTTP Request: POST http://127.0.0.1:1234/v1/chat/completions "HTTP/1.1 200 OK"
+2026-10-12 00:57:33,283 - src.api.routes.settings - INFO - AI call completed in 12.27s, 147 tokens used
+2026-10-12 00:57:37,802 - httpx - INFO - HTTP Request: POST http://127.0.0.1:1234/v1/chat/completions "HTTP/1.1 200 OK"
+2026-10-12 00:57:37,806 - src.api.routes.settings - INFO - AI call completed in 4.43s, 73 tokens used
+2026-10-12 01:01:11,364 - httpx - INFO - HTTP Request: GET http://127.0.0.1:1234/v1/models "HTTP/1.1 200 OK"
+2026-10-12 01:01:11,366 - src.api.dependencies - ERROR - Failed to fetch LM Studio models: Expecting value: line 1 column 1 (char 0)
+2026-10-12 01:01:11,367 - src.api.dependencies - ERROR - Failed to fetch models for AIProvider.LM_STUDIO: LM Studio model fetching failed: Expecting value: line 1 column 1 (char 0)
+2026-10-12 01:03:18,599 - httpx - INFO - HTTP Request: GET http://127.0.0.1:1234/v1/models "HTTP/1.1 200 OK"
+2026-10-12 01:03:18,601 - src.api.dependencies - ERROR - Failed to fetch LM Studio models: Expecting value: line 1 column 1 (char 0)
+2026-10-12 01:03:18,601 - src.api.dependencies - ERROR - Failed to fetch models for AIProvider.LM_STUDIO: LM Studio model fetching failed: Expecting value: line 1 column 1 (char 0)
+2026-10-12 01:11:42,360 - src.api.dependencies - INFO - Generating lesson for topic: Fracciones equivalentes (Grade Adultos iniciación)
+2026-10-12 01:13:13,768 - httpx - INFO - HTTP Request: POST http://127.0.0.1:1234/v1/chat/completions "HTTP/1.1 200 OK"
+2026-10-12 01:13:13,774 - src.api.routes.generation - ERROR - generation_output_limit; type=AIOutputLimitError; trace=generate_lesson:163 > generate_lesson:526 > _call_ai:1074 > _call_lm_studio:1242 > require_complete_response:210
+2026-10-12 01:15:42,576 - src.api.dependencies - INFO - Generating lesson for topic: Fracciones equivalentes (Grade Adultos iniciación)
+2026-10-12 01:19:11,261 - httpx - INFO - HTTP Request: POST http://127.0.0.1:1234/v1/chat/completions "HTTP/1.1 200 OK"
+2026-10-12 01:19:11,263 - src.api.dependencies - INFO - AI call completed in 208.69s, 3175 tokens used
+2026-10-12 01:19:11,264 - src.api.dependencies - INFO - Successfully generated lesson for Fracciones equivalentes
+2026-10-12 01:20:21,828 - src.api.dependencies - INFO - Generating medium multiple_choice exercise for Fracciones equivalentes
+2026-10-12 01:22:20,923 - httpx - INFO - HTTP Request: POST http://127.0.0.1:1234/v1/chat/completions "HTTP/1.1 200 OK"
+2026-10-12 01:22:20,926 - src.api.dependencies - INFO - AI call completed in 119.10s, 1706 tokens used
+2026-10-12 01:22:20,927 - src.api.dependencies - INFO - Successfully generated exercise for Fracciones equivalentes
+2026-10-12 01:24:53,144 - src.api.dependencies - INFO - Generating study plan for Matemáticas (Grade Adultos iniciación)
+2026-10-12 01:26:26,860 - httpx - INFO - HTTP Request: POST http://127.0.0.1:1234/v1/chat/completions "HTTP/1.1 200 OK"
+2026-10-12 01:26:26,862 - src.api.dependencies - INFO - AI call completed in 93.72s, 1574 tokens used
+2026-10-12 01:26:26,863 - src.api.dependencies - INFO - Successfully generated study plan with 1 phases
+2026-10-12 01:35:01,977 - src.api.dependencies - INFO - Generating course outline for Matemáticas
+2026-10-12 01:36:25,338 - httpx - INFO - HTTP Request: POST http://127.0.0.1:1234/v1/chat/completions "HTTP/1.1 200 OK"
+2026-10-12 01:36:25,339 - src.api.dependencies - INFO - AI call completed in 83.36s, 1592 tokens used
+2026-10-12 01:37:38,347 - src.api.dependencies - INFO - Generating lesson for topic: Fracciones equivalentes (Grade Adultos iniciación)
+2026-10-12 01:40:34,373 - httpx - INFO - HTTP Request: POST http://127.0.0.1:1234/v1/chat/completions "HTTP/1.1 200 OK"
+2026-10-12 01:40:34,375 - src.api.dependencies - INFO - AI call completed in 176.03s, 3473 tokens used
+2026-10-12 01:40:34,375 - src.api.dependencies - INFO - Successfully generated lesson for Fracciones equivalentes
+2026-10-12 01:40:34,376 - src.api.dependencies - INFO - Generating medium multiple_choice exercise for Fracciones equivalentes
+2026-10-12 01:41:57,146 - httpx - INFO - HTTP Request: POST http://127.0.0.1:1234/v1/chat/completions "HTTP/1.1 200 OK"
+2026-10-12 01:41:57,148 - src.api.dependencies - INFO - AI call completed in 82.77s, 1455 tokens used
+2026-10-12 01:41:57,149 - src.api.dependencies - INFO - Successfully generated exercise for Fracciones equivalentes
+2026-10-12 01:58:13,058 - src.api.dependencies - INFO - Generating lesson for topic: Fracciones equivalentes (Grade Adultos iniciación)
+2026-10-12 02:00:28,937 - httpx - INFO - HTTP Request: POST http://127.0.0.1:1234/v1/chat/completions "HTTP/1.1 200 OK"
+2026-10-12 02:00:28,939 - src.api.dependencies - INFO - AI call completed in 135.88s, 2958 tokens used
+2026-10-12 02:00:28,940 - src.api.dependencies - INFO - Successfully generated lesson for Fracciones equivalentes
+2026-10-12 02:00:28,940 - src.api.dependencies - INFO - Generating medium multiple_choice exercise for Fracciones equivalentes
+2026-10-12 02:02:38,093 - httpx - INFO - HTTP Request: POST http://127.0.0.1:1234/v1/chat/completions "HTTP/1.1 200 OK"
+2026-10-12 02:23:20,669 - src.api.dependencies - INFO - Providing tutoring for user 2
+2026-10-12 02:24:28,050 - httpx - INFO - HTTP Request: POST http://127.0.0.1:1234/v1/chat/completions "HTTP/1.1 200 OK"
+2026-10-12 02:24:28,053 - src.api.dependencies - INFO - AI call completed in 67.38s, 1403 tokens used
+2026-10-12 02:24:28,053 - src.api.dependencies - INFO - Successfully provided tutoring response
+2026-10-12 02:47:30,842 - src.api.dependencies - INFO - Providing tutoring for user 2
+2026-10-12 02:48:54,024 - httpx - INFO - HTTP Request: POST http://127.0.0.1:1234/v1/chat/completions "HTTP/1.1 200 OK"
+2026-10-12 04:03:23,109 - src.api.dependencies - INFO - Generating course outline for Matematicas
+2026-10-12 04:04:54,917 - httpx - INFO - HTTP Request: POST http://127.0.0.1:1234/v1/chat/completions "HTTP/1.1 200 OK"
+2026-10-12 04:04:54,920 - src.api.dependencies - INFO - AI call completed in 91.81s, 1767 tokens used
+2026-10-12 04:20:21,177 - src.api.dependencies - INFO - Generating lesson for topic: Operaciones Básicas y Jerarquía (Grade Adultos iniciacion)
+2026-10-12 04:23:03,156 - httpx - INFO - HTTP Request: POST http://127.0.0.1:1234/v1/chat/completions "HTTP/1.1 200 OK"
+2026-10-12 04:23:03,157 - src.api.dependencies - INFO - AI call completed in 161.98s, 3432 tokens used
+2026-10-12 04:23:03,157 - src.api.dependencies - INFO - Successfully generated lesson for Operaciones Básicas y Jerarquía
+2026-10-12 04:23:03,168 - src.api.dependencies - INFO - Generating medium multiple_choice exercise for Operaciones Básicas y Jerarquía
+2026-10-12 04:25:06,029 - httpx - INFO - HTTP Request: POST http://127.0.0.1:1234/v1/chat/completions "HTTP/1.1 200 OK"
+2026-10-12 04:25:06,033 - src.api.dependencies - INFO - Generating medium true_false exercise for Operaciones Básicas y Jerarquía
+2026-10-12 04:26:10,022 - httpx - INFO - HTTP Request: POST http://127.0.0.1:1234/v1/chat/completions "HTTP/1.1 200 OK"
+2026-10-12 04:26:10,024 - src.api.dependencies - INFO - AI call completed in 63.99s, 1380 tokens used
+2026-10-12 04:26:10,024 - src.api.dependencies - INFO - Successfully generated exercise for Operaciones Básicas y Jerarquía
+2026-10-12 04:26:10,031 - src.api.dependencies - INFO - Generating medium short_answer exercise for Operaciones Básicas y Jerarquía
+2026-10-12 04:27:12,384 - httpx - INFO - HTTP Request: POST http://127.0.0.1:1234/v1/chat/completions "HTTP/1.1 200 OK"
+2026-10-12 04:27:12,386 - src.api.dependencies - INFO - AI call completed in 62.35s, 1351 tokens used
+2026-10-12 04:27:12,386 - src.api.dependencies - INFO - Successfully generated exercise for Operaciones Básicas y Jerarquía
+2026-10-12 04:27:12,392 - src.api.dependencies - INFO - Generating medium multiple_choice exercise for Operaciones Básicas y Jerarquía
+2026-10-12 04:29:15,535 - httpx - INFO - HTTP Request: POST http://127.0.0.1:1234/v1/chat/completions "HTTP/1.1 200 OK"
+2026-10-12 04:29:15,541 - src.api.dependencies - INFO - Generating 5 assessment questions for: Operaciones Básicas y Jerarquía
+2026-10-12 04:30:35,430 - httpx - INFO - HTTP Request: POST http://127.0.0.1:1234/v1/chat/completions "HTTP/1.1 200 OK"
+2026-10-12 04:30:35,432 - src.api.dependencies - INFO - AI call completed in 79.89s, 1703 tokens used
+2026-10-12 04:30:35,432 - src.api.dependencies - ERROR - Failed to generate questions for Operaciones Básicas y Jerarquía: 'list' object has no attribute 'get'
+2026-10-12 04:30:36,720 - src.api.dependencies - INFO - Generating medium multiple_choice exercise for Operaciones Básicas y Jerarquía
+2026-10-12 04:32:12,559 - httpx - INFO - HTTP Request: POST http://127.0.0.1:1234/v1/chat/completions "HTTP/1.1 200 OK"
+2026-10-12 04:32:12,560 - src.api.dependencies - INFO - AI call completed in 95.84s, 1898 tokens used
+2026-10-12 04:32:12,561 - src.api.dependencies - INFO - Successfully generated exercise for Operaciones Básicas y Jerarquía
+2026-10-12 04:32:12,572 - src.api.dependencies - INFO - Generating medium multiple_choice exercise for Operaciones Básicas y Jerarquía
+2026-10-12 04:33:47,479 - httpx - INFO - HTTP Request: POST http://127.0.0.1:1234/v1/chat/completions "HTTP/1.1 200 OK"
+2026-10-12 04:33:47,481 - src.api.dependencies - INFO - AI call completed in 94.91s, 1891 tokens used
+2026-10-12 04:33:47,481 - src.api.dependencies - INFO - Successfully generated exercise for Operaciones Básicas y Jerarquía
+2026-10-12 04:33:47,488 - src.api.dependencies - INFO - Generating 5 assessment questions for: Operaciones Básicas y Jerarquía
+2026-10-12 04:35:55,918 - httpx - INFO - HTTP Request: POST http://127.0.0.1:1234/v1/chat/completions "HTTP/1.1 200 OK"
+2026-10-12 04:35:55,919 - src.api.dependencies - INFO - AI call completed in 128.43s, 2479 tokens used
+<unknown>:37: SyntaxWarning: "\d" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\d"? A raw string is also an option.
+<unknown>:41: SyntaxWarning: "\d" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\d"? A raw string is also an option.
+2026-10-12 04:35:55,921 - src.api.dependencies - INFO - Successfully generated 5 questions for Operaciones Básicas y Jerarquía
+2026-10-12 04:35:55,953 - src.api.dependencies - INFO - Generating lesson for topic: Números Decimales y Fracciones (Grade Adultos iniciacion)
+2026-10-12 04:38:17,390 - httpx - INFO - HTTP Request: POST http://127.0.0.1:1234/v1/chat/completions "HTTP/1.1 200 OK"
+2026-10-12 04:38:17,392 - src.api.dependencies - INFO - AI call completed in 141.44s, 3124 tokens used
+2026-10-12 04:38:17,392 - src.api.dependencies - INFO - Successfully generated lesson for Números Decimales y Fracciones
+2026-10-12 04:38:17,399 - src.api.dependencies - INFO - Generating medium multiple_choice exercise for Números Decimales y Fracciones
+2026-10-12 04:39:43,386 - httpx - INFO - HTTP Request: POST http://127.0.0.1:1234/v1/chat/completions "HTTP/1.1 200 OK"
+2026-10-12 04:39:43,388 - src.api.dependencies - INFO - AI call completed in 85.99s, 1726 tokens used
+2026-10-12 04:39:43,388 - src.api.dependencies - INFO - Successfully generated exercise for Números Decimales y Fracciones
+2026-10-12 04:39:43,394 - src.api.dependencies - INFO - Generating medium true_false exercise for Números Decimales y Fracciones
+2026-10-12 04:41:00,187 - httpx - INFO - HTTP Request: POST http://127.0.0.1:1234/v1/chat/completions "HTTP/1.1 200 OK"
+2026-10-12 04:41:00,188 - src.api.dependencies - INFO - AI call completed in 76.79s, 1570 tokens used
+2026-10-12 04:41:00,188 - src.api.dependencies - INFO - Successfully generated exercise for Números Decimales y Fracciones
+2026-10-12 04:41:00,195 - src.api.dependencies - INFO - Generating medium short_answer exercise for Números Decimales y Fracciones
+2026-10-12 04:42:14,617 - httpx - INFO - HTTP Request: POST http://127.0.0.1:1234/v1/chat/completions "HTTP/1.1 200 OK"
+2026-10-12 04:42:14,619 - src.api.dependencies - INFO - AI call completed in 74.42s, 1539 tokens used
+2026-10-12 04:42:14,619 - src.api.dependencies - INFO - Successfully generated exercise for Números Decimales y Fracciones
+2026-10-12 04:42:14,626 - src.api.dependencies - INFO - Generating medium multiple_choice exercise for Números Decimales y Fracciones
+2026-10-12 04:43:41,614 - httpx - INFO - HTTP Request: POST http://127.0.0.1:1234/v1/chat/completions "HTTP/1.1 200 OK"
+2026-10-12 04:43:41,616 - src.api.dependencies - INFO - AI call completed in 86.99s, 1737 tokens used
+2026-10-12 04:43:41,616 - src.api.dependencies - INFO - Successfully generated exercise for Números Decimales y Fracciones
+2026-10-12 04:43:41,623 - src.api.dependencies - INFO - Generating 5 assessment questions for: Números Decimales y Fracciones
+2026-10-12 04:46:00,125 - httpx - INFO - HTTP Request: POST http://127.0.0.1:1234/v1/chat/completions "HTTP/1.1 200 OK"
+2026-10-12 04:46:00,127 - src.api.dependencies - INFO - AI call completed in 138.50s, 2626 tokens used
+2026-10-12 04:46:00,127 - src.api.dependencies - INFO - Successfully generated 5 questions for Números Decimales y Fracciones
+2026-10-12 04:46:00,155 - src.api.dependencies - INFO - Generating lesson for topic: Porcentajes y Descuentos (Grade Adultos iniciacion)
+2026-10-12 04:48:28,936 - httpx - INFO - HTTP Request: POST http://127.0.0.1:1234/v1/chat/completions "HTTP/1.1 200 OK"
+2026-10-12 04:48:28,937 - src.api.dependencies - INFO - AI call completed in 148.78s, 3236 tokens used
+2026-10-12 04:48:28,938 - src.api.dependencies - INFO - Successfully generated lesson for Porcentajes y Descuentos
+2026-10-12 04:48:28,944 - src.api.dependencies - INFO - Generating medium multiple_choice exercise for Porcentajes y Descuentos
+2026-10-12 04:49:38,481 - httpx - INFO - HTTP Request: POST http://127.0.0.1:1234/v1/chat/completions "HTTP/1.1 200 OK"
+2026-10-12 04:49:38,483 - src.api.dependencies - INFO - AI call completed in 69.54s, 1454 tokens used
+2026-10-12 04:49:38,483 - src.api.dependencies - INFO - Successfully generated exercise for Porcentajes y Descuentos
+2026-10-12 04:49:38,491 - src.api.dependencies - INFO - Generating medium true_false exercise for Porcentajes y Descuentos
+2026-10-12 04:50:56,940 - httpx - INFO - HTTP Request: POST http://127.0.0.1:1234/v1/chat/completions "HTTP/1.1 200 OK"
+2026-10-12 04:50:56,942 - src.api.dependencies - INFO - AI call completed in 78.45s, 1609 tokens used
+2026-10-12 04:50:56,942 - src.api.dependencies - INFO - Successfully generated exercise for Porcentajes y Descuentos
+2026-10-12 04:50:56,949 - src.api.dependencies - INFO - Generating medium short_answer exercise for Porcentajes y Descuentos
+2026-10-12 04:52:27,385 - httpx - INFO - HTTP Request: POST http://127.0.0.1:1234/v1/chat/completions "HTTP/1.1 200 OK"
+2026-10-12 04:52:27,387 - src.api.dependencies - INFO - AI call completed in 90.44s, 1794 tokens used
+2026-10-12 04:52:27,388 - src.api.dependencies - INFO - Successfully generated exercise for Porcentajes y Descuentos
+2026-10-12 04:52:27,409 - src.api.dependencies - INFO - Generating medium multiple_choice exercise for Porcentajes y Descuentos
+2026-10-12 04:53:50,910 - httpx - INFO - HTTP Request: POST http://127.0.0.1:1234/v1/chat/completions "HTTP/1.1 200 OK"
+2026-10-12 04:53:50,912 - src.api.dependencies - INFO - AI call completed in 83.50s, 1682 tokens used
+2026-10-12 04:53:50,912 - src.api.dependencies - INFO - Successfully generated exercise for Porcentajes y Descuentos
+2026-10-12 04:53:50,920 - src.api.dependencies - INFO - Generating 5 assessment questions for: Porcentajes y Descuentos
+2026-10-12 04:55:53,372 - httpx - INFO - HTTP Request: POST http://127.0.0.1:1234/v1/chat/completions "HTTP/1.1 200 OK"
+2026-10-12 04:55:53,374 - src.api.dependencies - INFO - AI call completed in 122.45s, 2371 tokens used
+2026-10-12 04:55:53,374 - src.api.dependencies - INFO - Successfully generated 5 questions for Porcentajes y Descuentos
+2026-10-12 04:55:53,405 - src.api.dependencies - INFO - Generating lesson for topic: Presupuesto y Manejo de Dinero (Grade Adultos iniciacion)
+2026-10-12 04:58:13,220 - httpx - INFO - HTTP Request: POST http://127.0.0.1:1234/v1/chat/completions "HTTP/1.1 200 OK"
+2026-10-12 04:58:13,222 - src.api.dependencies - INFO - AI call completed in 139.82s, 3094 tokens used
+2026-10-12 04:58:13,222 - src.api.dependencies - INFO - Successfully generated lesson for Presupuesto y Manejo de Dinero
+2026-10-12 04:58:13,229 - src.api.dependencies - INFO - Generating medium multiple_choice exercise for Presupuesto y Manejo de Dinero
+2026-10-12 04:59:42,021 - httpx - INFO - HTTP Request: POST http://127.0.0.1:1234/v1/chat/completions "HTTP/1.1 200 OK"
+2026-10-12 04:59:42,023 - src.api.dependencies - INFO - AI call completed in 88.79s, 1765 tokens used
+2026-10-12 04:59:42,023 - src.api.dependencies - INFO - Successfully generated exercise for Presupuesto y Manejo de Dinero
+2026-10-12 04:59:42,030 - src.api.dependencies - INFO - Generating medium true_false exercise for Presupuesto y Manejo de Dinero
+2026-10-12 05:00:52,122 - httpx - INFO - HTTP Request: POST http://127.0.0.1:1234/v1/chat/completions "HTTP/1.1 200 OK"
+2026-10-12 05:00:52,124 - src.api.dependencies - INFO - AI call completed in 70.09s, 1469 tokens used
+2026-10-12 05:00:52,125 - src.api.dependencies - INFO - Successfully generated exercise for Presupuesto y Manejo de Dinero
+2026-10-12 05:00:52,132 - src.api.dependencies - INFO - Generating medium short_answer exercise for Presupuesto y Manejo de Dinero
+2026-10-12 05:02:07,103 - httpx - INFO - HTTP Request: POST http://127.0.0.1:1234/v1/chat/completions "HTTP/1.1 200 OK"
+2026-10-12 05:02:07,105 - src.api.dependencies - INFO - AI call completed in 74.97s, 1557 tokens used
+2026-10-12 05:02:07,106 - src.api.dependencies - INFO - Successfully generated exercise for Presupuesto y Manejo de Dinero
+2026-10-12 05:02:07,112 - src.api.dependencies - INFO - Generating medium multiple_choice exercise for Presupuesto y Manejo de Dinero
+2026-10-12 05:03:28,536 - httpx - INFO - HTTP Request: POST http://127.0.0.1:1234/v1/chat/completions "HTTP/1.1 200 OK"
+2026-10-12 05:03:28,538 - src.api.dependencies - INFO - AI call completed in 81.43s, 1675 tokens used
+2026-10-12 05:03:28,538 - src.api.dependencies - INFO - Successfully generated exercise for Presupuesto y Manejo de Dinero
+2026-10-12 05:03:28,546 - src.api.dependencies - INFO - Generating 5 assessment questions for: Presupuesto y Manejo de Dinero
+2026-10-12 05:04:56,508 - httpx - INFO - HTTP Request: POST http://127.0.0.1:1234/v1/chat/completions "HTTP/1.1 200 OK"
+2026-10-12 05:04:56,510 - src.api.dependencies - INFO - AI call completed in 87.96s, 1851 tokens used
+2026-10-12 05:04:56,510 - src.api.dependencies - ERROR - Failed to generate questions for Presupuesto y Manejo de Dinero: 'list' object has no attribute 'get'

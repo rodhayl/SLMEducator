@@ -1,0 +1,71 @@
+{
+  "run_id": "auto-2026-10-12-001",
+  "campaign": "encargo del propietario 2026-10-12 (noche autonoma)",
+  "state": "night_run_completed_pending_owner_decisions",
+  "reviewed_at_utc": "2026-10-12T04:00:00Z",
+  "previous_runs": {
+    "auto-2026-10-09-002": {
+      "state": "partial_acceptance_evidence_reviewed",
+      "coverage_totals": { "rows": 126, "PASS": 109, "PARTIAL": 9, "BLOCKED": 5, "NOT_RUN": 3 },
+      "note": "Matriz corregida conservada; los PASS son resultados comunicados, no reejecucion independiente."
+    }
+  },
+  "candidate": {
+    "kind": "checkout-run + installed-exe-verified",
+    "branch": "fix/react-functional-continuation-20261007",
+    "head": "dfbc15a18ec7362bf832bf0cd6e564d89710f5c0",
+    "product_commit": "29df5ed6674f660f37337d8ea69616e31600a09f",
+    "installed_path": "C:\\Users\\dhays\\AppData\\Local\\Programs\\SLMEducator\\SLMEducator.exe",
+    "installed_sha256": "12896871AE081242211CE1D75D4C06137E657ECB46E71A1A64BFD4B0FD35C949",
+    "fixture": {
+      "server": "tests/browser/local_provider_server.py --port 8092",
+      "state_dir": "C:\\Users\\dhays\\AppData\\Local\\Temp\\opencode\\slm-auto-2026-10-12-001-r2",
+      "note": "sintetico desechable nuevo; credenciales solo en fixture.json local"
+    },
+    "browser": "Chrome headless aislado propio (CDP puerto 9223, perfil en temp)"
+  },
+  "coverage_totals": {
+    "rows": 147,
+    "PASS": 118,
+    "PARTIAL": 8,
+    "BLOCKED": 5,
+    "NOT_RUN": 15,
+    "FAIL": 1,
+    "fail_note": "TECH-CATALOG-HOOK-20261012 es defecto de arnes (SLM-AUTO-019), no de producto",
+    "interpretation": "126 casos arrastrados del run 002 (mismo producto) + 17 nuevos + 4 tecnicos de esta noche. No es aceptacion completa ni reejecucion independiente de los arrastrados."
+  },
+  "provider_reconciliation": {
+    "lm_studio": "http://127.0.0.1:1234",
+    "catalog_today": ["gemma-4-12b-it-qat@q4_k_xl (loaded)", "gemma-4-12b-it-qat@q4_0", "text-embedding-nomic-embed-text-v1.5"],
+    "historical_model_absent": "slm-production-evaluation ya no existe en el catalogo",
+    "substitution_verified": "LM Studio responde con el modelo cargado a cualquier nombre (probado con nombre inexistente)",
+    "tutor_effective_limit_verified": 1200,
+    "tutor_configured_limit": 4000
+  },
+  "suites": {
+    "pytest_full": "15 failed, 1783 passed, 29 skipped (3460.07s); clasificados SLM-AUTO-016/017/018",
+    "vitest_full": "967 passed (967), 53 files, 195.18s"
+  },
+  "executed_tonight": [
+    "AUTO-AI-01/03/04", "AUTO-GEN-01/02/04/05/06/07", "AUTO-TUT-01 (libre PASS; contextual honest reject diagnosticado)",
+    "AUTO-MSG-02 (parcial 1/3 sin duplicados)", "AUTO-MSG-04", "AUTO-PORT-02/04 (descarga real abierta y verificada)",
+    "AUTO-SW-03 (perfil nuevo sin SW)", "AUTO-VIS-03 (teclado real)", "AUTO-REG-03 (caducidad JWT en vivo)",
+    "TECH-PYTEST-FULL", "TECH-VITEST-FULL", "TECH-PROVIDER-RECONCILIATION", "TECH-CATALOG-HOOK (FAIL de arnes)"
+  ],
+  "defects_open": ["SLM-AUTO-016", "SLM-AUTO-017", "SLM-AUTO-018", "SLM-AUTO-019", "SLM-AUTO-020 (NEEDS_REPRO)"],
+  "fix_exception_used": false,
+  "blockers": [
+    { "id": "BLK-LEGACY-SW", "detail": "Sin fixture legacy autorizada; AUTO-SW-01/02 BLOCKED." },
+    { "id": "BLK-LECTOR", "detail": "Sin canal autorizado de lector de pantalla; AUTO-VIS-06." },
+    { "id": "BLK-ZOOM-NATIVO", "detail": "Sin menu nativo de zoom por canal automatizado; AUTO-VIS-04 PARTIAL." },
+    { "id": "BLK-INSTALL-DESTINATION", "detail": "Instalacion del propietario conservada; AUTO-BOOT-01/05/06, LIFE-01, TECH-SETUP-INSTALL BLOCKED." }
+  ],
+  "next_action": "1) Arnes: SLM-AUTO-017 y SLM-AUTO-019 con prueba fallida primero. 2) Decisiones de producto: SLM-AUTO-016 (base de fechas del objetivo diario) y SLM-AUTO-018 (modelo local o limite de tutor). 3) Repetir SLM-AUTO-020. 4) Cerrar NOT_RUN por tiempo (lista en SUMMARY.md).",
+  "own_resources_open": [
+    "fixture server 127.0.0.1:8092 (detener por PID verificado)",
+    "Chrome headless aislado puerto 9223 (detener)",
+    "estado sintetico %TEMP%\\opencode\\slm-auto-2026-10-12-001-r2 (desechable)"
+  ],
+  "credentials_note": "Ninguna credencial en artefactos; fixture.json solo local, nunca publicado.",
+  "repo_state": "sin cambios de producto; solo implementation_documents/auto_testing_2026-10-12-001/** y DEFECTS.md"
+}
