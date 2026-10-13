@@ -1082,4 +1082,30 @@ La reanudación requiere esta misma identidad y el siguiente subpaso guardado.
 
 Regla de evidencia actualizada 2026-10-08: no registrar valores de contraseña, anteriores o nuevos, válidos o inválidos, aunque sean sintéticos, en COVERAGE.csv, RESUME.json, informes, mensajes, comandos, logs o capturas. Registrar solo el caso, la validación y el resultado. Revisar texto e imágenes antes de publicar; una exposición previa requiere rotación privada por el propietario y no desaparece al redactar el archivo actual.
 
+## Pendientes de campaña 2026-10-13 (agregado, no altera A–F)
+
+Subcasos que la campaña automatizada de 2026-10-13 dejó pendientes de
+observación humana y que se cubren con los subpasos ya escritos arriba.
+Marcar cada uno por separado en el registro de sesión; ninguno queda acreditado
+por las pruebas automatizadas ni por las capturas del agente:
+
+- Narrador real (VIS-06): F.4.c exige pasar un lector de pantalla de verdad.
+  La campaña verificó atributos y foco por teclado, noNarrador. Falta: usarlo
+  y registrar lector/versión.
+- Clic físico del menú de zoom del navegador (literal de F.4.g, opcional):
+  la campaña verificó 200%/400%/reset con el atajo nativo (Ctrl+= / Ctrl+0),
+  que usa el mismo motor de zoom por origen del menú ⋮. Falta solo el clic
+  literal del control del menú, si se quiere el caso completo.
+- Botón «Abrir SLMEducator» del launcher (A.2.e, BOOT-02): la campaña comprobó
+  el arranque y la URL real del launcher, no ese botón. Falta: abrirlo una vez
+  y confirmar que abre la pestaña del origen correcto.
+- Arranque lento, arranque fallido, URL manual por teclado y DPI del launcher
+  (resto de BOOT-05): la campaña comprobó arranque en frío y reserva de puerto
+  (8000 ocupado → 8001). Quedan NOT RUN esas variantes; guiarlas dentro de A.5
+  si David elige ejecutarlas, sin tocar procesos ajenos.
+- Aceptación del candidato instalado de un recorrido de aprendizaje completo
+  (LEARN-03): el recorrido docente→alumna→tutor de la campaña se hizo sobre
+  fixture sintética, no sobre el candidato instalado por David. Ejecutar la
+  ruta básica A→B→D→E→F ya lo cubre; queda pendiente hasta esa sesión.
+
 FIN
