@@ -1,5 +1,8 @@
 {
   "baseline_commit": "ae42d5d6c46222ab5f318bfe97a6a843e8b94b08",
+  "intentional_overrides": {
+    "other_routes.topic": "teacher-reviewed-v13-review-prose-consistency: nested lesson embeds the shared source-review instructions; frozen lesson request and source-usage pairs remain unchanged"
+  },
   "lesson": {
     "instruction_or_revision/directive": {
       "user_prompt_sha256": "3fd56180a7aa399eee1a932c9528b23f78550bf03b5063b6c7fe730f688cb631",
@@ -53,7 +56,7 @@
   "other_routes": {
     "exercise": "d17bb85d4272ee9545156fb9e3dae8b0c4a56fa098cc4d927949db8d96847893",
     "assessment": "6681b98446e80381a4aec99dff61a861fda10aeb8b63638bea94b800dde6995f",
-    "topic": "3bd2380c455a5be829732b00d35c5c3b649b4eb90e77c628e41c543a6df3fb32",
+    "topic": "d0dc15b84c2be9eb55c8eb174b11b9fcda56fb019d07c9e692bc512b90918fec",
     "outline": "f6d31202ccbbffc3ecfe0c22bfaaa58b55972ea9c3e3403d86c41d86630647d7"
   }
 }

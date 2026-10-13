@@ -372,6 +372,36 @@
         ],
         "content": "Which corrected source confirms thirteen or nineteen?\n\nTwo records differ."
       }
+    },
+    {
+      "name": "punctuation-encoding-is-not-model-prose",
+      "input": {
+        "content": "The recorded counts disagree.",
+        "source_review": {
+          "status": "needs_clarification",
+          "issues": [
+            {
+              "kind": "conflicting",
+              "description": "The recorded counts disagree.",
+              "teacher_question": "Which record applies: A (12 tiles) or B (14 tiles)?"
+            }
+          ]
+        }
+      },
+      "learner_output": {
+        "content": "Which record applies&#58; A &#40;12 tiles&#41; or B &#40;14 tiles&#41;?\n\nThe recorded counts disagree.",
+        "sections": [
+          {
+            "source_clarification": true,
+            "content": "Which record applies&#58; A &#40;12 tiles&#41; or B &#40;14 tiles&#41;?"
+          },
+          {
+            "title": "",
+            "content": "The recorded counts disagree."
+          }
+        ]
+      },
+      "question": "Which record applies: A (12 tiles) or B (14 tiles)?"
     }
   ]
 }

@@ -62,6 +62,27 @@ def test_one_instruction_contract_covers_all_visible_claim_surfaces(service):
     assert 'Request evidence, not permission to guess' in prompt
 
 
+@pytest.mark.parametrize('operation', ['lesson', 'topic'])
+def test_source_review_requires_consistency_with_its_own_prose(service, operation):
+    source = 'Record A reports twelve tiles; record B reports fourteen for the same event.'
+    if operation == 'lesson':
+        service.generate_lesson('Tiles', 'adult beginner', ['Explain the record'],
+                                source_material=source)
+        instructions = service._call_ai.call_args.kwargs['system_prompt']
+    else:
+        service.generate_topic_content('Tiles', 'Tiles', 'adult beginner',
+                                       ['Explain the record'], content_types=['lesson'],
+                                       source_material=source)
+        instructions = service._call_ai.call_args.args[0]
+    instructions = ' '.join(instructions.split())
+    assert 'check that source_review agrees with the lesson\'s own claims' in instructions
+    assert 'no_issue_reported is inconsistent' in instructions
+    assert 'include a conflicting issue' in instructions
+    assert 'both values does not resolve the conflict or replace the teacher question' in instructions
+    # This only verifies instructions reaching the adapter, never model compliance.
+    assert service._call_ai.call_count == 1
+
+
 @pytest.mark.parametrize('operation', ['exercise', 'assessment', 'topic', 'outline'])
 def test_other_generation_requests_are_byte_identical(service, operation):
     source = 'An archive item has three marks.'

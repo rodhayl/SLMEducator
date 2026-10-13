@@ -1,0 +1,6 @@
+{
+  "synthetic_render_checks": 24,
+  "historical_development_clarification": "literal plaintext visible",
+  "renderer": "unchanged ContentRenderer.tsx safeContent",
+  "scope": "jsdom rendering only; no semantic re-score, native GUI or model inference"
+}

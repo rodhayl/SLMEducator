@@ -79,6 +79,22 @@ def test_without_source_keeps_legacy_contract(service):
     assert len(lesson["sections"]) == 1
 
 
+def test_clarification_entities_are_application_encoding_not_provider_prose(service):
+    question = 'Which record applies: A (12 tiles) or B (14 tiles)?'
+    review = {'status': 'needs_clarification', 'issues': [
+        {'kind': 'conflicting', 'description': 'Two counts for the same event.',
+         'teacher_question': question}]}
+    lesson = generate(service, review, body='The recorded counts disagree.')
+    assert lesson['source_review']['issues'][0]['teacher_question'] == question
+    section = lesson['sections'][0]
+    assert section['source_clarification'] is True
+    assert section['content'] == (
+        'Which record applies&#58; A &#40;12 tiles&#41; or B &#40;14 tiles&#41;?'
+    )
+    # Escaping is a renderer safety boundary. Raw JSON is not rendered readability.
+    assert lesson['sections'][1]['content'] == 'The recorded counts disagree.'
+
+
 def test_source_truth_and_instruction_boundaries_are_explicit(service):
     generate(service, {"status": "no_issue_reported", "issues": []})
     messages = service._client.post.call_args.kwargs["json"]["messages"]

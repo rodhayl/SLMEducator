@@ -13,7 +13,7 @@ PROMPT_VERSION = "teacher-reviewed-v9-explicit-source-concerns"
 # requests keep their existing version; historical generated items keep theirs.
 GENERATION_PROMPT_VERSION = "teacher-reviewed-v10-separated-lesson-request"
 # Only new lesson drafts use the consolidated instruction contract.
-LESSON_GENERATION_PROMPT_VERSION = "teacher-reviewed-v12-plain-text-conflicts-injection"
+LESSON_GENERATION_PROMPT_VERSION = "teacher-reviewed-v13-review-prose-consistency"
 SECTION_CHAR_LIMIT = 1800
 
 
