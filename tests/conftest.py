@@ -407,8 +407,25 @@ def pytest_configure(config):
     environment = pytest.MonkeyPatch()
     environment.setenv("SLM_DB_PATH", str(Path(directory.name) / "collection.sqlite3"))
     environment.setenv("SLM_LOG_DIR", str(Path(directory.name) / "logs"))
+
+    collection_log_dir = (Path(directory.name) / "logs").resolve()
+
+    def close_collection_log_handlers():
+        import logging
+
+        root_logger = logging.getLogger()
+        for handler in tuple(root_logger.handlers):
+            if not isinstance(handler, logging.FileHandler):
+                continue
+            if Path(handler.baseFilename).resolve().parent != collection_log_dir:
+                continue
+            root_logger.removeHandler(handler)
+            handler.close()
+
     config.add_cleanup(directory.cleanup)
     config.add_cleanup(environment.undo)
+    # Pytest cleanups run in reverse order: close collection log files before rmtree.
+    config.add_cleanup(close_collection_log_handlers)
     os.environ["TKINTER_HEADLESS"] = "true"
     # Register custom markers used across tests
     config.addinivalue_line(

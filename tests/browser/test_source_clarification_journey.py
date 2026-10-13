@@ -28,10 +28,7 @@ def save_and_reopen(page: Page, world: Any, lesson_id: int, question: str) -> No
     expect(page.get_by_role("article")).to_contain_text(question)
     page.goto(f"{world.base_url}/materiales/{lesson_id}/editar")
     texts = page.get_by_label(re.compile(r"^Section \d+ content$"))
-    assert any(
-        question in value
-        for value in texts.evaluate_all("nodes => nodes.map(node => node.value)")
-    )
+    expect(texts.first).to_have_value(question)
     with page.expect_response(
         lambda response: (
             response.url.endswith(f"/api/content/{lesson_id}")
@@ -41,6 +38,7 @@ def save_and_reopen(page: Page, world: Any, lesson_id: int, question: str) -> No
         page.get_by_role("button", name="Save draft", exact=True).click()
     assert saved.value.ok
     page.get_by_role("link", name="Read material", exact=True).click()
+    expect(page).to_have_url(f"{world.base_url}/materiales/{lesson_id}")
     page.reload()
     expect(page.get_by_role("article")).to_contain_text(question)
     screenshot(page, "source-clarification-saved-viewer.png")
