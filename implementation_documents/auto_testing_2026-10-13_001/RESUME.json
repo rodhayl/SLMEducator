@@ -6,18 +6,18 @@
   "candidate": {
     "branch": "fix/react-functional-continuation-20261007",
     "source_baseline": "9eeff276778667629eed1d0d9623b6c1ca3fe861",
-    "head": "97bdee6c8f7302877eaa905136768aeb0f55651b",
-    "upstream_head": "97bdee6c8f7302877eaa905136768aeb0f55651b",
-    "committed_tree": "289e34706d09876b071d6464dae2df9154e3c8a2",
-    "implementation_commit": "97bdee6c8f7302877eaa905136768aeb0f55651b",
-    "implementation_commit_scope": "Request only explanation while preserving legacy parser and teacher policy; fixes tutor response presentation ambiguity.",
-    "documentation_follow_up": "Records candidate 97bdee6 reconstruction, offline test verification (127 passed), and live Gemma 4 probe for the two-bullets case.",
+    "head": "a9793fe14969a61f60d4c133dc7aa2ee57a5e3bc",
+    "upstream_head": "a9793fe14969a61f60d4c133dc7aa2ee57a5e3bc",
+    "committed_tree": "9c56aa1a91bab0ed7fbf16d7bdab531e41f1df85",
+    "implementation_commit": "a9793fe14969a61f60d4c133dc7aa2ee57a5e3bc",
+    "implementation_commit_scope": "Restore prose list markers in base.css scoped to .prose ul (disc) and .prose ol (decimal).",
+    "documentation_follow_up": "Records candidate a9793fe reconstruction, frontend CSS pipeline test, and isolated candidate playback verification of visible list markers.",
     "installed_build": "29df5ed (restored 2026-10-13 with owner authorization; previously cc0c41db8193 whose Setup artifact is absent from disk)",
     "installed_exe_sha256": "12896871AE081242211CE1D75D4C06137E657ECB46E71A1A64BFD4B0FD35C949",
     "previous_installed_exe_sha256": "3698A0E0BDB91142658AF72261BBFC9D5853243405CD755F9FDC4745A6FA9251",
     "owner_backup": "%LOCALAPPDATA%\\SLMEducator-campaign-backup-20261013 (2,449 files; retained until owner confirms restored build)",
-    "package_manifest_status": "Candidate slm-candidate-97bdee6-prod-20261014 verified: 2,442 files, 78,477,637 bytes, SLMEducator.exe SHA-256 1ee4e2c9e354aea701b5a1797e7b9535fcafc92d6d0b2406fecbd54e6cbccb5c, manifest SHA-256 b3c8fb922dbf119396f2c0060f6a9a7155d11d8f4ff76bcb682e279c52b11f44 outside checkout; installed 29df5ed untouched",
-    "tutor_ui_candidate": "Reconstructed package slm-candidate-97bdee6-prod-20261014 verified with live Gemma 4 (LM Studio 127.0.0.1:1234): two bullets prompt PASS (4.43s, provider and API returned exactly two hyphenated bullets without intro/closure/example, rendered as two visual bullets in UI). Previous candidate 884afc8 verified single sentence PASS (6.79s). Same-view cancellation recovery verified (35.72s). Installed tutor acceptance on owner target (29df5ed) remains open."
+    "package_manifest_status": "Candidate slm-candidate-a9793fe-prod-20261014 verified: 2,442 files, 78,477,778 bytes, SLMEducator.exe SHA-256 d39864267fdf4ab3019d9fea3f4439c6bda9eb7277c08bc493ac834ad79f69bf, manifest SHA-256 45c7376f17f20d935b6404c9335942177cd39b49d24c56008f958498b5df1f51 outside checkout; installed 29df5ed untouched",
+    "tutor_ui_candidate": "Reconstructed package slm-candidate-a9793fe-prod-20261014 verified via recorded playback of two-bullet response delivered to ContentRenderer: computed style listStyleType=disc and 1.5rem padding confirmed; disc markers visually painted in Light and Dark themes; numbered and nested lists confirmed; navigation clean. Prior candidate 97bdee6 prompt contract verified with Gemma 4 (4.43s). Same-view cancellation recovery verified (35.72s). Installed tutor acceptance on owner target (29df5ed) remains open."
   },
   "coverage": {
     "carried_rows": 152,
@@ -99,6 +99,11 @@
     "evidence/browser_candidate_gemma4_20261014/tutor_presentation_sentence.png",
     "evidence/browser_candidate_gemma4_20261014/tutor_presentation_two_bullets.png",
     "evidence/browser_candidate_gemma4_20261014/tutor_presentation_two_bullets_97bdee6.png",
+    "evidence/browser_candidate_gemma4_20261014/tutor_presentation_markers_light.png",
+    "evidence/browser_candidate_gemma4_20261014/tutor_presentation_markers_dark.png",
+    "evidence/browser_candidate_gemma4_20261014/tutor_presentation_numbered_nested.png",
+    "evidence/browser_candidate_gemma4_20261014/navigation_no_bullets.png",
+    "evidence/browser_candidate_gemma4_20261014/candidate_a9793fe_presentation_verification.json",
     "evidence/browser_candidate_gemma4_20261014/tutor_presentation_results_20261014.json"
   ],
   "resources": {
@@ -121,7 +126,7 @@
     "Interactive GUI install/uninstall and build-to-build update path in a disposable Windows profile.",
     "Do not tune the reserved-only objective-hostile result. A further semantic repair cycle requires an owner decision and development-only evidence; current v15 result is 35/36 strict all-2.",
     "Owner: review the possible default-profile encryption-key access recorded in evidence/package_acceptance_20261014.md; no automated inspection or cleanup was performed.",
-    "Tutor presentation contract on candidate 97bdee6 with Gemma 4: two bullets prompt passes without intro/closure/example (4.43s). Candidate 884afc8 single sentence passed (6.79s). Same-view cancellation recovery is verified on packaged runtime. Installed tutor acceptance on owner target (29df5ed) remains open.",
+    "Tutor presentation list markers on candidate a9793fe PASS (disc/decimal painted, themes light/dark, navigation clean). Candidate 97bdee6 prompt passes without intro/closure/example (4.43s). Candidate 884afc8 single sentence passed (6.79s). Same-view cancellation recovery verified. Installed tutor acceptance on owner target (29df5ed) remains open.",
     "Leave SLM-AUTO-020 unchanged until a justified new reproduction is available."
   ]
 }

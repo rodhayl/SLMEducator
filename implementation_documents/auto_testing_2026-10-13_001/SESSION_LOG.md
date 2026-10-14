@@ -548,5 +548,34 @@ continuation block below.
       - Captura guardada en `evidence/browser_candidate_gemma4_20261014/tutor_presentation_two_bullets_97bdee6.png`.
     - Gates pendientes conservados: BOOT-02/05, aceptación en instalación personal `29df5ed`,
       Narrator VIS-06 y ciclo de vida de GUI del instalador. SLMEducator NO está cerrado.
+20. Reconstrucción y evaluación de presentación de listas en candidato aislado `a9793fe` (2026-10-14):
+    - Se incorporó upstream `a9793fe14969a61f60d4c133dc7aa2ee57a5e3bc` (restauración de marcadores
+      `disc` y `decimal` para listas en `.prose` en `src/frontend/src/styles/base.css`) en la rama
+      `fix/react-functional-continuation-20261007` (HEAD `a9793fe`, tree `9c56aa1a91bab0ed7fbf16d7bdab531e41f1df85`).
+    - Verificación del pipeline CSS y build de frontend:
+      - `node tests/frontend/content-list-css-pipeline.cjs`: PASS (reglas CSS sin capas para `.prose ul` y `.prose ol`).
+      - Compilación y validación de `src/frontend/dist`: 26 assets y manifiesto validados.
+    - Se reconstruyó el paquete Windows en `%TEMP%\slm-candidate-a9793fe-prod-20261014`
+      usando Python 3.13.15 + PyInstaller 6.16.0 (2,442 archivos, 78,477,778 bytes,
+      `SLMEducator.exe` SHA-256 `d39864267fdf4ab3019d9fea3f4439c6bda9eb7277c08bc493ac834ad79f69bf`,
+      manifiesto SHA-256 `45c7376f17f20d935b6404c9335942177cd39b49d24c56008f958498b5df1f51`).
+    - Preflight estricto: aislamiento en directorios temporales `%TEMP%\slm-runtime-a9793fe-*`.
+      La instalación personal `29df5ed` NO se tocó ni ejecutó.
+    - Rectificación histórica: En la prueba anterior de `97bdee6`, aunque la estructura HTML contenía dos
+      elementos `<li>`, el reset de Tailwind Preflight eliminaba `list-style-type`, por lo que los elementos
+      se renderizaban sin discos visibles.
+    - Prueba de reproducción grabada (sin nueva inferencia Gemma) contra el candidato `a9793fe`:
+      - Caso A (dos viñetas grabadas): exactamente dos elementos `<li>`, 0 párrafos de introducción/cierre,
+        estilos calculados `listStyleType: disc`, `listStylePosition: outside`, `paddingInlineStart: 24px`.
+        Discos negros claramente pintados en tema Claro (`tutor_presentation_markers_light.png`) y blancos
+        en tema Oscuro (`tutor_presentation_markers_dark.png`).
+      - Caso B (lista numerada sintética): estilos calculados `listStyleType: decimal`, `paddingInlineStart: 24px`.
+      - Caso C (lista anidada sintética): lista exterior con marcadores `decimal` y lista interior con viñetas `disc`
+        (`tutor_presentation_numbered_nested.png`).
+      - Caso D (navegación): confirmación de que la barra lateral no adquiere viñetas (`navigation_no_bullets.png`).
+    - Veredicto: **PASS de presentación del candidato**.
+    - Gates pendientes conservados: BOOT-02/05, aceptación en instalación `29df5ed`, Narrator VIS-06.
+      SLMEducator NO está cerrado.
+
 
 

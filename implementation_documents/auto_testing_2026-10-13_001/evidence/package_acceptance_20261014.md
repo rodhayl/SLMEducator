@@ -213,5 +213,62 @@ Executed against candidate `slm-candidate-97bdee6-prod-20261014` on loopback por
     1. Finding a common denominator before comparing numerators is mathematically correct and necessary when denominators differ.
     2. With equal denominators, comparing numerators to determine the larger fraction is strictly correct.
   - Evidence: `evidence/browser_candidate_gemma4_20261014/tutor_presentation_two_bullets_97bdee6.png`.
-  - Result: **PASS** — Exactly two bullet points starting with hyphen in the delivered markdown text and rendered as two visual bullets in UI, with no introduction, closure, or extra examples outside them, and correct mathematical content.
+  - Result: **PASS de contrato de prompt / PARTIAL de presentación visual**: El modelo y la API entregaron exactamente dos viñetas con guion sin introducción ni cierre. No obstante, la inspección visual y de CSS demostró que el Preflight de Tailwind eliminaba `list-style-type`, dejando los elementos `<li>` sin discos visibles pintados. La presencia estructural de `<li>` no bastaba para acreditar marcadores visibles en pantalla.
+
+## Candidate a9793fe reconstruction and list marker presentation acceptance
+
+### Artifact identity
+
+- Source commit: `a9793fe14969a61f60d4c133dc7aa2ee57a5e3bc`
+- Source tree: `9c56aa1a91bab0ed7fbf16d7bdab531e41f1df85`
+- Windows production output: `%TEMP%\slm-candidate-a9793fe-prod-20261014`
+- Build environment: Python 3.13.15, PyInstaller 6.16.0, Node.js v24.10.1 (Vite/Tailwind build verified)
+- Package tree: 2,442 files, 78,477,778 bytes
+- `SLMEducator.exe` SHA-256:
+  `d39864267fdf4ab3019d9fea3f4439c6bda9eb7277c08bc493ac834ad79f69bf`
+- SHA-256 manifest digest:
+  `45c7376f17f20d935b6404c9335942177cd39b49d24c56008f958498b5df1f51`
+- Manifest file retained outside the checkout at
+  `%TEMP%\slm-candidate-a9793fe-prod-20261014.sha256.manifest`.
+- Frontend regression verification:
+  - `node tests/frontend/content-list-css-pipeline.cjs`: PASS (Vite/Tailwind CSS contains unlayered `.prose ul { list-style-type: disc }`, `.prose ol { list-style-type: decimal }`, navigation reset preserved).
+  - `validate_frontend_dist`: 26 assets validated with matching source digest.
+
+The package output remained separate from every mutable runtime copy. The source commit and tree were rechecked after the build. The owner's installed personal application (`29df5ed`) was neither run nor modified.
+
+### Isolated candidate presentation verification (recorded playback)
+
+Executed against candidate `slm-candidate-a9793fe-prod-20261014` on loopback port 8000 with strictly isolated disposable directories (`%TEMP%\slm-runtime-a9793fe-*`), synthetic SQLite database seeded with `seed_pilot`, and system Chrome (headless) via Playwright:
+- **Naturaleza de la prueba**: Reproducción aislada de la respuesta de dos viñetas grabada en `tutor_presentation_results_20261014.json`. NO se realizó nueva inferencia ni se atribuyó a una nueva ejecución de Gemma. Se evaluó exclusivamente el pipeline de presentación de `ContentRenderer` en el paquete final compilado.
+- **Caso A (Viñetas grabadas de comparación de fracciones)**:
+  - Texto reproducido:
+    ```markdown
+    - Busca un denominador común para ambas fracciones antes de comparar sus numeradores.
+    - Si los denominadores son iguales, la fracción con el numerador más grande es la mayor.
+    ```
+  - Verificación en pantalla:
+    - Exactamente dos elementos `<li>` en `.prose > ul`.
+    - Párrafos adicionales (introducción o cierre): 0.
+    - Textos completos y legibles sin recortes ni solapamientos.
+    - Estilos calculados en el DOM:
+      - `ul.listStyleType`: `disc`
+      - `ul.listStylePosition`: `outside`
+      - `ul.paddingInlineStart`: `24px` (`1.5rem`)
+      - `li.listStyleType`: `disc`
+      - `li.display`: `list-item`
+  - Verificación en temas Claro y Oscuro:
+    - Tema Claro (`data-theme="light"`): Marcadores de disco negros claramente visibles en el renderizado (`evidence/browser_candidate_gemma4_20261014/tutor_presentation_markers_light.png`).
+    - Tema Oscuro (`data-theme="dark"`): Marcadores de disco blancos claramente visibles sobre fondo oscuro (`evidence/browser_candidate_gemma4_20261014/tutor_presentation_markers_dark.png`).
+- **Caso B (Lista numerada sintética)**:
+  - Texto reproducido: Dos pasos sintéticos iniciados con `1.` y `2.`.
+  - Estilos calculados: `ol.listStyleType: decimal`, `ol.listStylePosition: outside`, `ol.paddingInlineStart: 24px`.
+  - Pantalla: Marcadores numéricos `1.` y `2.` visibles en orden.
+- **Caso C (Lista anidada sintética)**:
+  - Texto reproducido: Elemento principal numerado con sub-viñetas y segundo elemento numerado.
+  - Estilos calculados: Lista exterior `ol` conserva `decimal`; sub-lista anidada `ul` conserva `disc`.
+  - Pantalla: Marcadores numéricos en la lista exterior y viñetas de disco con sangría en la lista anidada (`evidence/browser_candidate_gemma4_20261014/tutor_presentation_numbered_nested.png`).
+- **Caso D (Integridad de la navegación)**:
+  - Inspección de la barra lateral (`aside.sidebar` y grupos de navegación): confirmación de que la navegación no utiliza `listStyleType: disc` ni `decimal` y no adquiere viñetas espurias (`evidence/browser_candidate_gemma4_20261014/navigation_no_bullets.png`).
+- **Veredicto**: **PASS de presentación del candidato** — Marcadores visuales `disc` y `decimal` restaurados y verificados en pantalla en el paquete empaquetado, sin afectar la navegación ni añadir elementos ajenos.
+
 

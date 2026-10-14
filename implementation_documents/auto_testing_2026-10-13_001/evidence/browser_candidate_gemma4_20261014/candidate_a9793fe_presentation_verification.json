@@ -1,0 +1,46 @@
+{
+  "candidate_commit": "a9793fe14969a61f60d4c133dc7aa2ee57a5e3bc",
+  "two_bullets": {
+    "li_count": 2,
+    "intro_closure_p_count": 0,
+    "li_texts": [
+      "Busca un denominador común para ambas fracciones antes de comparar sus numeradores.",
+      "Si los denominadores son iguales, la fracción con el numerador más grande es la mayor."
+    ],
+    "ul_computed_styles": {
+      "listStyleType": "disc",
+      "listStylePosition": "outside",
+      "paddingInlineStart": "24px",
+      "paddingLeft": "24px",
+      "display": "block"
+    },
+    "li_computed_styles": {
+      "listStyleType": "disc",
+      "display": "list-item"
+    },
+    "html_theme_light": "light",
+    "html_theme_dark": "dark"
+  },
+  "numbered_list": {
+    "li_count": 4,
+    "ol_computed_styles": {
+      "listStyleType": "decimal",
+      "listStylePosition": "outside",
+      "paddingInlineStart": "24px",
+      "display": "block"
+    }
+  },
+  "nested_list": {
+    "outer_ol_style": "decimal",
+    "inner_ul_style": "disc"
+  },
+  "navigation": {
+    "lists_inspected": []
+  },
+  "screenshots": {
+    "light": "implementation_documents\\auto_testing_2026-10-13_001\\evidence\\browser_candidate_gemma4_20261014\\tutor_presentation_markers_light.png",
+    "dark": "implementation_documents\\auto_testing_2026-10-13_001\\evidence\\browser_candidate_gemma4_20261014\\tutor_presentation_markers_dark.png",
+    "navigation": "implementation_documents\\auto_testing_2026-10-13_001\\evidence\\browser_candidate_gemma4_20261014\\navigation_no_bullets.png",
+    "numbered_nested": "implementation_documents\\auto_testing_2026-10-13_001\\evidence\\browser_candidate_gemma4_20261014\\tutor_presentation_numbered_nested.png"
+  }
+}
