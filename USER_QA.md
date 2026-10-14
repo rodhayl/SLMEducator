@@ -1,8 +1,8 @@
-# USER_QA — prepara tú; David solo confirma lo imprescindible
+# USER_QA — prepara tú; el usuario solo confirma lo imprescindible
 
 ## Prompt para el agente
 
-Soy David. Quiero terminar las comprobaciones pendientes de SLMEducator con el
+Quiero terminar las comprobaciones pendientes de SLMEducator con el
 mínimo esfuerzo humano. Tú preparas y manejas el entorno, abres la pantalla
 correcta, ejecutas las comprobaciones técnicas y conservas la evidencia. Yo solo
 hago el clic o escucho lo que de verdad necesite una persona. Háblame en español
@@ -103,7 +103,7 @@ Cubre esos contextos en dos bloques guiados, reutilizando el recorrido instalado
    Recorre tú el foco del login y provoca una validación inocua en un formulario
    de prueba, sin exponer contraseñas. Al acabar pregunta: «¿Has oído claramente
    los campos y el aviso de error? Sí/no». Registra controles, error y orden del
-   foco concretos. Tú resuelves configuración/acceso; David solo escucha.
+   foco concretos. Tú resuelves configuración/acceso; el usuario solo escucha.
 2. **Escucha de aprendizaje y diálogo.** Desde el aula preparada, recorre tú el
    contenido, el intento sintético y su cambio de estado; abre y cierra un modal
    real seguro y comprueba el retorno del foco. Antes di: «Escucha el contenido,
@@ -115,7 +115,7 @@ Cubre esos contextos en dos bloques guiados, reutilizando el recorrido instalado
    ya lo hiciste y observaste tú, omítelo. No añadas una tercera pregunta por cuota.
 
 Una respuesta negativa o ambigua detiene el bloque afectado: registra el límite
-sin pedir a David que depure. No presupongas que oyó un evento porque existe en
+sin pedir al usuario que depure. No presupongas que oyó un evento porque existe en
 el árbol AX. Puedes marcar VIS-06 PASS para este candidato y alcance si ambos
 bloques se ejecutan y confirman, con evidencia de todos los contextos requeridos.
 Si falta alguno, registra PARTIAL e identifica cuál; no alargues esta sesión sin
