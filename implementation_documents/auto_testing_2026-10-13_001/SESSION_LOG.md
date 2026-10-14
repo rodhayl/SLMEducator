@@ -490,3 +490,63 @@ continuation block below.
     - Capturas retenidas en `evidence/browser_candidate_gemma4_20261014/`.
     - La aceptación del candidato instalado (`29df5ed` del propietario) sigue
       abierta y sin modificar.
+18. Reconstrucción y evaluación de candidato aislado con commit `884afc8` (2026-10-14):
+    - Se incorporó upstream `884afc80e1636edef2e00c7dd1a402ce120fe381` (reparación del contrato
+      de tutor: JSON de ejemplo válido y respeto de longitud/presentación en `explanation`)
+      en la rama `fix/react-functional-continuation-20261007` (HEAD `884afc8`, tree
+      `4528a2c6de7a2b82cdb54b62324fbf08b5c2d0cf`).
+    - Se ejecutó la suite enfocada sin inferencia: 107 passed, 1 warning en 64.48 s.
+    - Se reconstruyó el paquete Windows en `%TEMP%\slm-candidate-884afc8-prod-20261014`
+      usando Python 3.13.15 + PyInstaller 6.16.0 (2,442 archivos, 78,476,699 bytes,
+      `SLMEducator.exe` SHA-256 `3772053b4c2f03bc6761f13a09415d64df67914fa950ece4ce0d6201a815e8c2`,
+      manifiesto SHA-256 `76bb5cdff5c9ed124c16a55b6aceebd57980f388cfefc159f059b21fee99e41d`).
+    - Preflight estricto: HOME, USERPROFILE, APPDATA, LOCALAPPDATA, DB, config y logs
+      en directorios temporales desechables `%TEMP%\slm-runtime-884afc8-*`.
+      La instalación personal del propietario (`29df5ed`) NO se tocó ni sustituyó.
+    - Corrección de evidencias previas: se rectificó en `COVERAGE.csv` y
+      `package_acceptance_20261014.md` la calificación de «formatos PASS» anterior
+      que contradecía la captura `tutor_format_bullets.png`. Se actualizó la línea 119
+      de `RESUME.json` que declaraba erróneamente no confirmada la recuperación en la misma vista.
+    - Se mantuvieron intactos los registros de cancelación anteriores (409 Conflict, supresión
+      tardía y recuperación en 35.72 s vía «Actualizar estado»).
+    - Evaluación aislada de 2 solicitudes con Gemma 4 (`gemma-4-12b-it-qat@q4_k_xl` en 127.0.0.1:1234):
+      1. «Explica qué es una fracción en una sola frase breve, sin ejemplos ni listas»:
+         PASS. Respuesta en una frase coherente recibida en 6.79 s.
+      2. «Escribe exactamente dos viñetas breves sobre cómo comparar fracciones; empieza cada
+         viñeta con un guion y no añadas introducción ni cierre»:
+         PARTIAL / FAIL de formato. Gemma 4 devolvió las dos viñetas con guion en `answer`,
+         pero en el campo entregado al alumno (`explanation`) generó prosa continua con
+         introducción y ejemplo. Conforme al contrato pedagógico, es un fallo de formato.
+    - Gates pendientes conservados: BOOT-02/05, aceptación en instalación `29df5ed`,
+      Narrator VIS-06 y ciclo de vida de GUI del instalador. SLMEducator NO está cerrado.
+19. Reconstrucción y evaluación de candidato aislado con commit `97bdee6` (2026-10-14):
+    - Se incorporó upstream `97bdee6c8f7302877eaa905136768aeb0f55651b` (corrección de la ambigüedad
+      del prompt solicitando una única respuesta completa en `explanation`) en la rama
+      `fix/react-functional-continuation-20261007` (HEAD `97bdee6`, tree `289e34706d09876b071d6464dae2df9154e3c8a2`).
+    - Se ejecutó la suite enfocada sin inferencia: 127 passed, 1 warning en 69.35 s (exit 0).
+    - Se reconstruyó el paquete Windows en `%TEMP%\slm-candidate-97bdee6-prod-20261014`
+      usando Python 3.13.15 + PyInstaller 6.16.0 (2,442 archivos, 78,477,637 bytes,
+      `SLMEducator.exe` SHA-256 `1ee4e2c9e354aea701b5a1797e7b9535fcafc92d6d0b2406fecbd54e6cbccb5c`,
+      manifiesto SHA-256 `b3c8fb922dbf119396f2c0060f6a9a7155d11d8f4ff76bcb682e279c52b11f44`).
+    - Preflight estricto: HOME, USERPROFILE, APPDATA, LOCALAPPDATA, DB, config y logs
+      en directorios temporales desechables `%TEMP%\slm-runtime-97bdee6-*`.
+      La instalación personal del propietario (`29df5ed`) NO se tocó ni ejecutó.
+    - Se mantuvieron intactos los resultados y rectificaciones de pruebas anteriores
+      (Caso 1 de frase breve PASS en candidato `884afc8`, 409 Conflict, supresión tardía
+      y recuperación en 35.72 s).
+    - Evaluación de la solicitud en modo Explicación con Gemma 4 (`gemma-4-12b-it-qat@q4_k_xl` en 127.0.0.1:1234):
+      «Escribe exactamente dos viñetas breves sobre cómo comparar fracciones; empieza cada viñeta con un guion y no añadas introducción ni cierre»:
+      - HTTP 200 en 4.43 s (495 tokens usados, request ID `c869a304-5f38-424e-9df2-148338cec6e9`).
+      - El proveedor devolvió JSON con `explanation`:
+        `- Busca un denominador común para ambas fracciones antes de comparar sus numeradores.\n- Si los denominadores son iguales, la fracción con el numerador más grande es la mayor.`
+      - La API entregó idéntico texto en `response`.
+      - En la UI del candidato empaquetado, `ContentRenderer` parseó la lista Markdown
+        como `<ul><li>...</li><li>...</li></ul>`, mostrando exactamente dos viñetas visibles
+        sin introducción, conclusión ni ejemplos adicionales fuera de ellas.
+      - Ambas viñetas son matemáticamente correctas.
+      - Resultado: **PASS**.
+      - Captura guardada en `evidence/browser_candidate_gemma4_20261014/tutor_presentation_two_bullets_97bdee6.png`.
+    - Gates pendientes conservados: BOOT-02/05, aceptación en instalación personal `29df5ed`,
+      Narrator VIS-06 y ciclo de vida de GUI del instalador. SLMEducator NO está cerrado.
+
+

@@ -98,3 +98,120 @@ On 2026-10-14, the packaged candidate `slm-candidate-d6deecf-prod-20261014` (`SL
      - Ask button remained disabled until explicit user action.
      - Expanding "Política de ayuda, uso y recibo" and clicking "Actualizar estado" queried the backend status without auto-submitting; send button re-enabled with the preserved prompt intact.
      - User explicitly clicked send; second request completed successfully with a fresh request ID in 35.72s in the same view without page reload. Evidence: `evidence/browser_candidate_gemma4_20261014/tutor_cancellation_recovered.png`.
+
+## Reconstructed candidate presentation verification · 2026-10-14
+
+### Reconstructed candidate identity
+
+- Source commit: `884afc80e1636edef2e00c7dd1a402ce120fe381`
+- Source tree: `4528a2c6de7a2b82cdb54b62324fbf08b5c2d0cf`
+- Windows production output: `%TEMP%\slm-candidate-884afc8-prod-20261014`
+- Build environment: Python 3.13.15, PyInstaller 6.16.0
+- Package tree: 2,442 files, 78,476,699 bytes
+- `SLMEducator.exe` SHA-256:
+  `3772053b4c2f03bc6761f13a09415d64df67914fa950ece4ce0d6201a815e8c2`
+- SHA-256 manifest digest:
+  `76bb5cdff5c9ed124c16a55b6aceebd57980f388cfefc159f059b21fee99e41d`
+- Manifest file retained outside the checkout at
+  `%TEMP%\slm-candidate-884afc8-prod-20261014.sha256.manifest`.
+
+The package output remained separate from every mutable runtime copy. The
+source commit and tree were rechecked after the build. The executable hash of
+the isolated runtime copy matched the untouched build output.
+
+### Correction of previous format reporting
+
+The previous candidate run of `d6deecf` reported item 3 ("Tutor Formats") as
+passing because structured content rendered without crashing in `ContentRenderer`.
+However, the capture `tutor_format_bullets.png` demonstrates that although the prompt
+requested two bullet points with hyphens (`- regla 1 - regla 2`), the model emitted
+a continuous prose paragraph without bullet points. Treating that observation as
+a format PASS was contradictory to its visual evidence; the correct historical
+evaluation is PARTIAL/FAIL of format.
+
+### Bounded live tutor presentation acceptance (Gemma 4 on LM Studio)
+
+Executed against candidate `slm-candidate-884afc8-prod-20261014` on loopback port
+8000 using strictly isolated disposable directories (`%TEMP%\slm-runtime-884afc8-*`),
+disposable synthetic SQLite database seeded with `seed_pilot`, and system Chrome 154
+(headless) via Playwright:
+- Pre-flight standard library check confirmed `HOME`, `USERPROFILE`, `APPDATA`,
+  `LOCALAPPDATA`, `SLM_LOG_DIR`, `SLM_DB_PATH`, and `SLM_CONFIG_FILE` resolved
+  100% inside disposable temporary directories.
+- Effective model: `gemma-4-12b-it-qat@q4_k_xl` on LM Studio (`127.0.0.1:1234`),
+  `temperature: 0.0`, `max_tokens: 2000`, `reasoning_effort: "none"`.
+- Mode: Explicación (`explanation`). Clean synthetic state per case. One execution
+  per case without retries:
+
+1. **Case 1 (Single concise sentence)**:
+   - Question: «Explica qué es una fracción en una sola frase breve, sin ejemplos ni listas».
+   - HTTP Response: Status 200 in 6.79s (tokens used: 453, receipt request ID `485e4c81-36a6-49c8-b627-b45da1bfea67`).
+   - Received `answer`: `"Una fracción representa una parte de un todo que ha sido dividido en partes iguales."`
+   - Received `explanation`: `"Una fracción es la expresión matemática que indica cuántas partes de un entero se están considerando cuando este se divide en trozos iguales."`
+   - Delivered student response: `"Una fracción es la expresión matemática que indica cuántas partes de un entero se están considerando cuando este se divide en trozos iguales."`
+   - Evidence: `evidence/browser_candidate_gemma4_20261014/tutor_presentation_sentence.png`.
+   - Result: **PASS** — Exactly one coherent short sentence without examples or lists, respecting requested presentation.
+
+2. **Case 2 (Exactly two bullet points with hyphen)**:
+   - Question: «Escribe exactamente dos viñetas breves sobre cómo comparar fracciones; empieza cada viñeta con un guion y no añadas introducción ni cierre».
+   - HTTP Response: Status 200 in 8.89s (tokens used: 515, receipt request ID `ba674ce6-75dc-4617-999f-927002f8f443`).
+   - Received `answer`: `"- Busca un denominador común para ambas fracciones.\n- Compara los numeradores de las fracciones resultantes."`
+   - Received `explanation`: `"Para comparar fracciones, primero debes asegurarte de que tengan el mismo denominador (el número de abajo). Una vez que sean iguales, la fracción con el numerador más grande (el número de arriba) es la mayor. Por ejemplo, 1/4 y 3/4: como tienen el mismo denominador, 3/4 es mayor."`
+   - Delivered student response: Continuous prose paragraph with explanation and example; no hyphens, no bullet list.
+   - Evidence: `evidence/browser_candidate_gemma4_20261014/tutor_presentation_two_bullets.png`.
+   - Result: **PARTIAL / FAIL de formato** — Although the model produced the two hyphenated bullet lines in its internal `answer` field and the educational content is correct, the student-facing `explanation` field (which the tutor delivers to the student) was formatted as a continuous prose paragraph. In accordance with acceptance rules, useful content that breaches the requested format is evaluated as PARTIAL/FAIL of format, not PASS.
+
+### Cancellation, 409 concurrency lock, and same-view recovery
+
+The records from the earlier candidate run remain authoritative and sufficient to substantiate cancellation behavior without re-running that campaign:
+- Immediate local cancellation banner (`Cancelación local confirmada. El proveedor puede continuar y podrían aplicarse cargos.`).
+- Input prompt preserved in textarea; ask button disabled.
+- Concurrent POST received HTTP 409 Conflict while background inference was in-flight (46.41s).
+- Late delivery suppression: background provider completion did not leak into the student conversation log.
+- Expanding "Política de ayuda, uso y recibo" and clicking "Actualizar estado" queried status without auto-submitting.
+- Explicit user resubmission completed successfully with a fresh request ID in 35.72s in the SAME view without page reload (`evidence/browser_candidate_gemma4_20261014/tutor_cancellation_recovered.png`).
+
+## Candidate 97bdee6 reconstruction and tutor presentation acceptance
+
+### Artifact identity
+
+- Source commit: `97bdee6c8f7302877eaa905136768aeb0f55651b`
+- Source tree: `289e34706d09876b071d6464dae2df9154e3c8a2`
+- Windows production output: `%TEMP%\slm-candidate-97bdee6-prod-20261014`
+- Build environment: Python 3.13.15, PyInstaller 6.16.0
+- Package tree: 2,442 files, 78,477,637 bytes
+- `SLMEducator.exe` SHA-256:
+  `1ee4e2c9e354aea701b5a1797e7b9535fcafc92d6d0b2406fecbd54e6cbccb5c`
+- SHA-256 manifest digest:
+  `b3c8fb922dbf119396f2c0060f6a9a7155d11d8f4ff76bcb682e279c52b11f44`
+- Manifest file retained outside the checkout at
+  `%TEMP%\slm-candidate-97bdee6-prod-20261014.sha256.manifest`.
+- Focused test baseline (offline, contract verification): **127 passed, 1 warning in 69.35s** (exit 0).
+
+The package output remained separate from every mutable runtime copy. The source commit and tree were rechecked after the build. The executable hash of the isolated runtime copy matched the untouched build output. The owner's installed personal application (`29df5ed`) was neither run nor modified.
+
+### Live tutor presentation verification (Gemma 4 on LM Studio)
+
+Executed against candidate `slm-candidate-97bdee6-prod-20261014` on loopback port 8000 using strictly isolated disposable directories (`%TEMP%\slm-runtime-97bdee6-*`), disposable synthetic SQLite database seeded with `seed_pilot`, and system Chrome 154 (headless) via Playwright:
+- Pre-flight standard library check confirmed `HOME`, `USERPROFILE`, `APPDATA`, `LOCALAPPDATA`, `SLM_LOG_DIR`, `SLM_DB_PATH`, and `SLM_CONFIG_FILE` resolved 100% inside disposable temporary directories.
+- Effective model: `gemma-4-12b-it-qat@q4_k_xl` on LM Studio (`127.0.0.1:1234`), `temperature: 0.0`, `max_tokens: 2000`, `reasoning_effort: "none"`.
+- Mode: Explicación (`explanation`). Clean synthetic state. Single run without retries:
+
+- **Case 2 (Exactly two bullet points with hyphen, repaired prompt contract)**:
+  - Question: «Escribe exactamente dos viñetas breves sobre cómo comparar fracciones; empieza cada viñeta con un guion y no añadas introducción ni cierre».
+  - HTTP Response: Status 200 in 4.43s (tokens used: 495, receipt request ID `c869a304-5f38-424e-9df2-148338cec6e9`).
+  - Provider response JSON (`explanation` field):
+    ```
+    - Busca un denominador común para ambas fracciones antes de comparar sus numeradores.
+    - Si los denominadores son iguales, la fracción con el numerador más grande es la mayor.
+    ```
+  - API delivered text (`response` field):
+    `"- Busca un denominador común para ambas fracciones antes de comparar sus numeradores.\n- Si los denominadores son iguales, la fracción con el numerador más grande es la mayor."`
+  - Rendered UI presentation:
+    The frontend `ContentRenderer` parsed the Markdown hyphenated list into an unordered list (`<ul><li>...</li><li>...</li></ul>`), visibly displaying exactly two bullet points without intro, conclusion, or extra examples.
+  - Mathematical correctness:
+    1. Finding a common denominator before comparing numerators is mathematically correct and necessary when denominators differ.
+    2. With equal denominators, comparing numerators to determine the larger fraction is strictly correct.
+  - Evidence: `evidence/browser_candidate_gemma4_20261014/tutor_presentation_two_bullets_97bdee6.png`.
+  - Result: **PASS** — Exactly two bullet points starting with hyphen in the delivered markdown text and rendered as two visual bullets in UI, with no introduction, closure, or extra examples outside them, and correct mathematical content.
+

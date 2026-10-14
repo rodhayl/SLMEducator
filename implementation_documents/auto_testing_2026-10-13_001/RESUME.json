@@ -6,18 +6,18 @@
   "candidate": {
     "branch": "fix/react-functional-continuation-20261007",
     "source_baseline": "9eeff276778667629eed1d0d9623b6c1ca3fe861",
-    "head": "d6deecf89967e6d37698413b726ed5e656452647",
-    "upstream_head": "d6deecf89967e6d37698413b726ed5e656452647",
-    "committed_tree": "2cab18b2f1738a9a7677760896df6e066f58b573",
-    "implementation_commit": "d6deecf89967e6d37698413b726ed5e656452647",
-    "implementation_commit_scope": "Publishes the v15 prompt and provider-client lifecycle fixes, regressions, and the initial sanitized acceptance records in one source-bearing commit.",
-    "documentation_follow_up": "This continuation records post-fix live cancellation, Windows package identity, isolated package journeys, and the default-profile isolation caveat; this follow-up contains documentation/evidence only, no source changes.",
+    "head": "97bdee6c8f7302877eaa905136768aeb0f55651b",
+    "upstream_head": "97bdee6c8f7302877eaa905136768aeb0f55651b",
+    "committed_tree": "289e34706d09876b071d6464dae2df9154e3c8a2",
+    "implementation_commit": "97bdee6c8f7302877eaa905136768aeb0f55651b",
+    "implementation_commit_scope": "Request only explanation while preserving legacy parser and teacher policy; fixes tutor response presentation ambiguity.",
+    "documentation_follow_up": "Records candidate 97bdee6 reconstruction, offline test verification (127 passed), and live Gemma 4 probe for the two-bullets case.",
     "installed_build": "29df5ed (restored 2026-10-13 with owner authorization; previously cc0c41db8193 whose Setup artifact is absent from disk)",
     "installed_exe_sha256": "12896871AE081242211CE1D75D4C06137E657ECB46E71A1A64BFD4B0FD35C949",
     "previous_installed_exe_sha256": "3698A0E0BDB91142658AF72261BBFC9D5853243405CD755F9FDC4745A6FA9251",
     "owner_backup": "%LOCALAPPDATA%\\SLMEducator-campaign-backup-20261013 (2,449 files; retained until owner confirms restored build)",
-    "package_manifest_status": "Historical cc0c41db8193 chain remains unvalidated (artifact absent); current d6deecf package copy has a verified 2323-file manifest and executable hash but was not installed; 29df5ed lifecycle verified end to end with data preservation",
-    "tutor_ui_candidate": "d6deecf package-copy verified with live Gemma 4 (LM Studio 127.0.0.1:1234): free tutor (13.15s), contextual tutor (11.63s), formatted output (11.64s), cancellation, suppression, 409 concurrency lock, and successful same-view recovery via 'Refresh status' (35.72s). Installed tutor acceptance on owner target (29df5ed) remains open."
+    "package_manifest_status": "Candidate slm-candidate-97bdee6-prod-20261014 verified: 2,442 files, 78,477,637 bytes, SLMEducator.exe SHA-256 1ee4e2c9e354aea701b5a1797e7b9535fcafc92d6d0b2406fecbd54e6cbccb5c, manifest SHA-256 b3c8fb922dbf119396f2c0060f6a9a7155d11d8f4ff76bcb682e279c52b11f44 outside checkout; installed 29df5ed untouched",
+    "tutor_ui_candidate": "Reconstructed package slm-candidate-97bdee6-prod-20261014 verified with live Gemma 4 (LM Studio 127.0.0.1:1234): two bullets prompt PASS (4.43s, provider and API returned exactly two hyphenated bullets without intro/closure/example, rendered as two visual bullets in UI). Previous candidate 884afc8 verified single sentence PASS (6.79s). Same-view cancellation recovery verified (35.72s). Installed tutor acceptance on owner target (29df5ed) remains open."
   },
   "coverage": {
     "carried_rows": 152,
@@ -54,7 +54,8 @@
     "windows_package_build": "Source d6deecf89967e6d37698413b726ed5e656452647, tree 2cab18b2f1738a9a7677760896df6e066f58b573; Python 3.13.15, PyInstaller 6.16.0; 2323 files, 74804664 bytes; executable SHA-256 9f354849628b9ce9b77fad4ce180a9a0b5bdcc2cd9fc401841456292dac8743b; sorted per-file SHA-256 manifest digest fff1e68fb060b48414f44006c4e691b9d057069409b4d892189e4349f70b80d2; package and manifest outside checkout",
     "windows_package_port_fallback": "Disposable package copy with isolated temporary USERPROFILE/HOME: loopback-only blocker held port 8000; package served /api/status online version 2.0.0 on 8001; --no-browser; processes and test ports stopped afterward",
     "windows_package_ui": "Synthetic learner dashboard/course/lesson/practice self-check and browser-local draft recovery; free/contextual tutor and bullet/JSON formats via deterministic loopback stub; delayed cancellation suppressed late UI delivery. Same-view retry was not confirmed; after reopening tutor, a subsequent stub-backed request succeeded. No Gemma inference from package; not installed/native acceptance.",
-    "windows_package_live_gemma4_acceptance": "Automated headless browser journey on slm-candidate-d6deecf-prod-20261014 (SLMEducator.exe SHA-256 9f354849628b9ce9b77fad4ce180a9a0b5bdcc2cd9fc401841456292dac8743b) with gemma-4-12b-it-qat@q4_k_xl on LM Studio: free tutor (13.15s), contextual tutor (11.63s), formatted explanation (11.64s), cancellation local delivery suppression, 409 concurrent check, background completion in 46.41s, refresh status without auto-resubmit, and same-view recovery with new request ID in 35.72s; exit 0; screenshots retained",
+    "windows_package_live_gemma4_acceptance": "Automated headless browser journey on slm-candidate-d6deecf-prod-20261014: free tutor (13.15s), contextual tutor (11.63s), format request (11.64s, continuous prose received; previously reported as passing structured response, corrected to PARTIAL/FAIL of format), cancellation local suppression, 409 concurrency lock, status refresh without auto-resubmit, and same-view recovery with new request ID in 35.72s; screenshots retained",
+    "tutor_presentation_contract_gemma4_20261014": "Reconstructed candidate slm-candidate-884afc8-prod-20261014 verified with live Gemma 4 in isolated execution: Case 1 single concise sentence PASS (6.79s, 453 tokens, exact single coherent sentence); Case 2 exactly two bullet points PARTIAL/FAIL of format (8.89s, 515 tokens, internal answer had two bullets but student-facing explanation field was a continuous prose paragraph with example); screenshots and raw LLM payload recorded",
     "native_zoom_attempts": "Five approaches exhausted, then closed with owner consent: after foreground capture (Alt-tap + AttachThreadInput) and native SendInput Ctrl+=, zoom verified by viewport ratio at 100% (innerWidth 1002), 200% (502, exactly half), intermediate 150/300, and 400% (250); no horizontal overflow at any level; critical content readable; 3 native Tabs moved focus to the visible Username input at high zoom; Ctrl+0 reset verified (innerWidth 1004). Keyboard shortcut drives the same per-origin zoom engine as the menu; the physical menu click was not exercised. TECH-BROWSER-NATIVE-ZOOM PASS and AUTO-VIS-04.zoom PASS.",
     "vitest_r2_historical": "53 test files, 967 passed"
   },
@@ -94,7 +95,11 @@
     "evidence/launcher-ready-state-20261013.png",
     "evidence/launcher-port-fallback-8001-20261013.png",
     "evidence/installation_identity.md",
-    "evidence/coverage_reconciliation.md"
+    "evidence/coverage_reconciliation.md",
+    "evidence/browser_candidate_gemma4_20261014/tutor_presentation_sentence.png",
+    "evidence/browser_candidate_gemma4_20261014/tutor_presentation_two_bullets.png",
+    "evidence/browser_candidate_gemma4_20261014/tutor_presentation_two_bullets_97bdee6.png",
+    "evidence/browser_candidate_gemma4_20261014/tutor_presentation_results_20261014.json"
   ],
   "resources": {
     "slmeducator_app": "not running; installed build 29df5ed is unchanged and does not contain the current v15 source/cancellation fixes",
@@ -116,7 +121,7 @@
     "Interactive GUI install/uninstall and build-to-build update path in a disposable Windows profile.",
     "Do not tune the reserved-only objective-hostile result. A further semantic repair cycle requires an owner decision and development-only evidence; current v15 result is 35/36 strict all-2.",
     "Owner: review the possible default-profile encryption-key access recorded in evidence/package_acceptance_20261014.md; no automated inspection or cleanup was performed.",
-    "Package same-view recovery after cancellation was not confirmed; it succeeded after reopening the tutor page. Keep packaged/installed tutor acceptance partial and investigate only if an in-scope owner-approved follow-up is needed.",
+    "Tutor presentation contract on candidate 97bdee6 with Gemma 4: two bullets prompt passes without intro/closure/example (4.43s). Candidate 884afc8 single sentence passed (6.79s). Same-view cancellation recovery is verified on packaged runtime. Installed tutor acceptance on owner target (29df5ed) remains open.",
     "Leave SLM-AUTO-020 unchanged until a justified new reproduction is available."
   ]
 }
