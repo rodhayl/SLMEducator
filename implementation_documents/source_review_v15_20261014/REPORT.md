@@ -108,8 +108,15 @@ remains open while the worker is active and closes once after release.
 - `test_ai_request_lifecycle.py` and `test_generation_sources.py`:
   **21 passed**.
 - Independent read-only concurrency review: no actionable findings.
-- No real-provider cancellation was attempted after this repair. Suppression
-  of a late real-model response therefore remains unverified.
+- The offline tests alone did not verify suppression of a real late-model
+  response; the authorized live probe below was run afterward.
+- Follow-up authorized live probe after the repair: one bounded request to
+  `gemma-4-12b-it-qat@q4_k_xl` returned HTTP 200 with
+  `finish_reason=stop` after **123.985 s**. The cancellation UI did not render
+  the late answer; the request remained busy and concurrent requests received
+  409 until provider work completed. A subsequent request then succeeded in
+  **53.684 s**. The HTTP client stayed open until the provider future finished.
+  No response body was retained, and LM Studio’s loaded model was unchanged.
 
 ## Final offline validation
 
@@ -128,11 +135,22 @@ diagnostics). No unrelated lint cleanup was made.
 ## Acceptance still open
 
 - `objective-hostile` remains a reserved-split semantic weakness.
-- A real provider response completing after local cancellation has not been
-  verified after the SLM-AUTO-021 repair.
-- `AUTO-AI-04` remains PARTIAL; this does not validate the installed tutor UI.
+- `AUTO-AI-04` format and installed-UI acceptance remain PARTIAL; the live
+  lifecycle probe does not validate the installed tutor UI.
+- A Windows production package was built from source commit
+  `d6deecf89967e6d37698413b726ed5e656452647`, hashed, and exercised only from
+  disposable copies. Package tutor checks used a deterministic loopback stub,
+  not Gemma; same-view retry after local cancellation was not confirmed, while
+  a fresh request succeeded after reopening the tutor page. See
+  `../auto_testing_2026-10-13_001/evidence/package_acceptance_20261014.md`.
 - The installed build was not rebuilt with the v15 prompt or cancellation fix.
   No installed-artifact identity is claimed for these changes.
 - Narrator audio acceptance, installed-candidate `LEARN-03`, `BOOT-02`, and
   remaining native `BOOT-05` variants were not run.
+- One exploratory package seed/start did not redirect `USERPROFILE`/`HOME`;
+  because security helpers resolve the encryption key under `Path.home()`,
+  it may have read or created a default-profile key. Processes were stopped;
+  no default-profile files were inspected or cleaned. The final package
+  fallback test used an isolated temporary profile. The owner should review
+  this possible key access; no automatic cleanup was performed.
 - No release, merge, force-push, or CI/Actions wait was performed.

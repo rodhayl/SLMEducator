@@ -13,9 +13,9 @@ passed with the owner's install uninstalled and restored with byte-identical
 user data. The v12/v15 lesson-prompt repairs and the isolated provider-client
 cleanup fix are documented below. No provider model was changed or reloaded.
 
-The reconciled matrix now has **169 rows: 152 PASS, 17 PARTIAL, 0 BLOCKED**
-(four new rows record v15 development/reserved scoring, the provider-client
-cleanup regression, and the inconclusive live cancellation attempt).
+The reconciled matrix now has **173 rows: 156 PASS, 17 PARTIAL, 0 BLOCKED**.
+New rows record post-fix live cancellation, package identity, packaged-port
+fallback, and a partial packaged-UI journey.
 The native browser-zoom gate was closed with the owner's consent using real
 `SendInput` keyboard zoom (200% and 400% verified with viewport ratios, no
 horizontal overflow, readable critical content, working keyboard focus, and
@@ -76,10 +76,11 @@ unreviewed publication, `use_coverage=partial` receipts on the three
 long-source cases. See `evidence/gemma4_v12_rubric_scores_20261013.md`.
 Semantic acceptance remains **partial**: v15 reached 35/36 strict all-2
 (development 25/25, reserved 10/11). The remaining `objective-hostile` issue
-is preserved as reserved-split variance and did not guide tuning. Live
-cancellation exposed and led to a local client-close fix; no real-provider
-response was captured during the cancellation attempts and no post-fix live
-retry was made. The remaining human/native items are in `MANUAL_TEST2.md`.
+is preserved as reserved-split variance and did not guide tuning. A bounded
+post-fix live cancellation probe with Gemma returned HTTP 200 and
+`finish_reason=stop`; cancellation suppressed UI delivery, busy/409 persisted
+until provider completion, and a subsequent request succeeded. Package,
+human, and native limitations remain in `MANUAL_TEST2.md`.
 
 ## Authorized installer lifecycle evidence
 
@@ -171,6 +172,35 @@ row and session record.
   log. The r2 test count above is taken from the complete log, not that
   unlinked exit file.
 
+## Windows candidate package evidence
+
+The production package was built outside the checkout from source commit
+`d6deecf89967e6d37698413b726ed5e656452647` (tree
+`2cab18b2f1738a9a7677760896df6e066f58b573`) with Python 3.13.15 and
+PyInstaller 6.16.0. Its 2,323 files total 74,804,664 bytes. The executable
+SHA-256 is
+`9f354849628b9ce9b77fad4ce180a9a0b5bdcc2cd9fc401841456292dac8743b`.
+The sorted per-file hash manifest digest is
+`fff1e68fb060b48414f44006c4e691b9d057069409b4d892189e4349f70b80d2`.
+The manifest and package remain outside Git; the procedure and isolated
+runtime results are in `evidence/package_acceptance_20261014.md`.
+
+Disposable package copies returned `/api/status` online on port 8000 and,
+with a loopback-only listener occupying 8000, on fallback port 8001. The
+learner flow covered lesson study, assigned-practice self-check, and local
+draft recovery. A deterministic local stub covered free/contextual tutor,
+bullet/JSON formats, and cancellation suppression. The package made no Gemma
+call. After cancellation, an immediate same-view retry was not confirmed; a
+new request succeeded after reopening the tutor page. This remains partial
+package-UI evidence and does not replace installed/native acceptance.
+
+Isolation caveat: one earlier exploratory seed/start did not redirect
+`USERPROFILE`/`HOME`. Security helpers resolve their encryption key via
+`Path.home()`, so that attempt may have read an existing default-profile key
+or created one. Processes were stopped; no default-profile files were
+inspected or cleaned. The final package fallback test used an explicit
+temporary profile. Owner review is advised; no automatic cleanup was done.
+
 ## Coverage reconciliation
 
 The working 2026-10-12 matrix had uncommitted owner edits and reported
@@ -213,7 +243,7 @@ practice journey, and extension-zoom blocker.
 `TECH-REALAI-RUBRIC-V12-DEV-20261013`,
 `TECH-REALAI-RUBRIC-V12-RES-20261013`,
 `TECH-REALAI-RUBRIC-V15-RES-20261014`,
-`AUTO-AI-04.cancel_lifecycle`.
+`TECH-WIN-PACKAGE-JOURNEYS-20261014`.
 
 **BLOCKED:** none.
 
@@ -227,8 +257,10 @@ zoom engine as the ⋮ menu; the physical menu click was not exercised.
 Launcher note: `AUTO-BOOT-05` moved BLOCKED→PARTIAL. Cold start and graceful
 port-collision fallback (8000 busy → server started on 8001, status online)
 were verified with the installed `29df5ed` launcher using `--no-browser`,
-with native PrintWindow captures of both launcher states. Slow-start/
-failed-start timeout paths, keyboard URL entry, and DPI remain open.
+with native PrintWindow captures of both launcher states. The source-candidate
+package copy also passed the loopback port-fallback/API probe in an isolated
+profile. Slow-start/failed-start timeout paths, keyboard URL entry, and DPI
+remain open.
 Without `--no-browser`, the launcher sends the local link to the owner's
 default browser.
 
@@ -256,12 +288,15 @@ Exact next actions:
    `objective-hostile` remains a reserved-only weakness; no reserved result
    guided the repair. See the sanitized v15 report. No full model run was
    repeated after the separate cancellation cleanup change.
-6. **SLM-AUTO-021 cancellation lifecycle:** offline regression passes after
-   deferring HTTP client close until the provider future completes. A real
-   cancellation attempt exposed the premature close; no post-fix real-provider
-   response has been captured.
-7. **SLM-AUTO-020:** unchanged `NEEDS_REPRO`; no new probe loop was justified.
-8. **Owner confirmation:** confirm the restored `29df5ed` build and decide
+6. **SLM-AUTO-021 cancellation lifecycle:** the post-fix live Gemma probe
+   verified provider completion, late-answer suppression, busy/409, and a
+   successful subsequent request for the checkout candidate. Package-copy
+   same-view retry was not confirmed; it worked after reopening the tutor.
+7. **Profile-isolation caveat:** review the possible default-profile key
+   access documented in the package report. No files were inspected or
+   cleaned by this session.
+8. **SLM-AUTO-020:** unchanged `NEEDS_REPRO`; no new probe loop was justified.
+9. **Owner confirmation:** confirm the restored `29df5ed` build and decide
    whether to retain or delete
    `%LOCALAPPDATA%\SLMEducator-campaign-backup-20261013`.
 

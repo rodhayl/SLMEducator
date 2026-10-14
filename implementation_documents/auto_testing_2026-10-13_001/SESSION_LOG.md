@@ -1,7 +1,9 @@
 # SESSION_LOG · auto_testing_2026-10-13_001
 
-Chronological record for the 2026-10-13 continuation. No credentials, tokens,
-database contents, or private configuration were read or recorded.
+Chronological record for the 2026-10-13/14 continuation. No credential values,
+provider response bodies, or database contents were recorded. The later
+package-profile isolation caveat is documented explicitly in the final
+continuation block below.
 
 1. Recovered checkout `fix/react-functional-continuation-20261007` at
    `cc0c41db81933fbd23b904086641ee9e05bf50a5`; configured upstream matched.
@@ -414,3 +416,54 @@ database contents, or private configuration were read or recorded.
    fuentes/tests/informes sanitizados en la misma rama. No se reconstruyó ni
    verificó el paquete instalado, no hubo aceptación Narrator/GUI y no se
    copiaron directorios sintéticos ni contenido de cuentas al repositorio.
+
+## Continuación final · cancelación viva y paquete Windows
+
+9. Después del arreglo SLM-AUTO-021 se hizo un único probe acotado y serial con
+   la autorización previa: `gemma-4-12b-it-qat@q4_k_xl` respondió HTTP 200,
+   `finish_reason=stop`, en **123.985 s**. El cierre del cliente quedó diferido
+   hasta terminar el `Future`; la UI no mostró la respuesta tardía, el request
+   siguió ocupado y los concurrentes recibieron 409 hasta acabar el trabajo.
+   Una solicitud posterior completó en **53.684 s**. No se conservó el cuerpo
+   del modelo ni se cambió/recargó LM Studio.
+10. Se construyó el paquete Windows de producción fuera del checkout desde
+    commit `d6deecf89967e6d37698413b726ed5e656452647`, tree
+    `2cab18b2f1738a9a7677760896df6e066f58b573`, con Python 3.13.15 y PyInstaller
+    6.16.0. Resultado: **2,323 archivos / 74,804,664 bytes**; EXE SHA-256
+    `9f354849628b9ce9b77fad4ce180a9a0b5bdcc2cd9fc401841456292dac8743b`.
+    Un manifiesto de hashes por archivo, ordenado por ruta relativa POSIX,
+    tuvo digest `fff1e68fb060b48414f44006c4e691b9d057069409b4d892189e4349f70b80d2`.
+    Los tests de build/bootstrap indicados por AGENTS pasaron **80/80**.
+11. Copias desechables del paquete devolvieron `/api/status` online, versión
+    2.0.0, en 8000 y 8001. El flujo sintético de estudiante cubrió dashboard,
+    curso, lección, autoevaluación correcta/incorrecta y borrador local
+    restaurado tras recarga. No hubo envío/calificación ni progreso de curso.
+12. El tutor del paquete usó exclusivamente un stub loopback determinista:
+    tutor libre, proveedor no disponible, contexto de sección de lección y
+    respuestas solicitadas en viñetas/JSON. La cancelación retrasada ocultó la
+    respuesta tardía. Un segundo request en la misma vista no se confirmó;
+    después de volver a abrir el tutor, un request nuevo sí completó. El paquete
+    no hizo inferencia Gemma.
+13. En la primera prueba exploratoria de colisión del puerto, el seed/start no
+    redirigió `USERPROFILE`/`HOME`. El código importa el helper de cifrado que
+    busca la clave mediante `Path.home()/.slm_educator`; pudo leer una clave
+    predeterminada existente o crearla. Se detuvieron los procesos. No se
+    inspeccionó, limpió ni modificó después ese perfil, y no se usaron a
+    propósito la base/configuración ni la instalación personal. No se puede
+    determinar si la clave existía antes. No se copiará ni publicará ningún
+    archivo de ese perfil.
+14. Para cerrar el gate de fallback se repitió desde una copia nueva con
+    `USERPROFILE`, `HOME`, `APPDATA`, `LOCALAPPDATA`, DB, config y logs bajo un
+    perfil temporal; se mantuvo el proveedor en loopback. Un listener sintético
+    ocupó 8000 y el paquete sirvió `/api/status` en 8001. Esta es la evidencia
+    que se acredita para el fallback de paquete.
+15. Después de las pruebas se pararon únicamente los procesos de paquete,
+    proveedor sintético y bloqueo creados para esta campaña; 8000, 8001 y 55921
+    quedaron libres. Se cerraron las tres sesiones de navegador aisladas.
+16. El paquete y el manifiesto permanecen fuera de Git. La evidencia
+    sanitizada está en `evidence/package_acceptance_20261014.md`. La matriz
+    final pasa a **173 filas: 156 PASS, 17 PARTIAL, 0 BLOCKED**; el
+    lifecycle real post-fix pasa para el checkout, mientras la UI empaquetada
+    conserva PARTIAL por recuperación no confirmada en la misma vista.
+    Narrator, GUI nativa del launcher, resto de BOOT-05, aceptación instalada
+    de LEARN-03 y el límite semántico `objective-hostile` siguen abiertos.

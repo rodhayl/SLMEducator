@@ -5,28 +5,30 @@
   "completion_claim": false,
   "candidate": {
     "branch": "fix/react-functional-continuation-20261007",
-    "head": "9eeff276778667629eed1d0d9623b6c1ca3fe861",
-    "upstream_head": "9eeff276778667629eed1d0d9623b6c1ca3fe861",
-    "committed_tree": "08c62bec47a04116bf7fa8e6dfc14a379b12974f",
-    "uncommitted_test_change": "inherited campaign tests/conftest.py, tests/browser/test_source_clarification_journey.py, tests/browser/test_assigned_practice_journey.py; current tests add source-review placement/carve-out assertions and deferred provider-client close regression",
-    "uncommitted_product_change": "v15 final source-review consistency instruction and prompt-version bump to teacher-reviewed-v15-final-source-review-consistency; SLM-AUTO-021 fix defers HTTP-client close until provider future completes; campaign evidence updated. No installed package rebuilt.",
+    "source_baseline": "9eeff276778667629eed1d0d9623b6c1ca3fe861",
+    "head": "d6deecf89967e6d37698413b726ed5e656452647",
+    "upstream_head": "d6deecf89967e6d37698413b726ed5e656452647",
+    "committed_tree": "2cab18b2f1738a9a7677760896df6e066f58b573",
+    "implementation_commit": "d6deecf89967e6d37698413b726ed5e656452647",
+    "implementation_commit_scope": "Publishes the v15 prompt and provider-client lifecycle fixes, regressions, and the initial sanitized acceptance records in one source-bearing commit.",
+    "documentation_follow_up": "This continuation records post-fix live cancellation, Windows package identity, isolated package journeys, and the default-profile isolation caveat; this follow-up contains documentation/evidence only, no source changes.",
     "installed_build": "29df5ed (restored 2026-10-13 with owner authorization; previously cc0c41db8193 whose Setup artifact is absent from disk)",
     "installed_exe_sha256": "12896871AE081242211CE1D75D4C06137E657ECB46E71A1A64BFD4B0FD35C949",
     "previous_installed_exe_sha256": "3698A0E0BDB91142658AF72261BBFC9D5853243405CD755F9FDC4745A6FA9251",
     "owner_backup": "%LOCALAPPDATA%\\SLMEducator-campaign-backup-20261013 (2,449 files; retained until owner confirms restored build)",
-    "package_manifest_status": "cc0c41db8193 chain still unvalidated (artifact absent); 29df5ed lifecycle verified end to end with data preservation",
-    "tutor_ui_candidate": "unverified; pre-submit screenshots do not bind build, runtime process, or served model"
+    "package_manifest_status": "Historical cc0c41db8193 chain remains unvalidated (artifact absent); current d6deecf package copy has a verified 2323-file manifest and executable hash but was not installed; 29df5ed lifecycle verified end to end with data preservation",
+    "tutor_ui_candidate": "d6deecf package-copy flows observed with deterministic stub, not installed or real-model tutor acceptance; same-view post-cancel retry not confirmed"
   },
   "coverage": {
     "carried_rows": 152,
     "new_regression_rows": 1,
-    "new_execution_rows": 16,
-    "total_rows": 169,
-    "PASS": 152,
+    "new_execution_rows": 20,
+    "total_rows": 173,
+    "PASS": 156,
     "PARTIAL": 17,
     "BLOCKED": 0,
     "incomplete_rows": 17,
-    "note": "Three PARTIAL rows summarize overlapping historical pytest results and are not three additional product workflows. New evidence records v15 development 25/25 strict all-2 (PASS), reserved 10/11 (PARTIAL, validation only), cancellation cleanup regression (PASS), and a real cancellation attempt with no provider response captured (PARTIAL). Prior v11/v12 rubric rows remain historical. The current overall semantic rubric is 35/36 strict all-2. No row remains BLOCKED."
+    "note": "Three PARTIAL rows summarize overlapping historical pytest results and are not three additional product workflows. New evidence records v15 development 25/25 strict all-2, reserved 10/11 (validation only), cancellation cleanup regression, post-fix live Gemma cancellation, package build identity and port fallback, and partial packaged-UI journeys. Prior v11/v12 rubric rows remain historical. The current overall semantic rubric is 35/36 strict all-2. No row remains BLOCKED."
   },
   "tests": {
     "pytest_r2_historical": "5 failed, 1794 passed, 29 skipped in 3917.78s",
@@ -42,20 +44,23 @@
     "real_ai_rubric_scoring": "32/36 strict all-2; no 0 in any dimension; no accuracy failure; weaknesses: reserved-conflict (HTML entities), reserved-hostile (injection framed as option), followup-conflict (no clarification request), objective-ambiguous (source mischaracterized as excluding meanings)",
     "real_ai_rubric_v12_revalidation": "historical v12 result: 33/36 strict all-2 (development 23/25, reserved 10/11); preserved as historical evidence",
     "real_ai_rubric_v15": "35/36 strict all-2 (development 25/25, reserved 10/11), fixture SHA cf3c6d9c6e0e02004368aaabd0c86332a56429b13b059e17d8d14fdc93ddf107; fresh synthetic state for each split; q4_k_xl response receipts, temp 0, reasoning none, finish stop; 36/36 ready, identical-ID replays and 409 publication guards; reserved objective-hostile is the sole material weakness and did not guide tuning",
-    "real_ai_cancel_attempt": "two live synthetic-account cancellation attempts before SLM-AUTO-021 fix; local cancel confirmed, second request 409, same-ID replay identical, but provider response not captured; app log showed httpx ReadError/OSError 10038 because our handler closed the socket while worker awaited. One retry was authorized and used. No post-fix live inference.",
+    "real_ai_cancel_attempt": "Two pre-fix live synthetic-account cancellation attempts reproduced SLM-AUTO-021 and captured no provider response. One authorized post-fix bounded Gemma probe returned HTTP 200, finish_reason=stop after 123.985s; cancellation suppressed UI delivery; busy/409 held until provider work completed; a subsequent request succeeded in 53.684s. No raw response body retained; model unchanged.",
     "focused_offline_after_v15_and_cancel_fix": "82 passed, 1 existing deprecation warning; four trust modules; focused implementation flake8 and git diff --check pass",
     "cancel_cleanup_regression": "21 passed in test_ai_request_lifecycle.py and test_generation_sources.py; client remains open until provider worker release; independent review no findings",
     "real_ai_transport": "no malformed JSON, no truncation, finish_reason=stop in all 36 receipts at max_tokens=2000 temp 0; grading budget not raised; validation not relaxed",
     "installer_lifecycle": "1 passed in 37.86s with real Setup 29df5ed (silent install, owned registration, distinct user data hashed, in-place reinstall refused, uninstall preserves data, reinstall preserves data, cleanup verified); owner install uninstalled/restored with byte-identical user data; build delta cc0c41db8193 -> 29df5ed documented",
     "launcher_cold_start": "Installed 29df5ed launcher with --no-browser: cold start verified; /api/status {status online, version 2.0.0} on 8000 via curl; stable beyond 90s; native ready-state window captured via PrintWindow (launcher-ready-state-20261013.png); PowerShell Invoke-WebRequest blocked by environmental proxy (not a product issue)",
     "launcher_port_collision": "Hard bind on 8000: launcher logged port fallback to 8001, readiness probe passed, /api/status online on 8001, GUI showed ready state with http://127.0.0.1:8001 (launcher-port-fallback-8001-20261013.png); graceful handling, no crash; without --no-browser the launcher sends the link to the owner's default browser (occurred twice, recorded)",
+    "windows_package_build": "Source d6deecf89967e6d37698413b726ed5e656452647, tree 2cab18b2f1738a9a7677760896df6e066f58b573; Python 3.13.15, PyInstaller 6.16.0; 2323 files, 74804664 bytes; executable SHA-256 9f354849628b9ce9b77fad4ce180a9a0b5bdcc2cd9fc401841456292dac8743b; sorted per-file SHA-256 manifest digest fff1e68fb060b48414f44006c4e691b9d057069409b4d892189e4349f70b80d2; package and manifest outside checkout",
+    "windows_package_port_fallback": "Disposable package copy with isolated temporary USERPROFILE/HOME: loopback-only blocker held port 8000; package served /api/status online version 2.0.0 on 8001; --no-browser; processes and test ports stopped afterward",
+    "windows_package_ui": "Synthetic learner dashboard/course/lesson/practice self-check and browser-local draft recovery; free/contextual tutor and bullet/JSON formats via deterministic loopback stub; delayed cancellation suppressed late UI delivery. Same-view retry was not confirmed; after reopening tutor, a subsequent stub-backed request succeeded. No Gemma inference from package; not installed/native acceptance.",
     "native_zoom_attempts": "Five approaches exhausted, then closed with owner consent: after foreground capture (Alt-tap + AttachThreadInput) and native SendInput Ctrl+=, zoom verified by viewport ratio at 100% (innerWidth 1002), 200% (502, exactly half), intermediate 150/300, and 400% (250); no horizontal overflow at any level; critical content readable; 3 native Tabs moved focus to the visible Username input at high zoom; Ctrl+0 reset verified (innerWidth 1004). Keyboard shortcut drives the same per-origin zoom engine as the menu; the physical menu click was not exercised. TECH-BROWSER-NATIVE-ZOOM PASS and AUTO-VIS-04.zoom PASS.",
     "vitest_r2_historical": "53 test files, 967 passed"
   },
   "defects": {
     "SLM-AUTO-017": "repaired in test harness; focused regression green",
     "SLM-AUTO-018": "transport stable; v15 scores 35/36 strict all-2 (development 25/25, reserved 10/11); followup-conflict repaired; objective-hostile remains a reserved-only weakness and did not guide tuning",
-    "SLM-AUTO-021": "repaired: route handlers defer httpx client close until active provider future completes; 21 focused lifecycle/generation tests passed; live-provider cancellation not rerun post-fix",
+    "SLM-AUTO-021": "repaired: route handlers defer httpx client close until active provider future completes; 21 focused lifecycle/generation tests passed; one post-fix real Gemma cancellation verified late-response suppression, busy/409 and recovery",
     "SLM-AUTO-020": "NEEDS_REPRO; no new probe loop"
   },
   "evidence": [
@@ -79,6 +84,7 @@
     "evidence/real_ai_gemma4_v12_development_results.json",
     "evidence/real_ai_gemma4_v12_reserved_results.json",
     "../source_review_v15_20261014/REPORT.md",
+    "evidence/package_acceptance_20261014.md",
     "evidence/gemma4_v12_rubric_scores_20261013.md",
     "evidence/gemma4_v12_rubric_digest.txt",
     "evidence/browser_chrome_devtools_20261013/browser-observations.md",
@@ -94,6 +100,8 @@
     "owner_backup": "%LOCALAPPDATA%\\SLMEducator-campaign-backup-20261013 retained until owner confirmation",
     "aac_server": "port 8099, left untouched",
     "lm_studio": "port 1234; gemma-4-12b-it-qat@q4_k_xl used serially under explicit authorization; no model downloaded or reloaded",
+    "temporary_package": "package copies, synthetic providers, servers, blockers, and named browser sessions stopped; loopback test ports 8000, 8001, 55921 released",
+    "profile_isolation_caveat": "One exploratory package seed/start omitted USERPROFILE/HOME redirection and may have read or created the default-home encryption key through Path.home(); processes stopped; no default-profile files were inspected or cleaned; final fallback test used an isolated temporary profile; owner review advised",
     "synthetic_browser": "DevTools fixture server and credential helper stopped; ports 56134/59636 verified closed",
     "pytest_runner": "none active at end"
   },
@@ -106,7 +114,8 @@
     "BOOT-05 remainder with exclusive native GUI: slow-start/failed-start timeout path, keyboard URL entry, DPI.",
     "Interactive GUI install/uninstall and build-to-build update path in a disposable Windows profile.",
     "Do not tune the reserved-only objective-hostile result. A further semantic repair cycle requires an owner decision and development-only evidence; current v15 result is 35/36 strict all-2.",
-    "With owner approval, optionally run one post-SLM-AUTO-021 real-provider cancellation probe; do not claim late-response suppression against LM Studio until a provider response is captured after local cancellation.",
+    "Owner: review the possible default-profile encryption-key access recorded in evidence/package_acceptance_20261014.md; no automated inspection or cleanup was performed.",
+    "Package same-view recovery after cancellation was not confirmed; it succeeded after reopening the tutor page. Keep packaged/installed tutor acceptance partial and investigate only if an in-scope owner-approved follow-up is needed.",
     "Leave SLM-AUTO-020 unchanged until a justified new reproduction is available."
   ]
 }

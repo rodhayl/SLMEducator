@@ -144,16 +144,22 @@ repetidamente, DevTools, e inferencia en serie con
   WinSock (`OSError 10038`) y no hubo recibo del proveedor. Se actualizó el
   ciclo de vida para diferir el cierre hasta completar el `Future`. La regresión
   cancelación/timeout y las pruebas de generación terminaron **21 passed**;
-  revisión independiente sin hallazgos. No se repitió inferencia viva después
-  de la reparación, por lo que no se afirma cancelación verificada contra una
-  respuesta real de LM Studio.
+  revisión independiente sin hallazgos. La evidencia offline, por sí sola, no
+  verificó una respuesta real post-fix.
+- **Probe real post-fix, 2026-10-14:** una petición acotada con Gemma devolvió
+  HTTP 200 y `finish_reason=stop` en 123.985 s. La UI suprimió la respuesta
+  tardía; busy/409 se mantuvo hasta terminar el proveedor y una solicitud
+  posterior completó en 53.684 s. Véase el informe v15. La aceptación de tutor
+  en el paquete sigue separada y parcial.
 - No se cambió el modelo ni se tocó LM Studio. El build instalado no se
   reconstruyó; la aceptación nativa/instalada permanece pendiente.
 
 ## Reglas respetadas por estas campañas
 
-- Sin credenciales, tokens ni datos de personas reales en informes o Git.
-- Datos sintéticos desechables; la instalación y los datos del propietario se
-  conservan intactos.
+- Sin valores de credenciales, tokens, contenido de respuestas del proveedor
+  ni datos de personas reales en informes o Git.
+- No se usó intencionalmente la instalación ni la base de datos del propietario.
+  Véase la nota de perfil de usuario: un seed exploratorio pudo leer o crear la
+  clave de cifrado bajo `Path.home()`; no se inspeccionó ni limpió ese perfil.
 - Ninguna afirmación de «aceptación completa»: los PASS heredados son
   resultados comunicados de su campaña, no reejecuciones independientes.

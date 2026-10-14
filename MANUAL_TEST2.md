@@ -1084,44 +1084,56 @@ Regla de evidencia actualizada 2026-10-08: no registrar valores de contraseña, 
 
 ## Pendientes de campaña 2026-10-13 (agregado, no altera A–F)
 
-Subcasos que la campaña automatizada de 2026-10-13 dejó pendientes de
-observación humana y que se cubren con los subpasos ya escritos arriba.
-Marcar cada uno por separado en el registro de sesión; ninguno queda acreditado
-por las pruebas automatizadas ni por las capturas del agente:
+Subcasos que siguen pendientes de observación humana o de aceptación en el
+candidato instalado. La evidencia de una copia empaquetada se registra por
+separado y no sustituye el control nativo ni la prueba en la instalación del
+propietario:
 
 - Narrador real (VIS-06): F.4.c exige pasar un lector de pantalla de verdad.
-  La campaña verificó atributos y foco por teclado, noNarrador. Falta: usarlo
+  La campaña verificó atributos y foco por teclado, no Narrator. Falta: usarlo
   y registrar lector/versión.
 - Clic físico del menú de zoom del navegador (literal de F.4.g, opcional):
   la campaña verificó 200%/400%/reset con el atajo nativo (Ctrl+= / Ctrl+0),
   que usa el mismo motor de zoom por origen del menú ⋮. Falta solo el clic
   literal del control del menú, si se quiere el caso completo.
-- Botón «Abrir SLMEducator» del launcher (A.2.e, BOOT-02): la campaña comprobó
-  el arranque y la URL real del launcher, no ese botón. Falta: abrirlo una vez
-  y confirmar que abre la pestaña del origen correcto.
+- Botón «Abrir SLMEducator» del launcher (A.2.e, BOOT-02): se comprobó el
+  arranque del paquete y `/api/status` en copias desechables con
+  `--no-browser`, no ese botón. Falta: abrirlo una vez en una ventana nativa y
+  confirmar que abre la pestaña del origen correcto, usando un navegador de
+  prueba aislado.
 - Arranque lento, arranque fallido, URL manual por teclado y DPI del launcher
-  (resto de BOOT-05): la campaña comprobó arranque en frío y reserva de puerto
-  (8000 ocupado → 8001). Quedan NOT RUN esas variantes; guiarlas dentro de A.5
-  si David elige ejecutarlas, sin tocar procesos ajenos.
+  (resto de BOOT-05): el fallback 8000→8001 también se verificó en una copia
+  del paquete con perfil temporal aislado. Arranque lento/fallido, entrada
+  manual de URL y DPI siguen NOT RUN; guiarlas dentro de A.5 si David elige
+  ejecutarlas, sin tocar procesos ajenos.
 - Aceptación del candidato instalado de un recorrido de aprendizaje completo
-  (LEARN-03): el recorrido docente→alumna→tutor de la campaña se hizo sobre
-  fixture sintética, no sobre el candidato instalado por David. Ejecutar la
-  ruta básica A→B→D→E→F ya lo cubre; queda pendiente hasta esa sesión.
+  (LEARN-03): una copia del paquete verificó curso, lección, autoevaluación y
+  recuperación del borrador; no fue una instalación ni un intento
+  enviado/calificado. Ejecutar la ruta básica A→B→D→E→F en un perfil
+  desechable sigue pendiente hasta esa sesión.
 
 ## Actualización de evidencia 2026-10-14 (agregado; A–F intactos)
 
 - Se confirmó el modelo cargado en LM Studio: `gemma-4-12b-it-qat@q4_k_xl`.
   El modelo no se detuvo, cambió ni recargó.
-- Dos intentos de cancelación API con cuenta sintética confirmaron supresión local
-  de respuesta, 409 mientras seguía ocupado y recibo cancelado con
-  `provider_may_continue=true`. No se capturó respuesta del proveedor; el log
-  de nuestra aplicación mostró `ReadError` porque el handler cerró el cliente
-  HTTP mientras el worker estaba en vuelo. Se reparó en SLM-AUTO-021 y las
-  regresiones sintéticas confirman cierre diferido hasta que termina el worker.
-- No se hizo una nueva cancelación contra una respuesta real de LM Studio
-  después de la reparación. No marques la llegada tardía del proveedor como
-  verificada; `AUTO-AI-04.formatos_cancelar` permanece PARTIAL. La puntuación
-  de rúbrica v15 (35/36 strict all-2) y la descripción completa están en
+- Dos intentos de cancelación API antes del fix confirmaron supresión local,
+  409 mientras seguía ocupado y `provider_may_continue=true`, pero no
+  capturaron respuesta del proveedor. SLM-AUTO-021 corrigió el cierre
+  prematuro. Una prueba real post-fix con Gemma confirmó HTTP 200,
+  `finish_reason=stop`, supresión local, busy/409 hasta terminar el worker y
+  una petición posterior correcta. `AUTO-AI-04.cancel_lifecycle` queda
+  acreditado para el checkout; `AUTO-AI-04.formatos_cancelar` sigue PARTIAL
+  porque no es aceptación del tutor instalado.
+- La copia del paquete usó solo un stub local: canceló y ocultó la respuesta,
+  pero la nueva petición se confirmó tras reabrir la pantalla del tutor, no en
+  la misma vista. La identidad y los recorridos están en
+  `implementation_documents/auto_testing_2026-10-13_001/evidence/package_acceptance_20261014.md`.
+- Nota de aislamiento: una prueba exploratoria anterior no redirigió
+  `USERPROFILE`/`HOME`; el helper de cifrado pudo leer una clave existente o
+  crearla en el perfil predeterminado. Se detuvieron sus procesos, sin
+  inspeccionar ni limpiar ese perfil. La prueba final se repitió con perfil
+  temporal; el propietario debe revisar la posible lectura/creación previa.
+- La puntuación de rúbrica v15 sigue en 35/36 strict all-2; ver
   `implementation_documents/source_review_v15_20261014/REPORT.md`.
 
 FIN
