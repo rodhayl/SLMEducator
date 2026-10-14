@@ -1542,16 +1542,22 @@ class AIService:
         Provide a response that:
         - Answers the question clearly and accurately
         - Uses age-appropriate language
-        - Encourages further learning
-        - Suggests related topics to explore
+        - Follows the requested assistance mode, subject to the teacher policy
+        - Respects the length and presentation requested in the current student question
+
+        The explanation field is displayed to the student. Keep it within the requested
+        length and presentation (for example, one short sentence or a short list).
+        If no preference is given, be concise and expand only as needed to help.
+        Do not add related topics or encouragement when they would exceed that request;
+        use an empty list and empty string for those optional additions.
 
         Return in this format:
-        {{
-            "answer": "Clear answer to the question",
-            "explanation": "Detailed explanation",
-            "related_topics": ["topic1", "topic2"],
-            "encouragement": "Encouraging message for the student"
-        }}
+        {
+            "answer": "Answer within the requested scope and presentation",
+            "explanation": "Student-facing response within the requested scope and presentation",
+            "related_topics": [],
+            "encouragement": ""
+        }
         """
 
         return prompt
