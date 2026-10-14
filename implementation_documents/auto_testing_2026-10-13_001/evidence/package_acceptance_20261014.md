@@ -77,3 +77,24 @@ launcher’s native “Abrir SLMEducator” button, slow/failing-start timeout,
 keyboard URL entry, DPI behavior, Narrator/audio, and installed-candidate
 learning acceptance remain open. The frozen rubric remains 35/36 strict
 all-2; reserved `objective-hostile` remains a validation-only weakness.
+
+## Live Gemma 4 packaged-runtime verification (same-view recovery)
+
+On 2026-10-14, the packaged candidate `slm-candidate-d6deecf-prod-20261014` (`SLMEducator.exe` SHA-256 `9f354849628b9ce9b77fad4ce180a9a0b5bdcc2cd9fc401841456292dac8743b`) was executed against the verified live model in LM Studio (`gemma-4-12b-it-qat@q4_k_xl` on `127.0.0.1:1234`) using strict environment isolation:
+- Pre-flight standard library check confirmed `HOME`, `USERPROFILE`, `APPDATA`, `LOCALAPPDATA`, `SLM_LOG_DIR`, `SLM_DB_PATH`, and `SLM_CONFIG_FILE` resolved 100% inside disposable temporary directories.
+- Synthetic pilot database was seeded with a course and lessons assigned to `learner_a`, with `AIModelConfiguration` targeting LM Studio (`temperature: 0.0`, `reasoning_effort: "none"`, `max_tokens: 2000`).
+- Automated headless browser journey (Playwright + Chrome) exercised the candidate on port 8000:
+  1. **Free Tutor**: A prompt sent to the candidate produced a verified pedagogical response in 13.15s, displaying visible AI uncertainty (`Sugerencia de IA sin verificar`) and clearing the input textarea. Evidence: `evidence/browser_candidate_gemma4_20261014/tutor_free_gemma4.png`.
+  2. **Contextual Tutor**: Course and lesson material ("Partes iguales") were selected. The source details displayed the source version and references (`[content:1/section-1]`). The contextual question was answered accurately referencing the lesson content in 11.63s. Evidence: `evidence/browser_candidate_gemma4_20261014/tutor_contextual_gemma4.png`.
+  3. **Tutor Formats**: Formatted output was requested under explanation mode. Structured response rendered safely in the `ContentRenderer` prose container in 11.64s. Evidence: `evidence/browser_candidate_gemma4_20261014/tutor_format_bullets.png`.
+  4. **Cancellation and Same-View Recovery**:
+     - A multi-step prompt was sent to Gemma 4.
+     - "Cancelar solicitud de IA" was clicked locally.
+     - Confirmed local cancellation banner appeared: `Cancelación local confirmada. El proveedor puede continuar y podrían aplicarse cargos.`
+     - Typed prompt was preserved in the input textarea.
+     - Ask button was immediately disabled.
+     - Concurrent request POST received HTTP 409 Conflict while inference continued in the background.
+     - In-flight background provider completed in 46.41s without leaking any late response into the conversation log.
+     - Ask button remained disabled until explicit user action.
+     - Expanding "Política de ayuda, uso y recibo" and clicking "Actualizar estado" queried the backend status without auto-submitting; send button re-enabled with the preserved prompt intact.
+     - User explicitly clicked send; second request completed successfully with a fresh request ID in 35.72s in the same view without page reload. Evidence: `evidence/browser_candidate_gemma4_20261014/tutor_cancellation_recovered.png`.

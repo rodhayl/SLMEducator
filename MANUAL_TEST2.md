@@ -1124,10 +1124,19 @@ propietario:
   una petición posterior correcta. `AUTO-AI-04.cancel_lifecycle` queda
   acreditado para el checkout; `AUTO-AI-04.formatos_cancelar` sigue PARTIAL
   porque no es aceptación del tutor instalado.
-- La copia del paquete usó solo un stub local: canceló y ocultó la respuesta,
-  pero la nueva petición se confirmó tras reabrir la pantalla del tutor, no en
-  la misma vista. La identidad y los recorridos están en
-  `implementation_documents/auto_testing_2026-10-13_001/evidence/package_acceptance_20261014.md`.
+- La copia del paquete inicial usó un stub local; la nueva petición se confirmó
+  tras reabrir la pantalla del tutor. Posteriormente, con el candidato
+  empaquetado `slm-candidate-d6deecf-prod-20261014` y el modelo local real
+  Gemma 4 en LM Studio (`127.0.0.1:1234`), en entorno 100% aislado
+  (`HOME`/`USERPROFILE`/`APPDATA`/`LOCALAPPDATA`/DB/config temporales) se
+  acreditó el recorrido completo de tutor en navegador: tutor libre (13.15 s),
+  tutor contextual con lección y referencias de fuente (11.63 s), formato de
+  explicación estructurada (11.64 s) y cancelación local con supresión tardía,
+  409 concurrente durante la inferencia de fondo (46.41 s), preservación de
+  la pregunta, actualización de estado sin reenvío automático y recuperación
+  exitosa en la misma vista (35.72 s). Capturas en
+  `implementation_documents/auto_testing_2026-10-13_001/evidence/browser_candidate_gemma4_20261014/`.
+  La instalación del propietario en `29df5ed` no se modificó ni ejecutó.
 - Nota de aislamiento: una prueba exploratoria anterior no redirigió
   `USERPROFILE`/`HOME`; el helper de cifrado pudo leer una clave existente o
   crearla en el perfil predeterminado. Se detuvieron sus procesos, sin

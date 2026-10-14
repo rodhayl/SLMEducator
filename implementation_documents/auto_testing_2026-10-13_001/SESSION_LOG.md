@@ -467,3 +467,26 @@ continuation block below.
     conserva PARTIAL por recuperación no confirmada en la misma vista.
     Narrator, GUI nativa del launcher, resto de BOOT-05, aceptación instalada
     de LEARN-03 y el límite semántico `objective-hostile` siguen abiertos.
+17. Continuación de aceptación de paquete con proveedor local real (2026-10-14):
+    se verificó en LM Studio que `gemma-4-12b-it-qat@q4_k_xl` estaba cargado
+    de forma no mutante en 127.0.0.1:1234. Con el candidato empaquetado
+    `slm-candidate-d6deecf-prod-20261014` (`SLMEducator.exe` SHA-256
+    `9f354849628b9ce9b77fad4ce180a9a0b5bdcc2cd9fc401841456292dac8743b`) en
+    entorno 100% aislado (preflight stdlib de HOME/USERPROFILE/APPDATA/LOCALAPPDATA
+    y rutas de datos dentro del directorio temporal), se ejecutó el recorrido
+    automatizado con navegador aislado (Playwright + Chrome):
+    - Tutor libre con inferencia real Gemma 4: respuesta pedagógica en 13.15 s,
+      incertidumbre visible (`Sugerencia de IA sin verificar`) y limpieza del input.
+    - Tutor contextual: carga de curso y material ("Partes iguales"), versión y
+      sección (`[content:1/section-1]`) en 11.63 s.
+    - Formato: modo explicación estructurado recibido en 11.64 s en `ContentRenderer`.
+    - Cancelación y recuperación en la misma vista: envío de solicitud extensa,
+      cancelación local inmediata con confirmación en UI, preservación de la pregunta,
+      bloqueo del botón de envío, 409 Conflict a solicitud concurrente durante inferencia
+      de fondo (46.41 s), supresión de entrega tardía en el log de conversación,
+      persistencia del bloqueo hasta pulsar «Actualizar estado», verificación de que
+      refrescar no reenvía automáticamente, y envío manual posterior con respuesta
+      correcta en 35.72 s sin recargar la página.
+    - Capturas retenidas en `evidence/browser_candidate_gemma4_20261014/`.
+    - La aceptación del candidato instalado (`29df5ed` del propietario) sigue
+      abierta y sin modificar.
