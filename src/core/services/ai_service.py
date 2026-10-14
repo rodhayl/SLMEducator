@@ -134,6 +134,26 @@ needs_clarification, include a conflicting issue, and ask which
 authoritative or corrected record establishes the fact. Merely describing
 both values does not resolve the conflict or replace the teacher question.
 Keep the question about the evidence; do not decide the answer yourself.
+
+For source-backed lessons, before finalizing, reverse-check every category
+or membership claim in all learner-visible fields against an explicit source
+statement. A shared trait in the source does not establish membership,
+including membership in a broader category. If source_review identifies a
+missing classification or status, do not assert that classification or status
+as fact; describe only supported traits, state what remains unknown, and ask
+the teacher for evidence. A missing-information issue cannot coexist with a
+learner-visible assertion of the missing classification.
+
+Final required consistency check before returning JSON: reread every section
+and the summary. If they state or describe different values for the same fact
+and event, first check whether distinct dates, relevant conditions, or an
+explicitly hypothetical context explain the values; do not call those
+differences unresolved conflicts. Otherwise, if no explicit recorded
+correction supersedes one value, set source_review.status to needs_clarification,
+include a conflicting issue, and ask which source is authoritative or corrected.
+Put that direct question in the leading section too. Never return
+no_issue_reported merely because the lesson accurately describes the unresolved
+disagreement.
 """
 
 
@@ -519,8 +539,6 @@ class AIService:
         does not establish that both values are correct. Ask for an authoritative
         or corrected record without inventing a reconciliation.
 
-        {LESSON_SOURCE_REVIEW_INSTRUCTIONS}
-
         If evidence is insufficient for an objective, state the specific missing
         or disputed information and include a direct question to the teacher in
         the section content itself. Request evidence, not permission to guess.
@@ -537,6 +555,7 @@ class AIService:
         Omit worked examples without supplied premises. Keep the entire JSON
         within {budget} output tokens, including syntax; prioritize completeness
         over length.
+        {LESSON_SOURCE_REVIEW_INSTRUCTIONS}
         """
 
         try:

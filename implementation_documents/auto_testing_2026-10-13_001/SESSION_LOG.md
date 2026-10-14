@@ -345,3 +345,72 @@ database contents, or private configuration were read or recorded.
 - Matriz: **165 filas: 150 PASS, 15 PARTIAL, 0 BLOCKED**. La aceptación
   semántica sigue parcial; una segunda ronda de reparación requiere nueva
   decisión del propietario.
+
+## 2026-10-14 · v15 y reparación de cierre durante cancelación
+
+1. Se confirmó mediante `http://127.0.0.1:1234/api/v0/models` que el modelo
+   cargado seguía siendo `gemma-4-12b-it-qat@q4_k_xl`; ningún modelo se cambió,
+   descargó ni recargó. Las nuevas ejecuciones usaron estado sintético nuevo,
+   proveedor local real, serie exclusiva y fixture congelada SHA-256
+   `cf3c6d9c6e0e02004368aaabd0c86332a56429b13b059e17d8d14fdc93ddf107`.
+2. Antes de reservar el split se añadió la revisión final de coherencia de
+   `source_review`, limitada a lecciones con fuente y con excepción explícita
+   para diferencias explicadas por fechas, condiciones pertinentes o contexto
+   hipotético. Las 61 pruebas de `test_lesson_instruction_consistency.py` y
+   `test_lesson_source_review.py`, `flake8` de los archivos de contrato
+   afectados y `git diff --check` pasaron. El prompt version es
+   `teacher-reviewed-v15-final-source-review-consistency`. Revisión
+   independiente confirmó que el carve-out conserva la regla anterior.
+3. Prueba focal de desarrollo `followup-conflict`: HTTP 200, replay idéntico,
+   publicación no revisada 409; q4_k_xl devolvió un issue `conflicting`,
+   pregunta de aclaración y borrador no aprobado. Después, 25 casos de
+   desarrollo: 25/25 HTTP 200, items ready, replay idéntico y 409; recibos
+   25/25 q4_k_xl, `temperature=0`, reasoning none, `finish_reason=stop`.
+   Presupuestos reales: 18 requests a 4000 y 7 rutas de ejercicio a 2000.
+4. Puntuación manual frente a las cinco dimensiones/oráculos sin cambiarlos:
+   desarrollo **25/25 strict all-2**. `followup-conflict` resuelto.
+   `followup-classification` pregunta si el texto clasifica a Dali como perro,
+   gato u otro animal; se puntuó como pregunta sobre lo que el texto afirma,
+   cuya respuesta respaldada es que no aporta esa clasificación, no como
+   afirmación de que Dali pertenezca a esas categorías.
+   Las aclaraciones almacenadas con entidades numéricas se renderizaron como
+   paréntesis/puntuación normales con `marked`, DOMPurify y jsdom; no se quitó
+   el escape ni se observaron nodos inseguros.
+5. Con el código/prompt congelado, el split reserved corrió una vez en otro
+   estado sintético: 11/11 HTTP 200, ready, replays idénticos, 409; recibos
+   q4_k_xl, temperature 0, reasoning none, finish stop; fuentes largas
+   muestran `use_coverage=partial`. Scoring de validación **10/11 all-2**:
+   `objective-hostile` ofrece en una pregunta si el conteo debe cambiar de
+   siete a dos. Sin ajuste posterior, sin casos reserved usados para tuning.
+   Resultado conjunto v15: **35/36 strict all-2**, transporte estable. Estados
+   brutos, cuentas sintéticas y claves de recuperación permanecen en `%TEMP%`,
+   no se copiaron al repositorio.
+6. Se intentó cancelación real por HTTP con cuentas/DB sintéticas. La petición
+   quedó activa, la segunda petición recibió 409 y el endpoint devolvió
+   `cancelled` con `provider_may_continue=true`, pero no hubo recibo del
+   proveedor. Tras un único reintento autorizado por el propietario, los logs
+   de nuestra app mostraron dos `httpx ReadError` (`OSError 10038`: socket ya
+   cerrado) en `receive_response_headers`; no se registró respuesta de LM
+   Studio. La inspección confirmó que los handlers `finally` cerraban el
+   cliente `httpx` antes de que el executor terminara. Es un defecto nuestro,
+   SLM-AUTO-021, no evidencia de fallo del modelo/proveedor.
+7. Se reparó `close_service`: cuando el worker sigue activo, el cierre ahora
+   queda ligado al `Future` y sucede al terminar el proveedor. Las regresiones
+   de cancelación/timeout comprueban que el cliente no cierre temprano y cierre
+   una vez liberado. `test_ai_request_lifecycle.py` +
+   `test_generation_sources.py`: **21 passed**. Revisión independiente de
+   concurrencia/callback: sin hallazgos. Flake8 de implementación nueva y
+   contratos pasó; el comando amplio también reportó E501 preexistentes en
+   `src/api/routes/ai.py` y F401/F811 preexistentes en
+   `tests/trust/test_ai_request_lifecycle.py`. No se hizo otra solicitud real
+   después de la reparación; cancelación a través de una respuesta real sigue
+   sin verificar.
+8. Los cuatro módulos offline se repitieron después de ambas reparaciones:
+   **82 passed, 1 warning**; flake8 focal y `git diff --check` pasaron. Se
+   validaron JSON, rutas y las **169 filas** de cobertura (152 PASS, 17
+   PARTIAL, 0 BLOCKED). Se actualizaron root `DEFECTS.md`, `MANUAL_TEST2.md`,
+   `COVERAGE.csv`, `SUMMARY.md`, este log, `RESUME.json` y el informe
+   sanitizado v15. Antes de publicar, queda revisar el diff y subir solo
+   fuentes/tests/informes sanitizados en la misma rama. No se reconstruyó ni
+   verificó el paquete instalado, no hubo aceptación Narrator/GUI y no se
+   copiaron directorios sintéticos ni contenido de cuentas al repositorio.

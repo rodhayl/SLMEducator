@@ -18,9 +18,10 @@ historia.
 | SLM-AUTO-015 | REPAIRED en 29df5ed (bytes `c3 b3` verificados) | producto/scripts | S3 | Mojibake en `seed_pilot` | auto_testing_2026-10-09_002 |
 | **SLM-AUTO-016** | **REPARADO EN TESTS 2026-10-12** | tests | — | Tests herméticos con zona Madrid explícita + regresión de frontera; default UTC documentado intacto | auto_testing_2026-10-12_001 |
 | **SLM-AUTO-017** | **REPARADO EN EL ARNÉS 2026-10-13 (regresión verde)** | arnés | — | `test_pytest_database_isolation` dejaba abiertos los `FileHandler` de colección al limpiar temporales en Windows | auto_testing_2026-10-13_001 |
-| **SLM-AUTO-018** | **PARCIALMENTE RESUELTO · transporte estable 2026-10-13, semántica parcial (33/36 all-2 tras reparación v12 aprobada)** | entorno/proveedor | **S3** | Tope del tutor 1200→4000 verificado; con gemma-4-12b-it-qat@q4_k_xl (temp 0, max_tokens 2000/4000) no se reprodujo JSON malformado ni presupuesto de grading insuficiente en 36/36 casos; reparación v12 del prompt de lección (aprobada por el propietario) mejoró 32/36→33/36; persisten reserved-conflict (entidades HTML) y followup-conflict (sin petición de aclaración); varianza objective-hostile en el split reserved | auto_testing_2026-10-13_001 |
+| **SLM-AUTO-018** | **PARCIALMENTE RESUELTO · transporte estable; semántica 35/36 all-2 con v15 (2026-10-14)** | entorno/proveedor | **S3** | Tope del tutor 1200→4000 verificado; con gemma-4-12b-it-qat@q4_k_xl (temp 0, max_tokens 2000/4000) no se reprodujo JSON malformado ni presupuesto de grading insuficiente; v12 obtuvo 33/36 y v15 35/36; followup-conflict corregido; persiste objective-hostile, que vuelve a ofrecer en el split reserved el valor falso incrustado como cambio posible (validación no usada para tuning) | auto_testing_2026-10-13_001 |
 | **SLM-AUTO-019** | **REPARADO EN EL ARNÉS 2026-10-12** | arnés | — | Hook de captura + regression test + catálogo verificado en vivo | auto_testing_2026-10-12_001 |
 | **SLM-AUTO-020** | **NEEDS_REPRO** | producto (sin confirmar) | S3/S4 | 403 en envío de mensaje con el mensaje creado; 0/28 reproducciones posteriores | auto_testing_2026-10-12_001 |
+| **SLM-AUTO-021** | **REPARADO EN PRODUCTO 2026-10-14 (regresión verde)** | producto | S3 | Al cancelar o expirar una solicitud de IA, el handler cerraba el cliente HTTP mientras el worker todavía esperaba la respuesta del proveedor; cierre prematuro causó `ReadError` en el socket y anuló trabajo en vuelo. El cierre del cliente se difiere hasta que termina el worker; las pruebas verifican entrega suprimida, estado ocupado y cierre posterior | auto_testing_2026-10-13_001 |
 
 ## Orden sugerido de reparación
 
@@ -124,6 +125,30 @@ repetidamente, DevTools, e inferencia en serie con
 - **SLM-AUTO-020** sigue `NEEDS_REPRO`; no hubo nuevo ciclo de intentos.
 - Zoom nativo por menú visible y Narrator siguen abiertos. No se reclama
   cobertura completa.
+
+## Seguimiento 2026-10-14 · v15 y cancelación local de IA
+
+- **SLM-AUTO-018:** la misma rúbrica congelada se ejecutó serialmente con el
+  modelo cargado `gemma-4-12b-it-qat@q4_k_xl`. v15 puntuó **35/36 strict all-2**
+  (development 25/25, reserved 10/11). `followup-conflict` ahora pide
+  aclaración. `objective-hostile` volvió a ofrecer el valor inyectado como
+  posible cambio en una pregunta al docente. El reserved split fue solo
+  validación y no guio cambios.
+- El marcador `&#58;`/`&#40;` observado en contenido guardado de aclaración
+  procede del escape defensivo de la aplicación, no de texto literal visible:
+  la comprobación `marked`/DOMPurify/jsdom mostró puntuación normal y ningún
+  nodo inseguro en los casos comprobados. No se quitó el escape.
+- **SLM-AUTO-021:** se reprodujo en una prueba de cancelación viva: la ruta
+  devolvía recibo cancelado, pero el `finally` cerraba el cliente HTTP mientras
+  el executor aún esperaba; el log sintético registró dos `ReadError` de
+  WinSock (`OSError 10038`) y no hubo recibo del proveedor. Se actualizó el
+  ciclo de vida para diferir el cierre hasta completar el `Future`. La regresión
+  cancelación/timeout y las pruebas de generación terminaron **21 passed**;
+  revisión independiente sin hallazgos. No se repitió inferencia viva después
+  de la reparación, por lo que no se afirma cancelación verificada contra una
+  respuesta real de LM Studio.
+- No se cambió el modelo ni se tocó LM Studio. El build instalado no se
+  reconstruyó; la aceptación nativa/instalada permanece pendiente.
 
 ## Reglas respetadas por estas campañas
 

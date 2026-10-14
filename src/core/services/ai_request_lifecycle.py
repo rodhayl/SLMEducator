@@ -35,6 +35,7 @@ class RequestRecord:
     tokens_used: int | None = None
     requests_used_today: int = 0
     result: dict | None = None
+    provider_future: asyncio.Future | None = None
     cancel_event: asyncio.Event = field(default_factory=asyncio.Event)
 
 
@@ -172,6 +173,7 @@ async def invoke_provider(db, user, service, **kwargs):
             _release(record)
 
     future = asyncio.get_running_loop().run_in_executor(None, execute)
+    record.provider_future = future
     cancelled = asyncio.create_task(record.cancel_event.wait())
     try:
         done, _ = await asyncio.wait(
@@ -193,6 +195,16 @@ async def invoke_provider(db, user, service, **kwargs):
             future.add_done_callback(
                 lambda result: result.exception() if not result.cancelled() else None
             )
+
+
+def close_service(service) -> None:
+    """Defer closing a provider client while its worker still owns the socket."""
+    record = CURRENT_REQUEST.get()
+    future = record.provider_future if record is not None else None
+    if future is not None and not future.done():
+        future.add_done_callback(lambda _result: service.close())
+        return
+    service.close()
 
 
 def receipt(record: RequestRecord) -> dict:

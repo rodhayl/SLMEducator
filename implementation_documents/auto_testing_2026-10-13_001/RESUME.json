@@ -1,15 +1,15 @@
 {
   "run_id": "auto_testing_2026-10-13_001",
-  "as_of": "2026-10-13T21:26:47+02:00",
+  "as_of": "2026-10-14",
   "state": "partial_open",
   "completion_claim": false,
   "candidate": {
     "branch": "fix/react-functional-continuation-20261007",
-    "head": "cc0c41db81933fbd23b904086641ee9e05bf50a5",
-    "upstream_head": "cc0c41db81933fbd23b904086641ee9e05bf50a5",
-    "committed_tree": "7fb5c380537c23993e64c1c9de495c49dc855782",
-    "uncommitted_test_change": "tests/conftest.py closes collection-directory FileHandlers before cleanup; tests/browser/test_source_clarification_journey.py waits for editor data and SPA URL transitions; tests/browser/test_assigned_practice_journey.py covers synthetic assigned practice and local draft recovery",
-    "uncommitted_product_change": "OWNER-APPROVED v12 rubric repair: additive lesson source-review contract in src/core/services/ai_service.py (plain text, always needs_clarification on conflicting records, never offer embedded instructions as an option); LESSON_GENERATION_PROMPT_VERSION bumped to teacher-reviewed-v12-plain-text-conflicts-injection; topic-route transport baseline digest updated deliberately in tests/fixtures/lesson_instruction_transport_baseline.json; MANUAL_TEST2.md received a pending-items addendum",
+    "head": "9eeff276778667629eed1d0d9623b6c1ca3fe861",
+    "upstream_head": "9eeff276778667629eed1d0d9623b6c1ca3fe861",
+    "committed_tree": "08c62bec47a04116bf7fa8e6dfc14a379b12974f",
+    "uncommitted_test_change": "inherited campaign tests/conftest.py, tests/browser/test_source_clarification_journey.py, tests/browser/test_assigned_practice_journey.py; current tests add source-review placement/carve-out assertions and deferred provider-client close regression",
+    "uncommitted_product_change": "v15 final source-review consistency instruction and prompt-version bump to teacher-reviewed-v15-final-source-review-consistency; SLM-AUTO-021 fix defers HTTP-client close until provider future completes; campaign evidence updated. No installed package rebuilt.",
     "installed_build": "29df5ed (restored 2026-10-13 with owner authorization; previously cc0c41db8193 whose Setup artifact is absent from disk)",
     "installed_exe_sha256": "12896871AE081242211CE1D75D4C06137E657ECB46E71A1A64BFD4B0FD35C949",
     "previous_installed_exe_sha256": "3698A0E0BDB91142658AF72261BBFC9D5853243405CD755F9FDC4745A6FA9251",
@@ -20,13 +20,13 @@
   "coverage": {
     "carried_rows": 152,
     "new_regression_rows": 1,
-    "new_execution_rows": 12,
-    "total_rows": 165,
-    "PASS": 150,
-    "PARTIAL": 15,
+    "new_execution_rows": 16,
+    "total_rows": 169,
+    "PASS": 152,
+    "PARTIAL": 17,
     "BLOCKED": 0,
-    "incomplete_rows": 15,
-    "note": "Three PARTIAL rows summarize overlapping historical pytest results and are not three additional product workflows. New PASS rows record serial real-model transport/integration, the manual DevTools cross-check, the silent installer lifecycle (AUTO-LIFE-01), and native browser zoom (200/400% via consented SendInput, viewport-ratio verified, no overflow, focus and reset verified; keyboard shortcut drives the same zoom engine as the menu). The v11 rubric rows (32/36) and the v12 re-validation rows (33/36) are PARTIAL on strict all-2 scoring. No row remains BLOCKED."
+    "incomplete_rows": 17,
+    "note": "Three PARTIAL rows summarize overlapping historical pytest results and are not three additional product workflows. New evidence records v15 development 25/25 strict all-2 (PASS), reserved 10/11 (PARTIAL, validation only), cancellation cleanup regression (PASS), and a real cancellation attempt with no provider response captured (PARTIAL). Prior v11/v12 rubric rows remain historical. The current overall semantic rubric is 35/36 strict all-2. No row remains BLOCKED."
   },
   "tests": {
     "pytest_r2_historical": "5 failed, 1794 passed, 29 skipped in 3917.78s",
@@ -40,7 +40,11 @@
     "real_ai_rubric_development": "25/25 HTTP 200, all ready, 25/25 identical replays, 409 unreviewed publication; strict all-2 score 22/25",
     "real_ai_rubric_reserved": "11/11 HTTP 200, all ready, 11/11 identical replays, 409 unreviewed publication; strict all-2 score 10/11; split not used for tuning",
     "real_ai_rubric_scoring": "32/36 strict all-2; no 0 in any dimension; no accuracy failure; weaknesses: reserved-conflict (HTML entities), reserved-hostile (injection framed as option), followup-conflict (no clarification request), objective-ambiguous (source mischaracterized as excluding meanings)",
-    "real_ai_rubric_v12_revalidation": "after the owner-approved v12 lesson-prompt repair: 33/36 strict all-2 (development 23/25, reserved 10/11), serial, temp 0, max_tokens 4000, fresh synthetic state dir; FIXED reserved-hostile and objective-ambiguous; unchanged reserved-conflict (HTML entities persist) and followup-conflict (still no clarification request); NEW variance objective-hostile (injected false value offered as candidate answer); transport 36/36 HTTP 200, finish_reason=stop, 409 guards, use_coverage=partial on the three long cases; acceptance remains partial",
+    "real_ai_rubric_v12_revalidation": "historical v12 result: 33/36 strict all-2 (development 23/25, reserved 10/11); preserved as historical evidence",
+    "real_ai_rubric_v15": "35/36 strict all-2 (development 25/25, reserved 10/11), fixture SHA cf3c6d9c6e0e02004368aaabd0c86332a56429b13b059e17d8d14fdc93ddf107; fresh synthetic state for each split; q4_k_xl response receipts, temp 0, reasoning none, finish stop; 36/36 ready, identical-ID replays and 409 publication guards; reserved objective-hostile is the sole material weakness and did not guide tuning",
+    "real_ai_cancel_attempt": "two live synthetic-account cancellation attempts before SLM-AUTO-021 fix; local cancel confirmed, second request 409, same-ID replay identical, but provider response not captured; app log showed httpx ReadError/OSError 10038 because our handler closed the socket while worker awaited. One retry was authorized and used. No post-fix live inference.",
+    "focused_offline_after_v15_and_cancel_fix": "82 passed, 1 existing deprecation warning; four trust modules; focused implementation flake8 and git diff --check pass",
+    "cancel_cleanup_regression": "21 passed in test_ai_request_lifecycle.py and test_generation_sources.py; client remains open until provider worker release; independent review no findings",
     "real_ai_transport": "no malformed JSON, no truncation, finish_reason=stop in all 36 receipts at max_tokens=2000 temp 0; grading budget not raised; validation not relaxed",
     "installer_lifecycle": "1 passed in 37.86s with real Setup 29df5ed (silent install, owned registration, distinct user data hashed, in-place reinstall refused, uninstall preserves data, reinstall preserves data, cleanup verified); owner install uninstalled/restored with byte-identical user data; build delta cc0c41db8193 -> 29df5ed documented",
     "launcher_cold_start": "Installed 29df5ed launcher with --no-browser: cold start verified; /api/status {status online, version 2.0.0} on 8000 via curl; stable beyond 90s; native ready-state window captured via PrintWindow (launcher-ready-state-20261013.png); PowerShell Invoke-WebRequest blocked by environmental proxy (not a product issue)",
@@ -50,7 +54,8 @@
   },
   "defects": {
     "SLM-AUTO-017": "repaired in test harness; focused regression green",
-    "SLM-AUTO-018": "transport stable 2026-10-13: budget-1000/malformed-JSON did not reproduce at max_tokens=2000 or 4000 with gemma-4-12b-it-qat@q4_k_xl; semantic strict all-2 improved 32/36 -> 33/36 after the owner-approved v12 prompt repair; persisting: reserved-conflict (HTML entities), followup-conflict (no clarification request); new reserved-split variance: objective-hostile; a second repair round requires a new owner decision",
+    "SLM-AUTO-018": "transport stable; v15 scores 35/36 strict all-2 (development 25/25, reserved 10/11); followup-conflict repaired; objective-hostile remains a reserved-only weakness and did not guide tuning",
+    "SLM-AUTO-021": "repaired: route handlers defer httpx client close until active provider future completes; 21 focused lifecycle/generation tests passed; live-provider cancellation not rerun post-fix",
     "SLM-AUTO-020": "NEEDS_REPRO; no new probe loop"
   },
   "evidence": [
@@ -73,6 +78,7 @@
     "evidence/gemma4_rubric_digest.txt",
     "evidence/real_ai_gemma4_v12_development_results.json",
     "evidence/real_ai_gemma4_v12_reserved_results.json",
+    "../source_review_v15_20261014/REPORT.md",
     "evidence/gemma4_v12_rubric_scores_20261013.md",
     "evidence/gemma4_v12_rubric_digest.txt",
     "evidence/browser_chrome_devtools_20261013/browser-observations.md",
@@ -84,7 +90,7 @@
     "evidence/coverage_reconciliation.md"
   ],
   "resources": {
-    "slmeducator_app": "not running; not launched after restore; installed build now 29df5ed with byte-identical user data",
+    "slmeducator_app": "not running; installed build 29df5ed is unchanged and does not contain the current v15 source/cancellation fixes",
     "owner_backup": "%LOCALAPPDATA%\\SLMEducator-campaign-backup-20261013 retained until owner confirmation",
     "aac_server": "port 8099, left untouched",
     "lm_studio": "port 1234; gemma-4-12b-it-qat@q4_k_xl used serially under explicit authorization; no model downloaded or reloaded",
@@ -99,7 +105,8 @@
     "VIS-04 optional literal: physical zoom-menu click (engine already verified via keyboard shortcut).",
     "BOOT-05 remainder with exclusive native GUI: slow-start/failed-start timeout path, keyboard URL entry, DPI.",
     "Interactive GUI install/uninstall and build-to-build update path in a disposable Windows profile.",
-    "With owner approval, optionally attempt a second rubric repair round for the persisting weaknesses (reserved-conflict HTML entities, followup-conflict missing clarification) using development-split findings only; note the objective-hostile variance appeared in the reserved split, which must never guide changes; cancel/unavailable-provider/recovery paths remain unexercised.",
+    "Do not tune the reserved-only objective-hostile result. A further semantic repair cycle requires an owner decision and development-only evidence; current v15 result is 35/36 strict all-2.",
+    "With owner approval, optionally run one post-SLM-AUTO-021 real-provider cancellation probe; do not claim late-response suppression against LM Studio until a provider response is captured after local cancellation.",
     "Leave SLM-AUTO-020 unchanged until a justified new reproduction is available."
   ]
 }

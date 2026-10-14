@@ -1108,4 +1108,20 @@ por las pruebas automatizadas ni por las capturas del agente:
   fixture sintética, no sobre el candidato instalado por David. Ejecutar la
   ruta básica A→B→D→E→F ya lo cubre; queda pendiente hasta esa sesión.
 
+## Actualización de evidencia 2026-10-14 (agregado; A–F intactos)
+
+- Se confirmó el modelo cargado en LM Studio: `gemma-4-12b-it-qat@q4_k_xl`.
+  El modelo no se detuvo, cambió ni recargó.
+- Dos intentos de cancelación API con cuenta sintética confirmaron supresión local
+  de respuesta, 409 mientras seguía ocupado y recibo cancelado con
+  `provider_may_continue=true`. No se capturó respuesta del proveedor; el log
+  de nuestra aplicación mostró `ReadError` porque el handler cerró el cliente
+  HTTP mientras el worker estaba en vuelo. Se reparó en SLM-AUTO-021 y las
+  regresiones sintéticas confirman cierre diferido hasta que termina el worker.
+- No se hizo una nueva cancelación contra una respuesta real de LM Studio
+  después de la reparación. No marques la llegada tardía del proveedor como
+  verificada; `AUTO-AI-04.formatos_cancelar` permanece PARTIAL. La puntuación
+  de rúbrica v15 (35/36 strict all-2) y la descripción completa están en
+  `implementation_documents/source_review_v15_20261014/REPORT.md`.
+
 FIN

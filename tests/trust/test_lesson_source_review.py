@@ -77,6 +77,10 @@ def test_without_source_keeps_legacy_contract(service):
     lesson = generate(service, None, source=None)
     assert "source_review" not in lesson
     assert len(lesson["sections"]) == 1
+    messages = service._client.post.call_args.kwargs["json"]["messages"]
+    prompt = ' '.join(messages[0]["content"].split())
+    assert "For source-backed lessons, before finalizing" in prompt
+    assert "Without sources, label the draft as general knowledge requiring review" in prompt
 
 
 def test_clarification_entities_are_application_encoding_not_provider_prose(service):

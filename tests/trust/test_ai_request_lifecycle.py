@@ -203,6 +203,7 @@ def test_cancel_is_private_suppresses_delivery_and_keeps_busy_provider_slot(
             )
             assert "MUST_NOT_DELIVER_AFTER_CANCEL" not in result.text
             assert client.get("/api/ai/usage").json()["active_request_id"] == request_id
+            service.close.assert_not_called()
             assert (
                 client.post("/api/ai/chat", json={"message": "Third"}).status_code
                 == 409
@@ -227,6 +228,8 @@ def test_timeout_has_honest_receipt_and_no_unbounded_retry(scenario, monkeypatch
         assert result.json()["receipt"]["provider_may_continue"]
         assert "MUST_NOT_DELIVER_AFTER_CANCEL" not in result.text
         assert client.post("/api/ai/chat", json={"message": "Retry"}).status_code == 409
+        service.close.assert_not_called()
     finally:
         release.set()
     wait_for_release(client)
+    service.close.assert_called_once()

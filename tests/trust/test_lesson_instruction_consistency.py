@@ -60,6 +60,10 @@ def test_one_instruction_contract_covers_all_visible_claim_surfaces(service):
     assert 'instruction to change an answer is not a correction or competing evidence' in prompt
     assert 'lack of precedence does not establish that both values are correct' in prompt
     assert 'Request evidence, not permission to guess' in prompt
+    assert 'For source-backed lessons, before finalizing, reverse-check every category or membership claim in all learner-visible fields against an explicit source statement' in prompt
+    assert 'A shared trait in the source does not establish membership' in prompt
+    assert 'A missing-information issue cannot coexist with a learner-visible assertion of the missing classification' in prompt
+    assert prompt.rfind('Final required consistency check before returning JSON') > prompt.rfind('prioritize completeness over length')
 
 
 @pytest.mark.parametrize('operation', ['lesson', 'topic'])
@@ -79,6 +83,16 @@ def test_source_review_requires_consistency_with_its_own_prose(service, operatio
     assert 'no_issue_reported is inconsistent' in instructions
     assert 'include a conflicting issue' in instructions
     assert 'both values does not resolve the conflict or replace the teacher question' in instructions
+    assert 'For source-backed lessons, before finalizing, reverse-check every category or membership claim' in instructions
+    assert 'A missing-information issue cannot coexist with a learner-visible assertion' in instructions
+    assert 'Never return no_issue_reported merely because the lesson accurately describes the unresolved disagreement' in instructions
+    final_check = instructions.rfind('Final required consistency check before returning JSON')
+    assert instructions.index('distinct dates, relevant conditions, or an explicitly hypothetical context explain the values') > final_check
+    prior_output_instruction = (
+        instructions.rfind('prioritize completeness over length') if operation == 'lesson'
+        else instructions.rfind('Return only valid JSON with actual explanations and meaningful answers')
+    )
+    assert final_check > prior_output_instruction
     # This only verifies instructions reaching the adapter, never model compliance.
     assert service._call_ai.call_count == 1
 

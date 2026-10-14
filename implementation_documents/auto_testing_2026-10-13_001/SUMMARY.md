@@ -10,12 +10,12 @@ phase, the real model `gemma-4-12b-it-qat@q4_k_xl` was exercised serially
 (integration suite plus the frozen 36-case rubric), a manual Chrome DevTools
 teacher/learner pass was recorded, and the real installer lifecycle test
 passed with the owner's install uninstalled and restored with byte-identical
-user data. The only product change of the session is the owner-approved v12
-lesson prompt repair described below (uncommitted, with its re-validation);
-no budget or configuration was changed.
+user data. The v12/v15 lesson-prompt repairs and the isolated provider-client
+cleanup fix are documented below. No provider model was changed or reloaded.
 
-The reconciled matrix now has **165 rows: 150 PASS, 15 PARTIAL, 0 BLOCKED**
-(two new PARTIAL rows record the v12 rubric re-validation below).
+The reconciled matrix now has **169 rows: 152 PASS, 17 PARTIAL, 0 BLOCKED**
+(four new rows record v15 development/reserved scoring, the provider-client
+cleanup regression, and the inconclusive live cancellation attempt).
 The native browser-zoom gate was closed with the owner's consent using real
 `SendInput` keyboard zoom (200% and 400% verified with viewport ratios, no
 horizontal overflow, readable critical content, working keyboard focus, and
@@ -74,9 +74,12 @@ value as a candidate answer (reserved split; never used for tuning).
 Transport stayed clean: 36/36 HTTP 200, `finish_reason=stop`, 409 on
 unreviewed publication, `use_coverage=partial` receipts on the three
 long-source cases. See `evidence/gemma4_v12_rubric_scores_20261013.md`.
-Semantic acceptance remains **partial**; a second repair round is a separate
-owner decision. The remaining manual items were marked in `MANUAL_TEST2.md`
-under "Pendientes de campaña 2026-10-13".
+Semantic acceptance remains **partial**: v15 reached 35/36 strict all-2
+(development 25/25, reserved 10/11). The remaining `objective-hostile` issue
+is preserved as reserved-split variance and did not guide tuning. Live
+cancellation exposed and led to a local client-close fix; no real-provider
+response was captured during the cancellation attempts and no post-fix live
+retry was made. The remaining human/native items are in `MANUAL_TEST2.md`.
 
 ## Authorized installer lifecycle evidence
 
@@ -208,7 +211,9 @@ practice journey, and extension-zoom blocker.
 `TECH-SUITE-R2-20261012`, `TECH-SUITE-R2-FINAL-20261012`,
 `TECH-REALAI-RUBRIC-DEV-20261013`, `TECH-REALAI-RUBRIC-RES-20261013`,
 `TECH-REALAI-RUBRIC-V12-DEV-20261013`,
-`TECH-REALAI-RUBRIC-V12-RES-20261013`.
+`TECH-REALAI-RUBRIC-V12-RES-20261013`,
+`TECH-REALAI-RUBRIC-V15-RES-20261014`,
+`AUTO-AI-04.cancel_lifecycle`.
 
 **BLOCKED:** none.
 
@@ -246,13 +251,17 @@ Exact next actions:
    slow-start/failed-start timeout paths, keyboard URL entry, DPI, and
    interactive GUI install/uninstall, all in a disposable Windows profile
    with an exclusive native-GUI controller.
-5. **SLM-AUTO-018 semantic follow-up:** the approved v12 repair is applied
-   and re-validated (33/36 strict all-2, up from 32/36); `reserved-conflict`
-   and `followup-conflict` persist and `objective-hostile` showed the same
-   failure shape. A second repair round requires a new owner decision.
-   Cancel/unavailable-provider/recovery paths remain unexercised.
-6. **SLM-AUTO-020:** unchanged `NEEDS_REPRO`; no new probe loop was justified.
-7. **Owner confirmation:** confirm the restored `29df5ed` build and decide
+5. **SLM-AUTO-018 semantic follow-up:** v15 reached 35/36 strict all-2
+   (development 25/25, reserved 10/11); `followup-conflict` is repaired.
+   `objective-hostile` remains a reserved-only weakness; no reserved result
+   guided the repair. See the sanitized v15 report. No full model run was
+   repeated after the separate cancellation cleanup change.
+6. **SLM-AUTO-021 cancellation lifecycle:** offline regression passes after
+   deferring HTTP client close until the provider future completes. A real
+   cancellation attempt exposed the premature close; no post-fix real-provider
+   response has been captured.
+7. **SLM-AUTO-020:** unchanged `NEEDS_REPRO`; no new probe loop was justified.
+8. **Owner confirmation:** confirm the restored `29df5ed` build and decide
    whether to retain or delete
    `%LOCALAPPDATA%\SLMEducator-campaign-backup-20261013`.
 

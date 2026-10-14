@@ -291,7 +291,7 @@ async def _chat_impl(
         )
     finally:
         if ai_service is not None:
-            ai_service.close()
+            lifecycle.close_service(ai_service)
 
 
 class AnswerQuestionRequest(BaseModel):
@@ -409,7 +409,7 @@ Keep answers concise but thorough enough to be helpful."""
 
     finally:
         if ai_service is not None:
-            ai_service.close()
+            lifecycle.close_service(ai_service)
 
 
 async def _with_request_lifecycle(request, user, db, implementation, response_type):
