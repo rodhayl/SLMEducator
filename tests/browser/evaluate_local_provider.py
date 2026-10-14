@@ -32,12 +32,13 @@ def main() -> None:
     results = {"rubric_sha256": sha256(cases_file.read_bytes()).hexdigest(), "cases": case_results}
     with httpx.Client(base_url=args.base_url, trust_env=False, timeout=310) as client:
         teacher = next(row for row in fixture["credentials"] if row["username"] == "teacher_a")
-        def authenticate():
-            auth = client.post("/api/auth/login", data={"username": teacher["username"], "password": teacher["password"]})
+        administrator = next(row for row in fixture["credentials"] if row["username"] == "admin")
+        def authenticate(account=teacher):
+            auth = client.post("/api/auth/login", data={"username": account["username"], "password": account["password"]})
             auth.raise_for_status()
             client.headers["Authorization"] = "Bearer " + auth.json()["access_token"]
 
-        authenticate()
+        authenticate(administrator)
         config = {"provider": "lm_studio", "model": "slm-production-evaluation",
                   "endpoint": "http://127.0.0.1:1234", "temperature": 0, "max_tokens": args.max_tokens}
         if args.reasoning_effort:

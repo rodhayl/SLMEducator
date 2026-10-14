@@ -17,6 +17,7 @@ from src.core.models import (
     StudentStudyPlan,
     User,
     UserRole,
+    AIModelConfiguration,
 )
 from src.core.services.ai_service import AIService, AIResponse, AIProvider
 from src.core.services.auth import AuthService
@@ -32,6 +33,7 @@ def scenario(db_service, monkeypatch):
     db = db_service.get_session()
     users = {}
     for name, role in [
+        ("admin", UserRole.ADMIN),
         ("teacher_a", UserRole.TEACHER),
         ("teacher_b", UserRole.TEACHER),
         ("learner_a", UserRole.STUDENT),
@@ -48,6 +50,7 @@ def scenario(db_service, monkeypatch):
         db.add(user)
         db.flush()
         users[name] = user
+    db.add(AIModelConfiguration(user_id=users["admin"].id, provider="ollama", model="synthetic"))
     users["learner_a"].teacher_id = users["teacher_a"].id
     users["learner_b"].teacher_id = users["teacher_b"].id
     plan = StudyPlan(
@@ -134,10 +137,10 @@ def scenario(db_service, monkeypatch):
             lambda p, c: {"content_id": c.id, "annotation_text": "private"},
         ),
         (
-            "/api/classroom/help",
+            "/api/questions",
             lambda p, c: {
-                "subject": "Help",
-                "description": "Explain",
+                "question": "Explain",
+                "client_request_id": "denied-source",
                 "content_id": c.id,
             },
         ),
@@ -243,7 +246,7 @@ def test_teacher_rosters_contacts_and_notes_are_scoped(scenario):
 
 def test_ai_settings_roundtrip_keeps_secret_private(scenario):
     client, _, users, selected, _, _, _ = scenario
-    selected[0] = users["teacher_a"]
+    selected[0] = users["admin"]
     response = client.post(
         "/api/settings/ai",
         json={
@@ -335,7 +338,7 @@ def test_saved_ai_key_stays_bound_to_destination_and_test_uses_runtime_secret(sc
     from src.api.routes.settings import _build_ai_service, AIConfigModel
 
     client, db, users, selected, _, _, _ = scenario
-    selected[0] = users["teacher_a"]
+    selected[0] = users["admin"]
     original = {
         "provider": "openai",
         "model": "synthetic",

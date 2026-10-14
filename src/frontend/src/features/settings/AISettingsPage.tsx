@@ -5,15 +5,16 @@ import { useAuth } from '@/app/AuthProvider';
 import { useDirtyGuard } from '@/app/DirtyGuard';
 import { ApiError } from '@/lib/api';
 import { useInvalidate, useOperation, useResource } from '@/lib/query';
-import { Button, Card, ErrorState, Field, Input, LoadingState, PageHeader, SaveStatus, Select } from '@/components/ui';
+import { Button, Card, EmptyState, ErrorState, Field, Input, LoadingState, PageHeader, SaveStatus, Select } from '@/components/ui';
 import { aiDefaults, aiPayload, aiValues, confirmAI, parsed, parseAI, parseModels, parseTest, providers, sameDestination, type AIConfig, type AITest, type AIValues } from './contracts';
 import { SettingsBack, useCurrentSettings } from './shared';
 export function AISettingsPage() {
- const { scope } = useAuth(); const { t } = useTranslation('settings'); const resource = useResource<unknown>(['settings','ai'],'/api/settings/ai'); const result = parsed(resource.data,parseAI);
+ const { scope,user } = useAuth(); const { t } = useTranslation('settings'); const resource = useResource<unknown>(['settings','ai'],user?.role==='admin'?'/api/settings/ai':null); const result = parsed(resource.data,parseAI);
+ if (user?.role!=='admin') return <EmptyState title={t('adminAIOnly')}/>;
  if (resource.isPending) return <LoadingState/>;
  if (resource.error?.status === 409) return <AISettingsForm key={scope} initial={aiDefaults} repair/>;
  if (resource.error || result.error || !result.data) return <ErrorState error={resource.error || result.error} retry={() => void resource.refetch()}/>;
- return <div className="stack"><AISettingsForm key={scope} initial={result.data}/><p className="muted">{t('accountOnly')}</p></div>;
+ return <div className="stack"><AISettingsForm key={scope} initial={result.data}/><p className="muted">{t('installationAI')}</p></div>;
 }
 function endpointValid(value: string) { if (!value.trim()) return true; try { const url = new URL(value); return ['http:','https:'].includes(url.protocol) && !url.username && !url.password && !url.hash; } catch { return false; } }
 function AISettingsForm({ initial, repair = false }: { initial: AIConfig; repair?: boolean }) {

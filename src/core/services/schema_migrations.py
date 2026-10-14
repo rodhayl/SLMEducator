@@ -9,8 +9,8 @@ from pathlib import Path
 
 from sqlalchemy import create_engine, inspect
 
-REVISION = "20261004_request_context"
-KNOWN_REVISIONS = {"7924cdebd9c6", "20261004_reconcile", "20261004_learning_snapshots", REVISION}
+REVISION = "20261014_unified_questions"
+KNOWN_REVISIONS = {"7924cdebd9c6", "20261004_reconcile", "20261004_learning_snapshots", "20261004_request_context", REVISION}
 
 
 def schema_gaps(connection) -> dict:
@@ -79,6 +79,7 @@ def reconcile_connection(connection) -> dict:
     for table in Base.metadata.sorted_tables:
         for index in table.indexes:
             index.create(connection, checkfirst=True)
+    migrate_assigned_help(connection)
     remaining = schema_gaps(connection)
     if remaining["tables"] or remaining["columns"]:
         raise ValueError("Schema reconciliation did not produce all required fields")
@@ -106,3 +107,25 @@ def reconcile_database(path: Path) -> dict:
                 raise
     finally:
         engine.dispose()
+
+
+def migrate_assigned_help(connection) -> None:
+    """Preserve pending assigned requests without guessing links to messages."""
+    from sqlalchemy.orm import Session
+    from src.core.models import HelpRequest, User, UserRole
+    from src.core.models.models import TutorQuestion
+    with Session(bind=connection) as db:
+        for request in db.query(HelpRequest).filter(HelpRequest.status.in_(["open", "pending", "in_progress"])):
+            owner = db.get(User, request.student_id)
+            teacher = db.get(User, owner.teacher_id) if owner and owner.teacher_id else None
+            if not owner or owner.role != UserRole.STUDENT or not teacher or teacher.role != UserRole.TEACHER or not teacher.active:
+                continue
+            identity = f"legacy-help-{request.id}"
+            if db.query(TutorQuestion).filter_by(owner_id=owner.id, client_request_id=identity).first():
+                continue
+            db.add(TutorQuestion(owner_id=owner.id, client_request_id=identity,
+                                 question=request.request_text, teacher_id=teacher.id,
+                                 teacher_status="pending", created_at=request.created_at,
+                                 context={"content_id": request.content_id, "study_plan_id": request.study_plan_id,
+                                          "section_ids": [], "legacy_help_id": request.id}))
+        db.flush()

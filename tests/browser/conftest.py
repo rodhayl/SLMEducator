@@ -95,6 +95,10 @@ def browser_world(tmp_path_factory, request):
             )
             return response
 
+        api("POST", "/api/settings/ai", account="admin",
+            json={"provider": "ollama", "model": "synthetic-browser-stub",
+                  "temperature": 0.7, "max_tokens": 800})
+
         manifest["private_rubric_marker"] = (
             "Synthetic private rubric: equal eighths reasoning"
         )

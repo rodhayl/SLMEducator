@@ -10,19 +10,6 @@ export interface HelpReceipt {
   provider: string; model: string; tokens_used: number | null; max_output_tokens: number;
   requests_used_today: number; requests_limit_daily: number; provider_may_continue: boolean; cost_known: false;
 }
-export interface TutorPayload {
-  message: string; content_id: number; study_plan_id: number | null; session_id: number;
-  assistance: 'hint' | 'explanation'; section_ids: string[]; source_version: string;
-  conversation_history: { role: 'user' | 'assistant'; content: string }[];
-}
-export interface TeacherPayload {
-  subject: string; description: string; urgency: number; content_id: number; study_plan_id: number | null; session_id: number;
-}
-export interface TeacherReceipt {
-  id: number; student_id: number; status: 'open' | 'resolved'; client_request_id: string;
-  content_id: number; study_plan_id: number | null; request_text: string; priority: number;
-  context_revision: Record<string, unknown> | null;
-}
 export function helpRecord(value: unknown): value is Record<string, unknown> { return !!value && typeof value === 'object' && !Array.isArray(value); }
 const natural = (value: unknown): value is number => typeof value === 'number' && Number.isSafeInteger(value) && value >= 0;
 export function validHelpPolicy(value: unknown): value is HelpPolicy { return helpRecord(value) && ['hints_only', 'explanations', 'disabled'].includes(String(value.mode)); }
@@ -44,8 +31,5 @@ export function helpFingerprint(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(helpFingerprint).join(',')}]`;
   if (helpRecord(value)) return `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${helpFingerprint(value[key])}`).join(',')}}`;
   return JSON.stringify(value) ?? 'null';
-}
-export function validTeacherReceipt(value: unknown, payload: TeacherPayload, id: string, owner: number, revision: Record<string, unknown> | null): value is TeacherReceipt {
-  return helpRecord(value) && natural(value.id) && value.id > 0 && value.student_id === owner && ['open', 'resolved'].includes(String(value.status)) && value.client_request_id === id && value.content_id === payload.content_id && (value.study_plan_id ?? null) === payload.study_plan_id && value.request_text === `${payload.subject}: ${payload.description}` && value.priority === payload.urgency && helpFingerprint(value.context_revision ?? null) === helpFingerprint(revision);
 }
 export function newHelpRequestId(): string { return crypto.randomUUID(); }

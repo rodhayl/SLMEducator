@@ -1129,3 +1129,39 @@ class GamificationSettings(Base):
 
     def __repr__(self):
         return f"<GamificationSettings(user_id={self.user_id}, goal='{self.default_goal_type}')>"
+
+
+class SharedAIConfiguration(Base):
+    """Installation-wide selection; old per-account configurations are retained."""
+    __tablename__ = "shared_ai_configuration"
+    id = Column(Integer, primary_key=True)
+    configuration_id = Column(Integer, ForeignKey("ai_model_configurations.id"), nullable=False)
+
+
+class TutorQuestion(Base):
+    """A saved learner question with explicit, revocable teacher escalation."""
+    __tablename__ = "tutor_questions"
+    id = Column(Integer, primary_key=True)
+    owner_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    client_request_id = Column(String(80), nullable=False)
+    question = Column(Text, nullable=False)
+    context = Column(JSON, nullable=False, default=dict)
+    teacher_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    teacher_status = Column(String(20), nullable=False, default="not_requested")
+    teacher_request_ids = Column(JSON, nullable=False, default=dict)
+    created_at = Column(UTCDateTime, default=utc_now, nullable=False)
+    __table_args__ = (Index("idx_tutor_question_owner_request", "owner_id", "client_request_id", unique=True),)
+
+
+class TutorReply(Base):
+    """Append-only server-authored AI or teacher answer with a durable receipt."""
+    __tablename__ = "tutor_replies"
+    id = Column(Integer, primary_key=True)
+    question_id = Column(Integer, ForeignKey("tutor_questions.id"), nullable=False, index=True)
+    author_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    kind = Column(String(20), nullable=False)
+    body = Column(Text, nullable=False)
+    client_request_id = Column(String(80), nullable=False)
+    receipt = Column(JSON, nullable=True)
+    created_at = Column(UTCDateTime, default=utc_now, nullable=False)
+    __table_args__ = (Index("idx_tutor_reply_request", "question_id", "kind", "client_request_id", unique=True),)

@@ -409,13 +409,11 @@ def test_unsupported_legacy_provider_is_actionable_and_never_exposes_credential(
     from src.core.models import AIModelConfiguration
 
     client, db, users, selected, _, _, _ = scenario
-    selected[0] = users["teacher_a"]
-    config = AIModelConfiguration(
-        user_id=selected[0].id,
-        provider="anthropic",
-        model="legacy",
-        model_parameters={"enable_preprocessing": True},
-    )
+    selected[0] = users["admin"]
+    config = db.query(AIModelConfiguration).filter_by(user_id=selected[0].id).one()
+    config.provider = "anthropic"
+    config.model = "legacy"
+    config.model_parameters = {"enable_preprocessing": True}
     config.set_encrypted_api_key("SYNTHETIC_LEGACY_PROVIDER_SECRET")
     db.add(config)
     db.commit()
@@ -432,7 +430,7 @@ def test_unsupported_legacy_provider_is_actionable_and_never_exposes_credential(
 
 def test_teacher_help_retry_preserves_one_request_and_captured_context(scenario):
     from uuid import uuid4
-    from src.core.models import HelpRequest
+    from src.core.models.models import TutorQuestion
 
     client, db, users, selected, plan, lessons, _ = scenario
     selected[0] = users["learner_a"]
@@ -441,24 +439,23 @@ def test_teacher_help_retry_preserves_one_request_and_captured_context(scenario)
         json={"content_id": lessons[0].id, "study_plan_id": plan.id},
     ).json()
     request = {
-        "subject": "Fraction help",
-        "description": "Please explain numerator",
-        "urgency": 1,
+        "question": "Please explain numerator",
         "content_id": lessons[0].id,
         "study_plan_id": plan.id,
         "session_id": session["id"],
         "client_request_id": str(uuid4()),
     }
-    first = client.post("/api/classroom/help", json=request)
-    again = client.post("/api/classroom/help", json=request)
+    first = client.post("/api/questions", json=request)
+    again = client.post("/api/questions", json=request)
     assert first.status_code == again.status_code == 200, first.text
     assert first.json()["id"] == again.json()["id"]
-    assert first.json()["context_revision"] == session["context_revision"]
-    assert db.query(HelpRequest).count() == 1
+    assert first.json()["context"]["session_id"] == session["id"]
+    assert db.query(TutorQuestion).count() == 1
     assert (
         client.post(
-            "/api/classroom/help", json={**request, "description": "Different"}
+            "/api/questions", json={**request, "question": "Different"}
         ).status_code
         == 409
     )
-    assert db.query(HelpRequest).count() == 1
+    assert db.query(TutorQuestion).count() == 1
+

@@ -25,7 +25,7 @@ PAYLOAD = {"data": [{"id": "gpt-synthetic"}], "models": [{"name": "gpt-synthetic
 def discovery(monkeypatch, db_session):
     """Expose the actual settings route with disposable rows and fake transport."""
     user = User(username="catalog-owner", email="catalog@example.invalid",
-                first_name="Synthetic", last_name="Catalog", role=UserRole.TEACHER,
+                first_name="Synthetic", last_name="Catalog", role=UserRole.ADMIN,
                 password_hash="unused-test-hash")
     db_session.add(user)
     db_session.commit()
@@ -101,15 +101,8 @@ def test_unsaved_defaults_use_actual_configured_provider(discovery, monkeypatch,
     monkeypatch.setattr(settings, "default_ai_configuration", default)
     monkeypatch.setattr(dependencies, "default_ai_configuration", default)
     response = discovery.client.get("/api/settings/ai/models")
-    if provider in CLOUD:
-        assert response.status_code == 500
-        assert "key is required" in response.json()["detail"]
-        discovery.services[0]._client.get.assert_not_called()
-    else:
-        assert response.status_code == 200, response.text
-        assert response.json()["provider"] == provider
-        assert discovery.services[0]._client.get.call_args.args[0].startswith("https://default.example.invalid/")
-    assert discovery.db.query(AIModelConfiguration).count() == 0
+    assert response.status_code == 409
+    assert not discovery.services
 
 
 @pytest.mark.parametrize("configured", PROVIDERS)
@@ -188,3 +181,4 @@ def test_service_guard_blocks_config_change_between_route_reads(discovery, monke
     assert "configured provider" in response.json()["detail"]
     different._client.get.assert_not_called()
     different._client.close.assert_called_once_with()
+

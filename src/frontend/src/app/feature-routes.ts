@@ -1,6 +1,6 @@
 /** Lightweight route ownership. Domain implementations load only after navigation. */
 export const featurePaths: Record<string, readonly string[]> = {
- tutor: ['tutor'],
+ tutor: ['tutor','tutor/historial'],
  progress: ['progreso'],
  messages: ['mensajes'],
  help: ['ayuda','solicitudes','solicitudes/:requestId'],

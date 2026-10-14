@@ -47,7 +47,7 @@ def test_reasoning_setting_roundtrips_and_is_not_applied_to_other_providers(monk
     from src.core.services.database import get_db_service
     from src.core.models import User
     username = _unique_username("reasoning")
-    _register_user(username, "teacher")
+    _register_user(username, "admin")
     headers = _auth_headers(_login_user(username))
     payload = {"provider": "lm_studio", "model": "synthetic", "reasoning_effort": "none", "max_tokens": 4000}
     assert client.post("/api/settings/ai", json=payload, headers=headers).status_code == 200
@@ -63,7 +63,7 @@ def test_reasoning_setting_roundtrips_and_is_not_applied_to_other_providers(monk
 
 def test_ai_config_preserves_api_key_when_omitted():
     username = _unique_username("settings")
-    _register_user(username, "teacher")
+    _register_user(username, "admin")
     token = _login_user(username)
 
     initial = client.post(
@@ -100,7 +100,7 @@ def test_unsaved_ai_settings_match_actual_transport(monkeypatch):
     from src.api import dependencies
 
     username = _unique_username("defaults")
-    _register_user(username, "teacher")
+    _register_user(username, "admin")
     headers = _auth_headers(_login_user(username))
     defaults = {("ai", "default_provider"): "lm_studio",
                 ("ai", "default_model"): "synthetic-instruct",
@@ -110,16 +110,16 @@ def test_unsaved_ai_settings_match_actual_transport(monkeypatch):
     monkeypatch.setattr(dependencies, "get_settings_service", lambda: settings)
     receipt = client.get("/api/settings/ai", headers=headers)
     assert receipt.status_code == 200
-    captured = []
-    monkeypatch.setattr(dependencies, "AIService", lambda runtime, logger: captured.append(runtime))
+    # A preview default is not an administrator-approved installation configuration.
+    from fastapi import HTTPException
+    import pytest
     from src.core.services.database import get_db_service
     from src.core.models import User
     with get_db_service().get_session() as db:
         user = db.query(User).filter(User.username == username).one()
-        dependencies.get_ai_service_dependency(user, db)
-    runtime = captured[0]
-    for field in ("provider", "model", "endpoint", "temperature", "max_tokens"):
-        assert receipt.json()[field] == getattr(runtime, field)
+        with pytest.raises(HTTPException) as error:
+            dependencies.get_ai_service_dependency(user, db)
+        assert error.value.status_code == 409
 
 
 def test_ai_assisted_submission_creates_ai_graded(monkeypatch):
@@ -211,3 +211,4 @@ def test_ai_assisted_submission_creates_ai_graded(monkeypatch):
     )
 
     mock_ai.close.assert_called_once()
+

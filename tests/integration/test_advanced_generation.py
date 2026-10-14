@@ -22,8 +22,14 @@ client = TestClient(app)
 
 
 @pytest.fixture(autouse=True)
-def mock_auth(test_teacher):
-    """Mock authentication for all tests."""
+def mock_auth(test_teacher, db_session):
+    """Provision shared administrator AI; only authentication/transport are synthetic."""
+    from src.core.models import AIModelConfiguration
+    admin = User(username="generation_admin", email="generation_admin@example.test", first_name="Synthetic", last_name="Admin", role=UserRole.ADMIN, password_hash="unused")
+    db_session.add(admin)
+    db_session.flush()
+    db_session.add(AIModelConfiguration(user_id=admin.id, provider="ollama", model="synthetic"))
+    db_session.commit()
 
     def mock_get_current_user():
         return test_teacher

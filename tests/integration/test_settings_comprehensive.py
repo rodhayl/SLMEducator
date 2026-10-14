@@ -59,8 +59,7 @@ def test_student_settings_flow(settings_client):
         "max_tokens": 2000,
     }
     resp = settings_client.post("/api/settings/ai", json=ai_config, headers=headers)
-    assert resp.status_code == 200
-    assert resp.json()["provider"] == "ollama"
+    assert resp.status_code == 403
 
     # 3. App Config (Scenario 6.3)
     app_config = {"theme": "dark", "language": "es"}
@@ -85,4 +84,5 @@ def test_teacher_settings_flow(settings_client):
     # 2. AI Config (Shared logic, but ensure teachers can access it too)
     ai_config = {"provider": "openai", "api_key": "sk-test-key", "model": "gpt-4"}
     resp = settings_client.post("/api/settings/ai", json=ai_config, headers=headers)
-    assert resp.status_code == 200
+    assert resp.status_code == 403
+

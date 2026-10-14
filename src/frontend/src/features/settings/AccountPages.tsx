@@ -12,8 +12,8 @@ import { confirmPassword, invalid, parsed, parseProfile, passwordValid, profileV
 import { SettingsBack, useCurrentSettings } from './shared';
 
 export function SettingsPage() {
- const { t } = useTranslation('settings');
- return <div className="stack"><PageHeader title={t('title')} description={t('description')}/><p>{t('accountOnly')}</p><div className="grid">{[['perfil','profile'],['seguridad','security'],['apariencia','appearance'],['ia','ai'],['zona-horaria','timezone'],['datos','data']].map(([path,key]) => <Card key={path}><h2><Link to={`/ajustes/${path}`}>{t(key)}</Link></h2></Card>)}</div></div>;
+ const { t } = useTranslation('settings'); const {user}=useAuth();
+ return <div className="stack"><PageHeader title={t('title')} description={t('description')}/><p>{t('accountOnly')}</p><div className="grid">{[['perfil','profile'],['seguridad','security'],['apariencia','appearance'],['ia','ai'],['zona-horaria','timezone'],['datos','data']].filter(([path])=>path!=='ia'||user?.role==='admin').map(([path,key]) => <Card key={path}><h2><Link to={`/ajustes/${path}`}>{t(key)}</Link></h2></Card>)}</div></div>;
 }
 export function ProfilePage() {
  const { user, scope } = useAuth(); const resource = useResource<unknown>(['settings','profile'], '/api/auth/me'); const result = parsed(resource.data, parseProfile);

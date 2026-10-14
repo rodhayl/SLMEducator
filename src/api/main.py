@@ -63,5 +63,8 @@ from src.api.routes import assistance
 
 app.include_router(assistance.router)
 
+from src.api.routes import questions
+app.include_router(questions.router)
+
 # All APIs must precede this narrow, allowlisted frontend route.
 register_frontend(app, WEB_DIR)

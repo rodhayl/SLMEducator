@@ -557,6 +557,10 @@ async def create_content(
                 db, current_user, resolved_enum, content_data.study_plan_id
             )
             is_personal = True
+            if content_data.shared_with_teacher:
+                from src.api.routes.questions import assigned_teacher
+                if not assigned_teacher(db, current_user):
+                    raise HTTPException(409, "No assigned teacher; personal questions cannot be shared")
             shared_with_teacher = bool(content_data.shared_with_teacher)
         else:
             if not is_teacher_or_admin(current_user):
@@ -692,7 +696,11 @@ async def update_content(
                 )
             content.is_personal = update_data.is_personal
         if update_data.shared_with_teacher is not None:
-            # Students may toggle whether their personal Q&A is visible to their teacher.
+            if is_student(current_user) and update_data.shared_with_teacher:
+                from src.api.routes.questions import assigned_teacher
+                if not assigned_teacher(db, current_user):
+                    raise HTTPException(409, "No assigned teacher; personal questions cannot be shared")
+            # Existing shared legacy records remain readable; unsharing is allowed.
             content.shared_with_teacher = bool(update_data.shared_with_teacher)
         if update_data.content_data is not None:
             content.set_encrypted_content_data(

@@ -5,7 +5,7 @@ import { ApiError } from '@/lib/api';
 import { helpFingerprint, helpRecord, newHelpRequestId, validHelpPolicy, validHelpReceipt, validHelpUsage, type AIInput, type HelpReceipt, type HelpUsage } from './contracts';
 type Pending = {id:string;payload:AIInput;context:string;policy:string;accept:(value:Record<string,unknown>,payload:AIInput)=>void};
 /** No effect replays a POST. Interrupted attempts keep their immutable request identity. */
-export function useAIRequest(active:boolean, context:string, endpoint:'/api/ai/chat'|'/api/ai/answer-question') {
+export function useAIRequest(active:boolean, context:string, endpoint:'/api/ai/chat'|'/api/ai/answer-question'|'/api/questions/ask'|`/api/questions/${number}/ai`) {
  const {api,scope,status,credentialEpoch,getSnapshot} = useAuth();
  const [pending,setPending] = useState<Pending|null>(null), [receipt,setReceipt] = useState<HelpReceipt|null>(null);
  const [usageReceipt,setUsageReceipt]=useState<HelpUsage|null>(null);

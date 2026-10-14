@@ -1,10 +1,12 @@
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { render } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { ContentRenderer } from '@/components/content/ContentRenderer';
 
-const css = readFileSync(resolve('src/frontend/src/styles/base.css'), 'utf8');
+import { readFileSync, existsSync } from 'node:fs';
+import { resolve } from 'node:path';
+const cssPath = [resolve('src/styles/base.css'), resolve('src/frontend/src/styles/base.css')].find(existsSync);
+if (!cssPath) throw new Error('Repository stylesheet was not found');
+const css = readFileSync(cssPath, 'utf8');
 const recorded = '- Busca un denominador común para ambas fracciones antes de comparar sus numeradores.\n- Si los denominadores son iguales, la fracción con el numerador más grande es la mayor.';
 
 describe('content list presentation', () => {
@@ -52,3 +54,4 @@ describe('content list presentation', () => {
     }
   });
 });
+

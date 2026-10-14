@@ -65,20 +65,13 @@ def get_ai_service_dependency(
     db: Session = Depends(get_db),  # Now available
 ):
     """
-    Get AI Service instance configured for the specific user.
-    If no config exists, creating a default one (or using system default).
+    Get the administrator-configured installation AI for every authenticated user.
     """
     user_id = current_user.id
     if user_id is None:
         raise HTTPException(status_code=401, detail="Authenticated account is unavailable")
-    config = (
-        db.query(AIModelConfiguration)
-        .filter(AIModelConfiguration.user_id == user_id)
-        .first()
-    )
-
-    if not config:
-        config = default_ai_configuration(user_id)
+    from src.core.services.shared_ai_config import shared_ai_configuration
+    config = shared_ai_configuration(db)
 
     parameters = config.model_parameters or {}
     model = config.model

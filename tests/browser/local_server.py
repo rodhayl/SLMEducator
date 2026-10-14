@@ -104,6 +104,14 @@ def main() -> None:
         {"username": "admin", "password": admin_password, "role": "admin"}
     )
 
+    from src.core.models import UserRole
+    from src.core.services.auth import AuthService
+    unassigned_password = secrets.token_urlsafe(24) + "A1!"
+    AuthService().register_user("learner_unassigned", "learner_unassigned@example.test",
+                                unassigned_password, "Synthetic", "Unassigned", UserRole.STUDENT)
+    manifest["credentials"].append({"username": "learner_unassigned",
+                                    "password": unassigned_password, "role": "student"})
+
     from src.core.models import Content, StudyPlanContent, User
     from src.core.services.database import get_db_service
 

@@ -105,6 +105,31 @@ separate acceptance gates, not implied by synthetic tests.
   - `env.properties`
   - `settings.properties`
 
+Only administrators configure AI, once for the whole installation. Students and
+teachers use that shared configuration without entering provider credentials.
+One existing legacy administrator configuration is reused unambiguously; multiple
+legacy administrator configurations require an explicit admin save. Other users'
+configuration rows are retained but never selected. No configured installation AI
+produces an explicit unavailable/configuration-required result, not a silent local
+provider fallback.
+
+`Preguntar` saves a question before AI work and retains server-authored AI and
+teacher replies. Without an explicitly assigned active teacher, students can ask
+only the AI in this question workflow. With one, they can explicitly share the
+same question and answers with that named teacher. Reassignment requires a fresh
+confirmation; nothing is automatically escalated to administration. Existing
+ordinary messaging and historical personal Q&A remain available.
+
+Existing installations require the supported copy-first schema upgrade before
+starting this version. `scripts/recover_database.py upgrade --database SOURCE
+--output NEW_COPY --backup NEW_ARCHIVE` creates an encrypted backup and upgrades a
+new copy; the source is preserved. Use the existing matching encryption key and
+review the upgrade receipt before choosing the new database for runtime. Never
+run an in-place reset. The upgrade idempotently carries pending historical help
+requests with an explicit active teacher into the new question queue. Orphans,
+resolved history and unrelated messages remain intact; no old message is guessed
+to be a question reply.
+
 AI settings accept a model name and endpoint through the Ollama, LM Studio,
 OpenAI and OpenRouter adapters. Choose a model compatible with the selected
 adapter's API and response requirements; this is not a guarantee that every

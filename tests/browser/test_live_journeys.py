@@ -100,6 +100,15 @@ def test_teacher_roster_and_interface_preferences(live_page, browser_world):
     page.goto(world.base_url + "/ajustes/zona-horaria")
     expect(main).to_contain_text("Source: application default (UTC)")
     page.goto(world.base_url + "/ajustes/ia")
+    expect(main.get_by_label("Provider", exact=True)).to_have_count(0)
+    assert authenticated_status(page, "/api/settings/ai") == 403
+
+
+def test_admin_configures_the_shared_ai(live_page, browser_world):
+    page, world = live_page, browser_world
+    login(page, world, "admin")
+    page.goto(world.base_url + "/ajustes/ia")
+    main = page.get_by_role("main")
     main.get_by_label("Provider", exact=True).select_option("lm_studio")
     main.get_by_label("Model name", exact=True).fill("synthetic-browser-model")
     main.get_by_label("LM Studio reasoning override", exact=True).select_option("none")
@@ -143,13 +152,24 @@ def test_learner_notes_help_and_completion_are_real_ui_actions(
         page.get_by_role("button", name="Save notes", exact=True).click()
     assert saved.value.ok
     page.get_by_role("button", name="Help", exact=True).click()
+    study_url = page.url
+    page.get_by_role("main").get_by_role("link", name="Ask", exact=True).click()
+    expect(page).to_have_url(re.compile(r"/tutor\?.*content_id="))
     page.get_by_label("What would you like help with?", exact=True).fill(
         "Give a synthetic hint"
     )
-    page.get_by_role("button", name="Ask tutor", exact=True).click()
-    expect(
-        page.get_by_role("log", name="Tutor suggestion", exact=True)
-    ).to_contain_text("Synthetic browser-test hint")
+    with page.expect_response(lambda response: response.url.endswith("/api/questions/ask")) as answer:
+        page.get_by_role("button", name="Ask the AI", exact=True).click()
+    payload = answer.value.request.post_data_json
+    assert payload["content_id"] == first and payload["study_plan_id"] == plan
+    assert payload["session_id"] == int(study_url.split("/estudio/")[1].split("?")[0])
+    assert answer.value.json()["source"]["source_version"]
+    expect(page.get_by_role("log")).to_contain_text("Synthetic browser-test hint")
+    page.reload()
+    expect(page.get_by_role("log")).to_contain_text("Synthetic browser-test hint")
+    page.goto(study_url)
+    expect(page.get_by_role("article", name="Saved lesson version")).to_be_visible()
+    page.get_by_role("button", name="Help", exact=True).click()
     page.get_by_role("button", name="Back to reading", exact=True).click()
     expect(page.get_by_role("heading", level=1)).to_be_focused()
     page.get_by_role("button", name="Save and pause", exact=True).click()
@@ -457,3 +477,56 @@ def test_admin_recovery_ui_revokes_sessions_and_preserves_isolation(
         expect(page.get_by_label("New password", exact=True)).to_have_value("")
         world.accounts["learner_b"]["password"] = new_password
         screenshot(page, "admin-account-recovery.png")
+
+
+def test_unassigned_learner_uses_shared_ai_without_human_routing(live_page, browser_world):
+    page, world = live_page, browser_world
+    login(page, world, "learner_unassigned")
+    page.goto(world.base_url + "/tutor")
+    expect(page.get_by_text("You have no assigned teacher. You can ask the AI.")).to_be_visible()
+    expect(page.get_by_role("button", name="Ask my teacher", exact=True)).to_have_count(0)
+    page.get_by_label("What would you like help with?", exact=True).fill("Synthetic unassigned question")
+    with page.expect_response(lambda response: response.url.endswith("/api/questions/ask")) as result:
+        page.get_by_role("button", name="Ask the AI", exact=True).click()
+    question_id = result.value.json()["question_id"]
+    expect(page.get_by_role("log")).to_contain_text("Synthetic browser-test hint")
+    assert authenticated_status(page, f"/api/questions/{question_id}/teacher", "POST",
+                                {"teacher_id": world.manifest["users"]["teacher_a"],
+                                 "client_request_id": "unassigned-browser-denied"}) == 409
+    assert authenticated_status(page, "/api/settings/ai") == 403
+    page.reload()
+    expect(page.get_by_role("log")).to_contain_text("Synthetic browser-test hint")
+
+
+def test_explicit_assigned_teacher_reply_stays_in_the_same_question(live_page, browser_world):
+    page, world = live_page, browser_world
+    login(page, world, "learner_a")
+    page.goto(world.base_url + "/tutor")
+    text = "Synthetic shared browser question"
+    page.get_by_label("What would you like help with?", exact=True).fill(text)
+    with page.expect_response(lambda response: response.url.endswith("/api/questions/ask")) as result:
+        page.get_by_role("button", name="Ask the AI", exact=True).click()
+    question_id = result.value.json()["question_id"]
+    expect(page.get_by_role("log")).to_contain_text("Synthetic browser-test hint")
+    page.get_by_role("button", name="Ask my teacher", exact=True).click()
+    with page.expect_response(lambda response: response.url.endswith(f"/api/questions/{question_id}/teacher")) as shared:
+        page.get_by_role("dialog").get_by_role("button", name="Ask my teacher", exact=True).click()
+    assert shared.value.ok
+    login(page, world, "teacher_b")
+    assert authenticated_status(page, f"/api/questions/{question_id}") == 404
+    login(page, world, "teacher_a")
+    page.goto(f"{world.base_url}/tutor?thread_id={question_id}")
+    expect(page.get_by_role("heading", name=text, exact=True)).to_be_visible()
+    page.get_by_label("Reply to the student", exact=True).fill("Synthetic teacher reply on the saved question")
+    with page.expect_response(lambda response: response.url.endswith(f"/api/questions/{question_id}/reply")) as replied:
+        page.get_by_role("button", name="Send reply", exact=True).click()
+    assert replied.value.ok
+    expect(page.get_by_role("log")).to_contain_text("Synthetic teacher reply on the saved question")
+    login(page, world, "learner_a")
+    page.goto(f"{world.base_url}/tutor?thread_id={question_id}")
+    expect(page.get_by_role("log")).to_contain_text("Synthetic teacher reply on the saved question")
+    expect(page.get_by_role("heading", name="AI answer", exact=True)).to_be_visible()
+    expect(page.get_by_role("heading", name="Teacher answer: Synthetic teacher_a", exact=True)).to_be_visible()
+    page.reload()
+    expect(page.get_by_role("log")).to_contain_text("Synthetic teacher reply on the saved question")
+    screenshot(page, "shared-question-with-ai-and-teacher.png")

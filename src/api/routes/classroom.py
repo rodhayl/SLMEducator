@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_
 from typing import List, Optional
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 
 from src.api.dependencies import get_db
@@ -19,9 +19,6 @@ from src.api.policies import (
     can_message,
     can_manage_student,
     require_allowed,
-    require_content,
-    require_plan,
-    can_view_assessment,
     teacher_student_ids,
 )
 from src.core.roles import is_admin, is_teacher
@@ -30,11 +27,6 @@ from src.core.models import (
     UserRole,
     TeacherMessage,
     HelpRequest,
-    Content,
-    StudyPlan,
-    AssessmentQuestion,
-    LearningSession,
-    StudyPlanContent,
 )
 from src.core.roles import is_teacher_or_admin, role_str
 
@@ -81,22 +73,6 @@ class MessageResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class HelpRequestCreate(BaseModel):
-    """Create a help request."""
-
-    subject: str
-    description: str = Field(min_length=1, max_length=12000)
-    urgency: int = Field(default=1, ge=1, le=5)
-    # Context fields - auto-captured from student's current learning state
-    content_id: Optional[int] = None  # What content the student was viewing
-    study_plan_id: Optional[int] = None  # What study plan they're working on
-    question_id: Optional[int] = None  # If stuck on a specific question
-    session_id: Optional[int] = None
-    client_request_id: Optional[str] = Field(
-        default=None, min_length=1, max_length=80, pattern="^[A-Za-z0-9_-]+$"
-    )
-
-
 class HelpRequestResponse(BaseModel):
     """Help request response with full context."""
 
@@ -118,6 +94,7 @@ class HelpRequestResponse(BaseModel):
     question_text: Optional[str] = None
     client_request_id: Optional[str] = None
     context_revision: Optional[dict] = None
+    question_thread_id: Optional[int] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -598,12 +575,20 @@ async def get_help_requests(
                 req.question.question_text[:200] if req.question.question_text else None
             )
 
+        from src.core.models.models import TutorQuestion
+        linked = db.query(TutorQuestion).filter_by(owner_id=req.student_id, client_request_id=f"legacy-help-{req.id}").first()
+        visible_link = linked and (current_user.id == linked.owner_id or (
+            is_teacher(current_user) and linked.teacher_id == current_user.id and req.student and req.student.teacher_id == current_user.id))
+        legacy_status = "open" if req.status in {"open", "pending", "in_progress"} else req.status
+        if linked and linked.teacher_status == "resolved":
+            legacy_status = "resolved"
         result.append(
             HelpRequestResponse(
                 id=req.id,
                 student_id=req.student_id,
                 request_text=req.request_text,
-                status=req.status,
+                status=legacy_status,
+                question_thread_id=linked.id if visible_link else None,
                 created_at=req.created_at,
                 student_name=student_name,
                 subject=subject,
@@ -622,141 +607,10 @@ async def get_help_requests(
     return result
 
 
-@router.post("/help", response_model=HelpRequestResponse)
-async def create_help_request(
-    req: HelpRequestCreate,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    """Student raises a hand for help with automatic learning context capture."""
-    if req.content_id:
-        require_content(db, current_user, req.content_id)
-    if req.study_plan_id:
-        require_plan(db, current_user, req.study_plan_id)
-    if req.content_id and req.study_plan_id:
-        content = db.get(Content, req.content_id)
-        if (
-            content.study_plan_id != req.study_plan_id
-            and not db.query(StudyPlanContent)
-            .filter_by(study_plan_id=req.study_plan_id, content_id=req.content_id)
-            .first()
-        ):
-            raise HTTPException(
-                status_code=409,
-                detail="Help content does not belong to the selected course",
-            )
-    context_revision = None
-    if req.session_id:
-        session = db.get(LearningSession, req.session_id)
-        require_allowed(session is not None and session.student_id == current_user.id)
-        if session.content_id != req.content_id or (
-            (session.context_revision or {}).get("study_plan_id")
-            not in (None, req.study_plan_id)
-        ):
-            raise HTTPException(
-                status_code=409,
-                detail="Help context does not match the learning session",
-            )
-        context_revision = session.context_revision
-    if req.question_id:
-        question = db.get(AssessmentQuestion, req.question_id)
-        require_allowed(
-            question is not None
-            and can_view_assessment(db, current_user, question.assessment)
-        )
-    text = f"{req.subject}: {req.description}" if req.subject else req.description
-    db.query(User).filter_by(id=current_user.id).update(
-        {User.xp: User.xp}, synchronize_session=False
-    )
-    existing = (
-        db.query(HelpRequest)
-        .filter_by(student_id=current_user.id, client_request_id=req.client_request_id)
-        .first()
-        if req.client_request_id
-        else None
-    )
-    if existing and (
-        existing.request_text != text
-        or existing.priority != req.urgency
-        or existing.content_id != req.content_id
-        or existing.study_plan_id != req.study_plan_id
-        or existing.question_id != req.question_id
-        or existing.context_revision != context_revision
-    ):
-        db.rollback()
-        raise HTTPException(
-            status_code=409,
-            detail="Help request ID belongs to different content; prepare a new request explicitly",
-        )
-    new_req = existing or HelpRequest(
-        student_id=current_user.id,
-        request_text=text,
-        client_request_id=req.client_request_id,
-        context_revision=context_revision,
-        priority=req.urgency,
-        status="open",
-        created_at=utc_now(),
-        # Store learning context
-        content_id=req.content_id,
-        study_plan_id=req.study_plan_id,
-        question_id=req.question_id,
-    )
-    db.add(new_req)
-    db.commit()
-    db.refresh(new_req)
-
-    student_name = f"{current_user.first_name} {current_user.last_name}"
-
-    # Load context titles for response
-    content_title = None
-    content_type = None
-    if req.content_id:
-        content = db.query(Content).filter(Content.id == req.content_id).first()
-        if content:
-            content_title = content.title
-            content_type = (
-                content.content_type.value
-                if hasattr(content.content_type, "value")
-                else str(content.content_type)
-            )
-
-    study_plan_title = None
-    if req.study_plan_id:
-        plan = db.query(StudyPlan).filter(StudyPlan.id == req.study_plan_id).first()
-        if plan:
-            study_plan_title = plan.title
-
-    question_text = None
-    if req.question_id:
-        question = (
-            db.query(AssessmentQuestion)
-            .filter(AssessmentQuestion.id == req.question_id)
-            .first()
-        )
-        if question:
-            question_text = (
-                question.question_text[:200] if question.question_text else None
-            )
-
-    return HelpRequestResponse(
-        id=new_req.id,
-        student_id=new_req.student_id,
-        request_text=new_req.request_text,
-        status=new_req.status,
-        created_at=new_req.created_at,
-        student_name=student_name,
-        subject=req.subject,
-        priority=req.urgency,
-        content_id=req.content_id,
-        content_title=content_title,
-        content_type=content_type,
-        study_plan_id=req.study_plan_id,
-        study_plan_title=study_plan_title,
-        question_id=req.question_id,
-        question_text=question_text,
-        client_request_id=new_req.client_request_id,
-        context_revision=new_req.context_revision,
-    )
+@router.post("/help")
+async def retired_help_creation(current_user: User = Depends(get_current_user)):
+    """Old request links never silently dispatch to a new recipient."""
+    raise HTTPException(410, "Use Preguntar to save a question and explicitly request your assigned teacher")
 
 
 @router.post("/help/{request_id}/resolve")

@@ -25,7 +25,7 @@ export const timezonePolicy = {timezone:'UTC',timezone_source:'default',local_da
 export const json = (value:unknown,status=200) => new Response(JSON.stringify(value),{status,headers:{'Content-Type':'application/json'}});
 export type Call = {path:string;method:string;body?:Record<string,unknown>};
 export type Intercept = (call:Call)=>Response|Promise<Response>|undefined;
-export async function mountSettings(path:string,role:Role='teacher',language:'en'|'es'='en',initialIntercept?:Intercept) {
+export async function mountSettings(path:string,role:Role=path==='/ajustes/ia'?'admin':'teacher',language:'en'|'es'='en',initialIntercept?:Intercept) {
  let current = {...account,role}; let ai = {...aiDefaults}; let app = {theme:'auto',language:'en',font_size:'medium',enable_animations:true}; let zone = {...timezonePolicy}; let intercept = initialIntercept;
  const calls:Call[]=[];
  const transport = vi.fn(async (input:RequestInfo|URL,init?:RequestInit):Promise<Response> => {

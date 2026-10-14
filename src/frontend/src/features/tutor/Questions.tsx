@@ -1,34 +1,8 @@
-import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
-import { useAuth } from '@/app/AuthProvider';
 import { useResource } from '@/lib/query';
-import { Badge, Button, Card, ConfirmDialog, EmptyState, ErrorState, LoadingState } from '@/components/ui';
+import { Card, ErrorState, LoadingState, PageHeader } from '@/components/ui';
 import { ContentRenderer } from '@/components/content/ContentRenderer';
-import { QuestionEditor } from './QuestionEditor';
-import { isQuestion, isQuestionList, ownsQuestion, responseError } from './contracts';
-export function Questions({active,visible=true,onDirty,initialId=null}:{active:boolean;visible?:boolean;onDirty:(value:boolean)=>void;initialId?:number|null}) {
- const {t}=useTranslation('tutor'),{user,status}=useAuth();
- const [selected,setSelected]=useState<number|null>(initialId),[dirty,setDirty]=useState(false),[next,setNext]=useState<{id:number|null}|null>(null),[revision,setRevision]=useState(0);
- const enabled=active&&status==='authenticated',student=user?.role==='student';
- const query=useResource<unknown>(['tutor','questions'],'/api/content/?content_type=qa');
- const detail=useResource<unknown>(['tutor','question',selected],selected?`/api/content/${selected}`:null);
- const selection=`${selected}:${revision}`,[hydratedSelection,setHydratedSelection]=useState<string|null>(null);
- // Only gate initial form hydration; background refreshes must not replace dirty fields.
- useEffect(()=>{if(detail.data&&!detail.error&&!detail.isFetching)setHydratedSelection(selection);},[detail.data,detail.error,detail.isFetching,selection]);
- const list=isQuestionList(query.data)?query.data:null;
- const entries=list?.filter(item=>item.is_personal&&(student?item.creator_id===user?.id:item.shared_with_teacher));
- const knownIds=list?list.filter(item=>item.creator_id===user?.id).map(item=>item.id):null;
- const record=selected&&isQuestion(detail.data)&&detail.data.id===selected?detail.data:undefined;
- const editing=!selected&&student||!!record&&!!user&&ownsQuestion(record,user.id,user.role);
- function select(id:number|null){if(id!==null&&id===selected)void detail.refetch();setSelected(id);setRevision(value=>value+1);}
- function choose(id:number|null){if(dirty){setNext({id});return;}select(id);}
- const updateDirty=useCallback((value:boolean)=>{setDirty(value);onDirty(value);},[onDirty]);
- return <section hidden={!enabled||!visible} inert={!enabled||!visible} className="stack" aria-label={t(student?'myQuestions':'sharedQuestions')}>
-  <h2>{t(student?'myQuestions':'sharedQuestions')}</h2>
-  <div className="cluster">{student&&<Button type="button" variant="secondary" onClick={()=>choose(null)}>{t('newQuestion')}</Button>}<Button type="button" variant="secondary" onClick={()=>void query.refetch()} disabled={query.isFetching}>{t('refreshQuestions')}</Button></div>
-  {query.isPending?<LoadingState/>:query.error?<ErrorState error={query.error}/>:!list?<ErrorState error={responseError()}/>:entries?.length?<ul className="list">{entries.map(item=><li key={item.id}><Button type="button" variant="ghost" onClick={()=>choose(item.id)}>{item.title}</Button><Badge>{t(item.shared_with_teacher?'shared':'private')}</Badge></li>)}</ul>:<EmptyState title={t('noQuestions')}/>}
-  {selected&&(detail.isPending||hydratedSelection!==selection&&detail.isFetching)?<LoadingState/>:selected&&detail.error?<ErrorState error={detail.error} retry={()=>void detail.refetch()}/>:selected&&!record?<ErrorState error={responseError()}/>:editing?<Card><h2>{t(selected?'editQuestion':'newQuestion')}</h2><QuestionEditor key={`${selected}:${revision}`} initial={record} active={enabled} visible={visible} knownIds={knownIds} onDirty={updateDirty}/></Card>:record?<Card><h2>{record.title}</h2><p>{t('readOnly')}</p><ContentRenderer value={record.content_data.question||record.content_data.content||''}/>{record.content_data.answer&&<><h3>{t('savedAnswer')}</h3><ContentRenderer value={record.content_data.answer}/></>}<p>{t('savedContentHint')}</p><Link to={`/materiales/${record.id}`}>{t('openMaterial')}</Link></Card>:null}
-  <ConfirmDialog open={!!next&&enabled&&visible} onOpenChange={open=>{if(!open)setNext(null);}} title={t('discardQuestion')} description={t('discardQuestionHint')} confirmLabel={t('continue')} destructive onConfirm={()=>{select(next!.id);setNext(null);setDirty(false);onDirty(false);}}/>
- </section>;
-}
+import { isQuestionList, isQuestion, responseError } from './contracts';
+export function LegacyQuestions(){const {t}=useTranslation('tutor');const query=useResource<unknown>(['legacy-questions'],'/api/content/?content_type=qa');return <div className="stack"><PageHeader title={t('legacyQuestions')} actions={<Link to="/tutor">{t('unifiedTitle')}</Link>}/>{query.isPending?<LoadingState/>:query.error?<ErrorState error={query.error}/>:isQuestionList(query.data)?query.data.map(q=><LegacyQuestion key={q.id} id={q.id}/>):<ErrorState error={responseError()}/>}</div>;}
+function LegacyQuestion({id}:{id:number}){const query=useResource<unknown>(['legacy-question',id],`/api/content/${id}`);if(query.isPending)return <LoadingState/>;if(query.error||!isQuestion(query.data))return <ErrorState error={query.error||responseError()}/>;return <Card><h2>{query.data.title}</h2><ContentRenderer value={query.data.content_data.question||query.data.content_data.content||''}/>{query.data.content_data.answer&&<ContentRenderer value={query.data.content_data.answer}/>}</Card>;}

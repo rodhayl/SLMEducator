@@ -7,10 +7,20 @@ from typing import Optional, Dict, Any, List, Literal
 from src.api.dependencies import get_db, get_ai_service_dependency, default_ai_configuration
 from src.api.security import get_current_user, get_optional_current_user
 from src.core.models import User, ApplicationConfiguration, AIModelConfiguration
+from src.core.services.shared_ai_config import shared_ai_configuration
+from src.core.models.models import SharedAIConfiguration
+from src.core.roles import is_admin
 from src.core.services.ai_service import AIProvider, AIService, RuntimeAIConfig
 
 router = APIRouter(prefix="/api/settings", tags=["settings"])
 logger = logging.getLogger(__name__)
+
+
+def require_ai_admin(user: User = Depends(get_current_user)) -> User:
+    """Only administrators may inspect or change provider settings."""
+    if not is_admin(user):
+        raise HTTPException(403, "Only administrators manage the installation AI")
+    return user
 
 
 class AIConfigModel(BaseModel):
@@ -50,14 +60,10 @@ class AppConfigModel(BaseModel):
 
 @router.get("/ai", response_model=AIConfigModel)
 async def get_ai_config(
-    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
+    current_user: User = Depends(require_ai_admin), db: Session = Depends(get_db)
 ):
-    """Get User AI Config"""
-    config = (
-        db.query(AIModelConfiguration)
-        .filter(AIModelConfiguration.user_id == current_user.id)
-        .first()
-    )
+    """Get the administrator-managed installation AI configuration"""
+    config = shared_ai_configuration(db, optional=True)
     if not config:
         config = default_ai_configuration(current_user.id)
 
@@ -100,21 +106,22 @@ def _public_ai_config(config: AIModelConfiguration) -> AIConfigModel:
 @router.post("/ai", response_model=AIConfigModel)
 async def update_ai_config(
     data: AIConfigModel,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_ai_admin),
     db: Session = Depends(get_db),
 ):
-    """Update User AI Config"""
+    """Update the single installation AI configuration"""
     if data.reasoning_effort is not None and data.provider != "lm_studio":
         raise HTTPException(status_code=422, detail="Reasoning override is supported only for compatible LM Studio models")
-    config = (
-        db.query(AIModelConfiguration)
-        .filter(AIModelConfiguration.user_id == current_user.id)
-        .first()
-    )
-    if not config:
+    try:
+        config = shared_ai_configuration(db, optional=True)
+    except HTTPException as error:
+        if error.status_code != 409:
+            raise
+        # An explicit admin save resolves ambiguous legacy configurations.
+        config = None
+    if config is None:
         config = AIModelConfiguration(user_id=current_user.id)
         db.add(config)
-
     destination_changed = config.provider != data.provider or (
         config.endpoint or ""
     ) != (data.endpoint or "")
@@ -134,6 +141,14 @@ async def update_ai_config(
     }
     if data.reasoning_effort is not None:
         config.model_parameters = {**config.model_parameters, "reasoning_effort": data.reasoning_effort}
+    db.flush()
+    selection = db.get(SharedAIConfiguration, 1)
+    if selection is None:
+        selection = SharedAIConfiguration(id=1, configuration_id=config.id)
+        db.add(selection)
+    else:
+        selection.configuration_id = config.id
+
     db.commit()
     db.refresh(config)
     public = _public_ai_config(config)
@@ -221,22 +236,18 @@ async def fetch_models(
     provider: Optional[str] = Query(
         None, description="AI provider to fetch models from"
     ),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_ai_admin),
     db: Session = Depends(get_db),
 ):
     """
     Fetch available models from the specified AI provider.
 
-    If no provider is specified, uses the user's configured provider.
+    If no provider is specified, uses the installation's configured provider.
     Supports: ollama, lm_studio, openai, openrouter
     """
     try:
-        # Get user's AI configuration for defaults
-        config = (
-            db.query(AIModelConfiguration)
-            .filter(AIModelConfiguration.user_id == current_user.id)
-            .first()
-        )
+        # Read the administrator-selected installation configuration
+        config = shared_ai_configuration(db, optional=True)
 
         if not config:
             config = default_ai_configuration(current_user.id)
@@ -282,9 +293,10 @@ def _build_ai_service(
     config_override: Optional[AIConfigModel], current_user: User, db: Session
 ) -> AIService:
     if config_override:
-        saved = (
-            db.query(AIModelConfiguration).filter_by(user_id=current_user.id).first()
-        )
+        try:
+            saved = shared_ai_configuration(db, optional=True)
+        except HTTPException:
+            saved = None
         key = config_override.api_key
         same_destination = (
             saved is not None
@@ -346,7 +358,7 @@ def _run_ai_connection_test(
 @router.post("/ai/test")
 async def test_ai_connection_with_config(
     config: Optional[AIConfigModel] = Body(None),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_ai_admin),
     db: Session = Depends(get_db),
 ):
     """
@@ -357,7 +369,7 @@ async def test_ai_connection_with_config(
 
 @router.get("/ai/test")
 async def test_ai_connection(
-    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
+    current_user: User = Depends(require_ai_admin), db: Session = Depends(get_db)
 ):
     """
     Test the AI connection with a simple prompt.

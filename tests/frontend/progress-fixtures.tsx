@@ -36,7 +36,7 @@ export async function mountProgress(path='/inicio',role:Role='student',language:
   if(path==='/api/learning/active')return json(session);if(path==='/api/study-plans/')return json([course]);if(path==='/api/study-plans/11/tree')return json(tree);if(path==='/api/study-plans/11/my-progress')return json(progress);
   if(path==='/api/assessments/submissions')return json([submission]);if(path.startsWith('/api/assessments/submissions?'))return json([{...submission,status:'submitted'}]);
   if(path==='/api/assessments/')return json([{id:51,title:'Geometry check',description:null,is_published:true,question_count:1,created_at:'2026-10-07T10:00:00Z',can_manage:true}]);
-  if(path==='/api/classroom/help')return json([]);if(path==='/api/status')return json({status:'online',version:'2.0.0'});
+  if(path==='/api/classroom/help'||path==='/api/questions')return json([]);if(path==='/api/status')return json({status:'online',version:'2.0.0'});
   if(path==='/api/dashboard/stats')return json({completed_lessons:0,total_study_time_minutes:0,unknown_duration_sessions:2,total_content:0,active_students:0,assessments_created:0,average_score:0});
   if(path==='/api/mastery/evidence')return json({items:[{content_id:20,evidence_type:'final_assessment',assessment_percent:0,self_confidence:2},{content_id:21,evidence_type:'legacy_or_self_report',assessment_percent:null,self_confidence:null}]});
   if(path==='/api/mastery/due')return json([{mastery_node_id:6,content_id:21,content_title:'Polygons',content_type:'lesson',days_overdue:0,evidence_type:'legacy_or_self_report'}]);

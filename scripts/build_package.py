@@ -85,6 +85,7 @@ HIDDEN_IMPORTS = (
     "src.api.routes.dashboard",
     "src.api.routes.content",
     "src.api.routes.ai",
+    "src.api.routes.questions",
     "src.api.routes.settings",
     "src.api.routes.generation",
     "src.api.routes.assessment",

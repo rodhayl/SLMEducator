@@ -19,16 +19,6 @@ export function isTutorSource(value: unknown, id: number, course: boolean): valu
 export function responseError(mutation = false) { return new ApiError(0, 'invalid', mutation, mutation ? 'uncertain' : 'invalidResponse'); }
 export interface QuestionSummary extends Material {content_type:'qa'; shared_with_teacher:boolean; can_edit?:boolean}
 export interface Question extends QuestionSummary {content_data:Record<string,unknown> & {question?:string; answer?:string; content?:string}}
-export interface QuestionForm {title:string;question:string;answer:string;shared:boolean}
 export function isQuestionSummary(value:unknown):value is QuestionSummary {return isMaterial(value) && value.content_type === 'qa' && 'shared_with_teacher' in value && typeof value.shared_with_teacher === 'boolean';}
 export function isQuestionList(value:unknown):value is QuestionSummary[] {return Array.isArray(value) && value.every(isQuestionSummary) && new Set(value.map(item=>item.id)).size === value.length;}
 export function isQuestion(value:unknown):value is Question {if(!isQuestionSummary(value) || !('content_data' in value) || !helpRecord(value.content_data))return false;const data=value.content_data;return ['question','answer','content'].every(key => data[key] === undefined || typeof data[key] === 'string') && ['question','content','answer'].some(key=>typeof data[key]==='string' && !!data[key].trim());}
-export function questionForm(value?:Question):QuestionForm {return {title:value?.title || '',question:value?.content_data.question || value?.content_data.content || '',answer:value?.content_data.answer || '',shared:value?.shared_with_teacher || false};}
-export function questionPayload(value:QuestionForm, original:Record<string,unknown> = {}) {
- if (!value.title.trim() || value.title.trim().length > 200 || !value.question.trim() || value.question.length > 4000 || value.answer.length > 50000) throw new ApiError(422,'invalid',false,'validation');
- return {title:value.title.trim(),content_data:{...original,question:value.question.trim(),answer:value.answer},shared_with_teacher:value.shared};
-}
-export type QuestionPayload = ReturnType<typeof questionPayload>;
-export function questionReceipt(value:unknown,payload:QuestionPayload,owner:number,id?:number):value is QuestionSummary {return isQuestionSummary(value) && value.is_personal && value.creator_id===owner && (!id || value.id===id) && value.title===payload.title && value.shared_with_teacher===payload.shared_with_teacher;}
-export function questionMatches(value:unknown,payload:QuestionPayload,owner:number,id?:number):value is Question {return questionReceipt(value,payload,owner,id) && isQuestion(value) && value.content_data.question===payload.content_data.question && (value.content_data.answer || '')===payload.content_data.answer;}
-export function ownsQuestion(value:QuestionSummary,owner:number,role:string) {return role==='student' && value.creator_id===owner && value.is_personal && value.can_edit===true;}
