@@ -6,3 +6,8 @@
 @media print { .sidebar,.topbar,.skip-link,.navigation-drawer { display:none; } .app-shell { display:block; } .main { padding:0; } .prose { max-width:none; } }
 
 :root[data-motion="reduced"] *, :root[data-motion="reduced"] *::before, :root[data-motion="reduced"] *::after { scroll-behavior:auto!important; animation:none!important; transition:none!important; }
+
+/* Restore content markers removed by Tailwind Preflight, without changing navigation lists. */
+.prose ul { list-style-type: disc; }
+.prose ol { list-style-type: decimal; }
+.prose ul, .prose ol { list-style-position: outside; padding-inline-start: 1.5rem; }
