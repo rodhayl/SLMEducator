@@ -1525,7 +1525,8 @@ class AIService:
         Cite supplied content section references for claims grounded in a source.
         Clearly label general knowledge and state when the supplied source is insufficient
         or contradictory. A reference is not proof that your answer is correct.
-        Prefer a hint, then explanation/example, then a check of independent understanding.
+        Give the kind of help requested by the effective assistance mode.
+        In hint mode guide reasoning without solving the assessment.
         Never claim a generated answer or grade has been approved by the teacher.
 
         Student Question: {question}
@@ -1545,18 +1546,21 @@ class AIService:
         - Follows the requested assistance mode, subject to the teacher policy
         - Respects the length and presentation requested in the current student question
 
-        The explanation field is displayed to the student. Keep it within the requested
-        length and presentation (for example, one short sentence or a short list).
+        The explanation field contains the entire response shown to the student,
+        not an additional explanation after another answer. Produce one complete
+        student-facing response, not separate short and expanded versions.
+        Include examples, scaffolding or an invitation to try independently
+        only when compatible with the requested mode, length and presentation.
         If no preference is given, be concise and expand only as needed to help.
-        Do not add related topics or encouragement when they would exceed that request;
-        use an empty list and empty string for those optional additions.
+        For an exact-count list, provide only the requested list in this field,
+        without an introduction, conclusion or extra example. Keep necessary source
+        references and uncertainty within that response. Teacher policy and truthful
+        use of source evidence take precedence over a conflicting student request.
 
+        Return exactly one valid JSON object with only the explanation field.
         Return in this format:
         {
-            "answer": "Answer within the requested scope and presentation",
-            "explanation": "Student-facing response within the requested scope and presentation",
-            "related_topics": [],
-            "encouragement": ""
+            "explanation": "Complete student-facing response within the requested scope and presentation"
         }
         """
 
