@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit",
     "build": "node scripts/build.mjs",
     "test": "vitest run",
-    "lint": "cd ../.. && src/frontend/node_modules/.bin/eslint --config src/frontend/eslint.config.js src/frontend/src tests/frontend",
+    "lint": "cd ../.. && node src/frontend/node_modules/eslint/bin/eslint.js --config src/frontend/eslint.config.js src/frontend/src tests/frontend",
     "check": "npm run typecheck && npm run lint && npm test && npm run build"
   },
   "dependencies": {
