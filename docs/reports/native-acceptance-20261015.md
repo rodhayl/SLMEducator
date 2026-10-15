@@ -151,10 +151,11 @@ Verified across all mandatory functional contexts on the installed application:
    - Submitting empty form highlights invalid inputs with `aria-invalid="true"` and associates error element via `aria-describedby="_r_0_-error"`.
    - Error text *"Este campo es obligatorio."* is linked directly to the input.
    - Initial invalid field automatically receives keyboard focus.
-3. **Classroom & Tutor (`/tutor`)**:
+3. **Classroom & Tutor (`/tutor`) / Learning & Dialogue (Block 2)**:
    - Navigation tabs use `aria-pressed="true"` / `aria-pressed="false"` to indicate active mode (*"Conversación"* vs *"Preguntas compartidas"*).
    - Inactive workspace sections are marked with `hidden` and `inert`.
    - Headings use `tabIndex="-1"` and receive programmatic focus on route transitions.
+   - **Real Audio Acceptance (Block 2 - Learning/Dialogue)**: User executed Windows Narrator and confirmed all screen reader announcements, controls, and focus navigation operate correctly and audibly as intended.
 4. **Modal Dialogs (`ConfirmDialog` / `@base-ui/react/dialog`)**:
    - Modal container has `role="dialog"`, backdrop element, title with `Dialog.Title`, and description with `Dialog.Description`.
    - Accessible keyboard focus trap; `Escape` key closes dialog; focus returns to trigger on dismissal.
