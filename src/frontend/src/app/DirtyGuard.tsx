@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useId, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useBlocker } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { ConfirmDialog } from '@/components/ui';
@@ -17,7 +17,15 @@ export function useDirtyGuard(dirty: boolean) {
 }
 export function NavigationGuard() {
  const dirty = useDirtyState(); const { status } = useAuth(); const { t } = useTranslation();
- const blocker = useBlocker(({ currentLocation, nextLocation }) => (status === 'locked' || (dirty && status === 'authenticated')) && (currentLocation.pathname !== nextLocation.pathname || currentLocation.search !== nextLocation.search));
+ // A child may navigate in a passive effect before useBlocker registers its new
+ // callback. Read committed guard state so sibling ordering cannot retain a
+ // stale dirty flag after a confirmed save, or bypass a newly dirty/locked guard.
+ const committed = useRef({ dirty, status });
+ useLayoutEffect(() => { committed.current = { dirty, status }; }, [dirty, status]);
+ const blocker = useBlocker(({ currentLocation, nextLocation }) => {
+  const current = committed.current;
+  return (current.status === 'locked' || (current.dirty && current.status === 'authenticated')) && (currentLocation.pathname !== nextLocation.pathname || currentLocation.search !== nextLocation.search);
+ });
  useEffect(() => { const beforeUnload = (event: BeforeUnloadEvent) => { if (dirty) { event.preventDefault(); event.returnValue = ''; } }; window.addEventListener('beforeunload', beforeUnload); return () => window.removeEventListener('beforeunload', beforeUnload); }, [dirty]);
  return <ConfirmDialog open={blocker.state === 'blocked'} onOpenChange={open => { if (!open && blocker.state === 'blocked') blocker.reset(); }} title={t('unsavedTitle')} description={t('unsavedDescription')} confirmLabel={t('leave')} destructive onConfirm={() => { if (blocker.state === 'blocked') blocker.proceed(); }}/>;
 }

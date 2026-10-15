@@ -270,6 +270,33 @@ def safe_provider_failure(error: Exception) -> str:
     return "AI service unavailable. Check the provider and retry when ready."
 
 
+def _escape_json_line_breaks(text: str) -> str:
+    """Escape only literal LF/CR inside double-quoted JSON strings.
+
+    Preserve existing escapes and formatting outside strings. The result must
+    still pass the JSON decoder; this does not repair missing syntax, invalid
+    escapes, other control characters, or truncated provider output.
+    """
+    result = []
+    in_string = False
+    escaped = False
+    for char in text:
+        if in_string:
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == '"':
+                in_string = False
+            elif char in ("\n", "\r"):
+                result.append("\\n" if char == "\n" else "\\r")
+                continue
+        elif char == '"':
+            in_string = True
+        result.append(char)
+    return "".join(result)
+
+
 class _JSONLiteralNames(ast.NodeTransformer):
     """Translate bare JSON constants without rewriting educational string values."""
 
@@ -856,7 +883,7 @@ class AIService:
                 raise ValueError("No valid JSON found in response")
 
             try:
-                return json.loads(json_str)
+                return json.loads(_escape_json_line_breaks(json_str))
             except json.JSONDecodeError:
                 syntax = ast.parse(json_str, mode="eval")
                 parsed = ast.literal_eval(_JSONLiteralNames().visit(syntax))

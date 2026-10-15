@@ -19,7 +19,7 @@ function result(payload:Record<string,unknown>,extra={}){return{receipt:receipt(
 function deferred<T>(){let resolve!:(value:T)=>void;const promise=new Promise<T>(done=>{resolve=done;});return{promise,resolve};}
 async function mount(path='/tutor',language='en'){
  const i18n=createInstance();await i18n.init({lng:language,fallbackLng:'en',resources:{en:{tutor:locales.en,translation:{cancel:'Cancel'}},es:{tutor:locales.es}},interpolation:{escapeValue:false}});
- const router=createMemoryRouter([{path:'/tutor',element:<DirtyProvider><NavigationGuard/><TutorPage/></DirtyProvider>}],{initialEntries:[path]});
+ const router=createMemoryRouter([{path:'/tutor',element:<DirtyProvider><TutorPage/><NavigationGuard/></DirtyProvider>}],{initialEntries:[path]});
  let revision=0;const client=createQueryClient(),tree=()=> <AuthRenderContext.Provider value={++revision}><QueryClientProvider client={client}><I18nextProvider i18n={i18n}><RouterProvider router={router}/></I18nextProvider></QueryClientProvider></AuthRenderContext.Provider>;
  const view=render(tree());return{...view,rerenderApp:()=>view.rerender(tree()),client,router};
 }
@@ -31,6 +31,36 @@ beforeEach(()=>{
  auth.api.post.mockImplementation(async(_path:string,payload:Record<string,unknown>)=>result(payload));
 });
 describe('One persisted question workspace',()=>{
+ it('still blocks real unsaved navigation and preserves the draft on Cancel',async()=>{
+ const view=await mount();await draft('Keep my unsaved question');
+ await act(async()=>{await view.router.navigate('/tutor?thread_id=51');});
+ expect(view.router.state.location.search).toBe('');
+ expect(screen.getByRole('dialog')).toHaveTextContent('unsavedTitle');
+ fireEvent.click(within(screen.getByRole('dialog')).getByRole('button',{name:'Cancel'}));
+ await waitFor(()=>expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+ expect(screen.getByLabelText(locales.en.prompt)).toHaveValue('Keep my unsaved question');
+ expect(auth.api.post).not.toHaveBeenCalled();
+ });
+ it('still blocks navigation while authentication is locked',async()=>{
+ const view=await mount();await screen.findByLabelText(locales.en.prompt);
+ auth.status='locked';auth.credentialEpoch++;view.rerenderApp();
+ await act(async()=>{await view.router.navigate('/tutor?thread_id=51');});
+ expect(view.router.state.location.search).toBe('');
+ expect(screen.getByRole('dialog')).toHaveTextContent('unsavedTitle');
+ expect(auth.api.post).not.toHaveBeenCalled();
+ });
+
+ it('opens a delayed completed AI answer without an unsaved-changes dialog',async()=>{
+ const job=deferred<unknown>();auth.api.post.mockReturnValue(job.promise);
+ const view=await mount();await ask('Delayed question');
+ const payload=auth.api.post.mock.calls[0][1];
+ await act(async()=>{await new Promise(resolve=>setTimeout(resolve,20));});
+ await act(async()=>job.resolve(result(payload)));
+ await waitFor(()=>expect(view.router.state.location.search).toBe('?thread_id=51'));
+ expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+ await screen.findByText('Persisted AI answer');
+ });
+
  it('uses one explicit request and the shared AI without personal settings',async()=>{await mount();expect(auth.api.post).not.toHaveBeenCalled();await ask();await screen.findByText('Persisted AI answer');expect(auth.api.post).toHaveBeenCalledTimes(1);expect(auth.api.post.mock.calls[0][0]).toBe('/api/questions/ask');expect(auth.api.post.mock.calls[0][1]).toMatchObject({question:'Original question',assistance:'explanation',content_id:null});expect(screen.getByText(locales.en.aiAnswer)).toBeVisible();expect(auth.api.get.mock.calls.some(([p])=>p==='/api/settings/ai')).toBe(false);});
  it('discards a draft with one confirmation and clears the real navigation guard',async()=>{const normal=auth.api.get.getMockImplementation()!;auth.api.get.mockImplementation((p:string)=>p==='/api/questions'?Promise.resolve([thread]):normal(p));const view=await mount();await draft();fireEvent.click(screen.getByRole('button',{name:'Saved question'}));fireEvent.click(within(screen.getByRole('dialog')).getByRole('button',{name:locales.en.continue}));await screen.findByText('Persisted AI answer');expect(screen.queryByRole('dialog')).not.toBeInTheDocument();expect(view.router.state.location.search).toBe('?thread_id=51');});
  it('shows saved answers on a fresh visit without invoking AI',async()=>{await mount('/tutor?thread_id=51');await screen.findByText('Persisted AI answer');expect(auth.api.post).not.toHaveBeenCalled();});

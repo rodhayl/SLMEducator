@@ -135,9 +135,12 @@ OpenAI and OpenRouter adapters. Choose a model compatible with the selected
 adapter's API and response requirements; this is not a guarantee that every
 model or API works. No second model is required. Tutor/Q&A accepts a JSON object
 containing a nonempty `answer`, `explanation` or `response`, or a nonempty plain
-prose reply. The prose fallback excludes structural delimiters and code fences;
-it does not rescue broken JSON or mark answers verified. Provider/protocol errors
-remain failures. Structured authoring and grading keep their validation contracts.
+prose reply. The shared structured-response parser preserves literal line breaks
+inside JSON strings by escaping only LF/CR before strict JSON decoding. This
+compatibility step does not repair missing syntax, invalid escapes or truncation.
+The prose fallback excludes structural delimiters and code fences; it does not
+rescue broken JSON or mark answers verified. Provider/protocol errors remain
+failures. Structured authoring and grading keep their validation contracts.
 
 Once the local application, dependencies, data and a local model are prepared,
 Internet access is not required for the local-provider path. Cloud providers need
