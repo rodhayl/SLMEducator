@@ -181,8 +181,8 @@ Verified across all mandatory functional contexts on the installed application:
 
 1. **Semantic Scoring 35/36 Boundary**:
    - Rubric evaluation retains the known 35/36 boundary where one edge-case rubric criterion evaluates strictly to a score of 2. Documented as a transparent technical property without artificial score overrides.
-2. **`objective-hostile` Input Validation**:
-   - Hostile input prompts that mimic prompt templates without instructional substance remain rejected with standard validation errors.
+2. **`objective-hostile` Evaluation Behavior**:
+   - The generation evaluation recorded 36/36 HTTP 200 responses and 35/36 strict rubric passes. The single non-passing case incorporated the injected false value as an option in the generated output rather than filtering it out, without any request rejection or service failure.
 3. **In-Place Upgrade Non-Support**:
    - Setup refuses in-place overwrites by architectural design; clean uninstall/reinstall retains all user database records.
 
