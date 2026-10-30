@@ -1,0 +1,32 @@
+[flake8]
+max-line-length = 140
+# E127/E128: continuation line indentation - style preference, not a bug
+# E711/E712: comparison to None/False - required for SQLAlchemy ORM queries
+# E402: module level import not at top - sometimes needed for circular import prevention
+# W503: line break before binary operator - conflicts with W504, PEP 8 now recommends before
+# E126: continuation line over-indented for hanging indent - style preference
+# E226: missing whitespace around arithmetic operator - style preference
+# E261: at least two spaces before inline comment - style preference
+# E306: expected 1 blank line before nested definition - style preference
+# W504: line break after binary operator - conflicts with W503
+# E203/E704: black-compatible formatting
+ignore = E127, E128, E711, E712, E402, W503, E126, E226, E261, E306, W504, E203, E704
+exclude =
+    .git,
+    __pycache__,
+    .venv,
+    venv,
+    build,
+    dist,
+    ARCHIVED,
+    implementation_documents,
+    *.egg-info,
+    alembic/versions
+
+# Per-file ignores for tests
+# F841: local variable assigned but never used - common in test fixtures
+# F541: f-string without placeholders - sometimes used for documentation
+# E722: bare except - sometimes intentional in tests for testing error handling
+# E501: line too long - test assertions can be long
+per-file-ignores =
+    tests/*:F841,F541,E722,E501

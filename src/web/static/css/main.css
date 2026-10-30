@@ -1,0 +1,2032 @@
+/* ==========================================================================
+   SLM Educator - Unified Design System
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. CSS Variables (Design Tokens)
+   -------------------------------------------------------------------------- */
+:root {
+    /* Primary Colors */
+    --primary-color: #1a73e8;
+    --primary-dark: #1557b0;
+    --primary-light: #4285f4;
+
+    /* Secondary Colors */
+    --secondary-color: #6c757d;
+    --success-color: #28a745;
+    --warning-color: #ffc107;
+    --danger-color: #dc3545;
+    --info-color: #17a2b8;
+
+    /* Neutral Colors */
+    --white: #ffffff;
+    --gray-100: #f8f9fa;
+    --gray-200: #e9ecef;
+    --gray-300: #dee2e6;
+    --gray-400: #ced4da;
+    --gray-500: #adb5bd;
+    --gray-600: #6b7280;
+    --gray-700: #495057;
+    --gray-800: #343a40;
+    --gray-900: #212529;
+    --black: #000000;
+
+    /* Background Colors */
+    --bg-body: #f5f6f8;
+    --bg-card: #ffffff;
+    --bg-sidebar: #ffffff;
+
+    /* Text Colors */
+    --text-primary: #1f2937;
+    --text-secondary: #6b7280;
+    --text-muted: #9ca3af;
+    --text-light: #ffffff;
+
+    /* Border Colors */
+    --border-color: #e5e7eb;
+    --border-light: #f3f4f6;
+
+    /* Typography */
+    --font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    --font-size-xs: 0.75rem;
+    --font-size-sm: 0.875rem;
+    --font-size-base: 1rem;
+    --font-size-lg: 1.125rem;
+    --font-size-xl: 1.25rem;
+    --font-size-2xl: 1.5rem;
+    --font-size-3xl: 1.875rem;
+
+    /* Spacing */
+    --spacing-xs: 0.25rem;
+    --spacing-sm: 0.5rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 1.5rem;
+    --spacing-xl: 2rem;
+    --spacing-2xl: 3rem;
+
+    /* Border Radius */
+    --radius-sm: 0.25rem;
+    --radius-md: 0.375rem;
+    --radius-lg: 0.5rem;
+    --radius-xl: 0.75rem;
+    --radius-full: 9999px;
+
+    /* Shadows */
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 1px 3px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --shadow-xl: 0 10px 15px rgba(0, 0, 0, 0.1);
+
+    /* Transitions */
+    --transition-fast: 150ms ease;
+    --transition-normal: 200ms ease;
+    --transition-slow: 300ms ease;
+}
+
+/* --------------------------------------------------------------------------
+   2. Base Styles
+   -------------------------------------------------------------------------- */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: var(--font-family);
+    font-size: var(--font-size-base);
+    line-height: 1.5;
+    background-color: var(--bg-body);
+    color: var(--text-primary);
+    overflow-x: hidden;
+}
+
+body.theme-dark {
+    /* Override design tokens so the whole system flips correctly */
+    --bg-body: #111827;
+    --bg-card: #1f2937;
+    --bg-sidebar: #111827;
+    --text-primary: #f9fafb;
+    --text-secondary: #e5e7eb;
+    --text-muted: #9ca3af;
+    --border-color: #374151;
+    --border-light: #4b5563;
+    color-scheme: dark;
+
+    background-color: var(--bg-body);
+    color: var(--text-primary);
+}
+
+body.theme-dark .sidebar,
+body.theme-dark .mobile-topbar {
+    background-color: var(--bg-sidebar);
+    border-color: var(--border-color);
+}
+
+body.theme-dark .main-content {
+    background-color: var(--bg-body);
+}
+
+body.theme-dark .card,
+body.theme-dark .modal-content,
+body.theme-dark .content-area,
+body.theme-dark .auth-container {
+    background-color: var(--bg-card);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}
+
+body.theme-dark .card-header,
+body.theme-dark .card-footer,
+body.theme-dark .navbar-standalone {
+    background-color: var(--bg-sidebar);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}
+
+body.theme-dark .form-control,
+body.theme-dark .form-select {
+    background-color: var(--bg-sidebar);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}
+
+body.theme-dark .form-control::placeholder,
+body.theme-dark .form-select::placeholder {
+    color: var(--text-muted);
+}
+
+body.theme-dark .list-group-item {
+    background-color: var(--bg-card);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}
+
+/* Note: bg-light/bg-white overrides removed - use semantic classes (bg-surface, bg-elevated) instead */
+
+body.theme-dark .border,
+body.theme-dark .border-top,
+body.theme-dark .border-bottom,
+body.theme-dark .border-start,
+body.theme-dark .border-end {
+    border-color: var(--border-color) !important;
+}
+
+body.theme-dark .table {
+    color: var(--text-primary);
+}
+
+body.theme-dark .table> :not(caption)>*>* {
+    background-color: transparent;
+    border-color: var(--border-color);
+    color: var(--text-primary);
+}
+
+body.theme-dark .btn-close {
+    filter: invert(1);
+}
+
+/* Dark-mode contrast fixes for Bootstrap buttons frequently used in the UI */
+body.theme-dark .btn-outline-secondary {
+    color: var(--text-secondary);
+    border-color: var(--border-light);
+}
+
+body.theme-dark .btn-outline-secondary:hover,
+body.theme-dark .btn-outline-secondary:focus {
+    background-color: #374151;
+    border-color: #6b7280;
+    color: var(--text-primary);
+}
+
+body.theme-dark .btn-outline-secondary:focus {
+    box-shadow: 0 0 0 0.25rem rgba(107, 114, 128, 0.35);
+}
+
+a {
+    color: var(--primary-color);
+    text-decoration: none;
+    transition: color var(--transition-fast);
+}
+
+a:hover {
+    color: var(--primary-dark);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    margin-top: 0;
+    margin-bottom: var(--spacing-sm);
+    font-weight: 600;
+    line-height: 1.25;
+    color: var(--text-primary);
+}
+
+/* --------------------------------------------------------------------------
+   3. Utility Classes
+   -------------------------------------------------------------------------- */
+.hidden {
+    display: none !important;
+}
+
+.text-muted {
+    color: var(--text-muted) !important;
+}
+
+.text-primary {
+    color: var(--primary-color) !important;
+}
+
+.text-success {
+    color: var(--success-color) !important;
+}
+
+.text-warning {
+    color: var(--warning-color) !important;
+}
+
+.text-danger {
+    color: var(--danger-color) !important;
+}
+
+.text-center {
+    text-align: center !important;
+}
+
+/* Legacy Bootstrap utilities - kept for compatibility but prefer semantic classes */
+.bg-white {
+    background-color: var(--white) !important;
+}
+
+.bg-light {
+    background-color: var(--gray-100) !important;
+}
+
+/* --------------------------------------------------------------------------
+   Semantic Background Utilities (Theme-Aware)
+   -------------------------------------------------------------------------- */
+/* Use these instead of bg-white/bg-light for automatic dark mode support */
+.bg-surface {
+    background-color: var(--bg-card);
+    color: var(--text-primary);
+}
+
+.bg-elevated {
+    background-color: var(--gray-100);
+    color: var(--text-primary);
+}
+
+body.theme-dark .bg-elevated {
+    background-color: var(--gray-700);
+}
+
+.bg-muted {
+    background-color: var(--gray-200);
+    color: var(--text-primary);
+}
+
+body.theme-dark .bg-muted {
+    background-color: var(--gray-800);
+}
+
+/* --------------------------------------------------------------------------
+   Semantic Text Utilities (Theme-Aware)
+   -------------------------------------------------------------------------- */
+/* Use these instead of text-dark for automatic dark mode support */
+.text-body {
+    color: var(--text-primary);
+}
+
+.text-subtle {
+    color: var(--text-secondary);
+}
+
+.mt-0 {
+    margin-top: 0 !important;
+}
+
+.mt-1 {
+    margin-top: var(--spacing-xs) !important;
+}
+
+.mt-2 {
+    margin-top: var(--spacing-sm) !important;
+}
+
+.mt-3 {
+    margin-top: var(--spacing-md) !important;
+}
+
+.mt-4 {
+    margin-top: var(--spacing-lg) !important;
+}
+
+.mb-0 {
+    margin-bottom: 0 !important;
+}
+
+.mb-1 {
+    margin-bottom: var(--spacing-xs) !important;
+}
+
+.mb-2 {
+    margin-bottom: var(--spacing-sm) !important;
+}
+
+.mb-3 {
+    margin-bottom: var(--spacing-md) !important;
+}
+
+.mb-4 {
+    margin-bottom: var(--spacing-lg) !important;
+}
+
+.p-0 {
+    padding: 0 !important;
+}
+
+.p-2 {
+    padding: var(--spacing-sm) !important;
+}
+
+.p-3 {
+    padding: var(--spacing-md) !important;
+}
+
+.p-4 {
+    padding: var(--spacing-lg) !important;
+}
+
+.w-100 {
+    width: 100% !important;
+}
+
+.h-100 {
+    height: 100% !important;
+}
+
+.text-end {
+    text-align: right !important;
+}
+
+.d-none {
+    display: none !important;
+}
+
+.d-flex {
+    display: flex !important;
+}
+
+.d-grid {
+    display: grid !important;
+}
+
+.align-items-center {
+    align-items: center !important;
+}
+
+.align-items-end {
+    align-items: flex-end !important;
+}
+
+.justify-content-between {
+    justify-content: space-between !important;
+}
+
+.justify-content-end {
+    justify-content: flex-end !important;
+}
+
+.justify-content-center {
+    justify-content: center !important;
+}
+
+.flex-wrap {
+    flex-wrap: wrap !important;
+}
+
+.gap-2 {
+    gap: var(--spacing-sm) !important;
+}
+
+.gap-3 {
+    gap: var(--spacing-md) !important;
+}
+
+.container {
+    width: 100%;
+    padding-right: var(--spacing-lg);
+    padding-left: var(--spacing-lg);
+    margin-right: auto;
+    margin-left: auto;
+}
+
+@media (min-width: 576px) {
+    .container {
+        max-width: 540px;
+    }
+}
+
+@media (min-width: 768px) {
+    .container {
+        max-width: 720px;
+    }
+}
+
+@media (min-width: 992px) {
+    .container {
+        max-width: 960px;
+    }
+}
+
+@media (min-width: 1200px) {
+    .container {
+        max-width: 1140px;
+    }
+}
+
+@media (min-width: 1400px) {
+    .container {
+        max-width: 1320px;
+    }
+}
+
+.row {
+    display: flex;
+    flex-wrap: wrap;
+    margin-right: calc(var(--spacing-md) * -1);
+    margin-left: calc(var(--spacing-md) * -1);
+}
+
+.row > * {
+    flex-shrink: 0;
+    width: 100%;
+    max-width: 100%;
+    padding-right: var(--spacing-md);
+    padding-left: var(--spacing-md);
+}
+
+.col {
+    flex: 1 0 0%;
+}
+
+@media (min-width: 768px) {
+    .col-md-3 {
+        flex: 0 0 auto;
+        width: 25%;
+    }
+
+    .col-md-4 {
+        flex: 0 0 auto;
+        width: 33.333333%;
+    }
+
+    .col-md-6 {
+        flex: 0 0 auto;
+        width: 50%;
+    }
+
+    .col-md-8 {
+        flex: 0 0 auto;
+        width: 66.666667%;
+    }
+
+    .col-md-9 {
+        flex: 0 0 auto;
+        width: 75%;
+    }
+
+    .col-md-12 {
+        flex: 0 0 auto;
+        width: 100%;
+    }
+}
+
+/* --------------------------------------------------------------------------
+   4. Form Controls
+   -------------------------------------------------------------------------- */
+.form-control {
+    display: block;
+    width: 100%;
+    padding: 0.75rem;
+    font-size: var(--font-size-base);
+    font-family: inherit;
+    line-height: 1.5;
+    color: var(--text-primary);
+    background-color: var(--white);
+    background-clip: padding-box;
+    border: 1px solid var(--gray-300);
+    border-radius: var(--radius-md);
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.form-control:focus {
+    border-color: var(--primary-color);
+    outline: 0;
+    box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.15);
+}
+
+.form-control::placeholder {
+    color: var(--text-muted);
+}
+
+.form-label {
+    display: block;
+    margin-bottom: var(--spacing-sm);
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.form-select {
+    display: block;
+    width: 100%;
+    padding: 0.75rem 2.25rem 0.75rem 0.75rem;
+    font-size: var(--font-size-base);
+    font-family: inherit;
+    color: var(--text-primary);
+    background-color: var(--white);
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 16px 12px;
+    border: 1px solid var(--gray-300);
+    border-radius: var(--radius-md);
+    appearance: none;
+    cursor: pointer;
+}
+
+.form-select:focus {
+    border-color: var(--primary-color);
+    outline: 0;
+    box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.15);
+}
+
+.form-group {
+    margin-bottom: var(--spacing-md);
+}
+
+/* --------------------------------------------------------------------------
+   5. Buttons
+   -------------------------------------------------------------------------- */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 1rem;
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    font-family: inherit;
+    line-height: 1.5;
+    text-align: center;
+    text-decoration: none;
+    white-space: nowrap;
+    vertical-align: middle;
+    cursor: pointer;
+    user-select: none;
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    transition: all var(--transition-normal);
+}
+
+.btn:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+}
+
+.btn:focus {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 0.25rem rgba(26, 115, 232, 0.25);
+}
+
+.btn-primary {
+    color: var(--white);
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-primary:hover:not(:disabled) {
+    background-color: var(--primary-dark);
+    border-color: var(--primary-dark);
+}
+
+.btn-secondary {
+    color: var(--white);
+    background-color: var(--secondary-color);
+    border-color: var(--secondary-color);
+}
+
+.btn-secondary:hover:not(:disabled) {
+    background-color: var(--gray-700);
+    border-color: var(--gray-700);
+}
+
+.btn-success {
+    color: var(--white);
+    background-color: var(--success-color);
+    border-color: var(--success-color);
+}
+
+.btn-success:hover:not(:disabled) {
+    background-color: #218838;
+    border-color: #1e7e34;
+}
+
+.btn-danger {
+    color: var(--white);
+    background-color: var(--danger-color);
+    border-color: var(--danger-color);
+}
+
+.btn-danger:hover:not(:disabled) {
+    background-color: #c82333;
+    border-color: #bd2130;
+}
+
+.btn-outline-primary {
+    color: var(--primary-color);
+    background-color: transparent;
+    border-color: var(--primary-color);
+}
+
+.btn-outline-primary:hover:not(:disabled) {
+    color: var(--white);
+    background-color: var(--primary-color);
+}
+
+.btn-outline-secondary {
+    color: var(--secondary-color);
+    background-color: transparent;
+    border-color: var(--secondary-color);
+}
+
+.btn-outline-secondary:hover:not(:disabled) {
+    color: var(--white);
+    background-color: var(--secondary-color);
+}
+
+.btn-outline-danger {
+    color: var(--danger-color);
+    background-color: transparent;
+    border-color: var(--danger-color);
+}
+
+.btn-outline-danger:hover:not(:disabled) {
+    color: var(--white);
+    background-color: var(--danger-color);
+}
+
+.btn-outline-light {
+    color: var(--gray-600);
+    background-color: transparent;
+    border-color: var(--gray-300);
+}
+
+.btn-outline-light:hover:not(:disabled) {
+    background-color: var(--gray-100);
+}
+
+.btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: var(--font-size-sm);
+}
+
+.btn-lg {
+    padding: 0.75rem 1.5rem;
+    font-size: var(--font-size-lg);
+}
+
+/* --------------------------------------------------------------------------
+   6. Cards
+   -------------------------------------------------------------------------- */
+.card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    word-wrap: break-word;
+    background-color: var(--bg-card);
+    background-clip: border-box;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+}
+
+.card-header {
+    padding: var(--spacing-md) var(--spacing-lg);
+    margin-bottom: 0;
+    background-color: var(--gray-100);
+    border-bottom: 1px solid var(--border-color);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+.card-body {
+    flex: 1 1 auto;
+    padding: var(--spacing-lg);
+}
+
+.card-footer {
+    padding: var(--spacing-md) var(--spacing-lg);
+    background-color: var(--gray-100);
+    border-top: 1px solid var(--border-color);
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}
+
+.card-title {
+    margin-bottom: var(--spacing-sm);
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+}
+
+/* --------------------------------------------------------------------------
+   7. Auth Container (Login/Register)
+   -------------------------------------------------------------------------- */
+/* Auth page wrapper for vertical centering */
+.auth-wrapper {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-lg);
+}
+
+.auth-container {
+    max-width: 400px;
+    margin: auto;
+    padding: var(--spacing-xl);
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+}
+
+.auth-container h2 {
+    text-align: center;
+    margin-bottom: var(--spacing-xl);
+    color: var(--primary-color);
+}
+
+.auth-links {
+    margin-top: var(--spacing-md);
+    text-align: center;
+}
+
+.error-message {
+    color: var(--danger-color);
+    margin-bottom: var(--spacing-md);
+    padding: var(--spacing-sm);
+    background-color: rgba(220, 53, 69, 0.1);
+    border-radius: var(--radius-md);
+}
+
+/* --------------------------------------------------------------------------
+   8. Dashboard Layout
+   -------------------------------------------------------------------------- */
+.app-container {
+    display: flex;
+    min-height: 100vh;
+}
+
+.mobile-topbar {
+    display: none;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--bg-sidebar);
+    border-bottom: 1px solid var(--border-color);
+    position: sticky;
+    top: 0;
+    z-index: 200;
+}
+
+.mobile-title {
+    font-weight: 600;
+}
+
+.sidebar-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.4);
+    z-index: 90;
+}
+
+.sidebar {
+    width: 260px;
+    background: var(--bg-sidebar);
+    border-right: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    overflow-y: auto;
+    z-index: 100;
+}
+
+.sidebar-header {
+    padding: var(--spacing-lg);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.brand {
+    font-size: var(--font-size-xl);
+    font-weight: bold;
+    color: var(--primary-color);
+}
+
+.sidebar .nav {
+    flex: 1;
+    padding: var(--spacing-md);
+    list-style: none;
+    margin: 0;
+}
+
+.sidebar .nav-item {
+    margin-bottom: var(--spacing-xs);
+}
+
+.sidebar .nav-item a,
+.sidebar .nav-link {
+    display: block;
+    padding: 0.75rem 1rem;
+    color: var(--text-secondary);
+    text-decoration: none;
+    border-radius: var(--radius-md);
+    transition: all var(--transition-fast);
+}
+
+.sidebar .nav-item:hover a,
+.sidebar .nav-item.active a,
+.sidebar .nav-link:hover {
+    background-color: var(--gray-100);
+    color: var(--text-primary);
+}
+
+.sidebar .nav-item.active a {
+    background-color: rgba(26, 115, 232, 0.1);
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+.user-profile {
+    padding: var(--spacing-md);
+    border-top: 1px solid var(--border-color);
+    margin-top: auto;
+}
+
+.main-content {
+    flex: 1;
+    margin-left: 260px;
+    padding: var(--spacing-xl);
+    overflow-y: auto;
+    min-height: 100vh;
+}
+
+/* --------------------------------------------------------------------------
+   9. View Sections
+   -------------------------------------------------------------------------- */
+.view-section {
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* --------------------------------------------------------------------------
+   10. Tabs
+   -------------------------------------------------------------------------- */
+.tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: var(--spacing-lg);
+}
+
+.tab {
+    padding: 0.75rem 1.5rem;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    color: var(--text-secondary);
+    transition: all var(--transition-fast);
+}
+
+.tab:hover {
+    color: var(--text-primary);
+}
+
+.tab.active {
+    border-bottom-color: var(--primary-color);
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+/* --------------------------------------------------------------------------
+   11. Card Grid
+   -------------------------------------------------------------------------- */
+.card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: var(--spacing-lg);
+    margin-bottom: var(--spacing-xl);
+}
+
+
+/* --------------------------------------------------------------------------
+   12. Navbar (for standalone pages)
+   -------------------------------------------------------------------------- */
+.navbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-md) var(--spacing-lg);
+    background-color: var(--white);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.navbar-brand {
+    font-size: var(--font-size-xl);
+    font-weight: bold;
+    color: var(--primary-color);
+    text-decoration: none;
+}
+
+/* --------------------------------------------------------------------------
+   13. List Groups
+   -------------------------------------------------------------------------- */
+.list-group {
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+    border-radius: var(--radius-lg);
+}
+
+.list-group-item {
+    position: relative;
+    display: block;
+    padding: var(--spacing-md) var(--spacing-lg);
+    color: var(--text-primary);
+    text-decoration: none;
+    background-color: var(--white);
+    border: 1px solid var(--border-color);
+    border-width: 0 0 1px 0;
+}
+
+.list-group-item:first-child {
+    border-top-left-radius: var(--radius-lg);
+    border-top-right-radius: var(--radius-lg);
+}
+
+.list-group-item:last-child {
+    border-bottom: 0;
+    border-bottom-left-radius: var(--radius-lg);
+    border-bottom-right-radius: var(--radius-lg);
+}
+
+.list-group-item-action:hover {
+    background-color: var(--gray-100);
+}
+
+.list-group-flush>.list-group-item {
+    border-radius: 0;
+}
+
+/* --------------------------------------------------------------------------
+   14. Badges
+   -------------------------------------------------------------------------- */
+.badge {
+    display: inline-block;
+    padding: 0.25em 0.5em;
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: baseline;
+    border-radius: var(--radius-sm);
+}
+
+/* Background color utilities (Bootstrap 5 compatible) */
+.bg-primary {
+    background-color: var(--primary-color) !important;
+    color: var(--white);
+}
+
+.bg-secondary {
+    background-color: var(--secondary-color) !important;
+    color: var(--white);
+}
+
+.bg-success {
+    background-color: var(--success-color) !important;
+    color: var(--white);
+}
+
+.bg-warning {
+    background-color: var(--warning-color) !important;
+    color: var(--gray-900);
+}
+
+.bg-danger {
+    background-color: var(--danger-color) !important;
+    color: var(--white);
+}
+
+.bg-info {
+    background-color: var(--info-color) !important;
+    color: var(--white);
+}
+
+/* --------------------------------------------------------------------------
+   15. Tables
+   -------------------------------------------------------------------------- */
+.table {
+    width: 100%;
+    margin-bottom: var(--spacing-md);
+    color: var(--text-primary);
+    border-collapse: collapse;
+}
+
+.table th,
+.table td {
+    padding: var(--spacing-md);
+    vertical-align: top;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.table thead th {
+    vertical-align: bottom;
+    border-bottom-width: 2px;
+    font-weight: 600;
+    background-color: var(--gray-100);
+}
+
+.table-hover tbody tr:hover {
+    background-color: var(--gray-100);
+}
+
+/* --------------------------------------------------------------------------
+   16. Modals (Bootstrap-compatible)
+   -------------------------------------------------------------------------- */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1055;
+    display: none;
+    width: 100%;
+    height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    outline: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal.show {
+    display: block;
+}
+
+.modal-dialog {
+    position: relative;
+    width: auto;
+    margin: 1.75rem auto;
+    max-width: 500px;
+}
+
+/* --------------------------------------------------------------------------
+   17. UX Standardization Components (New)
+   -------------------------------------------------------------------------- */
+
+/* Standalone Navbar (for Builders/Players) */
+.navbar-standalone {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-md) var(--spacing-xl);
+    background-color: var(--white);
+    border-bottom: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+.navbar-standalone .brand {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.navbar-standalone .actions {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.navbar-standalone .session-title {
+    min-width: 0;
+    max-width: 320px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Icon Buttons */
+.btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border-radius: var(--radius-md);
+    transition: all var(--transition-fast);
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text-secondary);
+}
+
+.btn-icon:hover {
+    background-color: var(--gray-100);
+    color: var(--text-primary);
+}
+
+.btn-icon.btn-danger-soft {
+    color: var(--danger-color);
+}
+
+.btn-icon.btn-danger-soft:hover {
+    background-color: rgba(220, 53, 69, 0.1);
+    color: var(--danger-color);
+    border-color: rgba(220, 53, 69, 0.2);
+}
+
+/* Visual Empty States */
+.empty-state-visual {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-2xl);
+    text-align: center;
+    color: var(--text-secondary);
+    background-color: var(--gray-100);
+    border-radius: var(--radius-lg);
+    border: 2px dashed var(--border-color);
+    min-height: 200px;
+}
+
+.empty-state-icon {
+    font-size: 3rem;
+    margin-bottom: var(--spacing-md);
+    opacity: 0.5;
+}
+
+.empty-state-title {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    margin-bottom: var(--spacing-xs);
+    color: var(--text-primary);
+}
+
+.empty-state-text {
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+    max-width: 300px;
+    margin-bottom: var(--spacing-md);
+}
+
+/* Error Overlay (for Players) */
+.error-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: var(--bg-body);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+}
+
+.error-content {
+    text-align: center;
+    max-width: 400px;
+    padding: var(--spacing-xl);
+}
+
+.modal-dialog-lg {
+    max-width: 800px;
+}
+
+.modal-content {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    background-color: var(--white);
+    background-clip: padding-box;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xl);
+}
+
+.modal-header {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-lg);
+    border-bottom: 1px solid var(--border-color);
+    border-top-left-radius: var(--radius-lg);
+    border-top-right-radius: var(--radius-lg);
+}
+
+.modal-title {
+    margin: 0;
+    font-size: var(--font-size-xl);
+    font-weight: 600;
+}
+
+.modal-body {
+    position: relative;
+    flex: 1 1 auto;
+    padding: var(--spacing-lg);
+}
+
+.modal-footer {
+    display: flex;
+    flex-wrap: wrap;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-md) var(--spacing-lg);
+    border-top: 1px solid var(--border-color);
+    border-bottom-left-radius: var(--radius-lg);
+    border-bottom-right-radius: var(--radius-lg);
+}
+
+.btn-close {
+    box-sizing: content-box;
+    width: 1em;
+    height: 1em;
+    padding: 0.25em 0.25em;
+    color: var(--text-primary);
+    background: transparent url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23000'%3e%3cpath d='M.293.293a1 1 0 011.414 0L8 6.586 14.293.293a1 1 0 111.414 1.414L9.414 8l6.293 6.293a1 1 0 01-1.414 1.414L8 9.414l-6.293 6.293a1 1 0 01-1.414-1.414L6.586 8 .293 1.707a1 1 0 010-1.414z'/%3e%3c/svg%3e") center/1em auto no-repeat;
+    border: 0;
+    border-radius: 0.25rem;
+    opacity: 0.5;
+    cursor: pointer;
+}
+
+.btn-close:hover {
+    opacity: 1;
+}
+
+/* --------------------------------------------------------------------------
+   17. Session Player Specific
+   -------------------------------------------------------------------------- */
+.session-timer {
+    font-family: 'Courier New', monospace;
+    font-size: var(--font-size-2xl);
+    font-weight: bold;
+    color: var(--primary-color);
+}
+
+.content-area {
+    background: var(--gray-100);
+    padding: var(--spacing-xl);
+    border-radius: var(--radius-lg);
+    font-size: var(--font-size-lg);
+    line-height: 1.6;
+    min-height: 50vh;
+    border: 1px solid var(--border-color);
+}
+
+/* --------------------------------------------------------------------------
+   18. Assessment & Builder Specific
+   -------------------------------------------------------------------------- */
+.question-card {
+    background: var(--white);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--spacing-md);
+    padding: var(--spacing-lg);
+    box-shadow: var(--shadow-sm);
+}
+
+.phase-card {
+    background: var(--gray-100);
+    border: 1px solid var(--border-color);
+    margin-bottom: var(--spacing-md);
+    padding: var(--spacing-md);
+    border-radius: var(--radius-lg);
+}
+
+.content-item-draggable {
+    cursor: move;
+    background: var(--white);
+    padding: var(--spacing-sm);
+    border: 1px solid var(--gray-300);
+    margin-bottom: var(--spacing-sm);
+    border-radius: var(--radius-md);
+}
+
+.phase-content-area {
+    min-height: 100px;
+    background: var(--white);
+    border: 2px dashed var(--gray-300);
+    padding: var(--spacing-sm);
+    border-radius: var(--radius-md);
+}
+
+.border-dashed {
+    border: 2px dashed var(--border-color) !important;
+}
+
+.cursor-pointer {
+    cursor: pointer;
+}
+
+/* --------------------------------------------------------------------------
+   19. Responsive Adjustments
+   -------------------------------------------------------------------------- */
+@media (max-width: 768px) {
+    .navbar-standalone {
+        flex-direction: column;
+        align-items: stretch;
+        gap: var(--spacing-sm);
+        padding: var(--spacing-md);
+    }
+
+    .navbar-standalone .brand {
+        justify-content: space-between;
+    }
+
+    .navbar-standalone .actions {
+        width: 100%;
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        gap: var(--spacing-sm);
+    }
+
+    .navbar-standalone .session-title {
+        flex: 1 1 100%;
+        max-width: 100%;
+    }
+
+    .sidebar {
+        position: fixed;
+        width: 260px;
+        height: 100vh;
+        transform: translateX(-100%);
+        transition: transform var(--transition-slow);
+        z-index: 300;
+    }
+
+    .main-content {
+        margin-left: 0;
+    }
+
+    .app-container {
+        flex-direction: column;
+    }
+
+    .card-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .mobile-topbar {
+        display: flex;
+    }
+
+    body.sidebar-open .sidebar {
+        transform: translateX(0);
+    }
+
+    body.sidebar-open .sidebar-backdrop {
+        display: block;
+    }
+}
+
+/* --------------------------------------------------------------------------
+   20. Empty States, Alerts & Autofill
+   -------------------------------------------------------------------------- */
+
+/* Empty State Container */
+.empty-state {
+    text-align: center;
+    padding: var(--spacing-2xl);
+    color: var(--text-muted);
+}
+
+.empty-state h4 {
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-sm);
+}
+
+.empty-state p {
+    margin-bottom: var(--spacing-lg);
+}
+
+/* Alert Messages */
+.alert {
+    position: relative;
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+}
+
+.alert-danger {
+    color: #842029;
+    background-color: #f8d7da;
+    border-color: #f5c2c7;
+}
+
+.alert-warning {
+    color: #664d03;
+    background-color: #fff3cd;
+    border-color: #ffecb5;
+}
+
+.alert-success {
+    color: #0f5132;
+    background-color: #d1e7dd;
+    border-color: #badbcc;
+}
+
+.alert-info {
+    color: #055160;
+    background-color: #cff4fc;
+    border-color: #b6effb;
+}
+
+/* Normalize Autofill Styling (especially important for dark mode) */
+body.theme-dark input:-webkit-autofill,
+body.theme-dark input:-webkit-autofill:hover,
+body.theme-dark input:-webkit-autofill:focus,
+body.theme-dark textarea:-webkit-autofill,
+body.theme-dark textarea:-webkit-autofill:hover,
+body.theme-dark textarea:-webkit-autofill:focus,
+body.theme-dark select:-webkit-autofill,
+body.theme-dark select:-webkit-autofill:hover,
+body.theme-dark select:-webkit-autofill:focus {
+    /* Chrome forces a light autofill background unless overridden via box-shadow */
+    background-color: var(--bg-sidebar) !important;
+    -webkit-box-shadow: 0 0 0 1000px var(--bg-sidebar) inset !important;
+    box-shadow: 0 0 0 1000px var(--bg-sidebar) inset !important;
+    -webkit-text-fill-color: var(--text-primary) !important;
+    caret-color: var(--text-primary) !important;
+    border-color: var(--border-color) !important;
+    background-clip: padding-box;
+    transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Standards-based autofill selector (supported in newer browsers) */
+body.theme-dark input:autofill,
+body.theme-dark textarea:autofill,
+body.theme-dark select:autofill {
+    background-color: var(--bg-sidebar) !important;
+    box-shadow: 0 0 0 1000px var(--bg-sidebar) inset !important;
+    -webkit-text-fill-color: var(--text-primary) !important;
+    caret-color: var(--text-primary) !important;
+    border-color: var(--border-color) !important;
+}
+
+/* --------------------------------------------------------------------------
+   21. Chat Container (AI Tutor)
+   -------------------------------------------------------------------------- */
+.chat-container {
+    height: 60vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.chat-history {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--spacing-lg);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.chat-input-form {
+    display: flex;
+    padding: var(--spacing-md);
+    gap: var(--spacing-sm);
+}
+
+.chat-input-form .form-control {
+    flex: 1;
+}
+
+/* --------------------------------------------------------------------------
+   22. Pre-wrap utility
+   -------------------------------------------------------------------------- */
+.pre-wrap {
+    white-space: pre-wrap;
+    overflow-x: auto;
+}
+
+/* --------------------------------------------------------------------------
+   23. Additional Utility Classes (Inline Style Replacement)
+   -------------------------------------------------------------------------- */
+
+/* User profile display name */
+.user-name-display {
+    font-weight: 600;
+    margin-bottom: var(--spacing-sm);
+}
+
+/* Filter dropdown width */
+.filter-select {
+    width: 150px;
+}
+
+/* Content preview area */
+.content-preview {
+    min-height: 200px;
+    white-space: pre-wrap;
+}
+
+/* Scrollable panel (70vh) */
+.scrollable-panel {
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+/* Scrollable content area (60vh) */
+.scrollable-content {
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+/* Session notes textarea */
+.notes-textarea {
+    resize: none;
+    min-height: 400px;
+}
+
+/* Points input field */
+.points-input {
+    width: 100px;
+}
+
+/* Phase name input */
+.phase-name-input {
+    width: 70%;
+}
+
+/* --------------------------------------------------------------------------
+   24. Activity & Chat Styles (Inline Style Replacement)
+   -------------------------------------------------------------------------- */
+
+/* Activity List Item */
+.activity-item {
+    padding: var(--spacing-sm) 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.activity-item:last-child {
+    border-bottom: none;
+}
+
+.activity-time {
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+}
+
+/* Chat Message Bubbles */
+.chat-message {
+    margin: var(--spacing-sm) 0;
+}
+
+.chat-message-user {
+    text-align: right;
+}
+
+.chat-message-user .chat-bubble {
+    background: #e8f0fe;
+    padding: var(--spacing-sm);
+    border-radius: var(--radius-full);
+    display: inline-block;
+}
+
+.chat-message-ai {
+    text-align: left;
+}
+
+.chat-message-ai .chat-bubble {
+    background: var(--gray-100);
+    padding: var(--spacing-sm);
+    border-radius: var(--radius-full);
+    display: inline-block;
+}
+
+/* Small text utility */
+.text-sm {
+    font-size: var(--font-size-sm);
+}
+
+/* --------------------------------------------------------------------------
+   25. Page Headers - Dashboard Section Titles
+   -------------------------------------------------------------------------- */
+.page-header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-lg);
+    padding-bottom: var(--spacing-sm);
+    border-bottom: 2px solid var(--border-light);
+    font-size: var(--font-size-2xl);
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+
+/* Page header in cards (assessment builder, study plan builder style) */
+.page-header-standalone {
+    margin-bottom: var(--spacing-lg);
+    font-size: var(--font-size-2xl);
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* --------------------------------------------------------------------------
+   26. Step Indicator Component (Course Designer)
+   -------------------------------------------------------------------------- */
+.step-indicator {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: var(--spacing-xl);
+    position: relative;
+}
+
+.step-indicator::before {
+    content: '';
+    position: absolute;
+    top: 15px;
+    left: 10%;
+    right: 10%;
+    height: 2px;
+    background: var(--border-color);
+    z-index: 1;
+}
+
+.step {
+    position: relative;
+    z-index: 2;
+    background: var(--bg-body);
+    padding: 0 var(--spacing-md);
+    text-align: center;
+}
+
+.step-circle {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-full);
+    background: var(--gray-200);
+    color: var(--text-secondary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    margin-bottom: var(--spacing-xs);
+    transition: all var(--transition-normal);
+}
+
+.step.active .step-circle {
+    background: var(--primary-color);
+    color: var(--white);
+    box-shadow: 0 0 0 4px rgba(26, 115, 232, 0.2);
+}
+
+.step.completed .step-circle {
+    background: var(--success-color);
+    color: var(--white);
+}
+
+.step-label {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+}
+
+.step.active .step-label {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+/* --------------------------------------------------------------------------
+   27. Outline Tree Component (Course Designer)
+   -------------------------------------------------------------------------- */
+.outline-tree {
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-md);
+    max-height: 55vh;
+    overflow-y: auto;
+    background: var(--white);
+}
+
+.unit-item {
+    margin-bottom: var(--spacing-md);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+.unit-header {
+    background: var(--gray-100);
+    padding: var(--spacing-md);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.lesson-list {
+    padding: var(--spacing-sm);
+}
+
+.lesson-item {
+    padding: var(--spacing-sm) var(--spacing-md);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border-light);
+    transition: background var(--transition-fast);
+}
+
+.lesson-item:hover {
+    background: var(--gray-100);
+}
+
+.lesson-item:last-child {
+    border-bottom: none;
+}
+
+/* --------------------------------------------------------------------------
+   28. Drag & Drop Area Component
+   -------------------------------------------------------------------------- */
+.drag-area {
+    border: 2px dashed var(--gray-400);
+    padding: var(--spacing-2xl);
+    text-align: center;
+    cursor: pointer;
+    border-radius: var(--radius-lg);
+    transition: all var(--transition-normal);
+    background: var(--gray-100);
+}
+
+.drag-area:hover,
+.drag-area.active {
+    border-color: var(--primary-color);
+    background: rgba(26, 115, 232, 0.05);
+}
+
+.drag-area .icon {
+    font-size: 3rem;
+    margin-bottom: var(--spacing-sm);
+}
+
+/* --------------------------------------------------------------------------
+   29. Generation Log Component (Terminal Style)
+   -------------------------------------------------------------------------- */
+.gen-log {
+    height: 280px;
+    overflow-y: auto;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: var(--font-size-sm);
+    padding: var(--spacing-md);
+    background: var(--gray-900);
+    color: var(--gray-300);
+    border-radius: var(--radius-md);
+}
+
+/* --------------------------------------------------------------------------
+   30. Preview Panel Component
+   -------------------------------------------------------------------------- */
+.preview-panel {
+    min-height: 280px;
+    padding: var(--spacing-md);
+    background: var(--white);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+}
+
+/* --------------------------------------------------------------------------
+   31. Progress Timeline Component (Learning Path)
+   -------------------------------------------------------------------------- */
+.progress-timeline {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: var(--spacing-sm) 0;
+    overflow-x: auto;
+    scrollbar-width: thin;
+}
+
+.timeline-node {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    transition: transform var(--transition-fast);
+    min-width: 70px;
+    padding: var(--spacing-xs);
+}
+
+.timeline-node:hover {
+    transform: scale(1.1);
+}
+
+.timeline-node-circle {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    border: 2px solid var(--gray-300);
+    background: var(--white);
+    transition: all var(--transition-fast);
+}
+
+/* Completed state */
+.timeline-node.completed .timeline-node-circle {
+    background: var(--success-color);
+    border-color: var(--success-color);
+    color: var(--white);
+}
+
+/* Current/active state */
+.timeline-node.current .timeline-node-circle {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    color: var(--white);
+    box-shadow: 0 0 0 4px rgba(26, 115, 232, 0.2);
+}
+
+/* Upcoming/available state */
+.timeline-node.upcoming .timeline-node-circle {
+    background: var(--white);
+    border-color: var(--gray-300);
+    color: var(--gray-500);
+}
+
+.timeline-node-label {
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+    margin-top: var(--spacing-xs);
+    text-align: center;
+    max-width: 65px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.timeline-node.current .timeline-node-label {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+.timeline-connector {
+    flex: 0 0 30px;
+    height: 2px;
+    background: var(--gray-300);
+}
+
+.timeline-connector.completed {
+    background: var(--success-color);
+}
+
+/* --------------------------------------------------------------------------
+   26. Profile Avatar
+   -------------------------------------------------------------------------- */
+.profile-avatar {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+    color: var(--white);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    font-weight: 600;
+    letter-spacing: -1px;
+    box-shadow: var(--shadow-lg);
+}
+
+.user-name-display {
+    font-weight: 600;
+    margin-bottom: var(--spacing-sm);
+    color: var(--text-primary);
+}
+
+/* --------------------------------------------------------------------------
+   29. Dark Mode Component Overrides
+   -------------------------------------------------------------------------- */
+
+/* Chat Bubbles */
+body.theme-dark .chat-message-user .chat-bubble {
+    background-color: var(--primary-color);
+    color: var(--white);
+}
+
+body.theme-dark .chat-message-ai .chat-bubble {
+    background-color: var(--gray-700);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+/* Dropdowns (Bootstrap override) */
+body.theme-dark .dropdown-menu {
+    background-color: var(--bg-card);
+    border-color: var(--border-color);
+    box-shadow: var(--shadow-lg);
+}
+
+body.theme-dark .dropdown-item {
+    color: var(--text-primary);
+}
+
+body.theme-dark .dropdown-item:hover,
+body.theme-dark .dropdown-item:focus {
+    background-color: var(--gray-700);
+    color: var(--white);
+}
+
+body.theme-dark .dropdown-divider {
+    border-top-color: var(--border-color);
+}
+
+/* Modal Close Button */
+body.theme-dark .btn-close {
+    filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+/* Select Options (fixes some browser defaults) */
+body.theme-dark option {
+    background-color: var(--bg-card);
+    color: var(--text-primary);
+}
+
+/* --------------------------------------------------------------------------
+   30. Legacy Bootstrap Utility Overrides (Minimal)
+   --------------------------------------------------------------------------
+   These overrides handle cases where Bootstrap utilities are still used.
+   Prefer using semantic classes (bg-surface, bg-elevated, text-body) instead.
+   -------------------------------------------------------------------------- */
+
+/* Keep shadow darker in dark mode for visibility */
+body.theme-dark .shadow-lg {
+    box-shadow: 0 10px 15px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* --------------------------------------------------------------------------
+   31. Error Pages (404, 500, etc.)
+   -------------------------------------------------------------------------- */
+.error-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.error-code {
+    font-size: 8rem;
+    font-weight: bold;
+    color: var(--bs-primary);
+    opacity: 0.2;
+    line-height: 1;
+}
+
+.error-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+}

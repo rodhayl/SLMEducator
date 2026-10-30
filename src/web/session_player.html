@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Learning Session - SLM Educator</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/css/main.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+
+<body>
+
+    <!-- Standalone Header -->
+    <nav class="navbar-standalone">
+        <div class="brand">SLM Educator <span class="badge bg-success ms-2" data-i18n="session_player.badge">Session
+                Player</span></div>
+        <div class="actions d-flex align-items-center gap-2">
+            <span id="session-content-title" class="fw-bold text-muted session-title me-3"
+                data-i18n="session_player.loading">Loading...</span>
+
+            <!-- Accessibility & Focus -->
+            <div class="btn-group btn-group-sm me-2">
+                <button class="btn btn-outline-secondary" onclick="adjustFontSize(-1)" title="Smaller Text">A-</button>
+                <button class="btn btn-outline-secondary" onclick="adjustFontSize(1)" title="Larger Text">A+</button>
+            </div>
+            <button class="btn btn-outline-secondary btn-sm me-2" onclick="toggleFocusMode()"
+                title="Focus Mode">👁️</button>
+
+            <span id="session-timer" class="badge bg-elevated text-body border p-2 session-timer"
+                style="font-size: 1rem;">00:00:00</span>
+            <a href="/dashboard.html" class="btn btn-close ms-2" aria-label="Exit"></a>
+            <button class="btn btn-outline-danger btn-sm ms-2" onclick="endSessionUI()"
+                data-i18n="session_player.end_session">End Session</button>
+        </div>
+    </nav>
+
+    <!-- Error Overlay (Hidden by default) -->
+    <div id="error-overlay" class="error-overlay d-none">
+        <div class="error-content bg-surface shadow-lg rounded">
+            <div class="error-icon mb-3" style="font-size: 3rem;">⚠️</div>
+            <h3 class="error-title" data-i18n="session_player.error.title">Content Not Found</h3>
+            <p class="error-text text-muted mb-4" data-i18n="session_player.error.message">The learning content you
+                requested could not be loaded.</p>
+            <a href="/dashboard.html" class="btn btn-primary" data-i18n="session_player.error.return_dashboard">Return
+                to Dashboard</a>
+        </div>
+    </div>
+
+    <div class="container-fluid py-4 h-100">
+        <div class="row h-100">
+            <!-- Plan Sidebar (shown when plan_id provided) -->
+            <div class="col-md-3 d-none" id="plan-sidebar-container">
+                <div class="card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span id="plan-title" data-i18n="session_player.plan_sidebar.title">Study Plan</span>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="togglePlanSidebar()">×</button>
+                    </div>
+                    <div class="card-body p-2 overflow-auto" style="max-height: calc(100vh - 200px);">
+                        <div id="plan-contents-list">
+                            <!-- Content items injected here -->
+                        </div>
+                    </div>
+                    <div class="card-footer text-muted small">
+                        <span id="completed-count">0/0 completed</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-9" id="main-content-col">
+                <div id="session-content-body" class="content-area">
+                    <!-- Content injected here -->
+                </div>
+                <div class="mt-3 d-flex justify-content-end">
+                    <button id="exit-session-btn" class="btn btn-success" onclick="endSessionUI()"
+                        data-i18n="session_player.complete">Complete</button>
+                </div>
+
+                <!-- Navigation Buttons (shown when plan_id provided) -->
+                <div class="d-none mt-3" id="plan-navigation">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <button class="btn btn-outline-primary" id="prev-content-btn" onclick="navigatePlanContent(-1)"
+                            data-i18n="session_player.navigation.previous">
+                            ← Previous
+                        </button>
+                        <span class="text-muted" id="content-position">1 of 5</span>
+                        <button class="btn btn-primary" id="next-content-btn" onclick="navigatePlanContent(1)"
+                            data-i18n="session_player.navigation.next">
+                            Next →
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar / Notes & Annotations -->
+            <div class="col-md-3" id="notes-sidebar-col">
+                <div class="card h-100">
+                    <div class="card-header p-0">
+                        <ul class="nav nav-tabs card-header-tabs">
+                            <li class="nav-item">
+                                <a class="nav-link active" id="notes-tab" data-bs-toggle="tab" href="#notes-panel"
+                                    data-i18n="session_player.notes.tab_title">📝
+                                    Notes</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" id="annotations-tab" data-bs-toggle="tab" href="#annotations-panel"
+                                    data-i18n="session_player.annotations.tab_title">
+                                    💬 Annotations <span id="annotation-count" class="badge bg-secondary ms-1"
+                                        style="display:none;">0</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="card-body p-0 tab-content">
+                        <!-- Notes Tab -->
+                        <div class="tab-pane fade show active h-100 d-flex flex-column" id="notes-panel">
+                            <textarea id="session-notes" class="form-control border-0 notes-textarea flex-grow-1"
+                                data-i18n-placeholder="session_player.notes.placeholder"
+                                placeholder="Type your notes here..." style="resize: none;"></textarea>
+                            <div class="px-2 py-1 border-top d-flex justify-content-between align-items-center"
+                                style="font-size: 0.75rem;">
+                                <span id="notes-save-status" class="text-muted"
+                                    data-i18n="session_player.notes.status_default">📝 Notes auto-saved</span>
+                                <span id="notes-last-saved" class="text-muted"></span>
+                            </div>
+                        </div>
+                        <!-- Annotations Tab -->
+                        <div class="tab-pane fade h-100" id="annotations-panel">
+                            <div class="p-2">
+                                <div class="mb-2">
+                                    <div class="input-group input-group-sm">
+                                        <input type="text" id="annotation-input" class="form-control"
+                                            data-i18n-placeholder="session_player.annotations.input_placeholder"
+                                            placeholder="Add a comment or question...">
+                                        <select id="annotation-type" class="form-select" style="max-width: 100px;">
+                                            <option value="comment" data-i18n="session_player.annotations.type_comment">
+                                                💬</option>
+                                            <option value="question"
+                                                data-i18n="session_player.annotations.type_question">❓</option>
+                                            <option value="highlight"
+                                                data-i18n="session_player.annotations.type_highlight">🔖</option>
+                                        </select>
+                                        <button class="btn btn-primary" onclick="addAnnotation()"
+                                            data-i18n="session_player.annotations.add_button">Add</button>
+                                    </div>
+                                    <div class="form-check form-check-inline mt-1">
+                                        <input class="form-check-input" type="checkbox" id="annotation-public" checked>
+                                        <label class="form-check-label small" for="annotation-public"
+                                            data-i18n="session_player.annotations.visible_to_teacher">Visible to
+                                            teacher</label>
+                                    </div>
+                                </div>
+                                <hr class="my-2">
+                                <div id="annotations-list" style="max-height: calc(100vh - 350px); overflow-y: auto;">
+                                    <div class="text-muted text-center py-3 small">
+                                        <div data-i18n="session_player.annotations.empty_message">No annotations yet
+                                        </div>
+                                        <div class="mt-1" data-i18n="session_player.annotations.empty_hint">Add comments
+                                            or questions about this content</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- End Session Modal -->
+    <div class="modal fade" id="endSessionModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" data-i18n="session_player.end_modal.title">Session Summary</h5>
+                </div>
+                <div class="modal-body">
+                    <p><span data-i18n="session_player.end_modal.duration">Session Duration</span>: <span
+                            id="final-time"></span></p>
+                    <div class="mb-3">
+                        <label class="form-label" data-i18n="session_player.end_modal.difficulty_label">Rate Difficulty
+                            (1-5)</label>
+                        <select class="form-select" id="difficulty-rating">
+                            <option value="1" data-i18n="session_player.end_modal.difficulty_very_easy">1 - Very Easy
+                            </option>
+                            <option value="2" data-i18n="session_player.end_modal.difficulty_easy">2 - Easy</option>
+                            <option value="3" data-i18n="session_player.end_modal.difficulty_moderate">3 - Moderate
+                            </option>
+                            <option value="4" data-i18n="session_player.end_modal.difficulty_hard">4 - Hard</option>
+                            <option value="5" data-i18n="session_player.end_modal.difficulty_very_hard">5 - Very Hard
+                            </option>
+                        </select>
+                        <small class="text-muted" data-i18n="session_player.end_modal.difficulty_hint">This helps the AI
+                            schedule your next review.</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"
+                        data-i18n="session_player.end_modal.resume_button">Resume</button>
+                    <button type="button" class="btn btn-success" onclick="confirmEndSession()"
+                        data-i18n="session_player.end_modal.end_button">End Session</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/theme.js"></script>
+    <script src="/static/js/i18n.js"></script>
+    <script src="/static/js/toast.js"></script>
+    <script type="module" src="/static/js/auth.js?v=20260204"></script>
+    <script src="/static/js/session.js"></script>
+    <script>
+        // Initialize i18n when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.I18nService) {
+                window.I18nService.init().then(() => {
+                    window.I18nService.translatePage();
+                });
+            }
+        });
+    </script>
+</body>
+
+</html>

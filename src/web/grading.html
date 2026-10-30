@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grading - SLM Educator</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/css/main.css" rel="stylesheet">
+</head>
+
+<body>
+
+    <!-- Standalone Navbar -->
+    <nav class="navbar-standalone">
+        <div class="brand">SLM Educator <span class="badge bg-info ms-2" data-i18n="navigation.grading">Grading</span></div>
+        <div class="actions">
+            <a href="dashboard.html" class="btn btn-outline-secondary btn-sm" data-i18n="navigation.dashboard">Dashboard</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h2 class="page-header-standalone" data-i18n="grading.title">✅ Grading Dashboard</h2>
+
+        <div class="row">
+            <!-- Sidebar: Submission List -->
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h5 class="mb-0" data-i18n="grading.labels.submissions">Submissions</h5>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="loadSubmissions()"
+                                data-i18n="common.buttons.refresh">Refresh</button>
+                        </div>
+                        <!-- Filter Tabs -->
+                        <div class="btn-group btn-group-sm w-100" role="group" id="grading-filter-tabs">
+                            <button type="button" class="btn btn-outline-secondary active" onclick="filterSubmissions('all', this)"
+                                data-i18n="grading.filters.all">All</button>
+                            <button type="button" class="btn btn-outline-warning" onclick="filterSubmissions('pending', this)"
+                                data-i18n="grading.filters.pending">Pending</button>
+                            <button type="button" class="btn btn-outline-success" onclick="filterSubmissions('graded', this)"
+                                data-i18n="grading.filters.graded">Graded</button>
+                        </div>
+                    </div>
+                    <div class="card-body p-0 overflow-auto scrollable-panel">
+                        <div class="list-group list-group-flush" id="submission-list">
+                            <!-- Items inserted here -->
+                            <div class="text-center p-3 text-muted" data-i18n="common.labels.loading">Loading...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- Main: Grading Area -->
+            <div class="col-md-8">
+                <div id="grading-area" class="card h-100 hidden">
+                    <div class="card-header">
+                        <h5 id="submission-title">Student Name - Assessment Title</h5>
+                        <span class="badge bg-warning text-body" id="submission-status" data-i18n="grading.status.pending">Pending</span>
+                    </div>
+                    <div class="card-body overflow-auto scrollable-content">
+                        <!-- Student Answers -->
+                        <div id="answers-container">
+                            <!-- Question + Answer Blocks -->
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <!-- AI Actions (shown for AI-graded submissions) -->
+                        <div id="ai-actions" class="mb-3 hidden">
+                            <div class="d-flex gap-2 flex-wrap">
+                                <button type="button" class="btn btn-success" onclick="acceptAllAiGrades()">
+                                    <span data-i18n="grading.buttons.accept_all_ai">✓ Accept All AI Suggestions</span>
+                                </button>
+                                <span id="ai-summary" class="text-muted small align-self-center"></span>
+                            </div>
+                        </div>
+
+                        <form id="grading-form">
+                            <div class="row align-items-end">
+                                <div class="col-md-4">
+                                    <label class="form-label" data-i18n="grading.labels.final_score">Final Score</label>
+                                    <input type="number" id="grade-score" class="form-control" placeholder="0-100"
+                                        data-i18n-placeholder="grading.placeholders.grade_score">
+                                </div>
+                                <div class="col-md-8">
+                                    <label class="form-label" data-i18n="grading.labels.feedback">Feedback</label>
+                                    <textarea id="grade-feedback" class="form-control" rows="2"
+                                        placeholder="Great job, but watch out for..."
+                                        data-i18n-placeholder="grading.placeholders.grade_feedback"></textarea>
+                                </div>
+                            </div>
+                            <div class="mt-3 text-end">
+                                <button type="button" class="btn btn-primary" onclick="submitGrade()"
+                                    data-i18n="grading.buttons.submit_grade">Submit Grade</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div id="grading-placeholder"
+                    class="card h-100 d-flex align-items-center justify-content-center text-muted">
+                    <div data-i18n="grading.placeholders.select_submission">Select a submission to start grading</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Template for list item -->
+    <template id="submission-item-template">
+        <a href="javascript:void(0)" class="list-group-item list-group-item-action" onclick="selectSubmission(this)">
+            <div class="d-flex w-100 justify-content-between">
+                <h6 class="mb-1 student-name">Student Name</h6>
+                <small class="submission-date">3 days ago</small>
+            </div>
+            <p class="mb-1 assessment-title">Assessment Title</p>
+            <small class="status-badge badge bg-secondary">Pending</small>
+        </a>
+    </template>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/theme.js"></script>
+    <script src="/static/js/i18n.js"></script>
+    <script src="/static/js/toast.js"></script>
+    <script type="module" src="/static/js/auth.js?v=20260204"></script>
+    <script src="/static/js/grading.js"></script>
+    <script>
+        // Initialize i18n when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.I18nService) {
+                window.I18nService.init().then(() => {
+                    window.I18nService.translatePage();
+                });
+            }
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Study Plan - SLM Educator</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/css/main.css" rel="stylesheet">
+</head>
+
+<body>
+
+    <!-- Standalone Navbar -->
+    <nav class="navbar-standalone">
+        <div class="brand">SLM Educator <span class="badge bg-warning text-body ms-2">Study Plan Builder</span></div>
+        <div class="actions">
+            <button id="save-plan-btn" class="btn btn-primary" onclick="saveStudyPlan()">Save Plan</button>
+            <a href="/dashboard.html" class="btn btn-close" aria-label="Exit"></a>
+        </div>
+    </nav>
+
+    <div class="container py-4">
+        <!-- Replaced page-header-standalone with standard spacing -->
+        <div class="row mt-4">
+            <!-- Sidebar: Available Content -->
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="mb-2">Available Content</h5>
+                        <input type="text" id="content-search" class="form-control form-control-sm"
+                            placeholder="Search...">
+                    </div>
+                    <div class="card-body overflow-auto scrollable-panel">
+                        <div id="source-content-list">
+                            <div class="empty-state-visual p-3" style="min-height: 150px;">
+                                <div class="empty-state-icon" style="font-size: 1.5rem;">📚</div>
+                                <h6 class="empty-state-title" style="font-size: 1rem;">Loading...</h6>
+                                <p class="empty-state-text" style="font-size: 0.8rem;">Fetching your library items</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main: Plan Structure -->
+            <div class="col-md-8">
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <label class="form-label">Plan Title</label>
+                        <input type="text" id="plan-title" class="form-control mb-3"
+                            placeholder="e.g. Introduction to Physics">
+
+                        <label class="form-label">Description</label>
+                        <textarea id="plan-description" class="form-control mb-3" rows="2"></textarea>
+
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="plan-public">
+                            <label class="form-check-label">Make Public</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="phases-container">
+                    <!-- Phases go here -->
+                </div>
+
+                <button class="btn btn-outline-secondary w-100 mb-4" onclick="addPhase()">+ Add Phase</button>
+
+                <div class="d-grid gap-2">
+                    <button class="btn btn-primary" onclick="saveStudyPlan()">Save Study Plan</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Templates -->
+    <template id="phase-template">
+        <div class="phase-card" data-phase-index="">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="drag-handle me-2" style="cursor: grab; font-size: 1.2rem;" title="Drag to reorder">≡</span>
+                <input type="text" class="form-control fw-bold phase-name-input flex-grow-1"
+                    placeholder="Phase Name (e.g. Week 1)">
+                <button class="btn btn-sm btn-outline-danger ms-2" onclick="removePhase(this)">Remove</button>
+            </div>
+            <div class="phase-content-area" ondrop="drop(event)" ondragover="allowDrop(event)">
+                <small class="text-muted text-center d-block pt-4">Drag content here</small>
+            </div>
+        </div>
+    </template>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <script src="/static/js/theme.js"></script>
+    <script src="/static/js/i18n.js"></script>
+    <script src="/static/js/toast.js"></script>
+    <script type="module" src="/static/js/auth.js?v=20260204"></script>
+    <script type="module" src="/static/js/study_plan_builder.js"></script>
+    <script>
+        // Initialize i18n when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.I18nService) {
+                window.I18nService.init().then(() => {
+                    window.I18nService.translatePage();
+                });
+            }
+        });
+    </script>
+</body>
+
+</html>

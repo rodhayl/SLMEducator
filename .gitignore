@@ -1,0 +1,113 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+.venv/
+.tooling/
+
+# Environment variables and local config (SECURITY)
+.env
+.env.*
+!.env.example
+settings.properties
+env.properties
+!env.properties.example
+
+# IDE / editor folders
+.idea/
+.vscode/
+*.sublime-workspace
+*.sublime-project
+
+# Test caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pyre/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+test-results/
+playwright-report/
+
+# Build / distribution
+build/
+dist/
+Dist/
+*.egg-info/
+*.egg
+
+# Logs and temporary files
+logs/
+api.log
+starter_debug.log
+*.log
+*.tmp
+*.bak
+*.swp
+*.swo
+
+# Database files
+*.db
+*.sqlite3
+*.db-wal
+*.db-shm
+
+# Temporary scripts and development helpers
+add_*.py
+fix_*.py
+clean_*.py
+append_*.py
+remove_*.py
+update_*.py
+debug_*.py
+patch_*.py
+verify_*.py
+check_*.py
+
+# Debug logs
+*_debug.txt
+debug_log.txt
+ai_test_output.txt
+
+# Miscellaneous
+.DS_Store
+temp/
+data/
+exports/
+imports/
+_export/
+.playwright-browsers/
+SLMEducator.spec
+
+# Test output files
+*_test_output.txt
+
+# Debug/verification scripts (should not be committed)
+verify_*.py
+inspect_*.py
+reproduce_*.py
+diagnose_*.py
+setup_*.py
+tools-generic/AGENT_MEMORIES.md
+
+# Dated implementation documents (old working docs)
+implementation_documents/*202[0-9]*.md
+implementation_documents/*202[0-9]*.py
+
+# Keep current implementation docs
+!implementation_documents/AI_VERIFICATION_REPORT.md
+!implementation_documents/ai_verification_plan_*.md
+!implementation_documents/comprehensive_review_plan_*.md
+!implementation_documents/repro_grading_*.py
+
+# Local/manual QA artifacts (keep local, do not publish)
+/BROWSER_TEST.md
+!docs/BROWSER_TEST.md
+docs/TEST_SPECIFICATION.md
+docs/testing/UNIFIED_TEST_SCENARIOS.md
+docs/reports/TEST_REPORT_2025-01-07.md
